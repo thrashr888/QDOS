@@ -1,0 +1,578 @@
+<html>
+<head>
+    <title>QDOS -- Version 2.00</title>
+</head>
+<body>
+    <div id="main">
+    </div>
+
+    <script type="text/jsx">
+
+        function humanFileSize (bytes, si) {
+            var thresh = si ? 1000 : 1024;
+            if(Math.abs(bytes) < thresh) {
+                return bytes + ' B';
+            }
+            var units = si
+                ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+                : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+            var u = -1;
+            do {
+                bytes /= thresh;
+                ++u;
+            } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+            return bytes.toFixed(1)+' '+units[u];
+        }
+
+        function formatDate (datetime) {
+            // MM-DD-YY
+            return datetime;
+        }
+
+        function formatTime (datetime) {
+            // HH:MMa
+            return datetime;
+        }
+
+        var App = React.createClass({
+
+            apiHost: 'http://localhost:9333',
+
+            documentTitle: 'QDOS -- Version 2.00',
+
+            // Directory, Tag, View, Space, Find, Layout, Print
+            navDescriptions: {
+                directory: 'Change current directory, mark or remove directory, see directory tree',
+                tag: '',
+                view: '',
+                copy: '',
+                move: '',
+                find: '',
+                erase: '',
+                rename: '',
+                space: '',
+                attribute: '',
+                print: '',
+            },
+
+            propTypes: {
+                dir: React.PropTypes.string.isRequired
+            },
+
+            getInitialState: function() {
+                return {
+                    navDesc: "n/a",
+                    path: this.props.dir,
+                    prevPath: null,
+                    fileCount: 0,
+                    fileSize: 0,
+                    dirCount: 0,
+                    tagCount: 0,
+                    tagSize: 0,
+                    files: [],
+                    tagFiles: [],
+                    selectedFile: 0,
+                    error: null,
+                    navChoice: null
+                };
+            },
+
+            componentDidMount: function() {
+                this.updatePath.apply(this, [this.state.path]);
+                $(document.body).on('keydown', this.handleGlobalKeyDown.bind(this));
+            },
+
+            componentWillUnMount: function() {
+                $(document.body).off('keydown', this.handleGlobalKeyDown.bind(this));
+            },
+
+            handleGlobalKeyDown: function (event) {
+                var left = 37;
+                var up = 38;
+                var right = 39;
+                var down = 40;
+                var enter = 13;
+                var space = 32;
+                var esc = 91;
+
+                var F1 = 49;
+                var F2 = 50;
+                var F3 = 51;
+                var F4 = 52;
+                var F5 = 53;
+                var F6 = 54;
+                var F7 = 55;
+                var F8 = 56;
+                var F9 = 57;
+                var F10 = 58;
+                var FKEYS = [null, 49,50,51,52,53,54,55,56,57,58]; // 1-0 keys
+
+                if (FKEYS.indexOf(event.keyCode) != -1 && FKEYS.indexOf(event.keyCode) !== null) {
+                    var numberKey = 'n' + FKEYS.indexOf(event.keyCode);
+                    switch (numberKey) {
+                        n1:
+                            this.action('help');
+                            break;
+                        n2:
+                            this.action('status');
+                            break;
+                        n3:
+                            this.action('chgDrive');
+                            break;
+                        n4:
+                            this.action('prevDir');
+                            break;
+                        n5:
+                            this.action('chgDir');
+                            break;
+                        n6:
+                            this.action('dosCmd');
+                            break;
+                        n7:
+                            this.action('srchSpec');
+                            break;
+                        n8:
+                            this.action('sort');
+                            break;
+                        n9:
+                            this.action('edit');
+                            break;
+                        n10:
+                            this.action('quit');
+                            break;
+                        default:
+                            return;
+                    }
+                } else if (event.keyCode === space) {
+                    this.action('tagFile');
+                } else if (event.keyCode === esc) {
+                    this.action('abortCmd');
+                } else if (event.keyCode === up) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (this.state.selectedFile > 0) {
+                        this.setState({
+                            selectedFile: this.state.selectedFile - 1
+                        });
+                    }
+                } else if (event.keyCode === down) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (this.state.selectedFile < this.state.files.length - 1) {
+                        this.setState({
+                            selectedFile: this.state.selectedFile + 1
+                        });
+                    }
+                } else if (event.keyCode === enter) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var selectedFile = this.state.files[this.state.selectedFile];
+                    console.log('select', selectedFile.fileName, selectedFile.isDir)
+                    if (selectedFile.isDir) {
+                        this.updatePathFromFile(selectedFile.fileName);
+                    }
+                }
+            },
+
+            handleAction: function (action) {
+                var selectedFile = this.state.selectedFile;
+            },
+
+            handleNav: function (action) {
+                var selectedFile = this.state.selectedFile;
+            },
+
+            updatePathFromFile: function (file) {
+                newPath = null;
+                if (file === '..') {
+                    var pathParts = this.state.path.split('/');
+                    newpath = pathParts.slice(0, pathParts.length - 1).join('/')
+                } else if (file === '.') {
+                    return ;
+                } else {
+                    newPath = this.state.path + file + '/';
+                }
+                this.updatePath.apply(this, [newPath]);
+            },
+
+            updatePath: function (path) {
+                var self = this;
+
+                if (!path) {
+                    return;
+                }
+
+                // TODO trim or add trailing slash
+                var pathUrl = '/?dir=' + path;
+                this.setState({
+                    path: path,
+                    prevPath: this.state.path,
+                    selectedFile: 0
+                })
+
+                document.title = path + ' -- ' + this.documentTitle
+
+                fetch(this.apiHost + pathUrl).then(function (res) {
+                    if (res.status !== 200) {
+                        return;
+                    }
+
+                    res.json().then(function (data) {
+                        console.log('data', data)
+                        self.setState({
+                            files: data.files,
+                            fileCount: data.files.filter(function (file) {
+                                return !file.isDir
+                            }).length,
+                            fileSize: data.files.reduce(function (prev, cur, i) {
+                                return prev + data.files[i].size
+                            }, 0),
+                            dirCount: data.files.filter(function (file) {
+                                return file.isDir
+                            }).length - 2
+                        });
+                    });
+                }).catch(function (err) {
+                    self.setState({
+                        error: err
+                    });
+                });
+            },
+
+            fuzzyMatch: function (fragment, corpus, fIndex) {
+                if (fIndex === null) {
+                    fIndex = 0;
+                }
+                if (fIndex > corpus.length) {
+                    return false;
+                }
+
+                var matches = [];
+                for (var i in corpus) {
+                    console.log('fuzz', fragment.charAt(fIndex), corpus[i].charAt(fIndex))
+                    if (fragment.charAt(fIndex) === corpus[i].charAt(fIndex)) {
+                        matches.push(corpus[i]);
+                    }
+                }
+
+                if (matches.length === 1) {
+                    return matches[0];
+                } else if (matches.length === corpus.length) {
+                    return matches[0];
+                } else {
+                    return this.fuzzyMatch(fragment, matches, fIndex + 1);
+                }
+            },
+
+            handleInput: function (event) {
+                var newPath = event.target.value;
+                console.log('input', event.target.value, event.keyCode);
+                this.updatePath.apply(this, [newPath]);
+            },
+
+            handleInputKey: function (event) {
+
+                if (event.keyCode == 9) {
+                    // tab
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var newPath = event.target.value;
+                    console.log('TAB input', event.target.value, event.keyCode);
+
+                    var pathSplit = newPath.split('/');
+                    var filePart = pathSplit[pathSplit.length - 1];
+                    var match = this.fuzzyMatch(filePart, this.state.files.map(function (file) {
+                        return file.fileName;
+                    }));
+
+                    if (match) {
+                        pathSplit[pathSplit.length - 1] = match;
+                        newPath = pathSplit.join('/') + '/';
+                    } else {
+                        return;
+                    }
+                    this.updatePath.apply(this, [newPath]);
+                }
+            },
+
+            handleClick: function (name) {
+                var self = this;
+                return function (event) {
+                    self.setState({
+                        navChoice: name
+                    });
+                    this.handleNav(name).bind(self);
+                }
+            },
+
+            render: function() {
+                // console.log('props', this.props)
+                console.log('state', this.state)
+
+                var self = this;
+                var fileList = this.state.files.map(function (f, i) {
+                    var classString = '';
+                    if (self.state.selectedFile === i) {
+                        classString += ' selected';
+                    };
+                    return (<tr key={i} className={classString}>
+                                <td>{f.fileName}</td>
+                                <td>{humanFileSize(f.size)}</td>
+                                <td>{f.date}</td>
+                                <td>{f.time}</td>
+                            </tr>
+                        )
+                });
+
+                return (
+                    <div className="app">
+                        <div className="nav">
+
+                            <ul className="list">
+                                <li><a onClick={this.handleClick('directory')}>Directory</a></li>
+                                <li><a onClick={this.handleClick('tag')}>Tag</a></li>
+                                <li><a onClick={this.handleClick('view')}>View</a></li>
+                                <li><a onClick={this.handleClick('copy')}>Copy</a></li>
+                                <li><a onClick={this.handleClick('move')}>Move</a></li>
+                                <li><a onClick={this.handleClick('find')}>Find</a></li>
+                                <li><a onClick={this.handleClick('erase')}>Erase</a></li>
+                                <li><a onClick={this.handleClick('rename')}>Rename</a></li>
+                                <li><a onClick={this.handleClick('space')}>Space</a></li>
+                                <li><a onClick={this.handleClick('attribute')}>Attribute</a></li>
+                                <li><a onClick={this.handleClick('print')}>Print</a></li>
+                            </ul>
+
+                            <div className="desc">{this.state.navDesc}</div>
+
+                        </div>
+
+                        <div className="dir">
+                            <span>PATH &raquo;</span><input type="text" name="dir" value={this.state.path} onChange={this.handleInput} onKeyDown={this.handleInputKey} />
+                        </div>
+
+                        <div className="ctrl">
+
+                            <div className="stats">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th colSpan="2">Count</th>
+                                            <th className="label">Total Size</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>{this.state.fileCount}</td>
+                                            <td className="label">Files</td>
+                                            <td>{humanFileSize(this.state.fileSize)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{this.state.dirCount}</td>
+                                            <td className="label">Directories</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{this.state.tagCount}</td>
+                                            <td className="label">Tagged</td>
+                                            <td>{this.state.tagSize}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="keys">
+                                <dt>
+                                    <dl className="lt">F1 - Help</dl> <dl className="rt">F6 - DOS Cmd</dl>
+                                    <dl className="lt">F2 - Status</dl> <dl className="rt">F7 - Srch Spec</dl>
+                                    <dl className="lt">F3 - Chg Drive</dl> <dl className="rt">F8 - Sort</dl>
+                                    <dl className="lt">F4 - Prev Dir</dl> <dl className="rt">F9 - Edit</dl>
+                                    <dl className="lt">F5 - Chg Dir</dl> <dl className="rt">F10 - Quit</dl>
+
+                                    <dl className="c">SPACE BAR - Tag File</dl>
+                                    <dl className="c">ESC - Abort Command</dl>
+                                </dt>
+                            </div>
+
+                            <div className="copy">
+                                Q-DOS II -- Version 2.00<br />
+                                Copyright (c) 1986<br />
+                                GAZELLE SYSTEMS - Provo, Utah
+                            </div>
+
+                        </div>
+
+                        <table className="files">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Size</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { fileList }
+                            </tbody>
+                        </table>
+
+                    </div>
+                );
+            }
+        });
+
+        var dir = '/';
+        var match = /dir=([^&]*)/i;
+        if (location.search && location.search.length > 0 && location.search.match(match)) {
+            dir = location.search.match(match)[1];
+        }
+        React.render(<App dir={dir} />, document.getElementById('main'));
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-content: flex-start;
+            align-items: flex-start;
+
+            margin: 0;
+            padding: 0;
+
+            background-color: black;
+            color: white;
+        }
+        .app * {
+            color: white;
+            font-family: monospace;
+            font-size: 20;
+            font-weight: normal;
+            font-stretch: ultra-condensed;
+        }
+        .app th,
+        .app .copy *,
+        .app .desc,
+        .ctrl .stats .label {
+            color: green;
+        }
+        .selected, input {
+            background-color: red;
+        }
+        input {
+            border: none;
+            padding: 3;
+            margin: 3;
+        }
+
+        .nav {
+            flex-grow: 2;
+
+            width: 100%;
+        }
+        .nav ul.list {
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        .nav ul.list li {
+            list-style: none;
+            margin: auto;
+            text-align: left;
+        }
+        .nav .desc {
+
+        }
+
+        .dir {
+            flex-grow: 2;
+
+            margin: 0;
+            padding: 3;
+            width: 100%;
+
+            border-top: 1px solid white;
+            border-bottom: 1px solid white;
+
+            display: flex;
+        }
+        .dir span {
+            display: inline-block;
+            width: 10%;
+            text-align: right;
+            padding-right: 20px;
+        }
+        .dir input {
+            flex: 1 0;
+        }
+
+        .ctrl {
+            flex: 1 0;
+            order: 1;
+
+            width: 40%;
+
+            margin: 0;
+            padding: 3;
+        }
+        .ctrl .stats {}
+        .ctrl .stats .label {
+
+        }
+        .ctrl .keys {}
+        .ctrl .keys dt {
+            margin: 3px;
+        }
+        .ctrl .keys dt dl {
+            margin: 1px;
+        }
+        .ctrl .keys .lt {
+            float: left;
+            clear: left;
+        }
+        .ctrl .keys .rt {
+            float: right;
+        }
+        .ctrl .keys .c {
+            float: left;
+            clear: left;
+            width: 100%;
+            text-align: center;
+        }
+        .ctrl .copy {
+            clear: left;
+            width: 100%;
+            text-align: center;
+        }
+
+        .files {
+            flex: 1 0;
+            order: 2;
+
+            margin: 0;
+            margin-bottom: 3;
+            padding: 0;
+            border-collapse: collapse;
+        }
+        .files tr.selected {
+        }
+        .files td {
+            margin: 0;
+            padding: 3;
+            border: none;
+        }
+    </style>
+
+    <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://fb.me/react-0.13.3.js"></script>
+    <script src="https://fb.me/JSXTransformer-0.13.3.js"></script>
+</body>
+</html>
