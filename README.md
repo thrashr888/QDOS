@@ -1,7 +1,7 @@
 
 # A Web-Based QDOS II Clone
 
-![QDOS-2](http://www.fcnoticias.com.br/wp-content/uploads/QDOS-2.jpg)
+![The real QDOS-2](http://www.fcnoticias.com.br/wp-content/uploads/QDOS-2.jpg)
 
 I loved QDOS so here it is in the browser. Don't run this on servers you don't want hacked into. Only the directory listing and traversal works, so it's read-only at the moment.
 
@@ -17,9 +17,7 @@ I'm throwing it on GitHub just to back-up my work.
 ## TODO
 
 - .. directories
-- date formatting
 - improve styling
-- tag files
 - copy, move, erase, rename, attributes
 - modal
 - file edit
