@@ -26,12 +26,24 @@
 
         function formatDate (datetime) {
             // MM-DD-YY
-            return datetime;
+            var date = new Date(Date.UTC.apply(this, datetime.match(/\d+\.{0,1}\d+/g)))
+            var day = date.getDate();
+            var month = date.getMonth() + 1;
+            var year = (date.getFullYear() + '').substring(2);
+            return [day, month, year].join('-');
         }
 
         function formatTime (datetime) {
             // HH:MMa
-            return datetime;
+            var date = new Date(Date.UTC.apply(this, datetime.match(/\d+\.{0,1}\d+/g)))
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var a = 'a';
+            if (hours - 12 > 0) {
+                a = 'p';
+                hours = hours - 12;
+            }
+            return [hours, minutes].join(':') + a;
         }
 
         var App = React.createClass({
@@ -43,16 +55,16 @@
             // Directory, Tag, View, Space, Find, Layout, Print
             navDescriptions: {
                 directory: 'Change current directory, mark or remove directory, see directory tree',
-                tag: '',
-                view: '',
-                copy: '',
-                move: '',
-                find: '',
-                erase: '',
-                rename: '',
-                space: '',
-                attribute: '',
-                print: '',
+                tag: 'Tag a file',
+                view: 'View a file',
+                copy: 'Copy a file',
+                move: 'Move a file',
+                find: 'Find a file',
+                erase: 'Erase a file',
+                rename: 'Rename a file',
+                space: 'Space on the drive',
+                attribute: 'Change attributes of a file',
+                print: 'Print a file',
             },
 
             propTypes: {
@@ -79,11 +91,11 @@
 
             componentDidMount: function() {
                 this.updatePath.apply(this, [this.state.path]);
-                $(document.body).on('keydown', this.handleGlobalKeyDown.bind(this));
+                $(document.body).on('keydown', this.handleGlobalKeyDown);
             },
 
             componentWillUnMount: function() {
-                $(document.body).off('keydown', this.handleGlobalKeyDown.bind(this));
+                $(document.body).off('keydown', this.handleGlobalKeyDown);
             },
 
             handleGlobalKeyDown: function (event) {
@@ -93,7 +105,8 @@
                 var down = 40;
                 var enter = 13;
                 var space = 32;
-                var esc = 91;
+                var esc = 27;
+                var cmd = 91;
 
                 var F1 = 49;
                 var F2 = 50;
@@ -110,43 +123,49 @@
                 if (FKEYS.indexOf(event.keyCode) != -1 && FKEYS.indexOf(event.keyCode) !== null) {
                     var numberKey = 'n' + FKEYS.indexOf(event.keyCode);
                     switch (numberKey) {
-                        n1:
-                            this.action('help');
+                        case 'n1':
+                            this.keyAction('help');
                             break;
-                        n2:
-                            this.action('status');
+                        case 'n2':
+                            this.keyAction('status');
                             break;
-                        n3:
-                            this.action('chgDrive');
+                        case 'n3':
+                            this.keyAction('chgDrive');
                             break;
-                        n4:
-                            this.action('prevDir');
+                        case 'n4':
+                            this.keyAction('prevDir');
                             break;
-                        n5:
-                            this.action('chgDir');
+                        case 'n5':
+                            this.keyAction('chgDir');
                             break;
-                        n6:
-                            this.action('dosCmd');
+                        case 'n6':
+                            this.keyAction('dosCmd');
                             break;
-                        n7:
-                            this.action('srchSpec');
+                        case 'n7':
+                            this.keyAction('srchSpec');
                             break;
-                        n8:
-                            this.action('sort');
+                        case 'n8':
+                            this.keyAction('sort');
                             break;
-                        n9:
-                            this.action('edit');
+                        case 'n9':
+                            this.keyAction('edit');
                             break;
-                        n10:
-                            this.action('quit');
+                        case 'n10':
+                            this.keyAction('quit');
                             break;
                         default:
                             return;
                     }
                 } else if (event.keyCode === space) {
-                    this.action('tagFile');
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    this.keyAction('tagFile');
                 } else if (event.keyCode === esc) {
-                    this.action('abortCmd');
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    this.keyAction('abortCmd');
                 } else if (event.keyCode === up) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -177,12 +196,31 @@
                 }
             },
 
-            handleAction: function (action) {
+            keyAction: function (action) {
                 var selectedFile = this.state.selectedFile;
+                console.log('action', action);
+
+                if (action === 'tagFile') {
+                    var tagFiles = this.state.tagFiles;
+                    tagFiles.push(this.state.selectedFile);
+
+                    var files = this.state.files;
+                    files[this.state.selectedFile].tagged = true;
+
+                    this.setState({
+                        files: files,
+                        tagFiles: tagFiles
+                    });
+                    return;
+                }
             },
 
             handleNav: function (action) {
                 var selectedFile = this.state.selectedFile;
+                console.log('nav', action);
+                this.setState({
+                    navDesc: this.navDescriptions[action]
+                });
             },
 
             updatePathFromFile: function (file) {
@@ -210,7 +248,8 @@
                 this.setState({
                     path: path,
                     prevPath: this.state.path,
-                    selectedFile: 0
+                    selectedFile: 0,
+                    tagFiles: []
                 })
 
                 document.title = path + ' -- ' + this.documentTitle
@@ -305,7 +344,15 @@
                     self.setState({
                         navChoice: name
                     });
-                    this.handleNav(name).bind(self);
+                    self.handleNav(name);
+                }
+            },
+
+            navSelected: function (name) {
+                if (this.state.navChoice === name) {
+                    return 'selected';
+                } else {
+                    return '';
                 }
             },
 
@@ -319,11 +366,14 @@
                     if (self.state.selectedFile === i) {
                         classString += ' selected';
                     };
+                    if (f.tagged) {
+                        classString += ' tagged';
+                    };
                     return (<tr key={i} className={classString}>
-                                <td>{f.fileName}</td>
+                                <td className="fileName">{f.fileName}</td>
                                 <td>{humanFileSize(f.size)}</td>
-                                <td>{f.date}</td>
-                                <td>{f.time}</td>
+                                <td>{formatDate(f.date)}</td>
+                                <td>{formatTime(f.time)}</td>
                             </tr>
                         )
                 });
@@ -333,17 +383,17 @@
                         <div className="nav">
 
                             <ul className="list">
-                                <li><a onClick={this.handleClick('directory')}>Directory</a></li>
-                                <li><a onClick={this.handleClick('tag')}>Tag</a></li>
-                                <li><a onClick={this.handleClick('view')}>View</a></li>
-                                <li><a onClick={this.handleClick('copy')}>Copy</a></li>
-                                <li><a onClick={this.handleClick('move')}>Move</a></li>
-                                <li><a onClick={this.handleClick('find')}>Find</a></li>
-                                <li><a onClick={this.handleClick('erase')}>Erase</a></li>
-                                <li><a onClick={this.handleClick('rename')}>Rename</a></li>
-                                <li><a onClick={this.handleClick('space')}>Space</a></li>
-                                <li><a onClick={this.handleClick('attribute')}>Attribute</a></li>
-                                <li><a onClick={this.handleClick('print')}>Print</a></li>
+                                <li><a onClick={this.handleClick('directory')} className={this.navSelected('directory')}>Directory</a></li>
+                                <li><a onClick={this.handleClick('tag')} className={this.navSelected('tag')}>Tag</a></li>
+                                <li><a onClick={this.handleClick('view')} className={this.navSelected('view')}>View</a></li>
+                                <li><a onClick={this.handleClick('copy')} className={this.navSelected('copy')}>Copy</a></li>
+                                <li><a onClick={this.handleClick('move')} className={this.navSelected('move')}>Move</a></li>
+                                <li><a onClick={this.handleClick('find')} className={this.navSelected('find')}>Find</a></li>
+                                <li><a onClick={this.handleClick('erase')} className={this.navSelected('erase')}>Erase</a></li>
+                                <li><a onClick={this.handleClick('rename')} className={this.navSelected('rename')}>Rename</a></li>
+                                <li><a onClick={this.handleClick('space')} className={this.navSelected('space')}>Space</a></li>
+                                <li><a onClick={this.handleClick('attribute')} className={this.navSelected('attribute')}>Attribute</a></li>
+                                <li><a onClick={this.handleClick('print')} className={this.navSelected('print')}>Print</a></li>
                             </ul>
 
                             <div className="desc">{this.state.navDesc}</div>
@@ -564,10 +614,20 @@
         }
         .files tr.selected {
         }
+        .files tr.tagged {
+            background-color: yellow;
+        }
+        .files tr.tagged td {
+            color: black;
+        }
         .files td {
             margin: 0;
             padding: 3;
             border: none;
+            text-align: right;
+        }
+        .files td.fileName {
+            text-align: left;
         }
     </style>
 
