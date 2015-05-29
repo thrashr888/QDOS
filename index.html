@@ -8,6 +8,13 @@
 
     <script type="text/jsx">
 
+        var path = {
+            sep: pathSep,
+            join: function () {
+                return arguments.join(path.sep)
+            }
+        };
+
         function humanFileSize (bytes, si) {
             var thresh = si ? 1000 : 1024;
             if(Math.abs(bytes) < thresh) {
@@ -51,8 +58,6 @@
             apiHost: 'http://localhost:9333',
 
             documentTitle: 'QDOS -- Version 2.00',
-
-            startDir: '%START_DIR%',
 
             // Directory, Tag, View, Space, Find, Layout, Print
             navDescriptions: {
@@ -238,6 +243,25 @@
                 this.updatePath.apply(this, [newPath]);
             },
 
+            setPath: function (data) {
+                return {
+                    path: data.dir,
+                    prevPath: this.state.path,
+                    selectedFile: 0,
+                    tagFiles: [],
+                    files: data.files,
+                    fileCount: data.files.filter(function (file) {
+                        return !file.isDir
+                    }).length,
+                    fileSize: data.files.reduce(function (prev, cur, i) {
+                        return prev + data.files[i].size
+                    }, 0),
+                    dirCount: data.files.filter(function (file) {
+                        return file.isDir
+                    }).length - 2
+                }
+            },
+
             updatePath: function (path) {
                 var self = this;
 
@@ -247,12 +271,6 @@
 
                 // TODO trim or add trailing slash
                 var pathUrl = '/?dir=' + path;
-                this.setState({
-                    path: path,
-                    prevPath: this.state.path,
-                    selectedFile: 0,
-                    tagFiles: []
-                })
 
                 document.title = path + ' -- ' + this.documentTitle
 
@@ -263,18 +281,7 @@
 
                     res.json().then(function (data) {
                         console.log('data', data)
-                        self.setState({
-                            files: data.files,
-                            fileCount: data.files.filter(function (file) {
-                                return !file.isDir
-                            }).length,
-                            fileSize: data.files.reduce(function (prev, cur, i) {
-                                return prev + data.files[i].size
-                            }, 0),
-                            dirCount: data.files.filter(function (file) {
-                                return file.isDir
-                            }).length - 2
-                        });
+                        self.setState(self.setPath(data));
                     });
                 }).catch(function (err) {
                     self.setState({
@@ -475,12 +482,18 @@
             }
         });
 
-        var dir = '/';
+        var startDir = '%ROOT_DIR%';
+        var pathSep = '%PATH_SEP%';
+        window.pathSep = pathSep;
+
+        var dir = startDir || '/';
         var match = /dir=([^&]*)/i;
+
         if (location.search && location.search.length > 0 && location.search.match(match)) {
             dir = location.search.match(match)[1];
         }
-        React.render(<App dir={dir} />, document.getElementById('main'));
+
+        React.render(<App dir={dir} startDir={startDir} pathSep={pathSep} />, document.getElementById('main'));
     </script>
 
     <style>
@@ -634,7 +647,7 @@
     </style>
 
     <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="https://fb.me/react-0.13.3.js"></script>
-    <script src="https://fb.me/JSXTransformer-0.13.3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/react.js"></script>
 </body>
 </html>

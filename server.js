@@ -4,7 +4,7 @@ var http = require('http'),
     stream = require('stream'),
     util = require('util');
 
-var STARTDIR = path.normalize(__dirname + path.sep + process.argv[2]);
+var ROOT_DIR = path.normalize(process.argv[2]);
 
 function sanitize(input) {
     var illegalRe = /[\?<>\\:\*\|":]/g;
@@ -60,26 +60,6 @@ function augmentFiles (files, dir) {
 }
 
 
-function StrReplace(find, replace) {
-    // allow use without new
-    if (!(this instanceof StrReplace)) {
-        return new StrReplace(find, replace);
-    }
-
-    // init Transform
-    stream.Transform.call(this, {find: find, replace: replace});
-    this.find = find;
-    this.replace = replace;
-}
-util.inherits(StrReplace, stream.Transform);
-
-StrReplace.prototype._transform = function (chunk, enc, cb) {
-    var upperChunk = chunk.toString().replace(this.find, this.replace);
-    this.push(upperChunk, enc);
-    cb();
-};
-
-
 http.createServer(function Server (req, res) {
     // console.log('req', req);
 
@@ -92,25 +72,21 @@ http.createServer(function Server (req, res) {
         // render index.html
 
         var filePath = path.join(__dirname, 'index.html');
-        var stat = fs.statSync(filePath);
-
-        // TODO replace %START_DIR% with argv[1]
+        var html = fs.readFileSync(filePath, {encoding: 'utf8'});
+        html = html.replace('%ROOT_DIR%', ROOT_DIR);
+        html = html.replace('%PATH_SEP%', path.sep);
 
         console.log('<--- index.html');
         res.writeHead(200, {
             'Content-Type': 'text/html',
-            'Content-Length': stat.size
+            'Content-Length': html.length
         });
-        var readStream = fs.createReadStream(filePath);
-        // We replaced all the event handlers with a simple call to readStream.pipe()
-        var repl = new StrReplace('%START_DIR%', STARTDIR);
-        readStream.pipe(repl).pipe(res);
+        res.end(html);
 
     } else if (match && match[1]) {
         // render dir api
 
         var matchDir = path.normalize(sanitize(unescape(match[1])));
-        console.log('   > dir=' + matchDir);
 
         var files;
         try {
@@ -125,8 +101,12 @@ http.createServer(function Server (req, res) {
             return;
         }
 
+        console.log('   > dir=' + matchDir);
         console.log('   > files.length=' + files.length);
-        var text = JSON.stringify({files: files});
+        var text = JSON.stringify({
+            dir: matchDir,
+            files: files,
+        });
         res.writeHead(200, {
             'Content-Type': 'application/json',
             'Content-Length': text.length
@@ -141,4 +121,4 @@ http.createServer(function Server (req, res) {
 }).listen(9333, 'localhost');
 
 console.log('Server running at http://localhost:9333/');
-console.log('Serving ' + STARTDIR);
+console.log('Serving ' + ROOT_DIR);
