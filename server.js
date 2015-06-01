@@ -2,9 +2,11 @@ var http = require('http'),
     fs = require('fs'),
     path = require('path'),
     stream = require('stream'),
-    util = require('util');
+    util = require('util'),
+    querystring = require('querystring'),
+    ;
 
-var ROOT_DIR = path.normalize(process.argv[2]);
+var ROOT_DIR = path.resolve(process.argv[2]);
 
 function sanitize(input) {
     var illegalRe = /[\?<>\\:\*\|":]/g;
@@ -59,12 +61,35 @@ function augmentFiles (files, dir) {
     return files;
 }
 
+function handleDir () {
+
+}
+function handleView () {
+
+}
+function handleCopy () {
+
+}
+function handleMove () {
+
+}
+function handleFind () {
+
+}
+function handleErase () {
+
+}
+function handleRename () {
+
+}
+
 
 http.createServer(function Server (req, res) {
     // console.log('req', req);
 
     // /?dir=/
     var match = req.url.match(/dir=(.*)/i);
+    var qs = querystring.parse(req.url);
 
     console.log('---> ', req.url);
 

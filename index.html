@@ -8,10 +8,15 @@
 
     <script type="text/jsx">
 
+        var startDir = '%ROOT_DIR%';
+        var pathSep = '%PATH_SEP%';
+        window.pathSep = pathSep;
+
         var path = {
             sep: pathSep,
             join: function () {
-                return arguments.join(path.sep)
+                var args = Array.prototype.slice.call(arguments);
+                return args.join(pathSep)
             }
         };
 
@@ -62,16 +67,85 @@
             // Directory, Tag, View, Space, Find, Layout, Print
             navDescriptions: {
                 directory: 'Change current directory, mark or remove directory, see directory tree',
-                tag: 'Tag a file',
-                view: 'View a file',
-                copy: 'Copy a file',
-                move: 'Move a file',
-                find: 'Find a file',
-                erase: 'Erase a file',
-                rename: 'Rename a file',
-                space: 'Space on the drive',
-                attribute: 'Change attributes of a file',
-                print: 'Print a file',
+                tag: 'Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file',
+                view: 'View the contents of any file on the screen (in "ASCII" or "HEX")',
+                copy: 'Copy one or several files to another disk or directory',
+                move: 'Move one or several files from this directory to another directory',
+                find: 'Search all directories on the disk to find specified file(s)',
+                erase: 'Erase one or several files in this directory',
+                rename: 'Rename one or several files in this directory',
+                space: 'Show the total, used, and free space on any disk',
+                attribute: 'Display/change file attributes',
+                print: 'Print files, the directory map, or the current directory listing',
+            },
+            navChoices: function () {
+                return Object.keys(this.navDescriptions);
+            },
+
+            sortFields: [
+                ['none', 'ASC'],
+                ['name', 'ASC'],
+                ['name', 'DESC'],
+                ['size', 'ASC'],
+                ['size', 'DESC'],
+                ['date', 'ASC'],
+                ['date', 'DESC']
+            ],
+
+            keyMap: {
+                left: 37,
+                up: 38,
+                right: 39,
+                down: 40,
+                enter: 13,
+                space: 32,
+                esc: 27,
+                cmd: 91,
+                tab: 9,
+                caps: 20,
+                tilde: 192,
+
+                F1: 49,
+                F2: 50,
+                F3: 51,
+                F4: 52,
+                F5: 53,
+                F6: 54,
+                F7: 55,
+                F8: 56,
+                F9: 57,
+                F10: 48,
+                FKEYS: [null, 49,50,51,52,53,54,55,56,57,48], // 1-0 keys,
+
+                lettersN: [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90],
+                lettersA: 'abcdefghijklmnopqrstuvwxyz'.split(''),
+
+                a: 65, 65: 'a',
+                b: 66, 66: 'b',
+                c: 67, 67: 'c',
+                d: 68, 68: 'd',
+                e: 69, 69: 'e',
+                f: 70, 70: 'f',
+                g: 71, 71: 'g',
+                h: 72, 72: 'h',
+                i: 73, 73: 'i',
+                j: 74, 74: 'j',
+                k: 75, 75: 'k',
+                l: 76, 76: 'l',
+                m: 77, 77: 'm',
+                n: 78, 78: 'n',
+                o: 79, 79: 'o',
+                p: 80, 80: 'p',
+                q: 81, 81: 'q',
+                r: 82, 82: 'r',
+                s: 83, 83: 's',
+                t: 84, 84: 't',
+                u: 85, 85: 'u',
+                v: 86, 86: 'v',
+                w: 87, 87: 'w',
+                x: 88, 88: 'x',
+                y: 89, 89: 'y',
+                z: 90, 90: 'z',
             },
 
             propTypes: {
@@ -80,19 +154,26 @@
 
             getInitialState: function() {
                 return {
-                    navDesc: "n/a",
                     path: this.props.dir,
                     prevPath: null,
+                    files: [],
                     fileCount: 0,
                     fileSize: 0,
+                    fileSortField: 0,
+                    selectedFile: 0,
                     dirCount: 0,
                     tagCount: 0,
                     tagSize: 0,
-                    files: [],
                     tagFiles: [],
-                    selectedFile: 0,
                     error: null,
-                    navChoice: null
+                    navChoice: 'directory',
+                    modalName: 'null',
+                    modal: this.rendernull(),
+                    pageName: 'null',
+                    page: this.rendernull(),
+                    m: {
+                        disk: ""
+                    }
                 };
             },
 
@@ -105,6 +186,52 @@
                 $(document.body).off('keydown', this.handleGlobalKeyDown);
             },
 
+            quit: function () {
+                // App = null;
+                this.render = function () {
+                    return (<div></div>)
+                }
+            },
+
+            setModal: function (modal) {
+                console.log('modal', modal)
+                this.setState({
+                    modalName: modal || 'null',
+                    modal: this['render' + (modal || 'null')]()
+                });
+            },
+
+            handleModal: function(modal, event) {
+                if (modal === 'exit') {
+                    if (event.keyCode === this.keyMap.F10) {
+                        this.quit();
+                    }
+                    if (event.keyCode === this.keyMap.enter) {
+                        this.setModal();
+                    }
+                }
+                if (modal === 'space') {
+                    if (this.keyMap[event.keyCode]) {
+                        this.setModal('showSpace', this.keyMap[event.keyCode]);
+                    }
+                }
+            },
+
+            setPage: function (page) {
+                console.log('page', page)
+                this.setState({
+                    pageName: page || 'null',
+                    page: this['render' + (page || 'null')]()
+                });
+            },
+
+            handlePage: function(page, event) {
+                if (page === 'status') {
+                    // any key
+                    this.setPage();
+                }
+            },
+
             handleGlobalKeyDown: function (event) {
                 var left = 37;
                 var up = 38;
@@ -114,6 +241,9 @@
                 var space = 32;
                 var esc = 27;
                 var cmd = 91;
+                var tab = 9;
+                var caps = 20;
+                var tilde = 192;
 
                 var F1 = 49;
                 var F2 = 50;
@@ -124,41 +254,69 @@
                 var F7 = 55;
                 var F8 = 56;
                 var F9 = 57;
-                var F10 = 58;
-                var FKEYS = [null, 49,50,51,52,53,54,55,56,57,58]; // 1-0 keys
+                var F10 = 48;
+                var FKEYS = [null, 49,50,51,52,53,54,55,56,57,48]; // 1-0 keys
 
-                if (FKEYS.indexOf(event.keyCode) != -1 && FKEYS.indexOf(event.keyCode) !== null) {
+                console.log('event.keyCode', event.keyCode)
+
+                // If there's a modal, stop events except those above.
+                if (this.state.modalName !== 'null') {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // Close the modal.
+                    if (event.keyCode === esc) {
+                        this.setModal();
+                    }
+
+                    this.handleModal(this.state.modalName, event);
+                }
+                if (this.state.pageName !== 'null') {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // Close the page.
+                    if (event.keyCode === esc) {
+                        this.setPage();
+                    }
+
+                    this.handlePage(this.state.pageName, event);
+                } else if (FKEYS.indexOf(event.keyCode) != -1 && FKEYS.indexOf(event.keyCode) !== null) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
                     var numberKey = 'n' + FKEYS.indexOf(event.keyCode);
+                    // console.log('numberKey', numberKey)
                     switch (numberKey) {
                         case 'n1':
-                            this.keyAction('help');
+                            this.keyAction('help', event);
                             break;
                         case 'n2':
-                            this.keyAction('status');
+                            this.keyAction('status', event);
                             break;
                         case 'n3':
-                            this.keyAction('chgDrive');
+                            this.keyAction('chDrive', event);
                             break;
                         case 'n4':
-                            this.keyAction('prevDir');
+                            this.keyAction('prevDir', event);
                             break;
                         case 'n5':
-                            this.keyAction('chgDir');
+                            this.keyAction('chDir', event);
                             break;
                         case 'n6':
-                            this.keyAction('dosCmd');
+                            this.keyAction('dosCmd', event);
                             break;
                         case 'n7':
-                            this.keyAction('srchSpec');
+                            this.keyAction('srchSpec', event);
                             break;
                         case 'n8':
-                            this.keyAction('sort');
+                            this.keyAction('sort', event);
                             break;
                         case 'n9':
-                            this.keyAction('edit');
+                            this.keyAction('edit', event);
                             break;
                         case 'n10':
-                            this.keyAction('quit');
+                            this.keyAction('quit', event);
                             break;
                         default:
                             return;
@@ -181,6 +339,8 @@
                         this.setState({
                             selectedFile: this.state.selectedFile - 1
                         });
+                        var el = this.getElementOfFile(this.state.selectedFile);
+                        this.updateFileScroll(el, this.state.selectedFile);
                     }
                 } else if (event.keyCode === down) {
                     event.preventDefault();
@@ -190,20 +350,68 @@
                         this.setState({
                             selectedFile: this.state.selectedFile + 1
                         });
+                        var el = this.getElementOfFile(this.state.selectedFile);
+                        this.updateFileScroll(el, this.state.selectedFile);
                     }
+                } else if (event.keyCode === right) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var i = this.navChoices().indexOf(this.state.navChoice);
+                    i += 1;
+                    if (i >= this.navChoices().length) {
+                        i = this.navChoices().length - 1;
+                    }
+                    this.setState({
+                        navChoice: this.navChoices()[i]
+                    });
+                } else if (event.keyCode === left) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var i = this.navChoices().indexOf(this.state.navChoice);
+                    i -= 1;
+                    if (i <= 0) {
+                        i = 0;
+                    }
+                    this.setState({
+                        navChoice: this.navChoices()[i]
+                    });
                 } else if (event.keyCode === enter) {
                     event.preventDefault();
                     event.stopPropagation();
 
-                    var selectedFile = this.state.files[this.state.selectedFile];
-                    console.log('select', selectedFile.fileName, selectedFile.isDir)
-                    if (selectedFile.isDir) {
-                        this.updatePathFromFile(selectedFile.fileName);
-                    }
+                    this.handleNav(this.state.navChoice);
                 }
             },
 
-            keyAction: function (action) {
+            getElementOfFile: function (index) {
+                return React.findDOMNode(this.refs['file-' + index]);
+            },
+
+            updateFileScroll: function (element, index) {
+                // console.log('scroll el', element, element.parentElement)
+                var s = React.findDOMNode(this.refs['filesTBody']);
+
+                var y = element.scrollY;
+                // var p = element.parentElement;
+
+                var a = element.scrollTop;
+                var b = element.scrollHeight - element.clientHeight;
+                var c = a / b;
+
+                var o = element.offsetTop; // TODO this one!
+                // scroll 9 undefined 0 0 NaN 286 29 29 1391 258
+
+                console.log('scroll',
+                    index, y, a, b, c, o,
+                    element.scrollHeight, element.clientHeight,
+                    s.scrollHeight, s.clientHeight, s.style.height
+                    )
+                return [y, a, b, c];
+            },
+
+            keyAction: function (action, event) {
                 var selectedFile = this.state.selectedFile;
                 console.log('action', action);
 
@@ -216,34 +424,71 @@
 
                     this.setState({
                         files: files,
-                        tagFiles: tagFiles
+                        tagFiles: tagFiles,
+                        tagCount: tagFiles.length,
+                        tagSize: files.filter(function (f) {
+                                return f.tagged;
+                            }).map(function (f) {
+                                return f.size;
+                            }).reduce(function (previousValue, currentValue, index, array) {
+                                return previousValue + currentValue
+                            }, 0)
                     });
                     return;
+                } else if (action == 'sort') {
+                    if (this.state.fileSortField >= this.sortFields.length -1) {
+                        this.setState({
+                            fileSortField: 0
+                        });
+                    } else {
+                        this.setState({
+                            fileSortField: this.state.fileSortField + 1
+                        });
+                    }
+                } else if (action == 'prevDir') {
+                    if (this.state.prevPath) {
+                        this.updatePath(this.state.prevPath);
+                    }
+                } else if (action == 'quit') {
+                    this.setModal('exit');
+                } else if (action == 'help') {
+                    this.setModal('help');
+                } else if (action == 'chDir') {
+                    var selectedFile = this.state.files[this.state.selectedFile];
+                    console.log('select', selectedFile.fileName, selectedFile.isDir)
+                    if (selectedFile.isDir) {
+                        this.updatePathFromFile(selectedFile.fileName);
+                    }
+                } else if (action == 'status') {
+                    this.setPage('status');
                 }
             },
 
             handleNav: function (action) {
                 var selectedFile = this.state.selectedFile;
                 console.log('nav', action);
-                this.setState({
-                    navDesc: this.navDescriptions[action]
-                });
+
+                if (action === 'space') {
+                    this.setModal('space');
+                }
             },
 
             updatePathFromFile: function (file) {
                 newPath = null;
                 if (file === '..') {
-                    var pathParts = this.state.path.split('/');
-                    newpath = pathParts.slice(0, pathParts.length - 1).join('/')
+                    var pathParts = this.state.path.split(path.sep);
+                    newPath = pathParts.slice(0, pathParts.length - 1).join(path.sep);
+                    console.log('updatePathFromFile..', newPath, pathParts, this.state.path)
                 } else if (file === '.') {
                     return ;
                 } else {
-                    newPath = this.state.path + file + '/';
+                    newPath = path.join(this.state.path, file);
+                    console.log('updatePathFromFile', newPath)
                 }
                 this.updatePath.apply(this, [newPath]);
             },
 
-            setPath: function (data) {
+            newPathState: function (data) {
                 return {
                     path: data.dir,
                     prevPath: this.state.path,
@@ -269,7 +514,6 @@
                     return;
                 }
 
-                // TODO trim or add trailing slash
                 var pathUrl = '/?dir=' + path;
 
                 document.title = path + ' -- ' + this.documentTitle
@@ -281,7 +525,7 @@
 
                     res.json().then(function (data) {
                         console.log('data', data)
-                        self.setState(self.setPath(data));
+                        self.setState(self.newPathState(data));
                     });
                 }).catch(function (err) {
                     self.setState({
@@ -317,12 +561,11 @@
 
             handleInput: function (event) {
                 var newPath = event.target.value;
-                console.log('input', event.target.value, event.keyCode);
+                console.log('input', event.target.value, event.keyCode, event);
                 this.updatePath.apply(this, [newPath]);
             },
 
             handleInputKey: function (event) {
-
                 if (event.keyCode == 9) {
                     // tab
                     event.preventDefault();
@@ -331,7 +574,7 @@
                     var newPath = event.target.value;
                     console.log('TAB input', event.target.value, event.keyCode);
 
-                    var pathSplit = newPath.split('/');
+                    var pathSplit = newPath.split(path.sep);
                     var filePart = pathSplit[pathSplit.length - 1];
                     var match = this.fuzzyMatch(filePart, this.state.files.map(function (file) {
                         return file.fileName;
@@ -339,7 +582,7 @@
 
                     if (match) {
                         pathSplit[pathSplit.length - 1] = match;
-                        newPath = pathSplit.join('/') + '/';
+                        newPath = pathSplit.join(path.sep) + path.sep;
                     } else {
                         return;
                     }
@@ -347,7 +590,7 @@
                 }
             },
 
-            handleClick: function (name) {
+            handleNavClick: function (name) {
                 var self = this;
                 return function (event) {
                     self.setState({
@@ -355,6 +598,11 @@
                     });
                     self.handleNav(name);
                 }
+            },
+
+            handleFileClick: function (event) {
+                console.log(event.target, event.target.innerHtml)
+                return this.handleInput(event);
             },
 
             navSelected: function (name) {
@@ -365,12 +613,131 @@
                 }
             },
 
-            render: function() {
+            sortSelected: function (name) {
+                var sortField = this.sortFields[this.state.fileSortField][0];
+                if (sortField === name) {
+                    return 'selected';
+                } else {
+                    return '';
+                }
+            },
+
+            rendernull: function () {
+                return (<div className="innerModal nullModal"></div>)
+            },
+
+            renderexit: function () {
+                return (
+                    <div className="innerModal exitModal">
+                        <header>F10 - Quit QDOS II</header>
+                        <div>
+                            <br />Press F10 again to quit, or RETURN for options<br /><br />
+                            Press ESC to return to QDOS II
+                        </div>
+                    </div>
+                    )
+            },
+
+            renderhelp: function () {
+                return (
+                    <div className="innerModal helpModal">
+                        <header>F1 - Help QDOS II</header>
+                        <div>
+                            <br />Can&#039;t find QD2.HLP -- press letter of drive<br />
+                            to search for this file:<br />
+                            (Or, press ESC to quit)
+                        </div>
+                    </div>
+                    )
+            },
+
+            renderspace: function () {
+                return (
+                    <div className="innerModal spaceModal">
+                        <header>Space on Disk</header>
+                        <div>
+                            <br />Check space on drive: <span className="blink">_</span><br /><br />
+                            Enter drive letter, or press ESC
+                        </div>
+                    </div>
+                    )
+            },
+
+            rendershowSpace: function () {
+                return (
+                    <div className="innerModal showSpaceModal">
+                        <header>Space on Disk C</header>
+                        <div>
+                            <br />Total space: 999,999,999<br />
+                            <br />Total used: 803,176,448<br />
+                            <br />Total available: 262,111,744<br />
+                            Press any key to continue
+                        </div>
+                    </div>
+                    )
+            },
+
+            renderstatus: function () {
+                return (
+                    <div className="innerPage">
+                        <div className="wrapped"><span>Mon - Jun 1, 2015</span><span>3:25:22a</span></div>
+                        <div className="wrapped">
+                            <span>Files Selected for Display<br/>
+                                <em>*.*</em><em>NORM</em><em>DIR</em><em>&nbsp;</em><em>&nbsp;</em><em>&nbsp;</em><em>&nbsp;</em></span>
+                            <span>Current Startup Drive<br />
+                                <em>A</em></span>
+                        </div>
+                        <div>
+                            <br />&#9654;&#9654;&#9654;&#9654;&#9654;&#9654; QDOS II &#9664;&#9664;&#9664;&#9664;&#9664;&#9664;<br />
+                            <br />(C) Copyright 1988 by Gazelle Systems -- Provo, Utah<br />
+                        </div>
+
+                        <div className="wrapped">
+                            <span>Sort Sequence<br/>
+                                <em>Name &uarr;</em></span>
+                            <span>Drives Available<br />
+                                <em>A C                XYZ</em></span>
+                        </div>
+
+                        <div className="wrapped">
+                            <span>Caps Lock<br/>
+                                <em>OFF</em></span>
+                            <span>Num Lock<br/>
+                                <em>OFF</em></span>
+                            <span>Scoll Lock<br/>
+                                <em>OFF</em></span>
+                            <span>Ram Memory<br/>
+                                <em>Installed:  640K  Free:   513K</em></span>
+                        </div>
+
+                        <div>
+                            System Status Screen<br />
+                            (press any key to return to main screen)
+                        </div>
+                    </div>
+                    )
+            },
+
+            render: function () {
                 // console.log('props', this.props)
-                console.log('state', this.state)
+                // console.log('state', this.state)
 
                 var self = this;
-                var fileList = this.state.files.map(function (f, i) {
+                var sortField = self.sortFields[self.state.fileSortField][0];
+                var sortDir = self.sortFields[self.state.fileSortField][1];
+                // console.log('sort', sortField, sortDir);
+                var fileList = this.state.files.sort(function (a, b) {
+                    if (sortField === 'none') {
+                        return 0;
+                    }
+                    if (a[sortField] > b[sortField]){
+                        return sortDir === 'ASC' ? 1 : -1;
+                    } else if (a[sortField] < b[sortField]) {
+                        return sortDir === 'ASC' ? -1 : 1;
+                    } else {
+                        return 0;
+                    }
+                }).map(function (f, i) {
                     var classString = '';
                     if (self.state.selectedFile === i) {
                         classString += ' selected';
@@ -378,8 +745,8 @@
                     if (f.tagged) {
                         classString += ' tagged';
                     };
-                    return (<tr key={i} className={classString}>
-                                <td className="fileName">{f.fileName}</td>
+                    return (<tr key={i} className={classString} onClick={self.handleFileClick} ref={'file-' + i}>
+                                <td className="fileName">{ f.tagged ? <span>&#9654; </span> : <span>&nbsp; </span> }<a onClick={self.handleFileClick} href="#">{f.fileName}</a></td>
                                 <td>{humanFileSize(f.size)}</td>
                                 <td>{formatDate(f.date)}</td>
                                 <td>{formatTime(f.time)}</td>
@@ -387,27 +754,32 @@
                         )
                 });
 
+                var navDesc = this.navDescriptions[this.state.navChoice];
+
                 return (
                     <div className="app">
                         <div className="nav">
 
                             <ul className="list">
-                                <li><a onClick={this.handleClick('directory')} className={this.navSelected('directory')}>Directory</a></li>
-                                <li><a onClick={this.handleClick('tag')} className={this.navSelected('tag')}>Tag</a></li>
-                                <li><a onClick={this.handleClick('view')} className={this.navSelected('view')}>View</a></li>
-                                <li><a onClick={this.handleClick('copy')} className={this.navSelected('copy')}>Copy</a></li>
-                                <li><a onClick={this.handleClick('move')} className={this.navSelected('move')}>Move</a></li>
-                                <li><a onClick={this.handleClick('find')} className={this.navSelected('find')}>Find</a></li>
-                                <li><a onClick={this.handleClick('erase')} className={this.navSelected('erase')}>Erase</a></li>
-                                <li><a onClick={this.handleClick('rename')} className={this.navSelected('rename')}>Rename</a></li>
-                                <li><a onClick={this.handleClick('space')} className={this.navSelected('space')}>Space</a></li>
-                                <li><a onClick={this.handleClick('attribute')} className={this.navSelected('attribute')}>Attribute</a></li>
-                                <li><a onClick={this.handleClick('print')} className={this.navSelected('print')}>Print</a></li>
+                                <li><a onClick={this.handleNavClick('directory')} className={this.navSelected('directory')}>Directory</a></li>
+                                <li><a onClick={this.handleNavClick('tag')} className={this.navSelected('tag')}>Tag</a></li>
+                                <li><a onClick={this.handleNavClick('view')} className={this.navSelected('view')}>View</a></li>
+                                <li><a onClick={this.handleNavClick('copy')} className={this.navSelected('copy')}>Copy</a></li>
+                                <li><a onClick={this.handleNavClick('move')} className={this.navSelected('move')}>Move</a></li>
+                                <li><a onClick={this.handleNavClick('find')} className={this.navSelected('find')}>Find</a></li>
+                                <li><a onClick={this.handleNavClick('erase')} className={this.navSelected('erase')}>Erase</a></li>
+                                <li><a onClick={this.handleNavClick('rename')} className={this.navSelected('rename')}>Rename</a></li>
+                                <li><a onClick={this.handleNavClick('space')} className={this.navSelected('space')}>Space</a></li>
+                                <li><a onClick={this.handleNavClick('attribute')} className={this.navSelected('attribute')}>Attribute</a></li>
+                                <li><a onClick={this.handleNavClick('print')} className={this.navSelected('print')}>Print</a></li>
                             </ul>
 
-                            <div className="desc">{this.state.navDesc}</div>
+                            <div className="desc">{navDesc}</div>
 
                         </div>
+
+                        { this.state.modalName !== 'null' ? <div className="modal">{this.state.modal}</div> : null }
+                        { this.state.pageName !== 'null' ? <div className="page">{this.state.page}</div> : null }
 
                         <div className="dir">
                             <span>PATH &raquo;</span><input type="text" name="dir" value={this.state.path} onChange={this.handleInput} onKeyDown={this.handleInputKey} />
@@ -436,7 +808,7 @@
                                         <tr>
                                             <td>{this.state.tagCount}</td>
                                             <td className="label">Tagged</td>
-                                            <td>{this.state.tagSize}</td>
+                                            <td>{humanFileSize(this.state.tagSize)}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -444,11 +816,16 @@
 
                             <div className="keys">
                                 <dt>
-                                    <dl className="lt">F1 - Help</dl> <dl className="rt">F6 - DOS Cmd</dl>
-                                    <dl className="lt">F2 - Status</dl> <dl className="rt">F7 - Srch Spec</dl>
-                                    <dl className="lt">F3 - Chg Drive</dl> <dl className="rt">F8 - Sort</dl>
-                                    <dl className="lt">F4 - Prev Dir</dl> <dl className="rt">F9 - Edit</dl>
-                                    <dl className="lt">F5 - Chg Dir</dl> <dl className="rt">F10 - Quit</dl>
+                                    <dl className="lt">F1 - Help</dl>
+                                    <dl className="rt">F2 - Status</dl>
+                                    <dl className="lt">F3 - Chg Drive</dl>
+                                    <dl className="rt">F4 - Prev Dir</dl>
+                                    <dl className="lt">F5 - Chg Dir</dl>
+                                    <dl className="rt">F6 - DOS Cmd</dl>
+                                    <dl className="lt">F7 - Srch Spec</dl>
+                                    <dl className="rt">F8 - Sort</dl>
+                                    <dl className="lt">F9 - Edit</dl>
+                                    <dl className="rt">F10 - Quit</dl>
 
                                     <dl className="c">SPACE BAR - Tag File</dl>
                                     <dl className="c">ESC - Abort Command</dl>
@@ -463,30 +840,28 @@
 
                         </div>
 
-                        <table className="files">
-                            <thead>
-                                <tr>
-                                    <th>File Name</th>
-                                    <th>Size</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { fileList }
-                            </tbody>
-                        </table>
+                        <div className="files">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th className={this.sortSelected('name')}>File Name</th>
+                                        <th className={this.sortSelected('size')}>Size</th>
+                                        <th className={this.sortSelected('date')}>Date</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody ref="filesTBody">
+                                    { fileList }
+                                </tbody>
+                            </table>
+                        </div>
 
                     </div>
                 );
             }
         });
 
-        var startDir = '%ROOT_DIR%';
-        var pathSep = '%PATH_SEP%';
-        window.pathSep = pathSep;
-
-        var dir = startDir || '/';
+        var dir = startDir || path.sep;
         var match = /dir=([^&]*)/i;
 
         if (location.search && location.search.length > 0 && location.search.match(match)) {
@@ -498,6 +873,7 @@
 
     <style>
         body {
+            background-color: black;
             margin: 0;
             padding: 0;
         }
@@ -513,7 +889,6 @@
             margin: 0;
             padding: 0;
 
-            background-color: black;
             color: white;
         }
         .app * {
@@ -531,11 +906,23 @@
         }
         .selected, input {
             background-color: red;
+            font-weight: bold;
         }
         input {
             border: none;
             padding: 3;
             margin: 3;
+        }
+        .blink {
+            animation-duration: 1s;
+            animation-name: blink;
+            animation-iteration-count: infinite;
+            animation-timing-function: steps(2, start);
+        }
+        @keyframes blink {
+            80% {
+                visibility: hidden;
+            }
         }
 
         .nav {
@@ -583,7 +970,7 @@
             flex: 1 0;
             order: 1;
 
-            width: 40%;
+            width: 30%;
 
             margin: 0;
             padding: 3;
@@ -602,9 +989,12 @@
         .ctrl .keys .lt {
             float: left;
             clear: left;
+            width: 40%;
         }
         .ctrl .keys .rt {
             float: right;
+            text-align: left;
+            width: 40%;
         }
         .ctrl .keys .c {
             float: left;
@@ -625,15 +1015,39 @@
             margin: 0;
             margin-bottom: 3;
             padding: 0;
+            width: 70%;
+        }
+        .files table {
+            margin: 0;
+            margin-bottom: 3;
+            padding: 0;
             border-collapse: collapse;
+            width: 100%;
+        }
+        .files table head tr {
+            // display: block;
+            // width: 100%;
+        }
+        .files table head td {
+            text-align: center;
+        }
+        .files table head td.selected {
+            text-align: center;
+        }
+        .files table tbody {
+            // display: block;
+            // overflow-y: scroll;
+            overflow-x: hidden;
+            // max-height: 70vh;
+            width: 100%;
         }
         .files tr.selected {
         }
         .files tr.tagged {
-            background-color: yellow;
+            // background-color: yellow;
         }
         .files tr.tagged td {
-            color: black;
+            // color: black;
         }
         .files td {
             margin: 0;
@@ -643,6 +1057,65 @@
         }
         .files td.fileName {
             text-align: left;
+        }
+
+        .modal {
+            position: absolute;
+            width: 50vw;
+            left: 50%;
+            top: 50%;
+            margin: auto;
+            padding: 0;
+        }
+        .modal .innerModal {
+            border: 1px solid white;
+            background-color: black;
+        }
+        .modal .innerModal.nullModal {
+            border: none;
+            background-color: transparent;
+        }
+        .modal .innerModal header {
+            border: 1px solid white;
+            margin: 2px;
+            padding: 5px;
+            text-align: center;
+        }
+        .modal .innerModal > div {
+            border: 1px solid white;
+            margin: 2px;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .page {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            margin: auto;
+            padding: 0;
+            text-align: center;
+
+            border: 1px solid white;
+            background-color: black;
+        }
+        .page div {
+            margin: 3px;
+            padding: 3px;
+        }
+        .page div.wrapped {
+            border: 1px solid white;
+        }
+        .page div.wrapped span {
+            border: 1px solid white;
+            padding: 5px;
+            margin: 5px;
+            display: inline-block;
+        }
+        .page em {
+            background-color: #666;
         }
     </style>
 
