@@ -3,6 +3,8 @@ var http = require('http'),
     path = require('path'),
     stream = require('stream'),
     util = require('util'),
+    os = require('os'),
+    child_process = require('child_process'),
     url = require('url'),
     querystring = require('querystring')
     ;
@@ -30,9 +32,25 @@ function pathToFile (filePath) {
     return path.basename(filePath);
 }
 
+function parseDiskutil (out) {
+    out.split('\n').filter(function (line) {
+        return line.match(/^\s*\d+:/);
+    }).map(function (line) {
+        var m = line.match(/^\s*\d+:\s*[\w_]+\s([\w\s\_\-]*)\s*\d/);
+        return match ? m[1] : null;
+    });
+    return out;
+}
+
 function fourOhFour (req, res, message) {
     console.log('X--- ' + req.url + ' / ' + message);
     res.writeHead(404);
+    res.end("" + message);
+}
+
+function serverError (req, res, message) {
+    console.log('X--- ' + req.url + ' / ' + message);
+    res.writeHead(500);
     res.end("" + message);
 }
 
@@ -79,8 +97,7 @@ function handleDirApi (req, res, qs) {
         return;
     }
 
-    console.log('   > dir=' + dir);
-    console.log('   > files.length=' + files.length);
+    console.log('<--- dir=' + dir, ', files.length=' + files.length);
     var text = JSON.stringify({
         dir: dir,
         files: files,
@@ -116,6 +133,28 @@ function handleRenameApi (req, res, qs) {
 
 }
 
+function handleStatusApi (req, res, qs) {
+    child_process.execFile('diskutil', ['list'], function(error, stdout, stderr) {
+        if (err) {
+            serverError(req, res);
+            return;
+        }
+
+        var text = JSON.stringify({
+            status: {
+                ram: { used: os.freemem(), total: os.totalmem() },
+                drives: parseDiskutil(stdout),
+            }
+        });
+        console.log('<--- status', text.mem);
+        res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Content-Length': text.length
+        });
+        res.end(text);
+    });
+}
+
 
 http.createServer(function Server (req, res) {
     // console.log('req', req);
@@ -145,25 +184,28 @@ http.createServer(function Server (req, res) {
     } else if (qs) {
         if (qs.dir) {
             // render Dir api
-            return handleDirApi(req, res, qs.dir);
+            return handleDirApi(req, res, qs);
         } else if (qs.view) {
             // render View api
-            return handleViewApi(req, res, qs.view);
+            return handleViewApi(req, res, qs);
         } else if (qs.copy) {
             // render Copy api
-            return handleCopyApi(req, res, qs.copy);
+            return handleCopyApi(req, res, qs);
         } else if (qs.move) {
             // render Move api
-            return handleMoveApi(req, res, qs.move);
+            return handleMoveApi(req, res, qs);
         } else if (qs.find) {
             // render Find api
-            return handleFindApi(req, res, qs.find);
+            return handleFindApi(req, res, qs);
         } else if (qs.erase) {
             // render Erase api
-            return handleEraseApi(req, res, qs.erase);
+            return handleEraseApi(req, res, qs);
         } else if (qs.rename) {
             // render Rename api
-            return handleRenameApi(req, res, qs.rename);
+            return handleRenameApi(req, res, qs);
+        } else if (qs.status) {
+            // render Rename api
+            return handleStatusApi(req, res, qs);
         }
     } else {
         fourOhFour(req, res);

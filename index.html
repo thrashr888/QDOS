@@ -58,6 +58,29 @@
             return [hours, minutes].join(':') + a;
         }
 
+        function isCapslock(e){
+            e = (e) ? e : window.event;
+            var charCode = false;
+            if (e.which) {
+                charCode = e.which;
+            } else if (e.keyCode) {
+                charCode = e.keyCode;
+            }
+            var shifton = false;
+            if (e.shiftKey) {
+                shifton = e.shiftKey;
+            } else if (e.modifiers) {
+                shifton = !!(e.modifiers & 4);
+            }
+            if (charCode >= 97 && charCode <= 122 && shifton) {
+                return true;
+            }
+            if (charCode >= 65 && charCode <= 90 && !shifton) {
+                return true;
+            }
+            return false;
+        }
+
         var App = React.createClass({
 
             apiHost: 'http://localhost:9333',
@@ -80,6 +103,31 @@
             },
             navChoices: function () {
                 return Object.keys(this.navDescriptions);
+            },
+
+            FKeyCtrl: {
+                'default': [
+                    'Help',
+                    'Status',
+                    'Chg Drive',
+                    'Prev Dir',
+                    'Chg Dir',
+                    'DOS Cmd',
+                    'Srch Spec',
+                    'Sort',
+                    'Edit',
+                    'Quit',
+                ],
+                'cmd': [
+                    'Help',
+                    'File Name',
+                    'Prev Cmd',
+                    'File Ext',
+                    null,
+                    'Fname.Ext',
+                    null,
+                    'Go To DOS',
+                ]
             },
 
             sortFields: [
@@ -154,6 +202,7 @@
 
             getInitialState: function() {
                 return {
+                    capsOn: false,
                     path: this.props.dir,
                     prevPath: null,
                     files: [],
@@ -168,12 +217,27 @@
                     error: null,
                     navChoice: 'directory',
                     modalName: 'null',
-                    modal: this.rendernull(),
+                    modal: this.renderNull(),
                     pageName: 'null',
-                    page: this.rendernull(),
+                    page: this.renderNull(),
                     m: {
                         disk: ""
-                    }
+                    },
+                    ram: {
+                        used: 0,
+                        total: 0
+                    },
+                    drives: [],
+                    searchSpec: '*.*',
+                    searchAttrib: {
+                        'NORM': true,
+                        'DIR': true,
+                        'HID': false,
+                        'SYS': false,
+                        'R/O': false,
+                        'ARC': false,
+                    },
+                    searchAttribSelect: 'NORM'
                 };
             },
 
@@ -196,7 +260,7 @@
             setModal: function (modal) {
                 console.log('modal', modal)
                 this.setState({
-                    modalName: modal || 'null',
+                    modalName: modal || 'Null',
                     modal: this['render' + (modal || 'null')]()
                 });
             },
@@ -212,7 +276,7 @@
                 }
                 if (modal === 'space') {
                     if (this.keyMap[event.keyCode]) {
-                        this.setModal('showSpace', this.keyMap[event.keyCode]);
+                        this.setModal('ShowSpace', this.keyMap[event.keyCode]);
                     }
                 }
             },
@@ -259,6 +323,13 @@
 
                 console.log('event.keyCode', event.keyCode)
 
+                var capsOn = isCapslock(event);
+                if (capsOn !== this.state.capsOn) {
+                    this.setState({
+                        capsOn: capsOn
+                    });
+                }
+
                 // If there's a modal, stop events except those above.
                 if (this.state.modalName !== 'null') {
                     event.preventDefault();
@@ -285,37 +356,37 @@
                     event.preventDefault();
                     event.stopPropagation();
 
-                    var numberKey = 'n' + FKEYS.indexOf(event.keyCode);
+                    var numberKey = 'F' + FKEYS.indexOf(event.keyCode);
                     // console.log('numberKey', numberKey)
                     switch (numberKey) {
-                        case 'n1':
+                        case 'F1':
                             this.keyAction('help', event);
                             break;
-                        case 'n2':
+                        case 'F2':
                             this.keyAction('status', event);
                             break;
-                        case 'n3':
+                        case 'F3':
                             this.keyAction('chDrive', event);
                             break;
-                        case 'n4':
+                        case 'F4':
                             this.keyAction('prevDir', event);
                             break;
-                        case 'n5':
+                        case 'F5':
                             this.keyAction('chDir', event);
                             break;
-                        case 'n6':
+                        case 'F6':
                             this.keyAction('dosCmd', event);
                             break;
-                        case 'n7':
+                        case 'F7':
                             this.keyAction('srchSpec', event);
                             break;
-                        case 'n8':
+                        case 'F8':
                             this.keyAction('sort', event);
                             break;
-                        case 'n9':
+                        case 'F9':
                             this.keyAction('edit', event);
                             break;
-                        case 'n10':
+                        case 'F10':
                             this.keyAction('quit', event);
                             break;
                         default:
@@ -450,9 +521,9 @@
                         this.updatePath(this.state.prevPath);
                     }
                 } else if (action == 'quit') {
-                    this.setModal('exit');
+                    this.setModal('Exit');
                 } else if (action == 'help') {
-                    this.setModal('help');
+                    this.setModal('Help');
                 } else if (action == 'chDir') {
                     var selectedFile = this.state.files[this.state.selectedFile];
                     console.log('select', selectedFile.fileName, selectedFile.isDir)
@@ -460,7 +531,7 @@
                         this.updatePathFromFile(selectedFile.fileName);
                     }
                 } else if (action == 'status') {
-                    this.setPage('status');
+                    this.setPage('Status');
                 }
             },
 
@@ -469,7 +540,7 @@
                 console.log('nav', action);
 
                 if (action === 'space') {
-                    this.setModal('space');
+                    this.setModal('Space');
                 }
             },
 
@@ -507,16 +578,28 @@
                 }
             },
 
-            updatePath: function (path) {
-                var self = this;
+            newStatusState: function (data) {
+                return {
+                    ram: data.status.ram,
+                    drives: data.status.drives,
+                }
+            },
 
-                if (!path) {
-                    return;
+            // ex:
+            // { dir: [/] }
+            // { erase: [/tmp/test1, /tmp/test2] }
+            api: function (func, paths) {
+                var pathUrl;
+                if (!paths) {
+                    pathUrl = '/?' + func;
+                } else if (typeof paths != 'array') {
+                    paths = [paths];
+                    pathUrl = '/?' + func + '=' + paths;
+                } else {
+                    pathUrl = '/?' + func + '=' + paths;
                 }
 
-                var pathUrl = '/?dir=' + path;
-
-                document.title = path + ' -- ' + this.documentTitle
+                var self = this;
 
                 fetch(this.apiHost + pathUrl).then(function (res) {
                     if (res.status !== 200) {
@@ -524,7 +607,38 @@
                     }
 
                     res.json().then(function (data) {
-                        console.log('data', data)
+                        // console.log('data', data)
+                        if (data.dir) {
+                            document.title = data.dir + ' -- ' + this.documentTitle;
+                            self.setState(self.newPathState(data));
+                        }
+                        if (data.status) {
+                            self.setState(self.newStatusState(data));
+                        }
+                    });
+                }).catch(function (err) {
+                    self.setState({
+                        error: err
+                    });
+                });
+            },
+
+            updatePath: function (path) {
+                if (!path) {
+                    return;
+                }
+
+                var self = this;
+                var pathUrl = '/?dir=' + path;
+
+                fetch(this.apiHost + pathUrl).then(function (res) {
+                    if (res.status !== 200) {
+                        return;
+                    }
+
+                    res.json().then(function (data) {
+                        // console.log('data', data)
+                        document.title = path + ' -- ' + this.documentTitle;
                         self.setState(self.newPathState(data));
                     });
                 }).catch(function (err) {
@@ -622,11 +736,11 @@
                 }
             },
 
-            rendernull: function () {
+            renderNull: function () {
                 return (<div className="innerModal nullModal"></div>)
             },
 
-            renderexit: function () {
+            renderExit: function () {
                 return (
                     <div className="innerModal exitModal">
                         <header>F10 - Quit QDOS II</header>
@@ -638,7 +752,7 @@
                     )
             },
 
-            renderhelp: function () {
+            renderHelp: function () {
                 return (
                     <div className="innerModal helpModal">
                         <header>F1 - Help QDOS II</header>
@@ -651,7 +765,47 @@
                     )
             },
 
-            renderspace: function () {
+            handleSearchSpecChange: function (event) {
+                this.setState({
+                    searchSpec: event.target.value
+                });
+            },
+            renderSrchSpec: function () {
+                return (
+                    <div className="innerModal helpModal">
+                        <header>F7 - Set Search Specification</header>
+                        <div>
+                            <br /><br />Enter search specification: <input value={this.state.searchSpec} onChange={this.handleSearchSpecChange} />
+                        </div>
+                    </div>
+                    )
+            },
+            renderSrchSpecB: function () {
+
+                var keys = this.state.searchAttrib.map(function (v,k) {
+                    return (<span className={this.state.searchAttribSelect === k ? 'selected' : null}>{k}</span>)
+                });
+                var values =  this.state.searchAttrib.map(function (v,k) {
+                    return (<span>{v ? 'YES' : 'No'}</span>)
+                });
+
+                return (
+                    <div className="innerModal helpModal">
+                        <header>F7 - Set Search Specification</header>
+                        <div>
+                            Change attributes for: <input value="Search Attrib" onChange={this.handleSearchAttribChange} />
+
+                            {keys}
+                            {values}
+
+                            <br />Move cursor with arrows; press <em>SPACE BAR</em> to change<br />
+                            Press <em>RETURN</em> when done, <em>ESC</em> to quit
+                        </div>
+                    </div>
+                    )
+            },
+
+            renderSpace: function () {
                 return (
                     <div className="innerModal spaceModal">
                         <header>Space on Disk</header>
@@ -663,7 +817,7 @@
                     )
             },
 
-            rendershowSpace: function () {
+            renderShowSpace: function () {
                 return (
                     <div className="innerModal showSpaceModal">
                         <header>Space on Disk C</header>
@@ -677,7 +831,9 @@
                     )
             },
 
-            renderstatus: function () {
+            renderStatus: function () {
+                var sortField = self.sortFields[self.state.fileSortField][0];
+                var sortDir = self.sortFields[self.state.fileSortField][1];
                 return (
                     <div className="innerPage">
                         <div className="wrapped"><span>Mon - Jun 1, 2015</span><span>3:25:22a</span></div>
@@ -694,14 +850,14 @@
 
                         <div className="wrapped">
                             <span>Sort Sequence<br/>
-                                <em>Name &uarr;</em></span>
+                                <em>{sortField + ' ' + (sortDir === 'ASC' ? '&uarr;' : '&darr;')}</em></span>
                             <span>Drives Available<br />
                                 <em>A C                XYZ</em></span>
                         </div>
 
                         <div className="wrapped">
                             <span>Caps Lock<br/>
-                                <em>OFF</em></span>
+                                <em>{this.state.capsOn ? 'ON' : 'OFF'}</em></span>
                             <span>Num Lock<br/>
                                 <em>OFF</em></span>
                             <span>Scoll Lock<br/>
