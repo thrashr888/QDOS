@@ -3,7 +3,8 @@ var http = require('http'),
     path = require('path'),
     stream = require('stream'),
     util = require('util'),
-    querystring = require('querystring'),
+    url = require('url'),
+    querystring = require('querystring')
     ;
 
 var ROOT_DIR = path.resolve(process.argv[2]);
@@ -61,25 +62,57 @@ function augmentFiles (files, dir) {
     return files;
 }
 
-function handleDir () {
+function handleDirApi (req, res, qs) {
+    // render dir api
+    var dir = path.normalize(sanitize(unescape(qs.dir)));
+
+    var files;
+    try {
+        files = augmentFiles(fs.readdirSync(dir), dir);
+    } catch (e) {
+        fourOhFour(req, res, e);
+        return;
+    }
+
+    if (!files || files.length === 0) {
+        fourOhFour(req, res);
+        return;
+    }
+
+    console.log('   > dir=' + dir);
+    console.log('   > files.length=' + files.length);
+    var text = JSON.stringify({
+        dir: dir,
+        files: files,
+    });
+    res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Content-Length': text.length
+    });
+    res.end(text);
+}
+
+function handleViewApi (req, res, qs) {
 
 }
-function handleView () {
+
+function handleCopyApi (req, res, qs) {
 
 }
-function handleCopy () {
+
+function handleMoveApi (req, res, qs) {
 
 }
-function handleMove () {
+
+function handleFindApi (req, res, qs) {
 
 }
-function handleFind () {
+
+function handleEraseApi (req, res, qs) {
 
 }
-function handleErase () {
 
-}
-function handleRename () {
+function handleRenameApi (req, res, qs) {
 
 }
 
@@ -89,9 +122,10 @@ http.createServer(function Server (req, res) {
 
     // /?dir=/
     var match = req.url.match(/dir=(.*)/i);
-    var qs = querystring.parse(req.url);
+    var u = url.parse(req.url);
+    var qs = querystring.parse(u.query);
 
-    console.log('---> ', req.url);
+    console.log('---> ', req.url, '~', u.pathname, qs);
 
     if (req.url === '/') {
         // render index.html
@@ -108,36 +142,29 @@ http.createServer(function Server (req, res) {
         });
         res.end(html);
 
-    } else if (match && match[1]) {
-        // render dir api
-
-        var matchDir = path.normalize(sanitize(unescape(match[1])));
-
-        var files;
-        try {
-            files = augmentFiles(fs.readdirSync(matchDir), matchDir);
-        } catch (e) {
-            fourOhFour(req, res, e);
-            return;
+    } else if (qs) {
+        if (qs.dir) {
+            // render Dir api
+            return handleDirApi(req, res, qs.dir);
+        } else if (qs.view) {
+            // render View api
+            return handleViewApi(req, res, qs.view);
+        } else if (qs.copy) {
+            // render Copy api
+            return handleCopyApi(req, res, qs.copy);
+        } else if (qs.move) {
+            // render Move api
+            return handleMoveApi(req, res, qs.move);
+        } else if (qs.find) {
+            // render Find api
+            return handleFindApi(req, res, qs.find);
+        } else if (qs.erase) {
+            // render Erase api
+            return handleEraseApi(req, res, qs.erase);
+        } else if (qs.rename) {
+            // render Rename api
+            return handleRenameApi(req, res, qs.rename);
         }
-
-        if (!files || files.length === 0) {
-            fourOhFour(req, res);
-            return;
-        }
-
-        console.log('   > dir=' + matchDir);
-        console.log('   > files.length=' + files.length);
-        var text = JSON.stringify({
-            dir: matchDir,
-            files: files,
-        });
-        res.writeHead(200, {
-            'Content-Type': 'application/json',
-            'Content-Length': text.length
-        });
-        res.end(text);
-
     } else {
         fourOhFour(req, res);
         return;
