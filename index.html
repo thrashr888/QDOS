@@ -131,13 +131,16 @@
             },
 
             sortFields: [
-                ['none', 'ASC'],
+                // ['none', 'ASC'],
                 ['name', 'ASC'],
                 ['name', 'DESC'],
+                ['ext', 'ASC'],
+                ['ext', 'DESC'],
                 ['size', 'ASC'],
                 ['size', 'DESC'],
                 ['date', 'ASC'],
-                ['date', 'DESC']
+                ['date', 'DESC'],
+                ['none', 'DESC']
             ],
 
             keyMap: {
@@ -487,11 +490,19 @@
                 console.log('action', action);
 
                 if (action === 'tagFile') {
-                    var tagFiles = this.state.tagFiles;
-                    tagFiles.push(this.state.selectedFile);
 
+                    var tagFiles = this.state.tagFiles;
                     var files = this.state.files;
-                    files[this.state.selectedFile].tagged = true;
+                    if (files[this.state.selectedFile].tagged) {
+                        var index = tagFiles.indexOf(this.state.selectedFile);
+                        if (index !== -1) {
+                            tagFiles.splice(index, 1);
+                        }
+                        files[this.state.selectedFile].tagged = false;
+                    } else {
+                        tagFiles.push(this.state.selectedFile);
+                        files[this.state.selectedFile].tagged = true;
+                    }
 
                     this.setState({
                         files: files,
@@ -526,9 +537,9 @@
                     this.setModal('Help');
                 } else if (action == 'chDir') {
                     var selectedFile = this.state.files[this.state.selectedFile];
-                    console.log('select', selectedFile.fileName, selectedFile.isDir)
+                    console.log('select', selectedFile.name, selectedFile.isDir)
                     if (selectedFile.isDir) {
-                        this.updatePathFromFile(selectedFile.fileName);
+                        this.updatePathFromFile(selectedFile.name);
                     }
                 } else if (action == 'status') {
                     this.setPage('Status');
@@ -637,7 +648,7 @@
                     }
 
                     res.json().then(function (data) {
-                        // console.log('data', data)
+                        console.log('data', data)
                         document.title = path + ' -- ' + this.documentTitle;
                         self.setState(self.newPathState(data));
                     });
@@ -691,7 +702,7 @@
                     var pathSplit = newPath.split(path.sep);
                     var filePart = pathSplit[pathSplit.length - 1];
                     var match = this.fuzzyMatch(filePart, this.state.files.map(function (file) {
-                        return file.fileName;
+                        return file.name;
                     }));
 
                     if (match) {
@@ -881,19 +892,28 @@
                 var self = this;
                 var sortField = self.sortFields[self.state.fileSortField][0];
                 var sortDir = self.sortFields[self.state.fileSortField][1];
-                // console.log('sort', sortField, sortDir);
-                var fileList = this.state.files.sort(function (a, b) {
-                    if (sortField === 'none') {
-                        return 0;
-                    }
-                    if (a[sortField] > b[sortField]){
-                        return sortDir === 'ASC' ? 1 : -1;
-                    } else if (a[sortField] < b[sortField]) {
-                        return sortDir === 'ASC' ? -1 : 1;
-                    } else {
-                        return 0;
-                    }
-                }).map(function (f, i) {
+                // console.log('sort', sortField, sortDir, self.state.fileSortField, self.sortFields[self.state.fileSortField]);
+                var filesSorted;
+                if (sortField === 'none') {
+                    filesSorted = this.state.files
+                } else {
+                    filesSorted = this.state.files.sort(function sortFiles(a, b) {
+                        if (a[sortField] === null && b[sortField] === null) {
+                            return 0;
+                        } else if (a[sortField] === null){
+                            return sortDir === 'ASC' ? 1 : -1;
+                        } else if (b[sortField] === null) {
+                            return sortDir === 'ASC' ? -1 : 1;
+                        } else if (a[sortField] > b[sortField]){
+                            return sortDir === 'ASC' ? 1 : -1;
+                        } else if (a[sortField] < b[sortField]) {
+                            return sortDir === 'ASC' ? -1 : 1;
+                        } else {
+                            return 0;
+                        }
+                    })
+                }
+                var filesList = filesSorted.map(function (f, i) {
                     var classString = '';
                     if (self.state.selectedFile === i) {
                         classString += ' selected';
@@ -902,7 +922,7 @@
                         classString += ' tagged';
                     };
                     return (<tr key={i} className={classString} onClick={self.handleFileClick} ref={'file-' + i}>
-                                <td className="fileName">{ f.tagged ? <span>&#9654; </span> : <span>&nbsp; </span> }<a onClick={self.handleFileClick} href="#">{f.fileName}</a></td>
+                                <td className="name">{ f.tagged ? <span>&#9654; </span> : <span>&nbsp; </span> }<a onClick={self.handleFileClick} href="#">{f.name}</a></td>
                                 <td>{humanFileSize(f.size)}</td>
                                 <td>{formatDate(f.date)}</td>
                                 <td>{formatTime(f.time)}</td>
@@ -1003,11 +1023,11 @@
                                         <th className={this.sortSelected('name')}>File Name</th>
                                         <th className={this.sortSelected('size')}>Size</th>
                                         <th className={this.sortSelected('date')}>Date</th>
-                                        <th>Time</th>
+                                        <th className={this.sortSelected('date')}>Time</th>
                                     </tr>
                                 </thead>
                                 <tbody ref="filesTBody">
-                                    { fileList }
+                                    { filesList }
                                 </tbody>
                             </table>
                         </div>
@@ -1070,10 +1090,10 @@
             margin: 3;
         }
         a {
-            decoration: none;
+            text-decoration: none;
         }
         a:hover {
-            decoration: underline;
+            text-decoration: underline;
         }
         .blink {
             animation-duration: 1s;
@@ -1217,7 +1237,7 @@
             border: none;
             text-align: right;
         }
-        .files td.fileName {
+        .files td.name {
             text-align: left;
         }
 

@@ -60,8 +60,13 @@ function augmentFiles (files, dir) {
     files = files.map(function (file) {
         var path = fileToPath(file, dir);
         var stats = fs.statSync(path);
+        var extMatch = file.match(/.*\.(\w+)$/i);
         return {
-            fileName: file,
+            path: path,
+            fullPath: path,
+            dir: dir,
+            name: file,
+            ext: extMatch && extMatch[1] ? extMatch[1] : null,
             size: stats.size,
             date: stats.mtime,
             time: stats.mtime,
@@ -74,7 +79,6 @@ function augmentFiles (files, dir) {
             isDirectory: stats.isDirectory(),
             isFile: stats.isFile(),
             // isLink: stats.isSymbolicLink(),
-            fullPath: path
         };
     });
     return files;
