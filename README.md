@@ -30,6 +30,7 @@ Since it's somewhat tough to find, I'm rehosting [Q-DOS II for DOSBox](http://th
 - search/find
 - DOS Cmd?
 - Windows?
+- Tests
 
 
 ## License
