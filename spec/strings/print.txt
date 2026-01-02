@@ -1,0 +1,62 @@
+================================================================================
+PRINT COMMAND STRINGS - QDOS
+================================================================================
+
+PRINT COMMAND MENU OPTIONS
+================================================================================
+Print
+Print from:
+Highlighted
+Tagged
+Directory Listing
+Directory Map
+
+PRINT MENU DESCRIPTIONS
+================================================================================
+Print files, the directory map, or the current directory listing
+Print the highlighted file
+Print the tagged files
+Print the complete directory map
+Print the file listing displayed on the main screen
+Print Directory Listing
+Print Directory Map
+
+PRINT ACTION STRINGS
+================================================================================
+Print Files
+You can't print a directory
+Printing
+Press RETURN to start printing or ESC to stop
+Print a block of characters
+
+PRINTER ERROR MESSAGES
+================================================================================
+Printer Error
+Printer busy or out of paper
+Printer time out
+Printer I/O error
+Printer out of paper
+No directory map to print
+Printer error -- press any key
+
+KEYBOARD SHORTCUT
+================================================================================
+P - Print                       F8 - Sort Files
+
+DOCUMENTATION REFERENCES
+================================================================================
+Purpose:   The PRINT function allows you to print the Directory
+To use:    Upon selecting the PRINT command, you are given 4 options.
+           Selecting HIGHLIGHTED or TAGGED will print the files.
+           LISTING will direct Q-DOS II to print the sorted directory listing screen as displayed.
+           DIR MAP will produce a printed hard copy of the Q-DOS directory map.
+
+GENERAL REFERENCES
+================================================================================
+Q-DOS II lets you mark files and move, copy, rename, print, or erase
+Six Q-DOS II commands -- COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and CHANGE
+You can now print Highlighted or Tagged files from Q-DOS II.
+You can also print the directory map or a list of the files in the current directory.
+The editor will let you print all or part of a file.
+ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+designated block will go to the standard DOS printer.

@@ -1,0 +1,119 @@
+QDOS ERROR MESSAGES - ORGANIZED BY TYPE
+==========================================
+
+INSTALLATION ERRORS (QDSTART)
+============================
+*** ERROR:  Invalid drive.
+*** ERROR:  Invalid drive letter.  Please try again.
+*** ERROR:  Attempt to install Q-DOS II onto a floppy drive.
+*** ERROR:  Insufficient disk space.
+*** ERROR:  Source path same as destination path.
+*** ERROR:  Unable to create destination path.
+*** ERROR:  Unable to open source file
+*** ERROR:  Unable to create destination file
+*** ERROR:  Unable to execute QDCOLOR.COM
+*** ERROR:  Unable to open file QD2.EXE
+*** WARNING:  Destination directory already exists.
+
+
+DISK ERRORS
+===========
+GENERAL DISK ERROR
+WRITE-PROTECT ERROR
+DISK FULL ERROR
+DISK X IS FULL -- INSERT NEW DISK AND (C)ONTINUE OR (S)KIP FILE
+DISK HAS BEEN CHANGED -- press any key to go to main menu
+DRIVE IS NOT READY
+
+
+I/O ERRORS
+==========
+  * * * *   I/O ERROR   * * * *
+Printer I/O error
+
+
+FILE OPERATION ERRORS
+=====================
+CANNOT COPY ANY MORE FILES -- DIRECTORY IS FULL
+CANNOT OPEN SOURCEFILE; copy terminated. Press any key to continue.
+CANNOT OPEN THE HIGHLIGHTED FILE
+CANNOT MOVE ANY MORE FILES -- DIRECTORY IS FULL
+CANNOT FIND QDOS.HLP -- PRESS LETTER OF DRIVE
+CAN'T FIND QDOS.HLP
+CAN'T RENAME THE FILE
+CAN'T RENAME THE FILE -- IT IS MARKED 'READ-ONLY'
+CAN'T RENAME THE FILE -- ONLY DOS 3.XX ALLOWS THIS
+CAN'T RENAME THE FILE -- THERE IS ANOTHER ONE OF THE SAME NAME
+CAN'T ERASE DIRECTORIES
+CAN'T MOVE DIRECTORIES
+CAN'T COPY DIRECTORIES
+You cannot view a directory
+File erased
+Error - unable to erase
+
+
+FILE ATTRIBUTE ERRORS
+====================
+FILENAME.EXT IS MARKED READ-ONLY -- CANNOT ERASE IT
+FILENAME.EXT EXISTS IN DESTINATION DIRECTORY -- CANNOT MOVE IT
+FILENAME.EXT EXISTS ON DRIVE X -- WILL NOT BE COPIED
+DESTINATION FILE OF SAME NAME IS R/O - OVERWRITE?
+File too large -- cannot edit the file
+You can't change DIR, NORM, or VOL attributes
+
+
+PATH AND DIRECTORY ERRORS
+=========================
+PATH (OR FILE) NOT AVAILABLE
+PATH (OR FILE) NOT AVAILABLE -- YOU MUST HAVE CHANGED DISKS
+THAT NAME IS INVALID -- THERE IS ALREADY A DIRECTORY BY THAT NAME
+THE DESTINATION IS THE SAME AS THE SOURCE
+THE DIRECTORY IS NOT EMPTY
+THE ROOT DIRECTORY CANNOT BE REMOVED
+THERE ARE NO TAGGED FILES IN THIS DIRECTORY
+YOU MUST CHANGE TO A DRIVE FIRST
+
+
+MEMORY AND RESOURCE ERRORS
+==========================
+FILE NOT FOUND OR NOT ENOUGH MEMORY
+THERE IS NOT ENOUGH MEMORY TO RUN THIS PROGRAM
+NOT ENOUGH SPACE TO READ IN ENTIRE DIRECTORY
+TOO MANY DIRECTORIES
+
+
+COMMAND AND OPERATION ERRORS
+============================
+THAT COMMAND WON'T WORK WHEN THERE ARE NO FILES
+NO FILES IN DIRECTORY
+Error Executing
+No matching files found.
+Printer Error
+Error reading file. RET to skip or ESC to abort
+
+
+CONFIGURATION ERRORS
+====================
+The QD2.EXE file in this directory is marked read-only.
+The colors cannot be modified.  Turn-off the read-only attribute.
+Unable to read/write attributes from/to QD2.EXE file.
+
+
+DOS VERSION AND COMPATIBILITY ERRORS
+====================================
+YOU MUST USE EITHER DOS VERSION 2.XX OR 3.XX TO RUN Q-DOS II
+NO NON-NETWORK DRIVES.  UNABLE TO RUN Q-DOS II
+You must use either DOS version 2.xx or 3.xx to run Q-DOS
+No drives available.  Unable to run Q-DOS.
+Specified drive is invalid.
+Invalid drive.
+
+
+GENERAL ERRORS
+==============
+QDSTART was not able to create the specified destination path.
+Either the root directory is full, or the path name is invalid.
+QDSTART cannot read and display the current Q-DOS II configuration unless the QD2.EXE file is in the current directory.
+QDSTART cannot update the configuration of the QD2.EXE file in the current directory.
+QDSTART was unable to create the destination file.
+Q-DOS II encountered a read-only file in the destination directory.

@@ -1,0 +1,121 @@
+# VIEW/TYPE Command - File Viewer Strings
+# Organized strings related to the VIEW/TYPE command file viewer
+# Includes controls, navigation, hex mode, and viewer messages
+
+## COMMAND DESCRIPTION
+VIEW - File Viewer
+Display the contents of a highlighted file in NORMAL (ASCII) mode or HEX DUMP mode
+Similar to the TYPE command in DOS with additional features
+
+## DISPLAY MODES
+NORMAL
+ASCII
+HEX DUMP
+
+## MODE DESCRIPTIONS
+NORMAL Display Mode
+The NORMAL display mode is equivalent to the TYPE command in DOS, except that:
+(1) All of the characters in the file are displayed
+(2) An embedded "CTRL-G" will not cause the computer to beep
+
+HEX DUMP Display Mode
+The HEX DUMP display mode presents the file in three parts:
+- The left-most part gives a hexadecimal offset into the file
+- The middle section displays the characters in hexadecimal (base 16) notation
+- The right-hand section displays the same characters in ASCII notation
+
+## NAVIGATION CONTROLS
+UP ARROW - Scroll one line at a time
+DOWN ARROW - Scroll one line at a time
+PgUp - Previous page (scroll screen at a time)
+PgDn - Next page (scroll screen at a time)
+HOME - Jump to the start of the file
+END - Jump to the end of the file
+
+## CONTINUOUS SCROLLING
+Press number key 1-9 to select continuous scrolling speed
+1 - Slowest speed
+9 - Fastest speed
+Press any other key to stop the scrolling
+
+## MODE SWITCHING
+H - Switch to HEX mode
+N - Switch to NORMAL mode
+A - Switch to ASCII mode (same as NORMAL)
+
+## FILTER CONTROLS
+F - Toggle filter (can be pressed multiple times)
+First press - Replace non-ASCII characters with SPACE
+Second press - Activate special filter for WordStar text files
+
+## FILTER MODES
+Filter OFF - Show all characters in the file
+Filter ON - Replace any non-ASCII characters with SPACE characters
+Filter ON (WordStar) - Special filter used to view WordStar(tm) text files
+
+## HEX MODE SPECIFIC
+F4 - Toggle cursor between hex side and ascii side
+INS - Enter insert/delete/overwrite mode
+Valid hex input - Digits 0-9 and letters A-F (when on hex side)
+
+Cursor Position Display (bottom center line in hex mode):
+- Character in normal displayable form
+- Hex value
+- ASCII value
+
+## HEX MODE NOTES
+When entering data in hex mode with cursor on ascii side:
+- RETURN enters carriage return only (0D hex)
+- Not the normal carriage return/line feed combination (0D0A hex)
+
+Position/Offset Numbering:
+- ASCII mode: First position in file is position 1
+- HEX mode: Same position shown as position (or offset) 0
+
+## GENERAL CONTROLS
+ESC - Return to Main Screen
+
+## SCROLLING BEHAVIOR
+Scrolling Direction Arrow - Shown at bottom of screen
+Indicates the current scrolling direction
+Arrow changes when using arrow keys, Page keys, or HOME/END
+
+NORMAL Mode Scrolling Note:
+When scrolling backwards, Q-DOS II can't properly format large paragraphs
+until it finds their beginning. Once it finds the beginning, it reformats
+the entire paragraph.
+
+## PERSISTENT SETTINGS
+Last-used display mode - Remembered and applied when VIEW command is selected again
+Last-used filter setting - Remembered each time you select the view command
+
+## HELP
+F1 - HELP - Display help information for the viewer
+Use PgUp and PgDn to see complete help information
+Press I key - Go to main help index
+Press G key - Get general information on getting started with Q-DOS II
+Press ESC - Return to viewer
+
+## ERROR MESSAGES
+YOU CANNOT VIEW A DIRECTORY
+You cannot view a directory with the VIEW command
+
+CANNOT OPEN THE HIGHLIGHTED FILE
+In the VIEW command, if you switched disks, or if you erased, renamed, or moved
+the file while using another copy of the directory (see F4 - PREVIOUS DIRECTORY),
+Q-DOS II will not be able to find the file.
+Solution: Get a fresh copy of the directory using F3 - CHANGE DRIVE or the
+SELECT option of the DIRECTORY command, then you can VIEW any file listed.
+
+## VIEWER FEATURES
+File is displayed in the last-used display mode
+Filter automatically applied based on last-used setting
+Position preserved when switching between HEX and NORMAL modes
+All characters shown when Filter is OFF
+Scrolling direction indicator visible at bottom of screen
+
+## STATUS/DISPLAY ELEMENTS
+Filter Status Box - Shows current filter mode (upper-right hand corner)
+W/S notation - Indicates WordStar filter is active
+Scrolling Direction Arrow - Bottom of screen
+Byte Position Display - Center of bottom line in hex mode

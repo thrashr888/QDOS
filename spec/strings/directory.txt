@@ -1,0 +1,131 @@
+QDOS II - DIRECTORY COMMAND & DIRECTORY MAP SCREEN STRINGS
+==========================================================
+
+=== DIRECTORY COMMAND MAIN ===
+<DIRECTORY>
+Directory
+Change current directory, make or remove directory, see directory tree
+
+=== DIRECTORY MAP DISPLAY ===
+Q-DOS II Directory Map
+Directory Map
+Directory map of drive
+No directory map to print
+Use the Directory command to scan a drive
+Scanning directory map
+(M)ake directory  (S)can disk  (L)og on to disk  (R)emove directory
+
+=== DIRECTORY NAVIGATION ===
+Press RETURN to start, D for directory, ESC to quit
+Use arrow to highlight destination directory; then, press RETURN
+Use SPACE BAR to tag or untag highlighted directory. TAGGED SIZE:
+Files: Use arrow to highlight destination directory; then, press RETURN
+You must select a different directory.
+
+=== MAKE DIRECTORY DIALOG ===
+Make Directory
+Enter name of new directory:
+There is already a directory or file by that name
+(M)ake a new directory with the highlighted directory as its parent
+
+=== REMOVE DIRECTORY DIALOG ===
+Remove Directory
+The root directory can not be removed.
+(Check for hidden files in the directory.)
+The directory is not empty.
+(R)emove the highlighted directory, provided it is empty
+
+=== DIRECTORY ERRORS & MESSAGES ===
+Either the root directory is full, or the path name is invalid.
+and that the root directory is not full.  Then, you may execute
+Destination directory already exists.
+Cannot copy any more files -- directory is full
+(R)emove command on the directory map.
+Reading Directory
+Not enough space to read in entire directory
+There are no tagged files in this directory
+exists in destination directory -- cannot move it
+You cannot view a directory
+You can't print a directory
+No Files In Directory
+Select current directory by pressing O for Original
+
+=== DIRECTORY LISTING & PRINTING ===
+Print Directory Listing
+Directory listing of
+No entries in current directory listing
+Print Directory Map
+File NameFile Ext Fname.ExtGo To DOSCOMSPECDirectory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Change current directory, make or remove directory, see directory tree
+
+=== DIRECTORY FILE OPERATIONS ===
+Copy one or several files to another disk or directory
+Move one or several files from this directory to another directory
+Erase one or several files in this directory
+Rename one or several files in this directory
+Tag all files in this directory
+Clear all tags from all files in this directory
+Copy the highlighted file to another disk or directory
+Move the highlighted file to another directory
+Print the complete directory map
+
+=== DIRECTORY KEYBOARD SHORTCUTS ===
+D - Directory                   F4 - Previous Directory
+E - Erase                       F5 - Change Directory
+F3 - CHANGE DISK
+F4  --  PREVIOUS DIRECTORY
+F5  --  CHANGE DIRECTORY
+
+=== DIRECTORY PATH & NAVIGATION MESSAGES ===
+Please select either a different destination drive, or a directory which is different from the source directory.
+current directory, any other key to return and rescan.
+current directory of the current drive.  Please make sure that you change to the drive and directory
+to the directory which contains the QD2.EXE file, and then execute
+current directory.  Please check to see if the QD2.EXE file has been
+Change to the directory containing the QD2.EXE program
+Change to the directory which contains the QD2.EXE file
+
+=== DIRECTORY HELP & CONTEXT ===
+Options: (C)ontinue, (J)ump to directory, (V)iew file, (ALT-E)rase, ESC to quit
+(J)ump to directory will display the found file's directory
+the left of the file name.  Directory entries cannot be tagged.
+Directory entries, and skips Hidden or System files.
+DIR tells Q-DOS II to display all directory entries.
+Select the DIRECTORY command.  Q-DOS II will display
+The Directory Map consists of directories sorted alphabetically and
+relationships.  One of them is highlighted with the Directory Cursor.
+The LEFT ARROW key moves the Directory Cursor to the parent directory
+of the currently highlighted directory (i.e., one column to the
+backs the cursor up the directory map (it is the opposite of the
+RIGHT ARROW).  The HOME key moves the Directory Cursor directly to
+the "root" directory, while the END key moves it to the bottom-most
+directory.  Maps that are larger than a single screen will scroll up,
+
+=== DIRECTORY CAPACITY & INFORMATION ===
+EXPANDED FILE AND DIRECTORY CAPACITY
+The number of files that Q-DOS II can display per directory has been increased
+in its "Directory Map" has been increased from 200 to 550.
+Q-DOS II can handle 700 file names in one directory.
+
+=== DIRECTORY MAP SCANNING & LOGGING ===
+Press "S" to make an input box appear.
+will then quickly read and display that disk's Directory Map.
+Use the LOG command to instantly view the Directory Map of your
+directory, it only takes a fraction of a second.
+Each time you SELECT a new directory, Q-DOS II remembers the contents
+of the directory you were just looking at.  You can return to that
+directory using the F4 - PREVIOUS DIRECTORY command.
+
+=== DIRECTORY ATTRIBUTES ===
+DIR (Directory)
+Means the file is a directory or subdirectory.  Q-DOS II will let you
+Means the file is not a Directory.  Program and data files are
+
+=== DIRECTORY CONFIGURATION & PATHS ===
+The on-line help file path option allows you to specify the directory
+where the Q-DOS II help file is located.  The default directory is
+a different directory, the help file path must be altered.
+Q-DOS II will create a log file in the root directory of each logged
+first in the directory you specified in the QDCONFIG program
+(C:\QDOS is the default directory),
+then in the root directory of that drive.  It displays this
+Q-DOS II normally lists the path of the current directory.

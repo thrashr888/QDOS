@@ -1,0 +1,86 @@
+RENAME COMMAND STRINGS
+======================
+
+Command Description:
+- RENAME command lets you assign new names to files
+- Q-DOS II lets you mark files and move, copy, rename, print, or erase
+- Six Q-DOS II commands -- COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and
+
+User Interface:
+- Purpose: The RENAME command lets you assign new names to files
+- First, select the files you wish to RENAME. Then select the RENAME command.
+- If you select multiple files, the RENAME command will open a dialog box with:
+  (1) a display of the file to be renamed, and (2) an input box for the new name.
+- Type the new name and press ENTER. Q-DOS II lists them all and allows you to rename them one at a time.
+- You may exit the RENAME command at any time by pressing ESC.
+
+File Behavior:
+- When you rename files, Q-DOS II will not re-sort the files unless you RESCAN the disk.
+- Files that were tagged before you renamed them will no longer be tagged.
+
+Tagged Files:
+- ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+- RENAME the TAGGED files when no files are tagged.
+
+Error Messages:
+- Can't rename the file --
+- CAN'T RENAME THE FILE
+
+Error Details:
+- There are three reasons why DOS cannot rename a file:
+  1. The file has the READ-ONLY attribute. To rename it, select the ATTRIBUTE command, and change its attribute. Only files that can be renamed (or erased) can be renamed once the READ-ONLY attribute is reset.
+  2. You must use DOS 3.0 or higher to rename directories. If you rename a directory, you must then re-SCAN the disk to verify the rename.
+  3. The file or directory does not exist. Make sure the path you specify is correct and you wish to rename it.
+- rename either the file in the source directory, or the one in the target directory.
+
+File Management Context:
+- these Q-DOS II commands: MAKE DIRECTORY, TAG SEVERAL, FIND, RENAME,
+- you may have RENAMEd, MOVEd, or ERASEd a file
+- renamed, or moved the file while using another copy of the Q-DOS II
+
+
+SPACE COMMAND STRINGS
+=====================
+
+Command Description:
+- SPACE command displays: (1) total size of the disk, (2) used disk space, and (3) total unused disk space in bytes.
+- Show the total, used, and free space on any disk
+
+User Interface:
+- To use: Select the SPACE command. Q-DOS II immediately displays the disk space information.
+- You can verify disk space from the Main Screen with the SPACE command.
+
+Related Actions:
+- Check space on drive:
+- Total space:
+
+Error Messages:
+- *** ERROR: Insufficient disk space.
+- There is not enough disk space available on drive
+- Insufficient disk space
+- Not enough space to read in entire directory
+- NOT ENOUGH SPACE TO READ IN ENTIRE DIRECTORY
+
+Installation/Setup Context:
+- of disk space available, run QDSTART again.
+- space available for all of the Q-DOS II files. Then, you may execute
+
+Space Bar Usage (Related):
+- To change the search attribute settings, press the space bar.
+- To change the search specification, press the space bar.
+- To change the sort method, press the space bar.
+- To change the sort direction, press the space bar.
+- To change the Q-DOS II log file setting, press the space bar.
+- To change the first logged drive specification, press the space bar.
+- To change the on-line editor path, press the space bar.
+- To change the on-line help file path, press the space bar.
+- Press the space bar to select the sort method that Q-DOS II will use.
+- Press the space bar to toggle the sort direction from 'Ascending' to
+- Press the space bar to toggle the Q-DOS II log file option from 'Yes'
+- SPACE BAR- Tag file
+- Move cursor with arrows; press SPACE BAR to change
+- Use SPACE BAR to tag or untag highlighted directory. TAGGED SIZE:
+- Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file
+- You can tag individual directories with the SPACE BAR, or you can tag
+- press the SPACE BAR, which functions as an YES/NO toggle switch.
+- SPACEBAR: Selects command (when in Command mode only)

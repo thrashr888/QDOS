@@ -1,0 +1,119 @@
+================================================================================
+Q-DOS II MOVE COMMAND STRINGS
+================================================================================
+
+MENU & COMMAND STRINGS
+================================================================================
+
+Move Files
+You can't move directories
+Move Files
+Press ESC to quit
+Moving
+
+DIALOG & OPTION STRINGS
+================================================================================
+
+Moving from:
+To:
+Press RETURN to start, D for directory, ESC to quit
+
+Files: Use arrow to highlight destination directory; then, press RETURN
+Use SPACE BAR to tag or untag highlighted directory. TAGGED SIZE:
+
+HIGHLIGHTED or TAGGED
+Choose the appropriate option.
+
+DESCRIPTION & HELP STRINGS
+================================================================================
+
+MOVE
+
+Purpose: The MOVE command lets you move files from one
+directory to another on the same disk. (Moving files
+between disks is done with the COPY command.)
+
+To use: Highlight or tag one or more files that you wish to
+MOVE. Then press "M." If there are tagged files,
+Q-DOS II will present two options at the top of the screen:
+HIGHLIGHTED or TAGGED. Choose the appropriate option. If there are
+no tagged files, Q-DOS II defaults to HIGHLIGHTED and goes directly
+to the next screen.
+
+Q-DOS II then displays the Directory Map of the current disk. Use
+the arrow keys to place the Directory Cursor on the destination
+directory; then, press RETURN.
+
+Q-DOS II then lists the files to be moved, shows the source and
+destination directories, and gives you three options: (1) you may
+return to the Main Screen by pressing ESC; (2) you may return to the
+Directory Map by pressing "D"; or (3) you may proceed with the MOVE
+command by pressing RETURN. If you press RETURN, you will see Q-DOS
+II remove files from the to-be-moved list and move them to their new
+location. You can interrupt MOVE at any time by pressing ESC.
+
+MOVE is often preferable to COPY for these reasons: (1) there is no
+copying, and MOVE can easily rearrange the files on a disk even when
+it is full; (2) The command is very fast -- moving a 100,000-byte
+file is no slower than moving a 15-byte file.
+
+If Q-DOS II fails to complete a MOVE, it is generally because the
+directory already contains a file of the same name, in which case
+Q-DOS II will give you a warning message, skip the file, and continue
+with the MOVE. Skipped files remain tagged in the Main Screen
+directory listing.
+
+ERROR MESSAGES
+================================================================================
+
+FILENAME.EXT EXISTS IN DESTINATION DIRECTORY -- CANNOT MOVE IT
+In the MOVE command, you cannot move a file into a directory if
+there is already a file of the same name inside that directory.
+Either select another destination directory for the file, or
+rename either the file in the source directory, or the one in
+the destination directory. Then, move the file.
+
+exists in destination directory -- cannot move it
+
+THE DESTINATION IS THE SAME AS THE SOURCE
+When copying or the moving files, you must specify a
+destination directory that is different than the source
+directory. In the COPY DIRECTORY command, the destination and
+source drives cannot be the same. Q-DOS II will not allow a
+file or directory to be copied on top of itself.
+
+THERE ARE NO TAGGED FILES IN THIS DIRECTORY
+You will see this message if you try to COPY, ERASE, MOVE, or
+RENAME the TAGGED files when no files are tagged. You should
+either tag the files for this command first, or you may want to
+work with the HIGHLIGHTED file (one at a time) instead.
+Please review the help section for the command you were using.
+
+WRITE-PROTECT ERROR
+The disk you are trying to COPY or MOVE to, or on which you are
+changing file attributes, has a write-protect tab. If you are
+certain you need to continue, remove the tab from the diskette
+and retry the command.
+
+YOU CAN'T MOVE DIRECTORIES
+Currently, Q-DOS II cannot move directories. You can move all
+the files in one directory to another, however.
+
+MENU HELP TEXT
+================================================================================
+
+Move one or several files from this directory to another directory
+
+The MOVE command lets you move files from one directory to another on the same disk.
+
+You can then apply the COPY, ERASE, MOVE, ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+
+MOVE -- can operate on several files at once. You identify multiple
+files with a single command.
+
+The MOVE command moves files from one directory to another.
+
+PATH (OR FILE) NOT AVAILABLE -- YOU MUST HAVE CHANGED DISKS
+Q-DOS II can't find the file or directory "path" that it
+thought still existed. This happens if you remove a disk while
+you are still working with its directory.

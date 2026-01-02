@@ -1,0 +1,132 @@
+Q-DOS II MENU AND UI STRINGS
+==============================
+
+MAIN MENU COMMANDS (Top Navigation Bar)
+========================================
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print
+
+MAIN MENU DESCRIPTION
+======================
+Change current directory, make or remove directory, see directory tree
+
+
+FUNCTION KEYS (F1-F10)
+======================
+F1  - Help
+F2  - Status Screen
+F3  - Change Drive
+F4  - Previous Directory
+F5  - Change Directory
+F6  - DOS Command
+F7  - Set Search Specifications
+F8  - Sort Files
+F9  - Edit
+F10 - Quit
+
+FUNCTION KEY DISPLAY FORMAT (Status Bar)
+========================================
+F1- Help       F2- Status
+F3- Chg Drive  F4- Prev Dir
+F5- Chg Dir    F6- DOS Cmd
+F7- Srch Spec  F8- Sort
+F9- Edit      F10- Quit
+
+
+HELP INDEX MENU
+===============
+I - Introduction to Q-DOS II        F1 - Help
+A - Attribute                       F2 - Status Screen
+C - Copy                            F3 - Change Drive
+D - Directory                       F4 - Previous Directory
+E - Erase                           F5 - Change Directory
+F - Find                            F6 - DOS Command
+M - Move                            F7 - Set Search Specifications
+P - Print                           F8 - Sort Files
+R - Rename                          F9 - Edit
+S - Space                           F10 - Quit
+T - Tag
+V - View
+
+APPENDICES
+1 - APPENDIX A -- Valid File Names in DOS
+2 - APPENDIX B -- Organizing a Hard Disk
+3 - APPENDIX C -- Error Messages
+4 - APPENDIX D -- New Features in Q-DOS II
+5 - APPENDIX E -- Q-EDIT (The Standard Editor)
+
+
+STARTUP MENU
+============
+Q-DOS II Startup Menu
+
+Install Q-DOS II
+Configure Q-DOS II
+Exit to DOS
+
+
+COLOR CONFIGURATION MENU
+========================
+M - Standard monochrome
+C - Standard color
+1 - Adjust cursor bar color
+2 - Adjust line color
+3 - Adjust command description color
+4 - Adjust heading color
+5 - Adjust commands/data color
+6 - Adjust background color
+
+
+HEADER/COLUMN LABELS
+====================
+File Name
+Size
+Date
+Time
+Count
+Total Size
+Path
+Files
+Directories
+Tagged
+
+
+COMMON STATUS/DIRECTION LABELS
+==============================
+DIRECTION:
+(C) Copyright 1988
+Q-DOS II  --  Version 2.0
+GAZELLE SYSTEMS - Provo, Utah
+
+Press F1 to read & display current colors.
+Press ENTER to save colors or ESC to quit.
+Press any key to continue...
+
+
+SPACEBAR AND ESC CONTROLS
+==========================
+SPACE BAR - Tag file
+ESC - Abort command
+
+
+SPECIFIC COMMAND DESCRIPTIONS
+==============================
+F1 - Help: Press the F1 key. Q-DOS II will then display help
+F2 - Status Screen: Shows search specifications and sort information
+F3 - Change Drive: Change to a different disk drive
+F4 - Previous Directory: Switch to previously viewed directory
+F5 - Change Directory: Highlight the directory entry and press F5
+F6 - DOS Command: Display a DOS command line interface
+F7 - Set Search Specification: Configure file search attributes and specifications
+F8 - Sort Files: Select sort method and direction
+F9 - Edit: Start your configured editor to edit the highlighted file
+F10 - Quit: Press F10 to quit Q-DOS II (press again to confirm exit)
+
+
+DIALOG/CONFIRMATION MESSAGES
+=============================
+To make your selection, press the up and down arrow keys to highlight the appropriate option, and then press the ENTER key.
+To exit to DOS, select the exit option, or press the ESC key.
+To save the current configuration and exit, press the ENTER key.
+To exit without saving the current configuration, press the ESC key.
+Disk has been changed -- press any key to go to main menu
+Press F10 again to quit, or RETURN for options

@@ -1,0 +1,123 @@
+TAG COMMAND AND FILE TAGGING SYSTEM STRINGS
+=============================================
+
+TAG COMMAND MENU OPTIONS
+------------------------
+(T)ag all subdirs
+(U)ntag all subdirs
+RETURN when finished or ESC to quit
+Clear all tags from all files in this directory
+"Flip" file tags (change all tagged to untagged, untagged to tagged)
+Retag the files, marked with a #, from the previous Copy or Rename command
+Copy all the tagged files
+Move all the tagged files
+Erase all the tagged files
+Rename all the tagged files
+Print the tagged files
+Change attributes of the tagged files
+
+TAG COMMAND OPTIONS (Main)
+--------------------------
+ALL
+CLEAR ALL
+INVERT
+SEVERAL
+RETAG
+
+TAG/UNTAG MESSAGES AND HELP TEXT
+---------------------------------
+There are no tagged files in this directory
+Use SPACE BAR to tag or untag highlighted directory. TAGGED SIZE:
+Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file
+THERE ARE NO TAGGED FILES IN THIS DIRECTORY
+RENAME the TAGGED files when no files are tagged.  You should either tag the files for this command first, or you may want to
+
+TAG COMMAND DESCRIPTION
+-----------------------
+HOW TO TAG FILES
+Purpose:   A "tag" is a triangular pointer that appears on the Main Screen, to the left of the file name.  The TAG command allows you to tag or untag a group of files using the SPACE BAR, or one of five menu options, and then use the COPY, MOVE, ERASE, ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+
+TAG COMMAND USAGE
+-----------------
+To use:    You can tag single files at any time by highlighting them and pressing the SPACE BAR; or, you may use the TAG command.  The TAG command lets you (a) tag all files in a directory at once, (b) remove all tags, (c) reverse tags, (d) tag files by name, using the DOS wildcard characters ("*" and "?" -- see APPENDIX A), or (e) RETAG previously tagged files to repeat commands.
+
+TAG MARKER AND DISPLAY
+----------------------
+The "tag" is a triangular pointer that appears on the Main Screen, to the left of the file name.
+Directory entries cannot be tagged.
+A tag marker will appear to the left of the file name in the list.
+If the file is already tagged, it will become untagged.
+If you attempt to tag a directory entry using the SPACE BAR, Q-DOS II will beep, indicating that it cannot be tagged, and the File Cursor will move down one line.
+
+TAG COUNTER AND SIZE BOX
+------------------------
+Tagged Size Box, which shows the total size of the tagged files.
+As you tag or untag directories, Q-DOS II displays the total size of the selected files in the tagged directories.
+
+TAG COMMAND OPTIONS DETAILED
+-----------------------------
+The ALL command tags all of the files in the directory.
+
+The CLEAR ALL command removes tag and retag markers from all of the files in the directory.
+
+The INVERT command reverses the tags in the directory.  Untagged files become tagged, and tagged files become untagged.  This option is particularly useful when you want to tag all but a few of a long list of files.  Simply tag those few that you do not want tagged, then select INVERT to reverse the tags.
+
+The SEVERAL command lets you specify files to be tagged by name.  You may use the standard DOS wildcard characters.  Entering the name "*.COM," for example, tags all files whose name includes the extension "COM".  The name "D?T*.*" tags all files whose name starts with "D," has any character in the second position, followed by "T," and then any remaining characters.  This command most useful for tagging groups of related files, although you may also use it to tag an individual file by name.
+
+RETAG COMMAND
+-------------
+Retag
+When you perform an operation on a tagged file, a small "#" appears (where the triangular tag was).  This mark only indicates which files were tagged.  If you would like to perform another function on that same group of selected files, simply select the RETAG command and all of those files will be tagged again.
+The TAG RETAG command will retag all these files, if you wish.
+
+COPY/MOVE OPERATIONS WITH TAGGED FILES
+---------------------------------------
+To copy several files, tag all the files you wish to copy, then press "C" for COPY command.  Then, choose either HIGHLIGHTED, TAGGED, or DIRECTORY.
+
+When Q-DOS II copies a tagged file, it untags the file and updates the tagged count and size boxes when it is finished with the COPY command.  The files that were copied are tagged with a small '#' tag.
+
+You must then tag the directories you wish to copy. You can tag individual directories with the SPACE BAR, or you can tag or untag a given directory and all of its sub-directories at the same time by pressing "T" to tag or "U" to untag the directories.
+
+Files that have not yet been completely copied will still be tagged, and Q-DOS II will display these uncopied files tagged.
+
+To use:    Highlight a file, or tag one or more files, that you wish to MOVE.  Then press "M."  If there are tagged files, Q-DOS II will present two options at the top of the screen: HIGHLIGHTED or TAGGED.  Choose the appropriate option.  If there are no tagged files, Q-DOS II defaults to HIGHLIGHTED and goes directly to the RENAME prompt.
+
+Skipped files remain tagged in the Main Screen so that you can make the same operation again.
+
+ATTRIBUTE OPERATIONS WITH TAGGED FILES
+--------------------------------------
+To change the attributes of several files, tag all the files whose attributes you wish to change, then press "A" for ATTRIBUTE.
+select either ATTRIBUTE HIGHLIGHTED or TAGGED to change the attributes of either the highlighted or the tagged files.
+You may highlight the file whose attributes you wish to change, or tag one or more files whose attributes you wish to change. Then, select either ATTRIBUTE HIGHLIGHTED or TAGGED.
+
+RENAME OPERATIONS WITH TAGGED FILES
+-----------------------------------
+To use:    Highlight a file, or tag one or more files, that you wish to RENAME.  Then press "R."  If there are one or more tagged files, Q-DOS II will present two options at the top of the screen: HIGHLIGHTED or TAGGED.  Choose the appropriate option.  If there are no tagged files, Q-DOS II defaults to HIGHLIGHTED and prompts you to enter the new name and press RETURN.  If you are renaming several tagged files, each file must be renamed separately.
+The files that were tagged before you renamed them will no longer be tagged.
+
+PRINT OPERATIONS WITH TAGGED FILES
+----------------------------------
+To use:    Highlight a file, or tag one or more files, that you wish to PRINT.  Then press "P."  If there are one or more tagged files, Q-DOS II will present two options at the top of the screen: HIGHLIGHTED or TAGGED.  Choose the appropriate option.  If there are no tagged files, Q-DOS II defaults to HIGHLIGHTED and goes directly to the PRINT command.
+options.  Selecting HIGHLIGHTED or TAGGED will print the highlighted or all tagged files respectively.
+
+ERASE OPERATIONS WITH TAGGED FILES
+----------------------------------
+COPY, MOVE, ERASE, ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+Erase all the tagged files
+
+DIRECTORY TAGGING
+-----------------
+Directories can, however, be tagged using the COPY DIRECTORY option.  When copying directories, tagging is handled differently from tagging files.
+To quickly tag all the directories, move the cursor to the root directory entry and then press "T" to tag all the directories, and then press "U" to untag all the directories.
+From each of the tagged directories, automatically replicating the directory structure in the destination drive.
+
+RETAG FEATURE
+-------------
+A RETAG feature has been added to the TAG command (this will retag files that were tagged and then copied or printed, or that had their attributes modified).
+
+GENERAL NOTES
+-------------
+You may tag or untag files by highlighting the file you wish to tag, and pressing the SPACE BAR; or, you may use the TAG command.
+Directory entries cannot be tagged.
+highlights the file; to copy several files, tag all files you wish to copy
+all the tags on the files.  Every time you select a new directory,

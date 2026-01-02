@@ -1,0 +1,227 @@
+================================================================================
+QDOS ATTRIBUTE COMMAND - EXTRACTED STRINGS
+================================================================================
+
+COMMAND REFERENCE
+================================================================================
+ATTRIBUTE
+CHG ATTRIB
+CHANGE ATTRIBUTES
+
+ATTRIBUTE command at the top of the screen and press RETURN, or press the letter "A"
+To display the file attributes, select ATTRIBUTE DISPLAY
+To change the attributes of a file, select ATTRIBUTE HIGHLIGHTED
+Tag all the files whose attributes you wish to modify, then select the ATTRIBUTE command
+
+PURPOSE AND DESCRIPTION
+================================================================================
+Purpose: The ATTRIBUTE command allows you to display and/or change file attributes
+The ATTRIBUTE command allows you to display and/or change file attributes
+
+Six Q-DOS II commands -- COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and others
+
+ATTRIBUTE TYPES
+================================================================================
+Six possible file attributes: NORM, DIR, HID, SYS, R/O, and ARC
+
+NORM (Normal)
+Normal files may also have the SYS, HID, R/O, and ARC attributes
+
+DIR (Directory)
+
+HID (Hidden)
+Care with this attribute. Several software companies use it as part of their file system
+
+SYS (System)
+Assigning this attribute to a file makes the file invisible
+
+R/O (Read-Only)
+You can safely assign the Read-Only attribute to files
+
+ARC (Archive)
+Means the file needs to be backed up
+DOS sets this attribute automatically
+
+ATTRIBUTE DISPLAY FORMATS
+================================================================================
+NORM DIR HID SYS R/O ARC
+NORMDIR HID SYS R/O ARC
+
+ATTRIBUTE DIALOGS AND PROMPTS
+================================================================================
+Press RETURN to change attributes, ESC to stop
+Change attributes for:
+Display/change file attributes
+Change attributes of the highlighted file
+Change attributes of the tagged files
+Display file attributes
+
+The possible attributes will appear in a row in the middle of the screen
+The SPACE BAR acts as a toggle switch, allowing you to set the mode for the attribute to ON
+
+ATTRIBUTE MODES
+================================================================================
+ON (sets the attribute on)
+OFF (sets the attribute off)
+N/C (the attribute will not be changed -- this option is available only when modifying attributes of tagged files)
+
+ATTRIBUTE MODIFICATION RULES
+================================================================================
+A file may have more than one attribute at a time
+
+Use the cursor keys to highlight the file whose attributes you wish to change, or tag several files if you wish to change the attributes of more than one file
+
+Use the left and right arrow keys to highlight the attribute setting
+
+To actually change the attributes of files, move from attribute to attribute across the row
+
+When you have completed your attribute changes, press RETURN to save them, or press ESC to cancel
+
+Press RETURN to complete the ATTRIBUTE mode and return you to the Main Screen, or press ESC to cancel the ATTRIBUTE mode
+
+Use caution when changing the attributes of files
+
+SPECIAL ATTRIBUTE BEHAVIORS
+================================================================================
+Normally, you should not change the ARC attribute files, since they indicate files that have not been backed up
+
+If you modify the ARC attribute, you either request a backup for that file or you indicate that it has been backed up
+
+Q-DOS II will turn off the ARC attribute after it copies files
+
+When you modify the ARC attribute, the system will also turn off the ARC attribute
+
+ARC flag selection will turn off the ARC attribute after it copies files
+
+You cannot change DIR, NORM, or VOL attributes
+
+ATTRIBUTE AND DIRECTORY OPERATIONS
+================================================================================
+Display the structure of your files and directories
+Remembers the attributes you were last viewing
+Will continue to display attributes until you press ESC from the Main Screen or from within the ATTRIBUTE command
+
+If you change the HID attribute, the file will still appear until you re-enter the directory through the DIRECTORY command or the F3 - CHANGE DISK command, or by resetting the F7 - SET SEARCH SPECIFICATION
+
+To change the search attribute settings, press the space bar
+
+ERROR CONDITIONS AND WARNINGS
+================================================================================
+You can't change DIR, NORM, or VOL attributes
+
+Destination file of same name is R/O
+
+You CAN'T CHANGE DIR, NORM, OR VOL ATTRIBUTES
+
+The attribute protects the file from accidental erasures
+
+ATTRIBUTE AND FILE OPERATIONS
+================================================================================
+If the file attributes are marked read-only, you will need to change the file attribute
+
+If you still wish to erase the file, select the ATTRIBUTE command to eliminate the Read-Only attribute from the file
+
+To rename it, select the ATTRIBUTE command to turn off the READ-ONLY attribute, then the file can be renamed
+
+Turn-off the read-only attribute to modify the file
+
+Unable to read/write attributes from/to QD2.EXE file
+
+SEARCHING AND FILTERING BY ATTRIBUTES
+================================================================================
+The search attributes option allows you to specify the types of files to display
+
+To change the search attribute settings, press the space bar
+
+For information about the search attributes, press the F1 key
+
+The search attribute definition appears in a row of six highlighted bars
+
+File attribute definition is represented as a row of six highlighted bars
+
+Names of selected attributes appear within their corresponding bars
+
+Bars representing unselected attributes are blank
+
+Files and attributes do not match the current search specifications
+
+If you wish to search for files with specific attributes, you must define those file attributes with the F7 - SET SEARCH SPECIFICATION
+
+Attributes include NORM, DIR, SYS, HID, R/O, and ARC
+
+ATTRIBUTE DISPLAY MODES
+================================================================================
+Display modes available for file attributes
+The attribute command has been enhanced
+In Q-DOS II, you must select ATTRIBUTE DISPLAY to display the attributes
+You can change attributes on either the Highlighted or the Tagged files
+You can change attributes of directories to hide them from view
+You can change attributes of directories with the HID setting
+Search attribute includes the HID setting
+
+ATTRIBUTE SEARCH SPECIFICATIONS
+================================================================================
+F7 - SET SEARCH SPECIFICATION command to turn on the Hidden attribute as a search specification
+
+F7 - SET SEARCH SPECIFICATIONS to restrict the attributes of displayed files
+
+SET SEARCH SPECIFICATIONS (see F7) are set to display directory entries or hidden files
+
+The SET SEARCH SPECIFICATION command also sets the rules that guide the attribute selection part of the FIND command
+
+To list all hidden files on a disk, set the attribute definition to HID and all other attributes to NO
+
+Attribute selection rules remain in effect until they are again changed through the SET SEARCH SPECIFICATION
+
+RESTRICTING FILE ATTRIBUTES
+================================================================================
+NORM - tells Q-DOS II to display all Normal files, in addition to any others selected
+A normal file is one that is not a DIRectory
+NORM will also display R/O files and/or ARC files, whether or not those attributes are in the search specification
+
+DIR - tells Q-DOS II to display all directory entries
+
+HID - tells Q-DOS II to display all Hidden files and directories, regardless of their other attributes
+
+SYS - tells Q-DOS II to display System files
+Even when you select SYS as a search specification, Q-DOS II will not display System files that are Hidden unless you also select HID
+Select both HID and SYS as search specifications when your intention is to display hidden system files
+
+R/O - tells Q-DOS II to display Read-Only files
+If NORM is already a search specification, selecting R/O adds nothing
+The R/O attribute is most useful when you want to display nothing but Read-Only files
+Read-Only files will not be displayed, however, unless the HID attribute is also selected as a search specification (if they are hidden)
+
+ARC - tells Q-DOS II to display files with the ARC attribute
+If NORM is already a search specification, selecting ARC adds nothing
+The ARC attribute is most useful when you want to display nothing but files having the ARC attribute
+Hidden files with the ARC attribute will not be displayed, however, unless the HID attribute is also selected as a search specification
+
+ATTRIBUTE AND BACKUP OPERATIONS
+================================================================================
+Select the ARC flag in the F7 - SET SEARCH SPECS command to copy all files that need to be backed up
+
+Turn on the ARC attribute as a search specification when your intention is to display nothing but files having the ARC attribute
+
+Before selecting COPY DIRECTORY, turn off all other attributes, including NORM
+
+FILES WITH SPECIFIC ATTRIBUTES
+================================================================================
+Find all hidden files by setting the HID attribute to YES and all other attributes to NO
+Only Hidden Files that also match the specified name will be displayed
+
+Match with matching name and attributes provides four options
+
+Must first display hidden files using the F7 - SET SEARCH SPECIFICATION command
+
+RELATED COMMANDS AND OPERATIONS
+================================================================================
+COPY command - works with file attributes
+FIND command - attribute selection
+RENAME command - may require attribute changes
+MAKE DIRECTORY - related to directory attributes
+ERASE command - may require attribute changes
+TAG SEVERAL - tag files before changing attributes
+See the ATTRIBUTE command for information on changing file attributes
+For information about the search attributes, press the F1 key
+================================================================================

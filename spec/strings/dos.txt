@@ -1,0 +1,267 @@
+================================================================================
+Q-DOS II - DOS COMMAND EXECUTION AND SHELL COMMAND STRINGS
+================================================================================
+
+SECTION 1: DOS COMMAND PROMPTS AND NAVIGATION
+================================================================================
+
+F6- DOS Cmd
+F6 - DOS Command
+F6 - DOS Command Line
+
+       F6  --  DOS COMMAND
+
+DOS prompt (if using drive C, the prompt will be "C>")
+C>
+
+Enter drive letter, or press ESC
+
+================================================================================
+SECTION 2: DOS COMMAND EXECUTION AND SHELL ACCESS
+================================================================================
+
+Purpose:   This command allows you to access the DOS prompt line
+   so that you may enter any DOS command. This allows you
+to execute any DOS command or application.
+
+To use:    If you need to access the DOS command line, simply
+    press the F6 function key. This will display a DOS
+prompt in the place where Q-DOS II normally lists the path of the current directory.
+
+Upon selecting the F6 command, the command line appears near the top
+of the screen and a cursor is displayed allowing you to enter the
+desired commands.
+
+You may enter any command you wish (i.e.  execute a program,
+perform a CHKSK or DIR on a disk...etc.).
+
+Pressing F8 will immediately put you into DOS; if you use this
+function key, you must type "EXIT" to return to Q-DOS II.
+
+The command actually runs another copy of COMMAND.COM on top of Q-DOS II.
+
+================================================================================
+SECTION 3: COMMAND EXECUTION EXAMPLES
+================================================================================
+
+type "EXIT" to return to Q-DOS II.
+
+Type 'EXIT' to return to Q-DOS.
+
+After the DOS prompt is displayed, you would
+type the command to execute the word processor (i.e.  "WP").
+
+You could use Q-DOS II to quickly find the document. After the file is highlighted, you would
+then press the F6 key. After the DOS prompt is displayed, you would
+type the command to execute the word processor
+
+by pressing the F6 key, Q-DOS II will type the full filename for you
+(i.e.  " LETTER.TXT") so that all you need to do is press RETURN.
+
+This offers you a simple way to compose whatever DOS command you need
+quickly and easily, without having to type the full filenames.
+
+================================================================================
+SECTION 4: FUNCTION KEY SHORTCUTS FOR DOS COMMAND LINE
+================================================================================
+
+F2 will type the highlighted file name (not including the extension).
+F4 will type only the extension of the highlighted filename.
+F6 will type the filename complete with its extension.
+
+The F3 key (and ctrl-R) will redisplay the last-used command.
+
+The editing keys (INS, HOME, END, and the arrow keys) are available.
+
+The INS key toggles between overwrite mode (small underline cursor)
+and insert mode (larger block cursor).
+
+================================================================================
+SECTION 5: ERROR MESSAGES - EXECUTION ERRORS
+================================================================================
+
+*** ERROR:  Unable to execute QDCOLOR.COM
+
+Error Executing
+
+That command won't work when there are no files
+
+THAT COMMAND WON'T WORK WHEN THERE ARE NO FILES
+
+*** ERROR:  Unable to open source file
+
+*** ERROR:  Unable to create destination file
+
+*** ERROR:  Unable to open file QD2.EXE
+
+================================================================================
+SECTION 6: DRIVE AND DISK ERRORS
+================================================================================
+
+*** ERROR:  Invalid drive.
+
+*** ERROR: Invalid drive letter.  Please try again.
+
+*** ERROR:  Attempt to install Q-DOS II onto a floppy drive.
+
+*** ERROR:  Source path same as destination path.
+
+*** ERROR:  Unable to create destination path.
+
+Invalid drive.
+
+No drives available.  Unable to run Q-DOS.
+
+WRITE-PROTECT ERROR
+
+DRIVE IS NOT READY
+
+GENERAL DISK ERROR
+
+*** ERROR:  Insufficient disk space.
+
+Disk has been changed -- press any key to go to main menu
+
+Non-System disk...
+
+================================================================================
+SECTION 7: DRIVE AND DIRECTORY SELECTION
+================================================================================
+
+F3 - Change Disk Drive
+
+F3- Chg Drive
+
+Enter letter of new disk drive:
+
+Enter letter of disk drive:
+
+Please make sure that your entry is a valid DOS drive.
+
+Scan Drive
+
+You must change to a drive first
+
+Insufficient disk space
+
+Space On Disk
+
+Check space on disk:
+
+Directory map of drive
+
+================================================================================
+SECTION 8: DIRECTORY AND FILE PATH OPERATIONS
+================================================================================
+
+F5- Chg Dir
+F5 - Change Directory
+
+F5- Chg Dir    F6- DOS Cmd
+
+Current Startup Drive
+
+Drives Available
+
+Parent directory path is analogous to the DOS command "CD ..", which tells DOS to go up one level.
+
+================================================================================
+SECTION 9: FILE OPERATIONS AND EXECUTION
+================================================================================
+
+You can load and execute programs or any DOS commands.
+
+only DOS 3.xx allows this
+
+Error - unable to erase
+
+Error reading file. RET to skip or ESC to abort
+
+================================================================================
+SECTION 10: COMMAND-RELATED PROMPTS AND MESSAGES
+================================================================================
+
+Press ESC to return to Q-DOS II
+
+Press ESC to quit
+
+Press ESC to exit
+
+Press any key to return to DOS...
+
+Press  'S' to scan or 'L' to logon another drive, or press ESC to quit
+
+If you press ESC before Q-DOS II is finished, the directories that
+have not yet been completely copied will still be tagged
+
+When you execute the SEVERAL command, DOS prompts you for a valid DOS command.
+
+See also the F9 - EDIT command.
+
+See also the F6 - DOS COMMAND for more information.
+
+================================================================================
+SECTION 11: ERROR AND EXECUTION STATUS MESSAGES
+================================================================================
+
+Printer Error
+
+Printer I/O error
+
+  * * * *   I/O ERROR   * * * *
+
+Disk
+ IS FULL -- INSERT NEW DISK and (C)ontinue or (S)kip file
+
+Overwrite existing files of the same name on drive
+
+You are now ready to enjoy the benefits of an organized hard disk.
+
+Unable to read/write attributes from/to QD2.EXE file.
+
+================================================================================
+SECTION 12: EXIT AND RETURN COMMANDS
+================================================================================
+
+To exit to DOS, select the exit option, or press the ESC key.
+
+Exit to DOS
+
+Exit without saving the current configuration, press the ESC key.
+
+When you are finished, type "QD2" to get back into Q-DOS II.
+
+================================================================================
+SECTION 13: COMMAND LINE USAGE CONTEXT
+================================================================================
+
+The lower left-hand side of the screen displays
+the special function keys that work with this command.
+
+At this point, you may enter any command you wish.
+
+This allows you to run programs files and combine them with selected data files.
+
+For example, suppose you wanted to find a word processing document
+and use the word processor to edit it. You could use Q-DOS II to
+quickly find the document.
+
+Another example would be to have Q-DOS II find the FORMAT command.
+After highlighting it, pressing F6 would bring up the DOS prompt,
+pressing F2 will display the first part of the filename.
+
+================================================================================
+SECTION 14: SHELL AND COMMAND INVOCATION DETAILS
+================================================================================
+
+Q-DOS II is still in memory, taking up part of RAM. If you need all
+or part of this RAM, you should quit Q-DOS II and then run your other
+programs.
+
+The command actually runs another copy of COMMAND.COM on top of Q-DOS II.
+
+If your computer has more than 640K of RAM, you might execute from within Q-DOS II.
+
+================================================================================
+END OF DOS COMMAND EXECUTION STRINGS
+================================================================================

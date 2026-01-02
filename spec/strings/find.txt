@@ -1,0 +1,258 @@
+================================================================================
+FIND COMMAND STRINGS - Q-DOS II File Search
+================================================================================
+
+MAIN FIND DIALOG
+================================================================================
+Find Files
+Find File
+Find File -- Search for:
+Pause when a match is found?  (Y/N)
+Finished with FIND -- press any key to continue
+No matching files found.
+You must change to a drive first
+Options: (C)ontinue, (J)ump to directory, (V)iew file, (ALT-E)rase, ESC to quit
+
+FIND COMMAND HELP TEXT
+================================================================================
+Purpose:   The FIND command searches every directory on the
+   current disk and finds files based on (1) the file
+name and (2) the file attributes.
+
+To use:    [NOTE:  The FIND command searches the disk you are
+    currently working with.  To find files on a different
+disk, use the F3 - CHANGE DISK command first.]
+
+Before you begin, you must decide what file(s) to search for (and,
+optionally, you can decide the file attributes that will guide the
+search).  The file name may be any valid DOS name and may include
+wildcard characters.  If you do not include an extension, Q-DOS II
+will assume you wish to use ".*" as the extension, which means any
+extension is valid.
+
+The wildcard characters let you FIND groups of related files.  The
+"*" in a file name means that any letter or group of letters may take
+its place, and the "?" means that any single letter may take its
+place.
+
+[NOTE: If you wish to search for files with specific attributes, you
+must define those file attributes with the F7 - SET SEARCH
+SPECIFICATION command before using the FIND command.  These
+attributes include NORM, DIR, SYS, HID, R/O, and ARC.  For example,
+HID is an attribute that causes a file to be hidden from view.  To
+FIND all hidden files, you should set the HID attribute to "YES," and
+all other attributes to "NO." That way, only Hidden Files that also
+match the name specification would be displayed.  For additional
+information, see the ATTRIBUTE and F7 - SET SEARCH SPECIFICATIONS
+sections.]
+
+FIND COMMAND USAGE
+================================================================================
+Select the FIND command from the Main Screen.  Q-DOS II immediately
+displays an input box and asks you to enter the file name.  Simply
+type in the information you would like and press RETURN.  If you
+would like to repeat the last filename you entered using the FIND
+command, simply press CTRL-R (hold the CONTROL key down while
+pressing the letter "R").  This will insert the previous find command
+into the input box and allow you to edit it as you wish.
+
+After entering the desired file specification and pressing RETURN,
+Q-DOS II then asks you this question: "Pause when match is found?
+(Y/N)".
+
+PAUSE WHEN MATCH IS FOUND
+================================================================================
+If you ask Q-DOS II to pause, it stops searching when it finds a file
+with matching name and attributes.  You then have four options: (1)
+(C)ontinue searching; (2) (V)iew the matched file; (3) (J)ump to the
+directory where the file resides; or (4) (ALT-E) to erase the found
+file.
+
+Pressing "C" causes Q-DOS II to continue searching.  Pressing "V"
+lets you view the contents of the just-found file (see the VIEW
+command).  After viewing the file, you again have the same options.
+
+Pressing "J" causes Q-DOS II to display the found file's directory,
+with the found file highlighted.  Holding the "ALT" key while
+pressing the "E" key will cause the found file to be erased.  The
+screen will indicate that the file was erased and the search will
+continue.
+
+The FIND command gives you power far beyond DOS.  For example,
+suppose you want to run the program CHKDSK.COM, but don't know where
+it is.  Select the FIND command and enter "CHKDSK.COM" (or, you can
+simply enter "CHK*") as the file name.  Tell Q-DOS II to pause when
+it finds a match.  If CHKDSK.COM is anywhere on your disk, Q-DOS II
+will find it almost instantly, at which point you press "J".  Q-DOS
+II then displays the directory and highlights the program; it can now
+be executed.  (See F6 - DOS COMMAND.)
+
+NO PAUSE WHEN A MATCH IS FOUND
+================================================================================
+If you tell Q-DOS II to not pause at each match, it will display the
+names of all matching files, scrolling them quickly on the screen.
+Pressing any key will suspend the search until another key is
+pressed, allowing you to examine the files that were found.
+
+At any point in the FIND process, pressing ESC returns you to the
+Main Screen.
+
+SEARCH SPECIFICATION SETTINGS
+================================================================================
+To change the search specification, press the space bar.
+For information about the search specification, press the F1 key.
+
+Press CTRL-R to recall the last find pattern
+
+The FIND command searches every directory on the disk to find specified file(s)
+
+Search all directories on the disk to find specified file(s)
+
+Repeats the results of the last FIND or REPLACE command
+
+SET SEARCH SPECIFICATION (F7) COMMAND
+================================================================================
+Purpose:   The SET SEARCH SPECIFICATION command lets you change
+   the rules Q-DOS II uses when reading and displaying
+the directories of your disks.  The STATUS screen (recalled by F2)
+shows the current settings.
+
+To use:    Q-DOS II normally scans the disk for Normal and
+    Directory entries, and skips Hidden or System files.
+If you desire, you can make Q-DOS II display only files that end with
+the extension "COM," for example, or only Hidden files.  Or, you can
+expand the search rules so that Q-DOS II lists Hidden and System
+files in addition to the Normal and Directory files that it usually
+reads.
+
+This command proceeds in two steps.  The first defines the file name;
+the second defines the file attributes.
+
+RESTRICTING FILE NAMES
+================================================================================
+Press the F7 key; Q-DOS II responds by displaying the input field for
+entering a new name definition with the current definition already
+displayed and ready for you to edit.  The new name definition must be
+a valid DOS name that may (and most likely will) include the DOS
+wildcard characters, "*" and "?".  The wildcard characters allow you
+to define a related group of file names.
+
+The normal default file name definition is "*.*", which causes Q-DOS
+II to read all names.  Here are other sample file name specifications
+and their meanings:
+
+     *.COM       Files having COM as the extension.
+     *.BAS       BASIC program files (those with BAS as the
+                 extension).
+     C*.*        Files that start with C.
+     ?D*.*       Files with D as the second letter.
+
+RESTRICTING FILE ATTRIBUTES
+================================================================================
+Pressing RETURN, with or without changing the file name definition,
+takes you to the second step of the SET SEARCH SPECIFICATION command.
+A new screen lists the six file attributes arranged in a row from
+left to right.  The word "YES" appears beneath those that are turned
+on; "No" appears under those that are off.  If you wish to leave the
+file attribute definition as it is, press RETURN.
+
+If you wish to change the file attribute definition, use the right
+and left arrows to position the cursor over the attribute you wish to
+change.  To change the YES/NO status of the high- lighted attribute,
+press the SPACE BAR, which functions as an YES/NO toggle switch.
+
+When you have selected your new file attribute definition, press
+RETURN.  Q-DOS II will then display only those files that meet the
+new search specifications for both file name and attributes.
+
+SEARCH ATTRIBUTES
+================================================================================
+NORM
+NORM tells Q-DOS II to display all Normal files, in addition to any
+others selected.  A normal file is one that is not a DIRectory.  NORM
+will also display R/O files and/or ARC files, whether or not those
+attributes are in the search specification.
+
+DIR
+DIR tells Q-DOS II to display all directory entries.
+
+HID
+HID tells Q-DOS II to display all Hidden files and directories,
+regardless of their other attributes.
+
+SYS
+SYS tells Q-DOS II to display System files.  However, even when you
+select SYS as a search specification, Q-DOS II will not display
+System files that are Hidden unless you also select HID.  Since
+System files are normally Hidden, you should make it a practice to
+select both HID and SYS as search specifications when your intention
+is to display all System files.
+
+R/O
+R/O tells Q-DOS II to display Read-Only files.  If NORM is already a
+search specification, selecting R/O adds nothing.  The R/O attribute
+is most useful, therefore, when you want to display nothing but
+Read-Only files.  Hidden Read-Only files will not be displayed,
+however, unless the HID attribute is also selected as a search
+specification.
+
+ARC
+ARC tells Q-DOS II to display files with the ARC attribute.  If NORM
+is already a search specification, selecting ARC adds nothing.  The
+ARC attribute is most useful, therefore, when you want to display
+nothing but files having the ARC attribute.  Hidden files with the
+ARC attribute will not be displayed, however, unless the HID
+attribute is also selected as a search specification.
+
+COMPLETING THE SET SEARCH SPECIFICATION
+================================================================================
+Press RETURN to complete the SET SEARCH SPECIFICATION process and
+display those files that match the new specifications.
+
+Pressing ESC before completing the process causes it to abort at that
+point.  If you enter a new file name definition before pressing ESC,
+the change will be accepted.  However, the Main Screen that appears
+will not show the change.  To see the change you must re-enter the
+Main Screen from another command.
+
+The SET SEARCH SPECIFICATION command also sets the rules that guide
+the attribute selection part of the FIND command.  For example, to
+list all hidden files on a disk, set the attribute definition to HID
+only.  Then execute the FIND command, searching for "*.*".
+
+The STATUS screen (F2) shows the new search specifications.  They
+remain in effect until they are again changed through the SET SEARCH
+SPECIFICATION command.
+
+MAIN SCREEN REFERENCES
+================================================================================
+F - Find                        F6 - DOS Command
+F7 - Set Search Specifications
+F7 - Set Search Specification
+F8 - Sort Files
+
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print
+Change current directory, make or remove directory, see directory tree
+
+SEARCH SPECIFICATION DISPLAY STRINGS
+================================================================================
+F7 - Set Search Specification
+Enter search specification:
+Search Attrib
+Search Attributes ========>
+Search Specification =====>
+
+RELATED ERROR/STATUS MESSAGES
+================================================================================
+Can't find QD2.HLP -- press letter of drive
+Q-DOS II cannot find QDOS.HLP, the help file; it looks for it
+Searching:
+Files Selected For Display
+No matching files found.
+
+KEYBOARD SHORTCUTS
+================================================================================
+F7 - Set Search Specification command
+CTRL-R - Recall the last find pattern
+ESC - Return to Main Screen during FIND process
+Space Bar - Toggle search attribute settings

@@ -1,0 +1,181 @@
+Q-EDIT STRING DEFINITIONS
+=========================
+
+EDITOR OVERVIEW
+---------------
+Q-EDIT (The Standard Editor)
+Perhaps the biggest change reflected in Q-DOS II is the addition of a text editor that will let you modify ANY file, as long as it is no more than 61,440 bytes (60k) long.
+You can also easily create files; with this editor, you will never again wonder how to modify *.BAT files or CONFIG.SYS.
+This editor is super-fast, and has a special feature that allows you to edit files in a hex mode, if you wish.
+Q-DOS II comes with the F9 key pre-configured to run the editor, located in the C:\QDOS directory.
+If you do not want to use this editor, or you wish to place it onto another drive or into another directory, you MUST use the QDSTART program to modify QD2.EXE before you use it.
+
+STARTING Q-EDIT
+---------------
+Q-EDIT does NOT need to be used with Q-DOS II; if you wish, you can run it as a stand-alone editor (for writing programs or editing files) by simply typing QED from the command line and pressing return.
+You can also specify a file name, including its drive and path, on the command line.
+However, Q-EDIT is most easily started from within Q-DOS II by simply pressing the F9 key when the file cursor is highlighting the file you wish to edit.
+(To start Q-EDIT on a blank screen, press ALT-F9.)
+To create a new file, you can start Q-EDIT from the command line with the command QED.
+It comes up with a blank screen, and allows you to start editing.
+Or, if you use Q-EDIT from within Q-DOS II, press F9.
+
+FILE OPERATIONS
+---------------
+If the cursor was on a file, that file will be displayed on the screen.
+If not, you will see a blank screen.
+To stop editing a file and change to another one, press ESC until the commands are displayed at the top of the screen; then, select QUIT INITIALIZE.
+If you then type the name of a file, Q-EDIT will attempt to load it for editing.
+If the file you specify does not exist (or you do not specify a file, but simply press RETURN), Q-EDIT's screen will be cleared and you can start editing a new file.
+When you are ready to save your file, select the QUIT command, and then either BACKUP or SAVE.
+If you have not yet named the file, Q-EDIT will ask for a file name and then save it for you.
+[NOTE: If you try to EXIT or INITIALIZE after modifying a file, Q-EDIT will warn you if you have not yet saved your changes.]
+
+EDITOR COMMANDS
+---------------
+AGAIN
+Repeats the results of the last FIND or REPLACE command.
+
+BUFFER
+Puts the designated block of text into the buffer.
+Use the cursor keys to select the end OR the beginning of the block.
+As you move the cursor, the top of the screen shows the number of characters that will be placed in the buffer and an up-arrow if you move the cursor to a point before the starting cursor position, or a down-arrow otherwise.
+Press B when the block has been designated; the new buffer will then replace the old one.
+The in-memory buffer will hold up to 4000 characters.
+If you buffer more than that, the buffer will automatically be written to a temporary disk file on the default drive/directory.
+This is completely automatic.
+(When the editor ends, this temporary file will be deleted.)
+
+COPY
+Inserts the contents of the buffer (from either the BUFFER or the DELETE commands) at the current cursor position, and redisplays the screen.
+The contents of the buffer will not change (i.e., you can do multiple copies by successive COPY commands).
+If the contents of the buffer, when inserted at the cursor position, would exceed Q-EDIT's 60k file size limitation, the COPY command will not work.
+
+DEL
+Same operation as in BUFFER (see above), except that, when you press the D key, the designated block is deleted from the file and placed in the buffer.
+(NOTE: You can simulate a MOVE command by deleting the block of text first, positioning the cursor to the new location, and selecting the COPY command next.)
+
+EDIT
+Go into INSERT mode (same as pressing INS key the first time).
+The name of the file you are editing is displayed at the top of the screen.
+
+FIND
+Search for any text string.
+When entering the string, if CTRL-R is the first keystroke, the prior search string from the last search will appear.
+You can edit the string, using the normal function keys.
+Once you specify the string, pressing Y (or RETURN) to the "Ignore upper/lower case?" question will cause a match in the file regardless of case.
+If you press N, an exact match -- taking into account both upper- and lower-case -- must occur before FIND is successful.
+
+HEX
+Go to hex-mode screen.
+F4 will toggle the cursor from the hex side to the ascii side.
+To insert, delete, or overwrite, first press the INS key.
+When the cursor is on the hex side and you wish to insert or overwrite data, you must enter a valid two-character hex value using the digits 0 thru 9 and the letters A thru F.
+When on the ascii side, you may enter any character directly from the keyboard.
+When in the hex mode, the center of the bottom line displays the character the cursor is on in its normal displayable form, its hex value, and its ascii value.
+[NOTE: When entering data in hex mode with the cursor on the ascii side, pressing RETURN will enter a carriage return only (0D hex), and not the normal carriage return/line feed combination (0D0A hex).]
+
+JUMP
+Jump to a marker you have set with the TAG command.
+Jump to a specific byte in the file, or to a specific line.
+
+PRINT
+Works very much like the BUFFER command.
+When you press P, the designated block will go to the standard DOS printer.
+Tabs are converted to spaces, according to your SET TABSIZE command.
+
+QUIT
+Allows you to BACKUP or SAVE the file.
+Select EXIT to end, or INITIALIZE to edit another file (to start from scratch without editing a file, don't enter a file name).
+BACKUP will create a same-named file with the "*.BAK extension, while the SAVE option will simply overwrite the original file.
+
+REPLACE
+Allows you to replace any string in the file with any other.
+See FIND above.
+
+SET
+INDENT will toggle auto-indent on and off.
+When on, Q-EDIT will copy the leading blanks and tabs from the line just above when you press the RETURN key.
+TABSIZE sets the size of tabs (from 2 to 9).
+
+TAG
+Specify a marker in the text.
+Use JUMP command to go back to a marker.
+
+NAVIGATION AND SPECIAL KEYS
+----------------------------
+HOME:       Move cursor to start of line
+CTRL-HOME:  Move cursor to top of file
+END:        Move cursor to end of line
+CTRL-END:   Move cursor to start of last line in file
+INS:        Toggle between insert and overwrite (see display at bottom of screen)
+DEL:        Delete char
+BKSPACE:    Delete char to left
+SPACEBAR:   Selects command (when in Command mode only)
+Other arrow keys perform their normal functions.
+
+EDITOR SCREEN AND STATUS
+------------------------
+The Screen
+The top of the screen lists the commands available to you.
+When these commands are displayed, you can press the SPACE BAR to move the command cursor to the right.
+You can select the highlighted command by pressing RETURN, or you can press the first letter of the command.
+The bottom part of the screen shows either Command, Insert or Overwrite, depending on the current mode.
+It also shows whether you have selected auto-indent, and whether you are in ascii mode or hex mode.
+The right part of the bottom line shows the cursor position, line, and the column where the cursor is located.
+When you operate in Insert mode, the cursor is a large block; otherwise, it is a small underline.
+(Press PgDn for next screen)
+
+EDITOR MODES
+------------
+Command mode
+Insert mode
+Overwrite mode
+ASCII mode
+Hex mode
+
+EDITOR MESSAGES AND NOTES
+--------------------------
+These are the special keys in Q-EDIT:
+Main Commands in Q-EDIT
+Here is a list of the main commands in Q-EDIT.
+These instructions are brief, but they will get you started using the editor; and, once you are started, you can refer back to these instructions as a reference manual to help you understand all the capabilities of this super-fast editor.
+
+HINTS AND TIPS
+--------------
+You can enter any ascii character (when in Insert or Overwrite mode) by holding down the ALT key and typing a one- to three-digit number from 0 thru 255.
+Currently, Q-EDIT does not let you "include" other files into the one you are editing.
+To transfer all or part of one file into another, do the following:
+  1) Edit the file with the part to be transferred.
+  2) Place the cursor at the beginning of the block of text to copy.
+  3) Select the BUFFER command, and move the cursor to the end of the block of text.  Then, press "B" to place this block into the buffer.
+  4) Quit this file, and initialize the one to receive this buffered block of text.
+  5) Move the cursor to the destination point, and press "C" to copy the buffer into the file at the cursor position.  If there is enough room, this will successfully place the block of text where you want it.
+Q-EDIT has no line-length limit.
+However, when editing binary or certain data files with very few line feeds, you might notice Q-EDIT slowing down on lines with over 10,000 characters.
+In such a case, you may want to switch to Hex mode when you need to move the cursor, as it will move faster on the hex screen.
+Or, use the JUMP POSITION command to jump to the byte you are looking for instead of scrolling to it.
+NOTE: In ascii mode, the very first position in the file is called position 1, while in hex mode that same position is shown as position (or offset) 0.
+
+KEYBOARD SHORTCUTS
+------------------
+F9 - Edit (highlight file and press to edit)
+ALT-F9 - Edit (edit blank/new file)
+ESC - Display commands / Exit to main menu
+INS - Toggle Insert/Overwrite mode
+F4 - Toggle cursor between hex and ascii sides (in hex mode)
+CTRL-R - Recall last find/replace pattern
+RETURN - Confirm/select command
+SPACEBAR - Move command cursor right (in Command mode)
+SPACEBAR - Select highlighted command (in Command mode)
+
+BUFFER SPECIFICATIONS
+---------------------
+In-memory buffer capacity: 4000 characters
+Temporary disk file: Created automatically on default drive/directory if buffer exceeds 4000 characters
+Temporary file deletion: Automatically deleted when editor ends
+
+FILE SIZE LIMITS
+----------------
+Maximum file size: 61,440 bytes (60KB)
+COPY command will not work if buffer content would exceed file size limit when inserted

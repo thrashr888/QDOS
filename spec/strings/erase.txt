@@ -1,0 +1,71 @@
+ERASE COMMAND STRINGS
+=====================
+
+UI LABELS AND PROMPTS
+----------------------
+Erase
+Erase Files
+Erasing
+Press ALT-E to start erasing the file(s) listed, or ESC to stop
+You can't erase directories -- use the (R)emove command on the directory map.
+
+CONFIRMATION AND PROTECTION
+----------------------------
+(this helps protect you from accidentally erasing valuable information)
+Press ALT-E to continue or ESC to stop
+
+PROGRESS MESSAGES
+-----------------
+Erasing
+File erased
+Error - unable to erase
+
+ERROR MESSAGES
+--------------
+FILENAME.EXT IS MARKED READ-ONLY -- CANNOT ERASE IT
+  Any file marked Read-Only can't be erased; the Read-Only
+  attribute protects the file from accidental erasures.
+  If you still wish to erase the file, select the ATTRIBUTE
+  command to eliminate the Read-Only attribute from the file, and
+  then erase it.
+
+YOU CAN'T ERASE DIRECTORIES
+  You must use the REMOVE option of the DIRECTORY command to
+  remove directories from your disk.
+
+THERE ARE NO TAGGED FILES IN THIS DIRECTORY
+  You will see this message if you try to COPY, ERASE, MOVE, or
+  RENAME the TAGGED files when no files are tagged.  You should
+  either tag the files for this command first, or you may want to
+  work with the HIGHLIGHTED file (one at a time) instead.
+
+WARNINGS ABOUT ERASED FILES
+---------------------------
+is marked READ-ONLY -- cannot erase it
+
+RELATED COMMAND DESCRIPTIONS
+-----------------------------
+ERASE - Purpose: The ERASE command deletes files from the displayed directory.
+
+To use: Highlight a file, or tag one or more files, that you wish to ERASE.
+Then select the ERASE command. If there are tagged files, Q-DOS II will present
+two options at the top of the screen: HIGHLIGHTED or TAGGED. Choose the appropriate option.
+If there are no tagged files, Q-DOS II defaults to HIGHLIGHTED and goes directly to the next screen.
+
+Q-DOS II then lists the files to be erased. To continue, press ALT-E
+(this helps protect you from accidentally erasing valuable information).
+Then, Q-DOS II deletes file names from the list as they are erased from the disk.
+If you press ESC before the ERASE process is complete, Q-DOS II will finish erasing the file
+it is working on before returning to the Main Screen.
+
+If Q-DOS II encounters a Read-Only file during the ERASE sequence, it will tell you that
+the file cannot be erased and will skip that file; then, it will continue the ERASE sequence
+through any files remaining in the list.
+
+When the ERASE process is complete, Q-DOS II will display the updated directory file list
+(without the erased files), and the file size and count boxes will be properly adjusted.
+
+RELATED OPERATIONS
+------------------
+Find files with erase option: (ALT-E) to erase the file
+Delete/Remove directories: The REMOVE command deletes directories from the disk

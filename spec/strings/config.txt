@@ -1,0 +1,224 @@
+================================================================================
+QDOS II CONFIGURATION STRINGS - QDSTART AND QDCOLOR SUBPROGRAMS
+================================================================================
+
+===== QDSTART EXECUTABLE =====
+QDSTART .EXE
+QDSTART EXE
+
+===== QDCOLOR EXECUTABLE =====
+QDCOLOR .COM
+QDCOLOR COM
+
+================================================================================
+QDSTART INSTALLATION AND CONFIGURATION PROGRAM
+================================================================================
+
+INSTALLATION MESSAGES:
+The purpose of QDSTART is to install Q-DOS II and its support files
+QDSTART will not allow the Q-DOS II files to be installed onto
+QDSTART was not able to create the specified destination path.
+QDSTART was unable to create the destination file.  Please make sure
+QDSTART cannot read and display the current Q-DOS II configuration
+QDSTART cannot update the configuration of the QD2.EXE file in the
+
+STARTUP MENU:
+      Q-DOS II Startup Menu
+QDSTART will allow you to install Q-DOS II onto your hard disk drive,
+and to configure Q-DOS II to perform best with your particular file
+management needs.  You may select either option at any time.
+ Install Q-DOS II
+Configure Q-DOS II
+   Exit to DOS
+To make your selection, press the up and down arrow keys to highlight
+the appropriate option, and then press the ENTER key.
+To exit to DOS, select the exit option, or press the ESC key.
+
+MENU OPTIONS:
+1. Install Q-DOS II
+2. Configure Q-DOS II
+3. Exit to DOS
+
+EXIT MESSAGES:
+To exit to DOS, select the exit option, or press the ESC key.
+* * * *  You may exit at any time by pressing the ESC key.  * * * *
+
+ERROR HANDLING:
+of disk space available, run QDSTART again.
+where the Q-DOS II files are located before executing QDSTART.
+Please make sure
+QDSTART again.
+*** ERROR:  Unable to execute QDCOLOR.COM
+from read-only to normal, and then execute QDSTART again.
+QDSTART again.
+QDSTART again.
+QDSTART again.
+
+CONFIGURATION REFERENCE:
+Use the QDSTART program to modify your QD2.EXE file.
+you MUST use the QDSTART program to modify QD2.EXE before
+QDSTART program to modify your QD2.EXE file.
+
+QDSTART Features:
+- May use the QDSTART program to disable this automatic logging
+- Use the QDSTART.EXE program to disable this automatic logging
+- Change them permanently with the QDSTART.EXE program.
+- Change the default sort method with the QDSTART.EXE program.
+- Use the QDSTART.EXE program to configure the editor path
+
+================================================================================
+QDCOLOR COLOR THEME CHANGER
+================================================================================
+
+COLOR CONFIGURATION OPTIONS:
+
+Color Settings Menu:
+ M - Standard monochrome
+ C - Standard color
+ 1 - Adjust cursor bar color
+ 2 - Adjust line color
+ 3 - Adjust command description color
+ 4 - Adjust heading color
+ 5 - Adjust commands/data color
+ 6 - Adjust background color
+
+COLOR SELECTION INSTRUCTIONS:
+Q-DOS II may be set up to run in either black and white or color,
+the default color configuration being black and white.
+Would you like Q-DOS II to run in color? (Y/N)
+
+When you press a key, a screen will be displayed which is almost
+identical to the main screen of Q-DOS II.  In the lower right
+corner of the screen you will see a color selection box, and the
+color selection keys will be flashing.  Pressing any one of the
+color selection keys will change the color of some part of the
+main screen such as the cursor bar color, background color, etc.
+After you have adjusted all of the colors to your taste, press
+the ENTER key to save your selections.
+
+QDCOLOR PROGRAM FLOW:
+The program QDCOLOR.COM will automatically be executed next, and
+it will allow you to select the colors that Q-DOS II will use for
+its display screens.  Should you later decide that you would like
+to change the colors, you may do so at any time by simply running
+the QDCOLOR program.
+
+QDCOLOR COLOR ADJUSTMENT KEYS:
+Press letter key to adjust.
+Press F1 to read & display current colors.
+Press ENTER to save colors or ESC to quit.
+
+SAVE/CANCEL OPTIONS:
+To save the current configuration and exit, press the ENTER key.
+To exit without saving the current configuration, press the ESC key.
+
+QDCOLOR ERROR MESSAGES:
+Either QDCOLOR.COM is missing from the current directory, or has
+Q-DOS II floppy diskette.  If the QDCOLOR file on the original
+The Q-DOS II program, QD2.EXE is not in the current directory.
+Change to the directory containing the QD2.EXE program,
+and then execute the QDCOLOR program again.
+The QD2.EXE file in this directory is marked read-only.
+The colors cannot be modified.  Turn-off the read-only attribute,
+and then execute the QDCOLOR program again.
+Unable to read/write attributes from/to QD2.EXE file.
+
+QDCOLOR RESTRICTIONS:
+able to modify the screen colors with QDCOLOR.COM, and you won't be
+able to configure it with QDSTART.EXE.
+
+================================================================================
+CONFIGURATION OPTIONS - AVAILABLE SETTINGS
+================================================================================
+
+CONFIGURABLE ITEMS:
+- Default sort method
+- Path where the help file is located
+- Editor (or other program) to run when the F9 key is pressed
+- Automatic disk-logging on or off
+- Disk logging on all drives or only on hard disks
+- Default search attribute and search specification
+
+SEARCH ATTRIBUTES:
+NORM   DIR    HID    SYS    R/O    ARC
+Search Attributes ========>
+
+CONFIGURATION FIELDS:
+Search Attributes ========>
+Search Specification =====>
+Sort Method ==============>
+Sort Direction ===========>
+Q-DOS II Log File ========>
+First Logged Drive =======>
+On-Line Editor Path ======>
+On-Line Help File Path ===>
+
+EDITOR CONFIGURATION:
+Q-DOS II can now edit any file under 61,440 bytes (60k) in length by
+simply pressing the F9 key
+Q-DOS II comes with the F9 key pre-configured to run the editor,
+located in the C:\QDOS directory.  If you do not want to use this
+editor, or you wish to place it onto another drive or into another
+directory, you MUST use the QDSTART program to modify QD2.EXE before
+you use it.
+
+DEFAULT EDITOR PATH:
+CC:\QDOS\QED.EXE
+
+DEFAULT HELP FILE PATH:
+C:\QDOS\QD2.HLP
+
+DISK LOGGING CONFIGURATION:
+Automatic disk-logging on or off
+Do disk logging on all drives, or only on hard disks
+Log file location: root directory of each disk
+Log file is created automatically if not found
+Log file is updated when directories are made/removed
+Can force rescan with SCAN command
+
+LOGGING FEATURES:
+Q-DOS II will now automatically maintain a directory-log file
+This file is kept in the root directory of each disk
+Q-DOS II can now display the directory structure of any disk in about 1/2 second
+The logging feature can be turned on or off
+
+SORT OPTIONS:
+Default sort method (configurable)
+Default sort direction (configurable)
+Change the default sort method with the QDSTART.EXE program
+
+QDCOLOR.COM FILE DETAILS:
+ QDCOLOR .COM         7,119   04-05-88
+
+QDSTART.EXE FILE DETAILS:
+ QDSTART .EXE         37,376  04-05-88
+
+================================================================================
+FILE COMPATIBILITY NOTES
+================================================================================
+
+RUN FROM APPROPRIATE DIRECTORY:
+Change to the directory containing the QD2.EXE program
+
+FILE STATE REQUIREMENTS:
+The QD2.EXE file should not be marked as read-only
+Turn-off the read-only attribute before running QDCOLOR or QDSTART
+
+AUTOMATIC EXECUTION:
+The program QDCOLOR.COM will automatically be executed next
+
+WILDCARD PATTERN EXAMPLES:
+QD*.* would match both "QD.EXE" and "QDCOLOR.COM"
+In the case of "QDCOLOR.COM", there are none between the "D" and the "."
+
+================================================================================
+CONFIGURATION PROGRAM TITLE
+================================================================================
+
+QDCOLOR.COM
+Q-DOS II Configuration Subprogram
+
+QDSTART
+CONFIGURE PROGRAM - QDSTART
+
+================================================================================

@@ -1,0 +1,72 @@
+================================================================================
+                        COPY COMMAND STRINGS
+                       Q-DOS II File Manager
+================================================================================
+
+SECTION 1: COMMAND TITLES AND DESCRIPTIONS
+================================================================================
+
+Copy Files
+Copy one or several files to another disk or directory
+Copy the highlighted file to another disk or directory
+Copy all the tagged files
+Copy one or more directories to another disk
+
+================================================================================
+SECTION 2: DIALOGS AND PROMPTS
+================================================================================
+
+Copy
+Copying from:
+Enter letter of drive to copy to:
+Copying
+Press RETURN to start, D for directory, ESC to quit
+(T)ag all subdirs  (U)ntag all subdirs  RETURN when finished or ESC to quit
+Press 'S' to scan or 'L' to logon another drive, or ESC to quit
+
+================================================================================
+SECTION 3: OVERWRITE CONFIRMATIONS
+================================================================================
+
+Overwrite existing files of the same name on drive
+?  (Y/N)
+Destination file of same name is R/O
+ -- do you want to overwrite it?  (Y/N)
+
+================================================================================
+SECTION 4: ERROR MESSAGES
+================================================================================
+
+Cannot open sourcefile; copy terminated. Press any key to continue.
+Cannot copy any more files -- directory is full
+You can't copy directories
+CANNOT COPY ANY MORE FILES -- DIRECTORY IS FULL
+CANNOT OPEN SOURCEFILE
+DESTINATION FILE OF SAME NAME IS R/O - OVERWRITE?
+DISK X IS FULL -- INSERT NEW DISK AND (C)ONTINUE OR (S)KIP FILE
+FILENAME.EXT EXISTS ON DRIVE X -- WILL NOT BE COPIED
+
+================================================================================
+SECTION 5: DISK FULL HANDLING
+================================================================================
+
+Disk
+ IS FULL -- INSERT NEW DISK and (C)ontinue or (S)kip file
+ exists on drive
+ will not be copied
+
+================================================================================
+SECTION 6: FILE SELECTION AND TAGGING
+================================================================================
+
+ files:
+Retag the files, marked with a #, from the previous Copy or Rename command
+
+================================================================================
+SECTION 7: REFERENCE/HELP STRINGS
+================================================================================
+
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Change current directory, make or remove directory, see directory tree
+C - Copy                        F3 - Change Drive
+You must select a different directory.
+The destination is the same as the source.
