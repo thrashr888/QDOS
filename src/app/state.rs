@@ -556,8 +556,6 @@ pub struct AttributeState {
 
 impl AttributeState {
     pub fn new(path: PathBuf, for_tagged: bool) -> Self {
-        use std::os::unix::fs::PermissionsExt;
-
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -565,8 +563,14 @@ impl AttributeState {
 
         let metadata = std::fs::metadata(&path);
         let (hidden, system, readonly, archive) = if let Ok(meta) = metadata {
-            let mode = meta.permissions().mode();
-            let readonly = (mode & 0o222) == 0;
+            #[cfg(unix)]
+            let readonly = {
+                use std::os::unix::fs::PermissionsExt;
+                let mode = meta.permissions().mode();
+                (mode & 0o222) == 0
+            };
+            #[cfg(not(unix))]
+            let readonly = meta.permissions().readonly();
             let hidden = name.starts_with('.');
             (hidden, false, readonly, false)
         } else {
