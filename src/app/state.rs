@@ -1060,15 +1060,15 @@ impl ColorTheme {
                 magenta: (170, 170, 170),
             },
             ColorTheme::Blue => ThemeColors {
-                background: (0, 0, 64),
-                foreground: (255, 255, 255),
-                blue: (100, 149, 237),
-                green: (144, 238, 144),
-                red: (255, 99, 71),
-                yellow: (255, 255, 0),
-                grey: (128, 128, 128),
-                cyan: (0, 255, 255),
-                magenta: (255, 0, 255),
+                background: (0, 0, 173),        // Original QDOS blue background
+                foreground: (255, 255, 255),    // White (same as default)
+                blue: (149, 249, 253),          // Bright cyan for borders/menus
+                green: (103, 204, 77),          // Same as default
+                red: (157, 31, 20),             // Same as default
+                yellow: (232, 218, 89),         // Same as default
+                grey: (128, 128, 128),          // Same as default
+                cyan: (149, 249, 253),          // Bright cyan
+                magenta: (170, 0, 170),         // Same as default
             },
             ColorTheme::Green => ThemeColors {
                 background: (0, 0, 0),

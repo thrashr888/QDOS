@@ -114,6 +114,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let size = frame.area();
     let colors = app.colors();
 
+    // Fill entire background with theme color
+    let bg_block = ratatui::widgets::Block::default().style(Style::default().bg(colors.bg()));
+    frame.render_widget(bg_block, size);
+
     // Minimum size check - show message if too small (must check before drawing anything)
     let min_width: u16 = 80;
     let min_height: u16 = 25;
@@ -163,18 +167,36 @@ pub fn draw(frame: &mut Frame, app: &App) {
 fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
     let colors = app.colors();
 
-    // First line: menu items - white text, selected is yellow on red
+    // First line: menu items - first letter green, rest white, selected is yellow on red
     let nav_items: Vec<Span> = NavItem::ALL
         .iter()
         .enumerate()
         .flat_map(|(i, item)| {
-            let style = if i == app.nav_index {
+            let name = item.as_str();
+            let first_char = &name[..1];
+            let rest = &name[1..];
+
+            let is_selected = i == app.nav_index;
+
+            // First letter style: green normally, yellow on red when selected
+            let first_style = if is_selected {
                 Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
-                Style::default().fg(colors.fg()) // White text for unselected
+                Style::default().fg(colors.green()) // Green first letter
             };
 
-            vec![Span::styled(item.as_str(), style), Span::raw("  ")]
+            // Rest of name style: white normally, yellow on red when selected
+            let rest_style = if is_selected {
+                Style::default().fg(colors.yellow()).bg(colors.red())
+            } else {
+                Style::default().fg(colors.fg()) // White text
+            };
+
+            vec![
+                Span::styled(first_char, first_style),
+                Span::styled(rest, rest_style),
+                Span::raw("  "),
+            ]
         })
         .collect();
 
