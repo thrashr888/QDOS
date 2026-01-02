@@ -4,9 +4,11 @@ mod state;
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, ColorTheme, ColorThemeState, DirectoryMapState,
     FileViewerState, FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation,
-    ProgressState, SearchSpecState, ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
+    ProgressState, QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode,
+    ThemeColors, ViewFilter, ViewMode,
 };
 
+use crate::config::Config;
 use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{
@@ -47,28 +49,54 @@ pub struct App {
     pub last_find_pattern: String,
     /// Current color theme
     pub color_theme: ColorTheme,
+    /// Application configuration
+    pub config: Config,
+    /// Show hidden files
+    pub show_hidden: bool,
 }
 
 impl App {
     pub fn new(start_path: &str) -> Result<Self> {
+        // Load configuration
+        let config = Config::load().unwrap_or_default();
+
+        // Apply config settings
+        let sort_mode = config.to_sort_mode();
+        let color_theme: ColorTheme = config.display.theme.clone().into();
+        let search_spec = config.general.search_spec.clone();
+        let show_hidden = config.general.show_hidden;
+
         let current_path = PathBuf::from(start_path).canonicalize()?;
-        let files = get_directory_contents(&current_path, SortMode::NameAsc)?;
+        let files = get_directory_contents(&current_path, sort_mode)?;
 
         Ok(Self {
             current_path,
             files,
             selected_index: 0,
             tagged_files: Vec::new(),
-            sort_mode: SortMode::NameAsc,
+            sort_mode,
             nav_index: 0,
             modal: Modal::None,
             scroll_offset: 0,
             should_quit: false,
-            search_spec: "*.*".to_string(),
+            search_spec,
             history: Vec::new(),
             last_find_pattern: String::new(),
-            color_theme: ColorTheme::Default,
+            color_theme,
+            config,
+            show_hidden,
         })
+    }
+
+    /// Save current settings to config file
+    pub fn save_config(&mut self) -> Result<()> {
+        // Update config with current settings
+        self.config.from_sort_mode(self.sort_mode);
+        self.config.display.theme = self.color_theme.into();
+        self.config.general.search_spec = self.search_spec.clone();
+        self.config.general.show_hidden = self.show_hidden;
+
+        self.config.save()
     }
 
     /// Main application loop
@@ -122,6 +150,12 @@ impl App {
         // Color theme shortcut (Ctrl+T)
         if key.code == KeyCode::Char('t') && key.modifiers.contains(KeyModifiers::CONTROL) {
             self.modal = Modal::ColorTheme(ColorThemeState::new(self.color_theme));
+            return Ok(());
+        }
+
+        // QDSTART configuration shortcut (Ctrl+S)
+        if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.modal = Modal::Qdstart(self.create_qdstart_state());
             return Ok(());
         }
 
@@ -1274,10 +1308,189 @@ impl App {
                 }
                 _ => {}
             },
+            Modal::Qdstart(ref mut state) => {
+                if state.editing {
+                    // Handle text input mode
+                    match key.code {
+                        KeyCode::Enter => {
+                            // Apply the edited value
+                            let current_field = state.current_field();
+                            match current_field {
+                                QdstartField::SearchSpec => {
+                                    state.search_spec = state.input_buffer.clone();
+                                }
+                                QdstartField::Editor => {
+                                    if state.input_buffer.is_empty()
+                                        || state.input_buffer == "$EDITOR"
+                                    {
+                                        state.editor = None;
+                                    } else {
+                                        state.editor = Some(state.input_buffer.clone());
+                                    }
+                                }
+                                _ => {}
+                            }
+                            state.editing = false;
+                            state.input_buffer.clear();
+                        }
+                        KeyCode::Esc => {
+                            state.editing = false;
+                            state.input_buffer.clear();
+                        }
+                        KeyCode::Backspace => {
+                            state.input_buffer.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            state.input_buffer.push(c);
+                        }
+                        _ => {}
+                    }
+                } else {
+                    // Handle navigation/selection mode
+                    match key.code {
+                        KeyCode::Esc => {
+                            self.modal = Modal::None;
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            if state.selected > 0 {
+                                state.selected -= 1;
+                            }
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            if state.selected < QdstartField::ALL.len() - 1 {
+                                state.selected += 1;
+                            }
+                        }
+                        KeyCode::Enter | KeyCode::Char(' ') => {
+                            // Toggle or edit based on field type
+                            let current_field = state.current_field();
+                            match current_field {
+                                QdstartField::SearchSpec | QdstartField::Editor => {
+                                    // Enter editing mode
+                                    state.editing = true;
+                                    match current_field {
+                                        QdstartField::SearchSpec => {
+                                            state.input_buffer = state.search_spec.clone();
+                                        }
+                                        QdstartField::Editor => {
+                                            state.input_buffer = state
+                                                .editor
+                                                .clone()
+                                                .unwrap_or_else(|| "$EDITOR".to_string());
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                QdstartField::SortMethod => {
+                                    state.cycle_sort_method();
+                                }
+                                QdstartField::SortDirection => {
+                                    state.toggle_sort_direction();
+                                }
+                                QdstartField::ShowHidden => {
+                                    state.show_hidden = !state.show_hidden;
+                                }
+                                QdstartField::ConfirmDelete => {
+                                    state.confirm_delete = !state.confirm_delete;
+                                }
+                                QdstartField::ColorTheme => {
+                                    state.cycle_theme();
+                                    // Live preview
+                                    self.color_theme = state.theme();
+                                }
+                                QdstartField::MouseSupport => {
+                                    state.mouse_support = !state.mouse_support;
+                                }
+                                QdstartField::UppercaseNames => {
+                                    state.uppercase_names = !state.uppercase_names;
+                                }
+                            }
+                        }
+                        KeyCode::Char('s') | KeyCode::Char('S') => {
+                            // Save configuration - clone state to avoid borrow issues
+                            let state_clone = state.clone();
+                            self.apply_qdstart_settings(&state_clone);
+                            if let Err(e) = self.save_config() {
+                                self.modal = Modal::Error(format!("Failed to save config: {}", e));
+                            } else {
+                                self.modal =
+                                    Modal::Success("Configuration saved successfully".to_string());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
             Modal::None => {}
         }
 
         Ok(())
+    }
+
+    /// Apply QDSTART settings to app state
+    fn apply_qdstart_settings(&mut self, state: &QdstartState) {
+        self.search_spec = state.search_spec.clone();
+        self.show_hidden = state.show_hidden;
+        self.color_theme = state.theme();
+
+        // Convert sort settings to SortMode
+        let method = state.sort_method;
+        let asc = state.sort_asc;
+        self.sort_mode = match (method, asc) {
+            (0, true) => SortMode::NameAsc,
+            (0, false) => SortMode::NameDesc,
+            (1, true) => SortMode::ExtAsc,
+            (1, false) => SortMode::ExtDesc,
+            (2, true) => SortMode::SizeAsc,
+            (2, false) => SortMode::SizeDesc,
+            (3, true) => SortMode::DateAsc,
+            (3, false) => SortMode::DateDesc,
+            _ => SortMode::None,
+        };
+
+        // Update config
+        self.config.general.search_spec = state.search_spec.clone();
+        self.config.general.show_hidden = state.show_hidden;
+        self.config.general.confirm_delete = state.confirm_delete;
+        self.config.general.mouse_support = state.mouse_support;
+        self.config.display.uppercase_names = state.uppercase_names;
+        self.config.display.theme = state.theme().into();
+        self.config.editor.command = state.editor.clone();
+        self.config.from_sort_mode(self.sort_mode);
+    }
+
+    /// Create QDSTART state from current settings
+    pub fn create_qdstart_state(&self) -> QdstartState {
+        // Convert current SortMode to method + direction
+        let (sort_method, sort_asc) = match self.sort_mode {
+            SortMode::NameAsc => (0, true),
+            SortMode::NameDesc => (0, false),
+            SortMode::ExtAsc => (1, true),
+            SortMode::ExtDesc => (1, false),
+            SortMode::SizeAsc => (2, true),
+            SortMode::SizeDesc => (2, false),
+            SortMode::DateAsc => (3, true),
+            SortMode::DateDesc => (3, false),
+            SortMode::None => (4, true),
+        };
+
+        // Get current theme index
+        let theme_index = ColorTheme::ALL
+            .iter()
+            .position(|&t| t == self.color_theme)
+            .unwrap_or(0);
+
+        QdstartState::new(
+            self.search_spec.clone(),
+            sort_method,
+            sort_asc,
+            self.show_hidden,
+            self.config.general.confirm_delete,
+            self.config.editor.command.clone(),
+            theme_index,
+            self.config.general.mouse_support,
+            self.config.display.uppercase_names,
+        )
     }
 
     /// Move file selection up or down

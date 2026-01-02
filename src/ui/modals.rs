@@ -7,9 +7,11 @@
 //\! - Directory Map, Batch Rename, Attribute modals
 //\! - Error, Success, Progress modals
 
+#[allow(unused_imports)]
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, ColorTheme, ColorThemeState,
-    DirectoryMapState, FindPhase, FindState, HelpState, Modal, ProgressState, SearchSpecState,
+    DirectoryMapState, FindPhase, FindState, HelpState, Modal, ProgressState, QdstartField,
+    QdstartState, SearchSpecState,
 };
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
@@ -51,7 +53,7 @@ pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect 
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     // Quit modal handles its own area - no Clear needed (overlays directly)
     if matches!(app.modal, Modal::Quit) {
-        draw_quit_modal(frame, area);
+        draw_quit_modal(frame, area, app);
         return;
     }
 
@@ -81,6 +83,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
         Modal::Progress(state) => draw_progress_modal(frame, area, state),
         Modal::ColorTheme(state) => draw_color_theme_modal(frame, modal_area, state, app),
+        Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::None => {}
     }
 }
@@ -269,7 +272,9 @@ pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::fil
 }
 
 /// Draw quit confirmation modal (Q-DOS II style with double-line box)
-pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect) {
+pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
+    let colors = app.colors();
+
     // Modal is 60 chars wide, 8 lines tall (matching spec/ui.md)
     let width: u16 = 60;
     let height: u16 = 8;
@@ -277,7 +282,7 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect) {
     let y = area.y + (area.height.saturating_sub(height)) / 2;
     let quit_area = Rect::new(x, y, width.min(area.width), height.min(area.height));
 
-    let style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let style = Style::default().fg(colors.fg()).bg(colors.bg());
 
     // Build the modal line by line with double-line box characters
     // Line 0: Top border
@@ -435,36 +440,124 @@ pub(super) fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &Sear
     frame.render_widget(paragraph, area);
 }
 
-/// Draw Q-DOS II style modal with header separator and dynamic height
+/// Draw Q-DOS II style modal with header separator (non-themed version for backwards compatibility)
+#[allow(dead_code)]
+pub(super) fn draw_qdos_modal_colored(
+    frame: &mut Frame,
+    area: Rect,
+    title: &str,
+    content: Vec<Line>,
+    _border_color: Color,
+) {
+    // Fixed modal size for consistency
+    let modal_width: u16 = 50;
+    let content_lines = content.len() as u16;
+    let modal_height = content_lines + 4;
+
+    let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
+    let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
+    let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
+
+    frame.render_widget(Clear, modal_area);
+
+    let width = modal_area.width as usize;
+    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let content_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+
+    let bg_block = ratatui::widgets::Block::default().style(Style::default().bg(COLOR_BG));
+    frame.render_widget(bg_block, modal_area);
+
+    let top = format!("╔{}╗", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, border_style)),
+        Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
+    );
+
+    let title_padded = format!("{:^width$}", title, width = width.saturating_sub(2));
+    let title_line = format!("║{}║", title_padded);
+    frame.render_widget(
+        Paragraph::new(Span::styled(&title_line, border_style)),
+        Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
+    );
+
+    let sep = format!("╠{}╣", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
+    );
+
+    for (i, line) in content.iter().enumerate() {
+        let row_y = modal_area.y + 3 + i as u16;
+        let left_border = Span::styled("║", border_style);
+        let right_border = Span::styled("║", border_style);
+
+        let mut row_spans = vec![left_border];
+        for span in line.spans.iter() {
+            row_spans.push(span.clone());
+        }
+        let content_width = line.width();
+        let padding = width.saturating_sub(2).saturating_sub(content_width);
+        let left_pad = padding / 2;
+        let right_pad = padding - left_pad;
+        row_spans.insert(1, Span::styled(" ".repeat(left_pad), content_style));
+        row_spans.push(Span::styled(" ".repeat(right_pad), content_style));
+        row_spans.push(right_border);
+
+        frame.render_widget(
+            Paragraph::new(Line::from(row_spans)).style(content_style),
+            Rect::new(modal_area.x, row_y, modal_area.width, 1),
+        );
+    }
+
+    let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, border_style)),
+        Rect::new(
+            modal_area.x,
+            modal_area.y + modal_area.height - 1,
+            modal_area.width,
+            1,
+        ),
+    );
+}
+
+/// Draw Q-DOS II style modal with header separator and dynamic height (themed version)
 /// Layout:
 /// ╔════════════════════════════════╗
 /// ║            Title               ║
 /// ╠════════════════════════════════╣
 /// ║           Content              ║
 /// ╚════════════════════════════════╝
-pub(super) fn draw_qdos_modal_colored(
+pub(super) fn draw_qdos_modal_themed(
     frame: &mut Frame,
     area: Rect,
     title: &str,
     content: Vec<Line>,
-    _border_color: Color, // Reserved for future use
+    border_color: Color,
+    app: &App,
 ) {
-    // Calculate modal dimensions based on content
-    let modal_width = area.width.min(60);
+    let colors = app.colors();
+
+    // Fixed modal size for consistency
+    let modal_width: u16 = 50;
     let content_lines = content.len() as u16;
     let modal_height = content_lines + 4; // top + title + separator + bottom
 
     // Center the modal within the given area
     let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
-    let modal_area = Rect::new(x, y, modal_width, modal_height);
+    let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
 
-    // Clear only the modal's own space
+    // Clear the modal area
     frame.render_widget(Clear, modal_area);
 
     let width = modal_area.width as usize;
-    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG); // White borders
-    let title_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let border_style = Style::default().fg(border_color).bg(colors.bg());
+    let content_style = Style::default().fg(colors.fg()).bg(colors.bg());
+
+    // Fill entire modal area with background first
+    let bg_block = ratatui::widgets::Block::default().style(Style::default().bg(colors.bg()));
+    frame.render_widget(bg_block, modal_area);
 
     // Top border: ╔═══╗
     let top = format!("╔{}╗", "═".repeat(width.saturating_sub(2)));
@@ -477,7 +570,7 @@ pub(super) fn draw_qdos_modal_colored(
     let title_padded = format!("{:^width$}", title, width = width.saturating_sub(2));
     let title_line = format!("║{}║", title_padded);
     frame.render_widget(
-        Paragraph::new(Span::styled(&title_line, title_style)),
+        Paragraph::new(Span::styled(&title_line, border_style)),
         Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
     );
 
@@ -491,23 +584,27 @@ pub(super) fn draw_qdos_modal_colored(
     // Content area
     for (i, line) in content.iter().enumerate() {
         let row_y = modal_area.y + 3 + i as u16;
-        // Render left border
+        // Render full row with borders
+        let left_border = Span::styled("║", border_style);
+        let right_border = Span::styled("║", border_style);
+
+        // Build the complete row
+        let mut row_spans = vec![left_border];
+        for span in line.spans.iter() {
+            row_spans.push(span.clone());
+        }
+        // Pad content to fill width
+        let content_width = line.width();
+        let padding = width.saturating_sub(2).saturating_sub(content_width);
+        let left_pad = padding / 2;
+        let right_pad = padding - left_pad;
+        row_spans.insert(1, Span::styled(" ".repeat(left_pad), content_style));
+        row_spans.push(Span::styled(" ".repeat(right_pad), content_style));
+        row_spans.push(right_border);
+
         frame.render_widget(
-            Paragraph::new(Span::styled("║", border_style)),
-            Rect::new(modal_area.x, row_y, 1, 1),
-        );
-        // Render content
-        let content_rect = Rect::new(modal_area.x + 1, row_y, modal_area.width - 2, 1);
-        frame.render_widget(
-            Paragraph::new(line.clone())
-                .alignment(ratatui::layout::Alignment::Center)
-                .style(Style::default().bg(COLOR_BG)),
-            content_rect,
-        );
-        // Render right border
-        frame.render_widget(
-            Paragraph::new(Span::styled("║", border_style)),
-            Rect::new(modal_area.x + modal_area.width - 1, row_y, 1, 1),
+            Paragraph::new(Line::from(row_spans)).style(content_style),
+            Rect::new(modal_area.x, row_y, modal_area.width, 1),
         );
     }
 
@@ -526,6 +623,8 @@ pub(super) fn draw_qdos_modal_colored(
 
 /// Draw disk space modal
 pub(super) fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
+    let colors = app.colors();
+
     // Get disk name from current path (use first component or root)
     let disk_name = app
         .current_path
@@ -547,30 +646,30 @@ pub(super) fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
     let content = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("Total space:      ", Style::default().fg(COLOR_YELLOW)),
-            Span::styled(format_size_short(total), Style::default().fg(COLOR_CYAN)),
+            Span::styled("Total space:      ", Style::default().fg(colors.yellow())),
+            Span::styled(format_size_short(total), Style::default().fg(colors.cyan())),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Total used:       ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled("Total used:       ", Style::default().fg(colors.yellow())),
             Span::styled(
                 format!("{} ({:.1}%)", format_size_short(used), used_percent),
-                Style::default().fg(COLOR_CYAN),
+                Style::default().fg(colors.cyan()),
             ),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Total available:  ", Style::default().fg(COLOR_YELLOW)),
-            Span::styled(format_size_short(available), Style::default().fg(COLOR_CYAN)),
+            Span::styled("Total available:  ", Style::default().fg(colors.yellow())),
+            Span::styled(format_size_short(available), Style::default().fg(colors.cyan())),
         ]),
         Line::from(""),
         Line::from(Span::styled(
             "Press any key to continue",
-            Style::default().fg(COLOR_GREEN),
+            Style::default().fg(colors.green()),
         )),
     ];
 
-    draw_qdos_modal_colored(frame, area, &title, content, COLOR_BLUE);
+    draw_qdos_modal_themed(frame, area, &title, content, colors.blue(), app);
 }
 
 /// Draw error modal
@@ -586,7 +685,7 @@ pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app
         )),
     ];
 
-    draw_qdos_modal_colored(frame, area, "Error", content, colors.red());
+    draw_qdos_modal_themed(frame, area, "Error", content, colors.red(), app);
 }
 
 /// Draw path input modal
@@ -640,7 +739,7 @@ pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str, a
         )),
     ];
 
-    draw_qdos_modal_colored(frame, area, "Success", content, colors.green());
+    draw_qdos_modal_themed(frame, area, "Success", content, colors.green(), app);
 }
 
 /// Draw progress modal for file operations
@@ -1522,4 +1621,173 @@ fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState
 
     let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
     frame.render_widget(paragraph, inner);
+}
+
+/// Draw QDSTART configuration modal
+fn draw_qdstart_modal(frame: &mut Frame, area: Rect, state: &QdstartState, app: &App) {
+    let colors = app.colors();
+
+    // Clear the entire area
+    frame.render_widget(Clear, area);
+
+    // Layout: title, separator, content, separator, help
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Title
+            Constraint::Length(1), // Separator
+            Constraint::Min(12),   // Content
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Help line
+        ])
+        .split(area);
+
+    // Title
+    let title = " R-DOS STARTUP CONFIGURATION ";
+    frame.render_widget(
+        Paragraph::new(Span::styled(
+            title,
+            Style::default()
+                .fg(colors.fg())
+                .add_modifier(Modifier::BOLD),
+        )),
+        chunks[0],
+    );
+
+    // Separator
+    let sep = "═".repeat(area.width as usize);
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
+        chunks[1],
+    );
+
+    // Content area
+    let content_area = chunks[2];
+    let mut lines: Vec<Line> = vec![Line::from("")];
+
+    for (i, field) in QdstartField::ALL.iter().enumerate() {
+        let is_selected = i == state.selected;
+        let is_editing = is_selected && state.editing;
+
+        // Get field name and value
+        let name = field.name();
+        let value = match field {
+            QdstartField::SearchSpec => {
+                if is_editing {
+                    format!("{}█", state.input_buffer)
+                } else {
+                    state.search_spec.clone()
+                }
+            }
+            QdstartField::SortMethod => state.sort_method_name().to_string(),
+            QdstartField::SortDirection => {
+                if state.sort_asc {
+                    "Ascending".to_string()
+                } else {
+                    "Descending".to_string()
+                }
+            }
+            QdstartField::ShowHidden => {
+                if state.show_hidden {
+                    "Yes".to_string()
+                } else {
+                    "No".to_string()
+                }
+            }
+            QdstartField::ConfirmDelete => {
+                if state.confirm_delete {
+                    "Yes".to_string()
+                } else {
+                    "No".to_string()
+                }
+            }
+            QdstartField::Editor => {
+                if is_editing {
+                    format!("{}█", state.input_buffer)
+                } else {
+                    state
+                        .editor
+                        .clone()
+                        .unwrap_or_else(|| "$EDITOR".to_string())
+                }
+            }
+            QdstartField::ColorTheme => state.theme().name().to_string(),
+            QdstartField::MouseSupport => {
+                if state.mouse_support {
+                    "Yes".to_string()
+                } else {
+                    "No".to_string()
+                }
+            }
+            QdstartField::UppercaseNames => {
+                if state.uppercase_names {
+                    "Yes".to_string()
+                } else {
+                    "No".to_string()
+                }
+            }
+        };
+
+        // Style based on selection
+        let line_style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.fg())
+        };
+
+        let name_style = if is_selected {
+            Style::default()
+                .fg(colors.yellow())
+                .bg(colors.red())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.blue())
+        };
+
+        let value_style = if is_editing {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.green())
+        };
+
+        // Format as "  Field Name:        Value"
+        let padded_name = format!("  {:<22}", format!("{}:", name));
+        let padded_value = format!("{:<20}", value);
+
+        lines.push(Line::from(vec![
+            Span::styled(padded_name, name_style),
+            Span::styled(padded_value, value_style),
+            Span::styled(
+                " ".repeat(area.width.saturating_sub(44) as usize),
+                line_style,
+            ),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        "Settings will be saved to ~/.config/rdos/config.toml",
+        Style::default().fg(colors.grey()),
+    )));
+
+    frame.render_widget(Paragraph::new(lines), content_area);
+
+    // Bottom separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
+        chunks[3],
+    );
+
+    // Help line
+    let help_text = if state.editing {
+        "Type value, Enter to confirm, ESC to cancel"
+    } else {
+        "↑↓ select  Enter/Space toggle  S save  ESC close"
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
+        chunks[4],
+    );
 }

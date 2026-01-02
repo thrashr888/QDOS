@@ -1,4 +1,5 @@
 mod app;
+mod config;
 mod errors;
 mod event;
 mod file_ops;

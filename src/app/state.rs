@@ -1196,6 +1196,136 @@ impl ColorThemeState {
     }
 }
 
+/// QDSTART configuration fields
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QdstartField {
+    SearchSpec,
+    SortMethod,
+    SortDirection,
+    ShowHidden,
+    ConfirmDelete,
+    Editor,
+    ColorTheme,
+    MouseSupport,
+    UppercaseNames,
+}
+
+impl QdstartField {
+    pub const ALL: [QdstartField; 9] = [
+        QdstartField::SearchSpec,
+        QdstartField::SortMethod,
+        QdstartField::SortDirection,
+        QdstartField::ShowHidden,
+        QdstartField::ConfirmDelete,
+        QdstartField::Editor,
+        QdstartField::ColorTheme,
+        QdstartField::MouseSupport,
+        QdstartField::UppercaseNames,
+    ];
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            QdstartField::SearchSpec => "Search Specification",
+            QdstartField::SortMethod => "Sort Method",
+            QdstartField::SortDirection => "Sort Direction",
+            QdstartField::ShowHidden => "Show Hidden Files",
+            QdstartField::ConfirmDelete => "Confirm Delete",
+            QdstartField::Editor => "Default Editor",
+            QdstartField::ColorTheme => "Color Theme",
+            QdstartField::MouseSupport => "Mouse Support",
+            QdstartField::UppercaseNames => "Uppercase Names",
+        }
+    }
+}
+
+/// State for QDSTART configuration modal
+#[derive(Debug, Clone)]
+pub struct QdstartState {
+    /// Currently selected field
+    pub selected: usize,
+    /// Editing mode (for text input fields)
+    pub editing: bool,
+    /// Input buffer for text fields
+    pub input_buffer: String,
+    /// Search specification
+    pub search_spec: String,
+    /// Sort method (0=name, 1=ext, 2=size, 3=date, 4=none)
+    pub sort_method: usize,
+    /// Sort direction (true=asc, false=desc)
+    pub sort_asc: bool,
+    /// Show hidden files
+    pub show_hidden: bool,
+    /// Confirm before delete
+    pub confirm_delete: bool,
+    /// Editor command (None = use $EDITOR)
+    pub editor: Option<String>,
+    /// Color theme index
+    pub theme_index: usize,
+    /// Mouse support enabled
+    pub mouse_support: bool,
+    /// Show filenames in uppercase
+    pub uppercase_names: bool,
+}
+
+impl QdstartState {
+    pub fn new(
+        search_spec: String,
+        sort_method: usize,
+        sort_asc: bool,
+        show_hidden: bool,
+        confirm_delete: bool,
+        editor: Option<String>,
+        theme_index: usize,
+        mouse_support: bool,
+        uppercase_names: bool,
+    ) -> Self {
+        Self {
+            selected: 0,
+            editing: false,
+            input_buffer: String::new(),
+            search_spec,
+            sort_method,
+            sort_asc,
+            show_hidden,
+            confirm_delete,
+            editor,
+            theme_index,
+            mouse_support,
+            uppercase_names,
+        }
+    }
+
+    pub fn current_field(&self) -> QdstartField {
+        QdstartField::ALL[self.selected]
+    }
+
+    pub fn sort_method_name(&self) -> &'static str {
+        match self.sort_method {
+            0 => "Name",
+            1 => "Extension",
+            2 => "Size",
+            3 => "Date",
+            _ => "None",
+        }
+    }
+
+    pub fn cycle_sort_method(&mut self) {
+        self.sort_method = (self.sort_method + 1) % 5;
+    }
+
+    pub fn toggle_sort_direction(&mut self) {
+        self.sort_asc = !self.sort_asc;
+    }
+
+    pub fn cycle_theme(&mut self) {
+        self.theme_index = (self.theme_index + 1) % ColorTheme::ALL.len();
+    }
+
+    pub fn theme(&self) -> ColorTheme {
+        ColorTheme::ALL[self.theme_index]
+    }
+}
+
 /// Modal dialog types
 pub enum Modal {
     None,
@@ -1219,4 +1349,5 @@ pub enum Modal {
     Attribute(AttributeState),
     Progress(ProgressState),
     ColorTheme(ColorThemeState),
+    Qdstart(QdstartState),
 }

@@ -515,6 +515,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         " F5- Chg Dir    F6- DOS Cmd  ",
         " F7- Srch Spec  F8- Sort     ",
         " F9- Edit      F10- Quit     ",
+        " ⌃S- Config    ⌃T- Color     ",
         "   SPACE BAR- Tag file       ",
         "   ESC- Abort Command        ",
     ];
