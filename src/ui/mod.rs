@@ -282,7 +282,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
     // ROW 0: Top border line
     let mut top_line = String::new();
-    top_line.push_str(&"═".repeat(left_width as usize - 1));
+    top_line.push_str(&"═".repeat((left_width as usize).saturating_sub(1)));
     top_line.push('╦');
     top_line.push_str(&"═".repeat(name_col as usize));
     top_line.push('╦');
@@ -505,7 +505,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
     // ROW 9: Single line divider
     let y = area.y + 9;
-    let divider = "─".repeat(left_width as usize - 1);
+    let divider = "─".repeat((left_width as usize).saturating_sub(1));
     frame.render_widget(
         Paragraph::new(Span::styled(&divider, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -554,7 +554,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     // ROWS 20-21: Git and Beads status indicators (only when applicable)
     let green_style = Style::default().fg(colors.green());
     let cyan_style = Style::default().fg(colors.cyan());
-    let status_width = left_width as usize - 1;
+    let status_width = (left_width as usize).saturating_sub(1);
 
     // Row 20: Git status (only if in git repo)
     // Format: " ↑0↓5 +3 !2 branch-name..."
@@ -827,9 +827,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     // Bottom border for file table
-    let bottom_y = area.y + area.height - 1;
+    let bottom_y = area.y.saturating_add(area.height.saturating_sub(1));
     let mut bottom_line = String::new();
-    bottom_line.push_str(&" ".repeat(left_width as usize - 1));
+    bottom_line.push_str(&" ".repeat((left_width as usize).saturating_sub(1)));
     bottom_line.push('╚');
     bottom_line.push_str(&"═".repeat(name_col as usize));
     bottom_line.push('╩');

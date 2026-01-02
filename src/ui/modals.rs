@@ -52,6 +52,11 @@ pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect 
 }
 
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
+    // Minimum size check for modals - avoid crashes on very small terminals
+    if area.width < 20 || area.height < 10 {
+        return; // Too small to render any modal safely
+    }
+
     // Modals that handle their own area/clearing (overlay directly like quit modal)
     match &app.modal {
         Modal::Quit => {
@@ -309,62 +314,64 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
     let style = Style::default().fg(colors.fg()).bg(colors.bg());
 
     // Build the modal line by line with double-line box characters
+    let inner_width = (width as usize).saturating_sub(2);
+
     // Line 0: Top border
-    let top = format!("╔{}╗", "═".repeat(width as usize - 2));
+    let top = format!("╔{}╗", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&top, style)),
-        Rect::new(quit_area.x, quit_area.y, width, 1),
+        Rect::new(quit_area.x, quit_area.y, quit_area.width, 1),
     );
 
     // Line 1: Title row
     let title = "F10 - Quit Q-DOS II";
-    let title_line = format!("║{:^w$}║", title, w = width as usize - 2);
+    let title_line = format!("║{:^w$}║", title, w = inner_width);
     frame.render_widget(
         Paragraph::new(Span::styled(&title_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 1, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 1, quit_area.width, 1),
     );
 
     // Line 2: Separator (double line)
-    let sep = format!("╠{}╣", "═".repeat(width as usize - 2));
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&sep, style)),
-        Rect::new(quit_area.x, quit_area.y + 2, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 2, quit_area.width, 1),
     );
 
     // Line 3: Empty row
-    let empty = format!("║{:w$}║", "", w = width as usize - 2);
+    let empty = format!("║{:w$}║", "", w = inner_width);
     frame.render_widget(
         Paragraph::new(Span::styled(&empty, style)),
-        Rect::new(quit_area.x, quit_area.y + 3, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 3, quit_area.width, 1),
     );
 
     // Line 4: First message
     let msg1 = "Press F10 again to quit, or RETURN for options";
-    let msg1_line = format!("║{:^w$}║", msg1, w = width as usize - 2);
+    let msg1_line = format!("║{:^w$}║", msg1, w = inner_width);
     frame.render_widget(
         Paragraph::new(Span::styled(&msg1_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 4, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 4, quit_area.width, 1),
     );
 
     // Line 5: Empty row
     frame.render_widget(
         Paragraph::new(Span::styled(&empty, style)),
-        Rect::new(quit_area.x, quit_area.y + 5, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 5, quit_area.width, 1),
     );
 
     // Line 6: Second message
     let msg2 = "Press ESC to return to Q-DOS II";
-    let msg2_line = format!("║{:^w$}║", msg2, w = width as usize - 2);
+    let msg2_line = format!("║{:^w$}║", msg2, w = inner_width);
     frame.render_widget(
         Paragraph::new(Span::styled(&msg2_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 6, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 6, quit_area.width, 1),
     );
 
     // Line 7: Bottom border
-    let bottom = format!("╚{}╝", "═".repeat(width as usize - 2));
+    let bottom = format!("╚{}╝", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, style)),
-        Rect::new(quit_area.x, quit_area.y + 7, width, 1),
+        Rect::new(quit_area.x, quit_area.y + 7, quit_area.width, 1),
     );
 }
 
@@ -527,7 +534,7 @@ pub(super) fn draw_qdos_modal_colored(
         let content_width = line.width();
         let padding = width.saturating_sub(2).saturating_sub(content_width);
         let left_pad = padding / 2;
-        let right_pad = padding - left_pad;
+        let right_pad = padding.saturating_sub(left_pad);
         row_spans.insert(1, Span::styled(" ".repeat(left_pad), content_style));
         row_spans.push(Span::styled(" ".repeat(right_pad), content_style));
         row_spans.push(right_border);
@@ -539,14 +546,10 @@ pub(super) fn draw_qdos_modal_colored(
     }
 
     let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
+    let bottom_y = modal_area.y.saturating_add(modal_area.height.saturating_sub(1));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(
-            modal_area.x,
-            modal_area.y + modal_area.height - 1,
-            modal_area.width,
-            1,
-        ),
+        Rect::new(modal_area.x, bottom_y, modal_area.width, 1),
     );
 }
 
@@ -624,7 +627,7 @@ pub(super) fn draw_qdos_modal_themed(
         let content_width = line.width();
         let padding = inner_w.saturating_sub(content_width);
         let left_pad = padding / 2;
-        let right_pad = padding - left_pad;
+        let right_pad = padding.saturating_sub(left_pad);
 
         // Build row: ║ [padding] [content spans] [padding] ║
         let mut row_spans: Vec<Span> = Vec::with_capacity(line.spans.len() + 4);
@@ -648,14 +651,10 @@ pub(super) fn draw_qdos_modal_themed(
 
     // Bottom border: ╚═══╝
     let bottom = format!("╚{}╝", "═".repeat(inner_w));
+    let bottom_y = modal_area.y.saturating_add(modal_height.saturating_sub(1));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(
-            modal_area.x,
-            modal_area.y + modal_height - 1,
-            modal_area.width,
-            1,
-        ),
+        Rect::new(modal_area.x, bottom_y, modal_area.width, 1),
     );
 }
 
