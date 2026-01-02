@@ -79,11 +79,28 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         ViewFilter::Ascii => " [Filter: ASCII]",
         ViewFilter::WordStar => " [Filter: W/S]",
     };
+
+    // Show commit info if viewing a historical version
+    let version_str = if let Some(entry) = state.current_commit() {
+        let short_hash = &entry.hash[..7.min(entry.hash.len())];
+        let short_msg = if entry.message.len() > 30 {
+            format!("{}...", &entry.message[..27])
+        } else {
+            entry.message.clone()
+        };
+        format!("  [{}] {}", short_hash, short_msg)
+    } else if state.is_git_repo && !state.git_history.is_empty() {
+        "  [working copy]".to_string()
+    } else {
+        String::new()
+    };
+
     let title = format!(
-        " VIEW: {}  Mode: {}{}",
+        " VIEW: {}  Mode: {}{}{}",
         state.file_name.to_uppercase(),
         mode_str,
-        filter_str
+        filter_str,
+        version_str
     );
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -115,8 +132,8 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         chunks[3],
     );
 
-    // Help line
-    let help_spans = vec![
+    // Help line - conditionally show history navigation
+    let mut help_spans = vec![
         Span::styled(" H", Style::default().fg(COLOR_BLUE)),
         Span::raw("ex "),
         Span::styled("N", Style::default().fg(COLOR_BLUE)),
@@ -129,9 +146,21 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         Span::raw("ilter "),
         Span::styled("↑↓", Style::default().fg(COLOR_BLUE)),
         Span::raw(" scroll "),
-        Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
-        Span::raw(" exit"),
     ];
+
+    // Add history navigation if available
+    if state.has_older_version() {
+        help_spans.push(Span::styled("←", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::raw(" older "));
+    }
+    if state.has_newer_version() {
+        help_spans.push(Span::styled("→", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::raw(" newer "));
+    }
+
+    help_spans.push(Span::styled("Esc", Style::default().fg(COLOR_BLUE)));
+    help_spans.push(Span::raw(" exit"));
+
     frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[4]);
 }
 

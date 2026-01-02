@@ -499,6 +499,62 @@ impl App {
                             state.hex_side = !state.hex_side;
                         }
                     }
+                    KeyCode::Left => {
+                        // Go to older version in git history
+                        if state.has_older_version() {
+                            let new_idx = match state.history_index {
+                                None => {
+                                    // Currently at working copy, go to most recent commit
+                                    state.git_history.len() - 1
+                                }
+                                Some(idx) => idx.saturating_sub(1),
+                            };
+                            if let Some(entry) = state.git_history.get(new_idx) {
+                                let commit_hash = entry.hash.clone();
+                                let file_path = state.file_path.clone();
+                                if let Ok(content) = git_ops::load_file_at_commit(
+                                    &file_path,
+                                    &commit_hash,
+                                    &self.current_path,
+                                ) {
+                                    state.content = content;
+                                    state.history_index = Some(new_idx);
+                                    state.scroll_offset = 0;
+                                }
+                            }
+                        }
+                    }
+                    KeyCode::Right => {
+                        // Go to newer version in git history
+                        if state.has_newer_version() {
+                            if let Some(idx) = state.history_index {
+                                if idx + 1 >= state.git_history.len() {
+                                    // Go to working copy
+                                    if let Ok(content) = std::fs::read(&state.file_path) {
+                                        state.content = content;
+                                        state.history_index = None;
+                                        state.scroll_offset = 0;
+                                    }
+                                } else {
+                                    // Go to next commit
+                                    let new_idx = idx + 1;
+                                    if let Some(entry) = state.git_history.get(new_idx) {
+                                        let commit_hash = entry.hash.clone();
+                                        let file_path = state.file_path.clone();
+                                        if let Ok(content) = git_ops::load_file_at_commit(
+                                            &file_path,
+                                            &commit_hash,
+                                            &self.current_path,
+                                        ) {
+                                            state.content = content;
+                                            state.history_index = Some(new_idx);
+                                            state.scroll_offset = 0;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -851,9 +907,16 @@ impl App {
                                             .map(|n| n.to_string_lossy().to_string())
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
-                                        self.modal = Modal::FileViewer(FileViewerState::new(
-                                            file_name, file_path, content,
-                                        ));
+                                        let mut viewer_state = FileViewerState::new(
+                                            file_name, file_path.clone(), content,
+                                        );
+                                        // Load git history if in a git repo
+                                        let is_repo = git_ops::is_git_repo(&self.current_path);
+                                        if is_repo {
+                                            let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                            viewer_state.set_git_history(history, true);
+                                        }
+                                        self.modal = Modal::FileViewer(viewer_state);
                                     }
                                 }
                             }
@@ -955,9 +1018,16 @@ impl App {
                                             .map(|n| n.to_string_lossy().to_string())
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
-                                        self.modal = Modal::FileViewer(FileViewerState::new(
-                                            file_name, file_path, content,
-                                        ));
+                                        let mut viewer_state = FileViewerState::new(
+                                            file_name, file_path.clone(), content,
+                                        );
+                                        // Load git history if in a git repo
+                                        let is_repo = git_ops::is_git_repo(&self.current_path);
+                                        if is_repo {
+                                            let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                            viewer_state.set_git_history(history, true);
+                                        }
+                                        self.modal = Modal::FileViewer(viewer_state);
                                     }
                                 }
                             }
@@ -2445,9 +2515,16 @@ impl App {
                                 format!("{}.{}", file.name, file.extension)
                             };
                             let file_path = file.path.clone();
-                            self.modal = Modal::FileViewer(FileViewerState::new(
-                                file_name, file_path, content,
-                            ));
+                            let mut viewer_state = FileViewerState::new(
+                                file_name, file_path.clone(), content,
+                            );
+                            // Load git history if in a git repo
+                            let is_repo = git_ops::is_git_repo(&self.current_path);
+                            if is_repo {
+                                let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                viewer_state.set_git_history(history, true);
+                            }
+                            self.modal = Modal::FileViewer(viewer_state);
                         }
                         Err(_e) => {
                             self.modal =

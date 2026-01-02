@@ -3,7 +3,7 @@
 //! Provides helper functions for Git integration in Q-DOS II.
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
-use super::state::{GitFileStatus, GitLogEntry, GitState};
+use super::state::{FileHistoryEntry, GitFileStatus, GitLogEntry, GitState};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -266,5 +266,92 @@ pub fn load_file_diff(state: &mut GitState, cwd: &PathBuf, file_path: &str) {
         Err(e) => {
             state.error = Some(format!("Failed to get file diff: {}", e));
         }
+    }
+}
+
+/// Check if a path is in a git repository
+pub fn is_git_repo(cwd: &PathBuf) -> bool {
+    Command::new("git")
+        .args(["rev-parse", "--git-dir"])
+        .current_dir(cwd)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Load git history for a specific file
+/// Returns commits from newest to oldest, but we store them oldest to newest
+/// so index 0 = oldest, last = newest (before working copy)
+pub fn load_file_history(file_path: &PathBuf, cwd: &PathBuf) -> Vec<FileHistoryEntry> {
+    // Get relative path from cwd
+    let rel_path = file_path
+        .strip_prefix(cwd)
+        .unwrap_or(file_path)
+        .to_string_lossy();
+
+    let output = Command::new("git")
+        .args([
+            "log",
+            "--follow",
+            "--format=%H|%s",
+            "-50", // Limit to 50 commits
+            "--",
+            &rel_path,
+        ])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut entries: Vec<FileHistoryEntry> = stdout
+                .lines()
+                .filter_map(|line| {
+                    let parts: Vec<&str> = line.splitn(2, '|').collect();
+                    if parts.len() == 2 {
+                        Some(FileHistoryEntry {
+                            hash: parts[0].to_string(),
+                            message: parts[1].to_string(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            // Reverse so oldest is first (index 0)
+            entries.reverse();
+            entries
+        }
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Load file content at a specific commit
+pub fn load_file_at_commit(
+    file_path: &PathBuf,
+    commit_hash: &str,
+    cwd: &PathBuf,
+) -> Result<Vec<u8>, String> {
+    // Get relative path from cwd
+    let rel_path = file_path
+        .strip_prefix(cwd)
+        .unwrap_or(file_path)
+        .to_string_lossy();
+
+    let output = Command::new("git")
+        .args(["show", &format!("{}:{}", commit_hash, rel_path)])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(output.stdout)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to load file: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
     }
 }

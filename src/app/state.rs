@@ -159,6 +159,13 @@ impl ViewFilter {
     }
 }
 
+/// Git file history entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileHistoryEntry {
+    pub hash: String,
+    pub message: String,
+}
+
 /// File viewer state
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileViewerState {
@@ -176,6 +183,12 @@ pub struct FileViewerState {
     pub scroll_offset: usize,
     /// Whether cursor is on hex side (true) or ascii side (false) in hex mode
     pub hex_side: bool,
+    /// Git history for this file (oldest to newest, index 0 = oldest)
+    pub git_history: Vec<FileHistoryEntry>,
+    /// Current position in git history (None = current working copy)
+    pub history_index: Option<usize>,
+    /// Whether we're in a git repo
+    pub is_git_repo: bool,
 }
 
 impl FileViewerState {
@@ -189,7 +202,40 @@ impl FileViewerState {
             filter: ViewFilter::Off,
             scroll_offset: 0,
             hex_side: true,
+            git_history: Vec::new(),
+            history_index: None,
+            is_git_repo: false,
         }
+    }
+
+    /// Check if we can go to an older version (there's older history)
+    pub fn has_older_version(&self) -> bool {
+        if self.git_history.is_empty() {
+            return false;
+        }
+        match self.history_index {
+            None => true, // Currently at working copy, can go back
+            Some(idx) => idx > 0, // Can go back if not at oldest
+        }
+    }
+
+    /// Check if we can go to a newer version
+    pub fn has_newer_version(&self) -> bool {
+        if self.git_history.is_empty() {
+            return false;
+        }
+        self.history_index.is_some() // If we're in history, we can go forward
+    }
+
+    /// Get current commit info (None if viewing working copy)
+    pub fn current_commit(&self) -> Option<&FileHistoryEntry> {
+        self.history_index.and_then(|idx| self.git_history.get(idx))
+    }
+
+    /// Set git history for this file
+    pub fn set_git_history(&mut self, history: Vec<FileHistoryEntry>, is_git_repo: bool) {
+        self.git_history = history;
+        self.is_git_repo = is_git_repo;
     }
 
     /// Calculate max scroll offset based on mode and visible height
