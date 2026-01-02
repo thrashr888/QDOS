@@ -1489,6 +1489,8 @@ pub struct GitState {
     pub scroll_offset: usize,
     /// Commit log entries
     pub log_entries: Vec<GitLogEntry>,
+    /// Selected log entry in log view
+    pub selected_log: usize,
     /// Diff content
     pub diff_content: Vec<String>,
     /// Commit message input
@@ -1499,6 +1501,8 @@ pub struct GitState {
     pub error: Option<String>,
     /// Whether we're in a git repository
     pub is_repo: bool,
+    /// Previous view to return to from diff
+    pub prev_view: Option<GitView>,
 }
 
 /// Git view type
@@ -1530,11 +1534,13 @@ impl Default for GitState {
             selected_file: 0,
             scroll_offset: 0,
             log_entries: Vec::new(),
+            selected_log: 0,
             diff_content: Vec::new(),
             commit_message: String::new(),
             commit_input_mode: false,
             error: None,
             is_repo: false,
+            prev_view: None,
         }
     }
 }

@@ -2001,24 +2001,47 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
             GitView::Log => {
-                let visible_height = content_area.height as usize;
+                let visible_height = content_area.height as usize / 2; // Each entry takes 2 lines
                 let mut lines: Vec<Line> = vec![];
 
-                for entry in state
+                // Calculate scroll offset based on selection
+                let scroll = if state.selected_log >= visible_height {
+                    state.selected_log - visible_height + 1
+                } else {
+                    0
+                };
+
+                for (i, entry) in state
                     .log_entries
                     .iter()
-                    .skip(state.scroll_offset)
+                    .enumerate()
+                    .skip(scroll)
                     .take(visible_height)
                 {
+                    let is_selected = i == state.selected_log;
+                    let prefix = if is_selected { "▶ " } else { "  " };
+                    let hash_style = if is_selected {
+                        Style::default()
+                            .fg(colors.yellow())
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(colors.yellow())
+                    };
+                    let msg_style = if is_selected {
+                        Style::default()
+                            .fg(colors.fg())
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(colors.fg())
+                    };
+
                     lines.push(Line::from(vec![
-                        Span::styled(
-                            format!("{} ", entry.hash),
-                            Style::default().fg(colors.yellow()),
-                        ),
-                        Span::styled(&entry.message, Style::default().fg(colors.fg())),
+                        Span::styled(prefix, hash_style),
+                        Span::styled(format!("{} ", entry.hash), hash_style),
+                        Span::styled(&entry.message, msg_style),
                     ]));
                     lines.push(Line::from(vec![
-                        Span::styled("       ", Style::default()),
+                        Span::styled("         ", Style::default()),
                         Span::styled(
                             format!("{} - {}", entry.author, entry.date),
                             Style::default().fg(colors.grey()),
@@ -2111,8 +2134,8 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
     } else {
         match state.view {
             GitView::Menu => "↑↓ select  Enter open  S/L/D/C quick select  ESC close",
-            GitView::Status => "↑↓ navigate  A stage/unstage  R refresh  ESC back",
-            GitView::Log => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
+            GitView::Status => "↑↓ navigate  Enter view diff  A stage/unstage  R refresh  ESC back",
+            GitView::Log => "↑↓ select  Enter view diff  PgUp/PgDn fast scroll  ESC back",
             GitView::Diff => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
             GitView::Commit => "Type message  Shift+Enter newline  Enter commit  ESC cancel",
         }

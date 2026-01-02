@@ -48,6 +48,7 @@ pub fn load_git_log(state: &mut GitState, cwd: &PathBuf) {
     state.log_entries.clear();
     state.error = None;
     state.scroll_offset = 0;
+    state.selected_log = 0;
 
     let output = Command::new("git")
         .args(["log", "--oneline", "-20", "--format=%h|%an|%ar|%s"])
@@ -192,5 +193,78 @@ pub fn execute_git_pull(cwd: &PathBuf) -> Result<String, String> {
             }
         }
         Err(e) => Err(format!("Failed to pull: {}", e)),
+    }
+}
+
+/// Load diff for a specific commit
+pub fn load_commit_diff(state: &mut GitState, cwd: &PathBuf, commit_hash: &str) {
+    state.diff_content.clear();
+    state.error = None;
+    state.scroll_offset = 0;
+
+    let output = Command::new("git")
+        .args(["show", "--stat", "--patch", commit_hash])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            state.diff_content = stdout.lines().map(|s| s.to_string()).collect();
+            if state.diff_content.is_empty() {
+                state.diff_content.push("No diff available".to_string());
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to get commit diff: {}", e));
+        }
+    }
+}
+
+/// Load diff for a specific file
+pub fn load_file_diff(state: &mut GitState, cwd: &PathBuf, file_path: &str) {
+    state.diff_content.clear();
+    state.error = None;
+    state.scroll_offset = 0;
+
+    // First try unstaged changes
+    let output = Command::new("git")
+        .args(["diff", "--", file_path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.is_empty() {
+                // Try staged changes
+                let staged_output = Command::new("git")
+                    .args(["diff", "--cached", "--", file_path])
+                    .current_dir(cwd)
+                    .output();
+
+                match staged_output {
+                    Ok(staged_output) => {
+                        let staged_stdout = String::from_utf8_lossy(&staged_output.stdout);
+                        if staged_stdout.is_empty() {
+                            state
+                                .diff_content
+                                .push(format!("No changes for: {}", file_path));
+                        } else {
+                            state.diff_content =
+                                staged_stdout.lines().map(|s| s.to_string()).collect();
+                        }
+                    }
+                    Err(e) => {
+                        state.error = Some(format!("Failed to get staged diff: {}", e));
+                    }
+                }
+            } else {
+                state.diff_content = stdout.lines().map(|s| s.to_string()).collect();
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to get file diff: {}", e));
+        }
     }
 }

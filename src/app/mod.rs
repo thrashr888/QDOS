@@ -1548,6 +1548,16 @@ impl App {
                                     state.selected_file += 1;
                                 }
                             }
+                            KeyCode::Enter => {
+                                // Show diff for selected file
+                                if !state.files.is_empty() {
+                                    let file_path = state.files[state.selected_file].path.clone();
+                                    let path = self.current_path.clone();
+                                    state.prev_view = Some(GitView::Status);
+                                    git_ops::load_file_diff(state, &path, &file_path);
+                                    state.view = GitView::Diff;
+                                }
+                            }
                             KeyCode::Char('a') | KeyCode::Char('A') => {
                                 let path = self.current_path.clone();
                                 git_ops::toggle_git_stage(state, &path);
@@ -1563,24 +1573,39 @@ impl App {
                                 state.view = GitView::Menu;
                             }
                             KeyCode::Up | KeyCode::Char('k') => {
-                                if state.scroll_offset > 0 {
-                                    state.scroll_offset -= 1;
+                                if state.selected_log > 0 {
+                                    state.selected_log -= 1;
                                 }
                             }
                             KeyCode::Down | KeyCode::Char('j') => {
-                                state.scroll_offset += 1;
+                                if state.selected_log + 1 < state.log_entries.len() {
+                                    state.selected_log += 1;
+                                }
+                            }
+                            KeyCode::Enter => {
+                                // Show diff for selected commit
+                                if !state.log_entries.is_empty() {
+                                    let commit_hash =
+                                        state.log_entries[state.selected_log].hash.clone();
+                                    let path = self.current_path.clone();
+                                    state.prev_view = Some(GitView::Log);
+                                    git_ops::load_commit_diff(state, &path, &commit_hash);
+                                    state.view = GitView::Diff;
+                                }
                             }
                             KeyCode::PageUp => {
-                                state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                                state.selected_log = state.selected_log.saturating_sub(10);
                             }
                             KeyCode::PageDown => {
-                                state.scroll_offset += 10;
+                                let max = state.log_entries.len().saturating_sub(1);
+                                state.selected_log = (state.selected_log + 10).min(max);
                             }
                             _ => {}
                         },
                         GitView::Diff => match key.code {
                             KeyCode::Esc => {
-                                state.view = GitView::Menu;
+                                // Return to previous view if set, otherwise menu
+                                state.view = state.prev_view.take().unwrap_or(GitView::Menu);
                             }
                             KeyCode::Up | KeyCode::Char('k') => {
                                 if state.scroll_offset > 0 {
