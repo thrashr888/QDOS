@@ -2114,7 +2114,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
             GitView::Status => "↑↓ navigate  A stage/unstage  R refresh  ESC back",
             GitView::Log => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
             GitView::Diff => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
-            GitView::Commit => "Type message, Enter commit  ESC cancel",
+            GitView::Commit => "Type message  Shift+Enter newline  Enter commit  ESC cancel",
         }
     };
     frame.render_widget(
@@ -2232,7 +2232,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
             BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
-                let visible_height = content_area.height as usize;
+                let visible_height = content_area.height.saturating_sub(1) as usize; // -1 for header
                 let mut lines: Vec<Line> = vec![];
 
                 if state.issues.is_empty() {
@@ -2242,6 +2242,29 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         Style::default().fg(colors.grey()),
                     )));
                 } else {
+                    // Table header
+                    let header_style = Style::default()
+                        .fg(colors.blue())
+                        .add_modifier(Modifier::BOLD);
+                    // Column widths: ID=14, Type=8, Status=12, Pri=3, Title=rest
+                    let id_w = 14;
+                    let type_w = 8;
+                    let status_w = 12;
+                    let pri_w = 3;
+                    let fixed_width = id_w + type_w + status_w + pri_w + 5; // +5 for spacing
+                    let title_w = content_area
+                        .width
+                        .saturating_sub(fixed_width as u16)
+                        .max(10) as usize;
+
+                    lines.push(Line::from(vec![
+                        Span::styled(format!(" {:<id_w$}", "ID"), header_style),
+                        Span::styled(format!("{:<type_w$}", "TYPE"), header_style),
+                        Span::styled(format!("{:<status_w$}", "STATUS"), header_style),
+                        Span::styled(format!("{:<pri_w$}", "P"), header_style),
+                        Span::styled(format!("{:<title_w$}", "TITLE"), header_style),
+                    ]));
+
                     for (i, issue) in state
                         .issues
                         .iter()
@@ -2267,29 +2290,59 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                             }
                         };
 
-                        let id_short = if issue.id.len() > 12 {
-                            &issue.id[..12]
+                        let type_style = if is_selected {
+                            style
                         } else {
-                            &issue.id
+                            match issue.issue_type.as_str() {
+                                "bug" => Style::default().fg(colors.red()),
+                                "feature" => Style::default().fg(colors.green()),
+                                _ => Style::default().fg(colors.grey()),
+                            }
                         };
 
-                        // Calculate available width for title (area width - priority - id - padding)
-                        let prefix_len = 4 + 14; // " P{} " + id formatted
-                        let available_width =
-                            content_area.width.saturating_sub(prefix_len as u16 + 2) as usize;
-                        let title = if issue.title.len() > available_width {
-                            format!("{}...", &issue.title[..available_width.saturating_sub(3)])
+                        let status_style = if is_selected {
+                            style
+                        } else {
+                            match issue.status.as_str() {
+                                "open" => Style::default().fg(colors.green()),
+                                "in_progress" => Style::default().fg(colors.yellow()),
+                                "closed" => Style::default().fg(colors.grey()),
+                                _ => Style::default().fg(colors.fg()),
+                            }
+                        };
+
+                        let id_short = if issue.id.len() > id_w {
+                            format!("{}…", &issue.id[..id_w - 1])
+                        } else {
+                            issue.id.clone()
+                        };
+
+                        let type_short = if issue.issue_type.len() > type_w {
+                            format!("{}…", &issue.issue_type[..type_w - 1])
+                        } else {
+                            issue.issue_type.clone()
+                        };
+
+                        let status_short = if issue.status.len() > status_w {
+                            format!("{}…", &issue.status[..status_w - 1])
+                        } else {
+                            issue.status.clone()
+                        };
+
+                        let pri = issue.priority.chars().last().unwrap_or('2');
+
+                        let title = if issue.title.len() > title_w {
+                            format!("{}…", &issue.title[..title_w.saturating_sub(1)])
                         } else {
                             issue.title.clone()
                         };
 
                         lines.push(Line::from(vec![
-                            Span::styled(
-                                format!(" P{} ", issue.priority.chars().last().unwrap_or('2')),
-                                priority_style,
-                            ),
-                            Span::styled(format!("{:<14}", id_short), style),
-                            Span::styled(title, style),
+                            Span::styled(format!(" {:<id_w$}", id_short), style),
+                            Span::styled(format!("{:<type_w$}", type_short), type_style),
+                            Span::styled(format!("{:<status_w$}", status_short), status_style),
+                            Span::styled(format!("{:<pri_w$}", pri), priority_style),
+                            Span::styled(format!("{:<title_w$}", title), style),
                         ]));
                     }
                 }
@@ -2429,18 +2482,87 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         Span::styled("  Title:    ", Style::default().fg(colors.green())),
                         Span::styled(&issue.title, Style::default().fg(colors.fg())),
                     ]));
+
+                    // Status with color
+                    let status_color = match issue.status.as_str() {
+                        "open" => colors.green(),
+                        "in_progress" => colors.yellow(),
+                        "closed" => colors.grey(),
+                        _ => colors.fg(),
+                    };
                     lines.push(Line::from(vec![
                         Span::styled("  Status:   ", Style::default().fg(colors.green())),
-                        Span::styled(&issue.status, Style::default().fg(colors.fg())),
+                        Span::styled(&issue.status, Style::default().fg(status_color)),
                     ]));
+
+                    // Type with color
+                    let type_color = match issue.issue_type.as_str() {
+                        "bug" => colors.red(),
+                        "feature" => colors.green(),
+                        _ => colors.fg(),
+                    };
                     lines.push(Line::from(vec![
                         Span::styled("  Type:     ", Style::default().fg(colors.green())),
-                        Span::styled(&issue.issue_type, Style::default().fg(colors.fg())),
+                        Span::styled(&issue.issue_type, Style::default().fg(type_color)),
                     ]));
+
+                    // Priority with color
+                    let priority_color = match issue.priority.as_str() {
+                        "0" | "P0" => colors.red(),
+                        "1" | "P1" => colors.yellow(),
+                        _ => colors.fg(),
+                    };
                     lines.push(Line::from(vec![
                         Span::styled("  Priority: ", Style::default().fg(colors.green())),
-                        Span::styled(&issue.priority, Style::default().fg(colors.fg())),
+                        Span::styled(&issue.priority, Style::default().fg(priority_color)),
                     ]));
+
+                    // Show blocked by if any
+                    if !issue.blocked_by.is_empty() {
+                        lines.push(Line::from(""));
+                        lines.push(Line::from(vec![
+                            Span::styled(
+                                "  Blocked by: ",
+                                Style::default()
+                                    .fg(colors.red())
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Span::styled(
+                                issue.blocked_by.join(", "),
+                                Style::default().fg(colors.red()),
+                            ),
+                        ]));
+                    }
+
+                    // Actions section
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  ─── Actions ───",
+                        Style::default()
+                            .fg(colors.blue())
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    lines.push(Line::from(""));
+
+                    // Show available actions based on status
+                    if issue.status == "open" {
+                        lines.push(Line::from(vec![
+                            Span::styled("  [S] ", Style::default().fg(colors.yellow())),
+                            Span::styled("Start working", Style::default().fg(colors.fg())),
+                        ]));
+                    }
+                    if issue.status == "in_progress" || issue.status == "open" {
+                        lines.push(Line::from(vec![
+                            Span::styled("  [C] ", Style::default().fg(colors.yellow())),
+                            Span::styled("Close issue", Style::default().fg(colors.fg())),
+                        ]));
+                    }
+                    if issue.status == "closed" {
+                        lines.push(Line::from(vec![
+                            Span::styled("  [O] ", Style::default().fg(colors.yellow())),
+                            Span::styled("Reopen issue", Style::default().fg(colors.fg())),
+                        ]));
+                    }
                 } else {
                     lines.push(Line::from(""));
                     lines.push(Line::from(Span::styled(
@@ -2471,7 +2593,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "ESC back",
+            BeadsView::Detail => "S start  C close  O reopen  ESC back",
         }
     };
     frame.render_widget(

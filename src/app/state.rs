@@ -1637,6 +1637,8 @@ pub struct BeadsState {
     pub is_beads_project: bool,
     /// Error message if any
     pub error: Option<String>,
+    /// Success message if any
+    pub success_message: Option<String>,
 }
 
 /// Beads project statistics
@@ -1664,6 +1666,7 @@ impl Default for BeadsState {
             create_field: 0,
             is_beads_project: false,
             error: None,
+            success_message: None,
         }
     }
 }

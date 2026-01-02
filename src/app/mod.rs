@@ -1606,7 +1606,10 @@ impl App {
                                         state.view = GitView::Menu;
                                     }
                                     KeyCode::Enter => {
-                                        if !state.commit_message.is_empty() {
+                                        // Shift+Enter adds a newline, Enter commits
+                                        if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                            state.commit_message.push('\n');
+                                        } else if !state.commit_message.is_empty() {
                                             let msg = state.commit_message.clone();
                                             let path = self.current_path.clone();
                                             match git_ops::execute_git_commit(&msg, &path) {
@@ -1860,11 +1863,83 @@ impl App {
                             }
                             _ => {}
                         },
-                        BeadsView::Detail => {
-                            if key.code == KeyCode::Esc {
+                        BeadsView::Detail => match key.code {
+                            KeyCode::Esc => {
                                 state.view = BeadsView::List;
                             }
-                        }
+                            KeyCode::Char('s') | KeyCode::Char('S') => {
+                                // Start working on issue
+                                if let Some(issue) = state.issues.get(state.selected_issue) {
+                                    let issue_id = issue.id.clone();
+                                    match beads_ops::execute_beads_update_status(
+                                        &issue_id,
+                                        "in_progress",
+                                        &self.current_path,
+                                    ) {
+                                        Ok(msg) => {
+                                            state.success_message = Some(msg);
+                                            // Refresh the issue list
+                                            beads_ops::load_beads_list(
+                                                state,
+                                                &self.current_path,
+                                                None,
+                                            );
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                    state.view = BeadsView::List;
+                                }
+                            }
+                            KeyCode::Char('c') | KeyCode::Char('C') => {
+                                // Close issue
+                                if let Some(issue) = state.issues.get(state.selected_issue) {
+                                    let issue_id = issue.id.clone();
+                                    match beads_ops::execute_beads_close(
+                                        &issue_id,
+                                        &self.current_path,
+                                    ) {
+                                        Ok(msg) => {
+                                            state.success_message = Some(msg);
+                                            beads_ops::load_beads_list(
+                                                state,
+                                                &self.current_path,
+                                                None,
+                                            );
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                    state.view = BeadsView::List;
+                                }
+                            }
+                            KeyCode::Char('o') | KeyCode::Char('O') => {
+                                // Reopen issue
+                                if let Some(issue) = state.issues.get(state.selected_issue) {
+                                    let issue_id = issue.id.clone();
+                                    match beads_ops::execute_beads_reopen(
+                                        &issue_id,
+                                        &self.current_path,
+                                    ) {
+                                        Ok(msg) => {
+                                            state.success_message = Some(msg);
+                                            beads_ops::load_beads_list(
+                                                state,
+                                                &self.current_path,
+                                                None,
+                                            );
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                    state.view = BeadsView::List;
+                                }
+                            }
+                            _ => {}
+                        },
                     }
                 }
             }

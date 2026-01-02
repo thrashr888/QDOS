@@ -302,7 +302,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     // ROW 1: Headers row
     let y = area.y + 1;
     // Left side headers
-    let left_header = format!(" {:>5}  {:>13}   ", "Count", "Total Size");
+    let left_header = format!(" {:>5}  {:>18}   ", "Count", "Total Size");
     frame.render_widget(
         Paragraph::new(Span::styled(&left_header, header_style)),
         Rect::new(area.x, y, left_width - 1, 1),

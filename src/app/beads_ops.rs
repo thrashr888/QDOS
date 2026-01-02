@@ -219,3 +219,23 @@ pub fn execute_beads_update_status(
         Err(e) => Err(format!("Failed to update issue: {}", e)),
     }
 }
+
+/// Execute beads reopen
+pub fn execute_beads_reopen(issue_id: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("bd")
+        .args(["reopen", issue_id])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Issue {} reopened", issue_id))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Reopen failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to reopen issue: {}", e)),
+    }
+}
