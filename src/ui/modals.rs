@@ -2349,7 +2349,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                         lines.push(Line::from(vec![
                             Span::styled(format!("  {:<20} ", tag.name), style),
                             Span::styled(
-                                format!("{}", tag.commit),
+                                tag.commit.clone(),
                                 if is_selected {
                                     style
                                 } else {

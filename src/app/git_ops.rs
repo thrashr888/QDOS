@@ -1384,8 +1384,7 @@ pub fn load_submodules(state: &mut GitState, cwd: &PathBuf) {
                     };
 
                     // Skip status char and parse rest
-                    let rest =
-                        line.trim_start_matches(|c| c == '-' || c == '+' || c == 'U' || c == ' ');
+                    let rest = line.trim_start_matches(['-', '+', 'U', ' ']);
                     let parts: Vec<&str> = rest.split_whitespace().collect();
 
                     if parts.len() >= 2 {

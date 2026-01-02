@@ -768,7 +768,7 @@ pub fn execute_beads_create_subtask(
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 // Output format: "✓ Created issue: QDOS-xxx"
                 if let Some(id) = stdout.split("Created issue: ").nth(1) {
-                    let new_id = id.trim().split_whitespace().next().unwrap_or("");
+                    let new_id = id.split_whitespace().next().unwrap_or("");
                     if !new_id.is_empty() {
                         // Add dependency: new issue depends on parent (parent blocks new issue)
                         let dep_output = Command::new("bd")
