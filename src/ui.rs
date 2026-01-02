@@ -166,9 +166,17 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
     // Left panel width (stats/keybindings/copyright)
     let left_width: u16 = 30;
+
+    // Calculate dynamic size column width based on file sizes
+    let max_size_width = app.files.iter()
+        .filter(|f| !f.is_dir)
+        .map(|f| format_number(f.size).len())
+        .max()
+        .unwrap_or(4); // "Size" header minimum
+    let size_col: u16 = (max_size_width.max(4) + 2) as u16; // +2 for padding
+
     // File table column widths - name column expands to fill remaining space
     let kind_col: u16 = 6;  // "KIND" + padding
-    let size_col: u16 = 12;
     let date_col: u16 = 10;
     let time_col: u16 = 9;
     // Calculate name_col to fill remaining width (area.width - left_width - kind - size - date - time - 5 separators - 1 right border)
@@ -448,9 +456,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 format!(".{}", file.extension)
             };
 
-            // Format: git_status + name + ext
-            let git_indicator = file.git_status.indicator();
             let display_name = format!("{}{}", name, ext);
+            let git_indicator = file.git_status.indicator();
 
             let size_str = if file.is_dir {
                 if file.name == ".." { String::new() } else { "<DIR>".to_string() }
@@ -462,10 +469,18 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
             let mut x = file_table_x;
 
-            // File name with git status indicator
+            // File name with git status indicator on the right
+            // Format: " NAME...           M" (name left-aligned, git status flush right)
+            let name_width = name_col as usize - 2; // -2 for leading space and trailing git indicator
+            let truncated_name = if display_name.len() > name_width {
+                format!("{}", &display_name[..name_width])
+            } else {
+                format!("{:<width$}", display_name, width = name_width)
+            };
             let name_content = Line::from(vec![
+                Span::styled(" ", style),
+                Span::styled(truncated_name, style),
                 Span::styled(git_indicator, git_style),
-                Span::styled(format!("{:<width$}", display_name, width = name_col as usize - 2), style),
             ]);
             frame.render_widget(
                 Paragraph::new(name_content),

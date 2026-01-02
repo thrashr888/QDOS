@@ -158,14 +158,36 @@ impl FileEntry {
     }
 }
 
+/// Get the git repository root directory
+fn get_git_root(path: &PathBuf) -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(path)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        Some(PathBuf::from(root))
+    } else {
+        None
+    }
+}
+
 /// Get git status for all files in a directory
 fn get_git_status_map(path: &PathBuf) -> HashMap<PathBuf, GitStatus> {
     let mut status_map = HashMap::new();
 
-    // Run git status --porcelain to get file statuses
+    // Get git root directory
+    let git_root = match get_git_root(path) {
+        Some(root) => root,
+        None => return status_map, // Not a git repo
+    };
+
+    // Run git status --porcelain from the git root to get file statuses
     let output = Command::new("git")
         .args(["status", "--porcelain", "-uall"])
-        .current_dir(path)
+        .current_dir(&git_root)
         .output();
 
     if let Ok(output) = output {
@@ -198,8 +220,8 @@ fn get_git_status_map(path: &PathBuf) -> HashMap<PathBuf, GitStatus> {
                 };
 
                 if status != GitStatus::None {
-                    // Store relative path
-                    let full_path = path.join(file_path);
+                    // Store absolute path (git root + relative path)
+                    let full_path = git_root.join(file_path);
                     status_map.insert(full_path, status);
 
                     // Also mark parent directories as modified if a file inside is modified
@@ -208,7 +230,7 @@ fn get_git_status_map(path: &PathBuf) -> HashMap<PathBuf, GitStatus> {
                         if p.as_os_str().is_empty() {
                             break;
                         }
-                        let parent_full = path.join(p);
+                        let parent_full = git_root.join(p);
                         status_map.entry(parent_full).or_insert(GitStatus::Modified);
                         parent = p.to_path_buf();
                     }

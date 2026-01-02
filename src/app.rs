@@ -2,7 +2,7 @@ use crate::event::EventHandler;
 use crate::file_ops::{FileEntry, get_directory_contents, get_system_info, SystemInfo};
 use crate::ui;
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, MouseButton};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use std::fs;
 use std::path::PathBuf;
@@ -342,7 +342,6 @@ impl App {
             if let Some(event) = event_handler.next().await? {
                 match event {
                     crate::event::Event::Key(key) => self.handle_key(key)?,
-                    crate::event::Event::Mouse(mouse) => self.handle_mouse(mouse)?,
                     crate::event::Event::Tick => {}
                     crate::event::Event::Resize(_, _) => {}
                 }
@@ -754,78 +753,6 @@ impl App {
             Modal::None => {}
         }
 
-        Ok(())
-    }
-
-    /// Handle mouse input
-    fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<()> {
-        match mouse.kind {
-            MouseEventKind::ScrollUp => {
-                match &mut self.modal {
-                    Modal::FileViewer(ref mut state) => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(3);
-                    }
-                    Modal::ShellCommand(ref mut state) => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(3);
-                    }
-                    Modal::None => {
-                        // Scroll file list
-                        self.move_selection(-3);
-                    }
-                    _ => {}
-                }
-            }
-            MouseEventKind::ScrollDown => {
-                match &mut self.modal {
-                    Modal::FileViewer(ref mut state) => {
-                        let max_scroll = state.max_scroll(20);
-                        state.scroll_offset = (state.scroll_offset + 3).min(max_scroll);
-                    }
-                    Modal::ShellCommand(ref mut state) => {
-                        let max_scroll = state.output.len().saturating_sub(10);
-                        state.scroll_offset = (state.scroll_offset + 3).min(max_scroll);
-                    }
-                    Modal::None => {
-                        // Scroll file list
-                        self.move_selection(3);
-                    }
-                    _ => {}
-                }
-            }
-            MouseEventKind::Down(MouseButton::Left) => {
-                // For now, just handle clicks in the main file list
-                if self.modal == Modal::None {
-                    // File list starts at row 3 (after nav, desc, separator, path)
-                    // and column 30 (after stats panel)
-                    let row = mouse.row;
-                    let col = mouse.column;
-
-                    // Check if click is in file list area (approximate)
-                    if col >= 30 && row >= 3 {
-                        let file_row = (row - 3) as usize + self.scroll_offset;
-                        if file_row < self.files.len() {
-                            self.selected_index = file_row;
-                        }
-                    }
-                }
-            }
-            MouseEventKind::Down(MouseButton::Right) => {
-                // Right click could toggle tag in main view
-                if self.modal == Modal::None {
-                    let row = mouse.row;
-                    let col = mouse.column;
-
-                    if col >= 30 && row >= 3 {
-                        let file_row = (row - 3) as usize + self.scroll_offset;
-                        if file_row < self.files.len() {
-                            self.selected_index = file_row;
-                            self.toggle_tag();
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
         Ok(())
     }
 
