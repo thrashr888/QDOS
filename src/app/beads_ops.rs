@@ -331,8 +331,7 @@ pub fn execute_beads_sync(cwd: &PathBuf) -> Result<String, String> {
                 // Get the last non-empty line for status
                 let msg = stdout
                     .lines()
-                    .filter(|l| !l.is_empty())
-                    .last()
+                    .rfind(|l| !l.is_empty())
                     .unwrap_or("Sync complete")
                     .to_string();
                 Ok(msg)
@@ -367,5 +366,61 @@ pub fn load_beads_issue_detail(issue_id: &str, cwd: &PathBuf) -> Result<BeadsIss
             Ok(issue)
         }
         Err(e) => Err(format!("Failed to load issue: {}", e)),
+    }
+}
+
+/// Execute beads init
+pub fn execute_beads_init(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("bd")
+        .args(["init"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Beads initialized successfully".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Init failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to init: {}", e)),
+    }
+}
+
+/// Execute beads human (returns help text)
+pub fn execute_beads_human(cwd: &PathBuf) -> Result<Vec<String>, String> {
+    let output = Command::new("bd")
+        .args(["human"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout.lines().map(|s| s.to_string()).collect())
+        }
+        Err(e) => Err(format!("Failed to run human: {}", e)),
+    }
+}
+
+/// Execute beads doctor (returns health check output)
+pub fn execute_beads_doctor(cwd: &PathBuf) -> Result<Vec<String>, String> {
+    let output = Command::new("bd")
+        .args(["doctor"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // Doctor outputs to both stdout and stderr
+            let mut lines: Vec<String> = stdout.lines().map(|s| s.to_string()).collect();
+            lines.extend(stderr.lines().map(|s| s.to_string()));
+            Ok(lines)
+        }
+        Err(e) => Err(format!("Failed to run doctor: {}", e)),
     }
 }

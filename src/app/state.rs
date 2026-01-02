@@ -1564,17 +1564,35 @@ pub enum BeadsMenuItem {
     Stats,
     Create,
     Sync,
+    Human,
+    Init,
+    Doctor,
 }
 
 impl BeadsMenuItem {
-    pub const ALL: [BeadsMenuItem; 6] = [
+    /// Items shown when beads is initialized
+    pub const INITIALIZED: [BeadsMenuItem; 8] = [
         BeadsMenuItem::List,
         BeadsMenuItem::Ready,
         BeadsMenuItem::Blocked,
         BeadsMenuItem::Stats,
         BeadsMenuItem::Create,
         BeadsMenuItem::Sync,
+        BeadsMenuItem::Human,
+        BeadsMenuItem::Doctor,
     ];
+
+    /// Items shown when beads is NOT initialized
+    pub const NOT_INITIALIZED: [BeadsMenuItem; 1] = [BeadsMenuItem::Init];
+
+    /// Get menu items based on initialization state
+    pub fn items(is_initialized: bool) -> &'static [BeadsMenuItem] {
+        if is_initialized {
+            &Self::INITIALIZED
+        } else {
+            &Self::NOT_INITIALIZED
+        }
+    }
 
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -1584,6 +1602,9 @@ impl BeadsMenuItem {
             BeadsMenuItem::Stats => "Stats",
             BeadsMenuItem::Create => "Create",
             BeadsMenuItem::Sync => "Sync",
+            BeadsMenuItem::Human => "Human",
+            BeadsMenuItem::Init => "Init",
+            BeadsMenuItem::Doctor => "Doctor",
         }
     }
 
@@ -1595,6 +1616,9 @@ impl BeadsMenuItem {
             BeadsMenuItem::Stats => "Project statistics",
             BeadsMenuItem::Create => "Create a new issue",
             BeadsMenuItem::Sync => "Sync with git remote",
+            BeadsMenuItem::Human => "Show common commands help",
+            BeadsMenuItem::Init => "Initialize beads in this project",
+            BeadsMenuItem::Doctor => "Check beads installation health",
         }
     }
 }
@@ -1641,6 +1665,8 @@ pub enum BeadsView {
     Stats,
     Create,
     Detail,
+    Human,
+    Doctor,
 }
 
 /// Beads state for the beads modal
@@ -1673,6 +1699,8 @@ pub struct BeadsState {
     pub error: Option<String>,
     /// Success message if any
     pub success_message: Option<String>,
+    /// Output lines for Human/Doctor views
+    pub output_lines: Vec<String>,
 }
 
 /// Beads project statistics
@@ -1703,6 +1731,7 @@ impl Default for BeadsState {
             is_beads_project: false,
             error: None,
             success_message: None,
+            output_lines: Vec::new(),
         }
     }
 }

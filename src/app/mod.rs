@@ -1686,12 +1686,14 @@ impl App {
                                 }
                             }
                             KeyCode::Down | KeyCode::Char('j') => {
-                                if state.menu_selected < BeadsMenuItem::ALL.len() - 1 {
+                                let items = BeadsMenuItem::items(state.is_beads_project);
+                                if state.menu_selected < items.len() - 1 {
                                     state.menu_selected += 1;
                                 }
                             }
                             KeyCode::Enter | KeyCode::Char(' ') => {
-                                let item = BeadsMenuItem::ALL[state.menu_selected];
+                                let items = BeadsMenuItem::items(state.is_beads_project);
+                                let item = items[state.menu_selected];
                                 let path = self.current_path.clone();
                                 match item {
                                     BeadsMenuItem::List => {
@@ -1722,6 +1724,45 @@ impl App {
                                         match beads_ops::execute_beads_sync(&path) {
                                             Ok(msg) => {
                                                 state.success_message = Some(msg);
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                    BeadsMenuItem::Human => {
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_human(&path) {
+                                            Ok(lines) => {
+                                                state.output_lines = lines;
+                                                state.scroll_offset = 0;
+                                                state.view = BeadsView::Human;
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                    BeadsMenuItem::Init => {
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_init(&path) {
+                                            Ok(msg) => {
+                                                state.success_message = Some(msg);
+                                                state.is_beads_project = true;
+                                                state.menu_selected = 0;
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                    BeadsMenuItem::Doctor => {
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_doctor(&path) {
+                                            Ok(lines) => {
+                                                state.output_lines = lines;
+                                                state.scroll_offset = 0;
+                                                state.view = BeadsView::Doctor;
                                             }
                                             Err(e) => {
                                                 state.error = Some(e);
@@ -2023,6 +2064,30 @@ impl App {
                                     }
                                     state.view = BeadsView::List;
                                 }
+                            }
+                            _ => {}
+                        },
+                        BeadsView::Human | BeadsView::Doctor => match key.code {
+                            KeyCode::Esc => {
+                                state.view = BeadsView::Menu;
+                                state.output_lines.clear();
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                if state.scroll_offset > 0 {
+                                    state.scroll_offset -= 1;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if state.scroll_offset + 1 < state.output_lines.len() {
+                                    state.scroll_offset += 1;
+                                }
+                            }
+                            KeyCode::PageUp => {
+                                state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                            }
+                            KeyCode::PageDown => {
+                                let max = state.output_lines.len().saturating_sub(1);
+                                state.scroll_offset = (state.scroll_offset + 10).min(max);
                             }
                             _ => {}
                         },

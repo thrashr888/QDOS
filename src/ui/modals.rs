@@ -2174,6 +2174,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         BeadsView::Stats => " BEADS - STATISTICS ",
         BeadsView::Create => " BEADS - CREATE ISSUE ",
         BeadsView::Detail => " BEADS - ISSUE DETAIL ",
+        BeadsView::Human => " BEADS - COMMAND HELP ",
+        BeadsView::Doctor => " BEADS - HEALTH CHECK ",
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -2220,7 +2222,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             BeadsView::Menu => {
                 let mut lines = vec![Line::from("")];
 
-                for (i, item) in BeadsMenuItem::ALL.iter().enumerate() {
+                let items = BeadsMenuItem::items(state.is_beads_project);
+                for (i, item) in items.iter().enumerate() {
                     let is_selected = i == state.menu_selected;
                     let style = if is_selected {
                         Style::default().fg(colors.yellow()).bg(colors.red())
@@ -2720,6 +2723,59 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            BeadsView::Human | BeadsView::Doctor => {
+                let visible_height = content_area.height as usize;
+                let mut lines = vec![];
+
+                // Title line
+                let title_text = if state.view == BeadsView::Human {
+                    "Common beads commands for human users:"
+                } else {
+                    "Beads installation health check:"
+                };
+                lines.push(Line::from(""));
+                lines.push(Line::from(Span::styled(
+                    title_text,
+                    Style::default().fg(colors.yellow()),
+                )));
+                lines.push(Line::from(""));
+
+                // Show output lines with scrolling
+                let total_lines = state.output_lines.len();
+                let start = state.scroll_offset;
+                let end = (start + visible_height.saturating_sub(4)).min(total_lines);
+
+                for line in state.output_lines.iter().skip(start).take(end - start) {
+                    // Color lines based on content
+                    let style = if line.contains("✓") || line.contains("OK") || line.contains("passed") {
+                        Style::default().fg(colors.green())
+                    } else if line.contains("✗") || line.contains("ERROR") || line.contains("failed") {
+                        Style::default().fg(colors.red())
+                    } else if line.contains("WARNING") {
+                        Style::default().fg(colors.yellow())
+                    } else if line.starts_with("  ") {
+                        Style::default().fg(colors.grey())
+                    } else {
+                        Style::default().fg(colors.fg())
+                    };
+                    lines.push(Line::from(Span::styled(line.clone(), style)));
+                }
+
+                // Scroll indicator
+                if total_lines > visible_height.saturating_sub(4) {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!(
+                            "-- Line {}/{} --",
+                            start + 1,
+                            total_lines.max(1)
+                        ),
+                        Style::default().fg(colors.grey()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
         }
     }
 
@@ -2741,6 +2797,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
             BeadsView::Detail => "↑↓ subtasks  Enter open  S start  C close  O reopen  ESC back",
+            BeadsView::Human | BeadsView::Doctor => "↑↓ scroll  PgUp/PgDn page  ESC back",
         }
     };
     frame.render_widget(
