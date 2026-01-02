@@ -111,6 +111,7 @@ pub enum SortMethodConfig {
     None,
 }
 
+#[allow(dead_code)]
 impl SortMethodConfig {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -142,6 +143,7 @@ pub enum SortDirection {
     Desc,
 }
 
+#[allow(dead_code)]
 impl SortDirection {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -163,6 +165,7 @@ pub enum ThemeConfig {
     Amber,
 }
 
+#[allow(dead_code)]
 impl ThemeConfig {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -320,6 +323,7 @@ impl Config {
     }
 
     /// Get the editor command (config value or $EDITOR)
+    #[allow(dead_code)]
     pub fn editor_command(&self) -> String {
         self.editor
             .command
