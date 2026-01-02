@@ -546,7 +546,9 @@ pub(super) fn draw_qdos_modal_colored(
     }
 
     let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
-    let bottom_y = modal_area.y.saturating_add(modal_area.height.saturating_sub(1));
+    let bottom_y = modal_area
+        .y
+        .saturating_add(modal_area.height.saturating_sub(1));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
         Rect::new(modal_area.x, bottom_y, modal_area.width, 1),
@@ -2542,15 +2544,13 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                     )));
                 } else {
                     // Header
-                    lines.push(Line::from(vec![
-                        Span::styled(
-                            format!(
-                                "  {} conflicting file(s) - ←→ to switch files",
-                                state.conflict_files.len()
-                            ),
-                            Style::default().fg(colors.yellow()),
+                    lines.push(Line::from(vec![Span::styled(
+                        format!(
+                            "  {} conflicting file(s) - ←→ to switch files",
+                            state.conflict_files.len()
                         ),
-                    ]));
+                        Style::default().fg(colors.yellow()),
+                    )]));
                     lines.push(Line::from(""));
 
                     // Current file info
@@ -3075,11 +3075,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                 .iter()
                                 .filter(|d| d.status == "closed")
                                 .count();
-                            let pct = if total > 0 {
-                                (closed * 100) / total
-                            } else {
-                                0
-                            };
+                            let pct = if total > 0 { (closed * 100) / total } else { 0 };
                             // Create progress bar: [████░░░░] 4/6
                             let bar_width = 8;
                             let filled = (pct * bar_width) / 100;
@@ -3325,7 +3321,10 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                         // Emit current line and start new one
                                         lines.push(Line::from(vec![
                                             Span::styled("    ", Style::default()),
-                                            Span::styled(current_line.clone(), Style::default().fg(colors.grey())),
+                                            Span::styled(
+                                                current_line.clone(),
+                                                Style::default().fg(colors.grey()),
+                                            ),
                                         ]));
                                         line_count += 1;
                                         if line_count >= 8 {
@@ -3337,7 +3336,10 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                 if !current_line.is_empty() && line_count < 8 {
                                     lines.push(Line::from(vec![
                                         Span::styled("    ", Style::default()),
-                                        Span::styled(current_line.clone(), Style::default().fg(colors.grey())),
+                                        Span::styled(
+                                            current_line.clone(),
+                                            Style::default().fg(colors.grey()),
+                                        ),
                                     ]));
                                     line_count += 1;
                                 }
@@ -3720,8 +3722,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                             } else {
                                 // Wrap text
                                 for chunk in text.as_bytes().chunks(max_width) {
-                                    let line_text =
-                                        String::from_utf8_lossy(chunk).to_string();
+                                    let line_text = String::from_utf8_lossy(chunk).to_string();
                                     lines.push(Line::from(vec![
                                         Span::styled("    ", Style::default().bg(bg)),
                                         Span::styled(line_text, text_style),
@@ -3770,7 +3771,10 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 } else {
                     // Timeline header
                     lines.push(Line::from(Span::styled(
-                        format!("  ─── Timeline ({} events) ───", state.activity_entries.len()),
+                        format!(
+                            "  ─── Timeline ({} events) ───",
+                            state.activity_entries.len()
+                        ),
                         Style::default()
                             .fg(colors.magenta())
                             .add_modifier(Modifier::BOLD),
@@ -3897,14 +3901,22 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     )));
                 } else {
                     lines.push(Line::from(Span::styled(
-                        format!("  ─── Related Issues ({}) ───", state.file_related_issues.len()),
+                        format!(
+                            "  ─── Related Issues ({}) ───",
+                            state.file_related_issues.len()
+                        ),
                         Style::default()
                             .fg(colors.magenta())
                             .add_modifier(Modifier::BOLD),
                     )));
                     lines.push(Line::from(""));
 
-                    for (i, issue) in state.file_related_issues.iter().enumerate().take(visible_height) {
+                    for (i, issue) in state
+                        .file_related_issues
+                        .iter()
+                        .enumerate()
+                        .take(visible_height)
+                    {
                         let is_selected = i == state.file_issue_selected;
                         let bg = if is_selected {
                             colors.red()
@@ -3998,10 +4010,19 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         let blocked_by_str = if issue.blocked_by.is_empty() {
                             "none".to_string()
                         } else {
-                            issue.blocked_by.iter().map(|b| {
-                                // Shorten the ID
-                                if b.len() > 8 { format!("{}…", &b[..7]) } else { b.clone() }
-                            }).collect::<Vec<_>>().join(", ")
+                            issue
+                                .blocked_by
+                                .iter()
+                                .map(|b| {
+                                    // Shorten the ID
+                                    if b.len() > 8 {
+                                        format!("{}…", &b[..7])
+                                    } else {
+                                        b.clone()
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                                .join(", ")
                         };
 
                         let dependents_str = if issue.dependents.is_empty() {
@@ -4065,19 +4086,13 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         };
 
                         lines.push(Line::from(vec![
-                            Span::styled(
-                                "      ← ",
-                                Style::default().fg(block_color).bg(bg),
-                            ),
+                            Span::styled("      ← ", Style::default().fg(block_color).bg(bg)),
                             Span::styled(
                                 format!("{:<20}", blocked_by_str),
                                 Style::default().fg(block_color).bg(bg),
                             ),
                             Span::styled(" → ", Style::default().fg(dep_color).bg(bg)),
-                            Span::styled(
-                                dependents_str,
-                                Style::default().fg(dep_color).bg(bg),
-                            ),
+                            Span::styled(dependents_str, Style::default().fg(dep_color).bg(bg)),
                         ]));
 
                         // Third line: Title (truncated)
@@ -4295,7 +4310,9 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "↑↓ subtasks  E edit  N new subtask  M comments  H history  S start  C close",
+            BeadsView::Detail => {
+                "↑↓ subtasks  E edit  N new subtask  M comments  H history  S start  C close"
+            }
             BeadsView::Edit => "↑↓ field  ←→ value  Enter save  ESC cancel",
             BeadsView::Comments => {
                 if state.comment_input_active {

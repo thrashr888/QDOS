@@ -464,12 +464,7 @@ pub fn load_file_blame(file_path: &PathBuf, cwd: &PathBuf) -> Vec<BlameLine> {
         .to_string_lossy();
 
     let output = Command::new("git")
-        .args([
-            "blame",
-            "--line-porcelain",
-            "--",
-            &rel_path,
-        ])
+        .args(["blame", "--line-porcelain", "--", &rel_path])
         .current_dir(cwd)
         .output();
 
@@ -858,7 +853,10 @@ pub fn load_tags(state: &mut GitState, cwd: &PathBuf) {
                     state.tags.push(GitTag {
                         name: parts[0].to_string(),
                         commit: parts.get(1).unwrap_or(&"").to_string(),
-                        message: parts.get(2).map(|s| s.to_string()).filter(|s| !s.is_empty()),
+                        message: parts
+                            .get(2)
+                            .map(|s| s.to_string())
+                            .filter(|s| !s.is_empty()),
                     });
                 }
             }
@@ -995,7 +993,11 @@ pub fn execute_git_push_to(remote: &str, cwd: &PathBuf) -> Result<String, String
                 let msg = if stderr.is_empty() {
                     format!("Pushed to {} successfully", remote)
                 } else {
-                    format!("Pushed to {}: {}", remote, stderr.lines().last().unwrap_or(""))
+                    format!(
+                        "Pushed to {}: {}",
+                        remote,
+                        stderr.lines().last().unwrap_or("")
+                    )
                 };
                 Ok(msg)
             } else {
@@ -1101,9 +1103,7 @@ pub fn has_conflicts(cwd: &PathBuf) -> bool {
         .output();
 
     match output {
-        Ok(output) => {
-            output.status.success() && !output.stdout.is_empty()
-        }
+        Ok(output) => output.status.success() && !output.stdout.is_empty(),
         Err(_) => false,
     }
 }
@@ -1194,8 +1194,8 @@ pub fn resolve_conflict_section(
     cwd: &PathBuf,
 ) -> Result<String, String> {
     let full_path = cwd.join(file_path);
-    let content = std::fs::read_to_string(&full_path)
-        .map_err(|e| format!("Failed to read file: {}", e))?;
+    let content =
+        std::fs::read_to_string(&full_path).map_err(|e| format!("Failed to read file: {}", e))?;
 
     let mut new_content = String::new();
     let mut in_conflict = false;
@@ -1268,10 +1268,13 @@ pub fn resolve_conflict_section(
     }
 
     // Write the resolved content back
-    std::fs::write(&full_path, &new_content)
-        .map_err(|e| format!("Failed to write file: {}", e))?;
+    std::fs::write(&full_path, &new_content).map_err(|e| format!("Failed to write file: {}", e))?;
 
-    Ok(format!("Resolved conflict {} in {}", section_idx + 1, file_path))
+    Ok(format!(
+        "Resolved conflict {} in {}",
+        section_idx + 1,
+        file_path
+    ))
 }
 
 /// Mark a file as resolved (stage it)
@@ -1326,7 +1329,13 @@ pub fn load_submodules(state: &mut GitState, cwd: &PathBuf) {
 
     // First, get submodule URLs from config
     let config_output = Command::new("git")
-        .args(["config", "--file", ".gitmodules", "--get-regexp", "submodule\\..*\\.url"])
+        .args([
+            "config",
+            "--file",
+            ".gitmodules",
+            "--get-regexp",
+            "submodule\\..*\\.url",
+        ])
         .current_dir(cwd)
         .output();
 
@@ -1339,7 +1348,10 @@ pub fn load_submodules(state: &mut GitState, cwd: &PathBuf) {
                 let parts: Vec<&str> = line.splitn(2, ' ').collect();
                 if parts.len() == 2 {
                     // Extract submodule name from "submodule.NAME.url"
-                    if let Some(name) = parts[0].strip_prefix("submodule.").and_then(|s| s.strip_suffix(".url")) {
+                    if let Some(name) = parts[0]
+                        .strip_prefix("submodule.")
+                        .and_then(|s| s.strip_suffix(".url"))
+                    {
                         url_map.insert(name.to_string(), parts[1].to_string());
                     }
                 }
@@ -1372,7 +1384,8 @@ pub fn load_submodules(state: &mut GitState, cwd: &PathBuf) {
                     };
 
                     // Skip status char and parse rest
-                    let rest = line.trim_start_matches(|c| c == '-' || c == '+' || c == 'U' || c == ' ');
+                    let rest =
+                        line.trim_start_matches(|c| c == '-' || c == '+' || c == 'U' || c == ' ');
                     let parts: Vec<&str> = rest.split_whitespace().collect();
 
                     if parts.len() >= 2 {

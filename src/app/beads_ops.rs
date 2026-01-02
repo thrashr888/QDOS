@@ -617,8 +617,8 @@ pub fn find_issues_for_file(state: &mut BeadsState, file_path: &str, cwd: &PathB
                         .into_iter()
                         .filter(|issue| {
                             // Check if issue title or description contains the file path or filename
-                            let title_match = issue.title.contains(file_path)
-                                || issue.title.contains(filename);
+                            let title_match =
+                                issue.title.contains(file_path) || issue.title.contains(filename);
                             let desc_match = issue
                                 .description
                                 .as_ref()
@@ -656,9 +656,11 @@ pub fn find_issues_for_file(state: &mut BeadsState, file_path: &str, cwd: &PathB
                 state.file_related_issues = all_issues
                     .into_iter()
                     .filter(|issue| {
-                        let title_match = issue.title.contains(file_path)
-                            || issue.title.contains(filename);
-                        let desc_match = issue.description.as_ref()
+                        let title_match =
+                            issue.title.contains(file_path) || issue.title.contains(filename);
+                        let desc_match = issue
+                            .description
+                            .as_ref()
                             .map(|d| d.contains(file_path) || d.contains(filename))
                             .unwrap_or(false);
                         title_match || desc_match
@@ -683,7 +685,9 @@ pub fn file_has_issues(file_path: &str, issues: &[BeadsIssue]) -> bool {
     issues.iter().any(|issue| {
         issue.title.contains(file_path)
             || issue.title.contains(filename)
-            || issue.description.as_ref()
+            || issue
+                .description
+                .as_ref()
                 .map(|d| d.contains(file_path) || d.contains(filename))
                 .unwrap_or(false)
     })
@@ -717,10 +721,7 @@ pub fn execute_beads_update(
         args.push(p.to_string());
     }
 
-    let output = Command::new("bd")
-        .args(&args)
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(&args).current_dir(cwd).output();
 
     match output {
         Ok(output) => {

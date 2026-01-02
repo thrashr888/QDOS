@@ -530,10 +530,8 @@ impl App {
                         if state.is_git_repo {
                             // Load blame data if not already loaded
                             if state.blame_lines.is_empty() {
-                                state.blame_lines = git_ops::load_file_blame(
-                                    &state.file_path,
-                                    &self.current_path,
-                                );
+                                state.blame_lines =
+                                    git_ops::load_file_blame(&state.file_path, &self.current_path);
                             }
                             state.mode = ViewMode::Blame;
                             state.scroll_offset = 0;
@@ -2211,7 +2209,8 @@ impl App {
                             KeyCode::Up | KeyCode::Char('k') => {
                                 // Navigate sections within current file
                                 if !state.conflict_files.is_empty() {
-                                    let file = &mut state.conflict_files[state.selected_conflict_file];
+                                    let file =
+                                        &mut state.conflict_files[state.selected_conflict_file];
                                     if file.selected_section > 0 {
                                         file.selected_section -= 1;
                                     }
@@ -2219,7 +2218,8 @@ impl App {
                             }
                             KeyCode::Down | KeyCode::Char('j') => {
                                 if !state.conflict_files.is_empty() {
-                                    let file = &mut state.conflict_files[state.selected_conflict_file];
+                                    let file =
+                                        &mut state.conflict_files[state.selected_conflict_file];
                                     if file.selected_section + 1 < file.sections.len() {
                                         file.selected_section += 1;
                                     }
@@ -2369,10 +2369,7 @@ impl App {
                                 } else {
                                     None
                                 };
-                                match git_ops::init_submodule(
-                                    submodule_path.as_deref(),
-                                    &path,
-                                ) {
+                                match git_ops::init_submodule(submodule_path.as_deref(), &path) {
                                     Ok(msg) => {
                                         state.error = Some(msg);
                                         git_ops::load_submodules(state, &path);
@@ -2390,10 +2387,7 @@ impl App {
                                 } else {
                                     None
                                 };
-                                match git_ops::update_submodule(
-                                    submodule_path.as_deref(),
-                                    &path,
-                                ) {
+                                match git_ops::update_submodule(submodule_path.as_deref(), &path) {
                                     Ok(msg) => {
                                         state.error = Some(msg);
                                         git_ops::load_submodules(state, &path);
@@ -2601,12 +2595,22 @@ impl App {
                                         let filtered_count = if state.search_query.is_empty() {
                                             state.issues.len()
                                         } else {
-                                            state.issues.iter().filter(|i| {
-                                                i.id.to_lowercase().contains(&query_lower) ||
-                                                i.title.to_lowercase().contains(&query_lower) ||
-                                                i.issue_type.to_lowercase().contains(&query_lower) ||
-                                                i.status.to_lowercase().contains(&query_lower)
-                                            }).count()
+                                            state
+                                                .issues
+                                                .iter()
+                                                .filter(|i| {
+                                                    i.id.to_lowercase().contains(&query_lower)
+                                                        || i.title
+                                                            .to_lowercase()
+                                                            .contains(&query_lower)
+                                                        || i.issue_type
+                                                            .to_lowercase()
+                                                            .contains(&query_lower)
+                                                        || i.status
+                                                            .to_lowercase()
+                                                            .contains(&query_lower)
+                                                })
+                                                .count()
                                         };
                                         if state.selected_issue + 1 < filtered_count {
                                             state.selected_issue += 1;
@@ -2616,20 +2620,35 @@ impl App {
                                         // Load detailed issue info before showing detail view
                                         // Get the actual issue from filtered list
                                         let query_lower = state.search_query.to_lowercase();
-                                        let filtered_issues: Vec<_> = if state.search_query.is_empty() {
-                                            state.issues.iter().collect()
-                                        } else {
-                                            state.issues.iter().filter(|i| {
-                                                i.id.to_lowercase().contains(&query_lower) ||
-                                                i.title.to_lowercase().contains(&query_lower) ||
-                                                i.issue_type.to_lowercase().contains(&query_lower) ||
-                                                i.status.to_lowercase().contains(&query_lower)
-                                            }).collect()
-                                        };
-                                        if let Some(issue) = filtered_issues.get(state.selected_issue) {
+                                        let filtered_issues: Vec<_> =
+                                            if state.search_query.is_empty() {
+                                                state.issues.iter().collect()
+                                            } else {
+                                                state
+                                                    .issues
+                                                    .iter()
+                                                    .filter(|i| {
+                                                        i.id.to_lowercase().contains(&query_lower)
+                                                            || i.title
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.issue_type
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.status
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                    })
+                                                    .collect()
+                                            };
+                                        if let Some(issue) =
+                                            filtered_issues.get(state.selected_issue)
+                                        {
                                             let issue_id = issue.id.clone();
                                             let path = self.current_path.clone();
-                                            match beads_ops::load_beads_issue_detail(&issue_id, &path) {
+                                            match beads_ops::load_beads_issue_detail(
+                                                &issue_id, &path,
+                                            ) {
                                                 Ok(detail) => {
                                                     state.detail_issue = Some(detail);
                                                     state.selected_subtask = 0;
@@ -2660,17 +2679,30 @@ impl App {
                                     KeyCode::Char('c') | KeyCode::Char('C') => {
                                         // Close the selected issue (from filtered list)
                                         let query_lower = state.search_query.to_lowercase();
-                                        let filtered_issues: Vec<_> = if state.search_query.is_empty() {
-                                            state.issues.iter().collect()
-                                        } else {
-                                            state.issues.iter().filter(|i| {
-                                                i.id.to_lowercase().contains(&query_lower) ||
-                                                i.title.to_lowercase().contains(&query_lower) ||
-                                                i.issue_type.to_lowercase().contains(&query_lower) ||
-                                                i.status.to_lowercase().contains(&query_lower)
-                                            }).collect()
-                                        };
-                                        if let Some(issue) = filtered_issues.get(state.selected_issue) {
+                                        let filtered_issues: Vec<_> =
+                                            if state.search_query.is_empty() {
+                                                state.issues.iter().collect()
+                                            } else {
+                                                state
+                                                    .issues
+                                                    .iter()
+                                                    .filter(|i| {
+                                                        i.id.to_lowercase().contains(&query_lower)
+                                                            || i.title
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.issue_type
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.status
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                    })
+                                                    .collect()
+                                            };
+                                        if let Some(issue) =
+                                            filtered_issues.get(state.selected_issue)
+                                        {
                                             let issue_id = issue.id.clone();
                                             let path = self.current_path.clone();
                                             match beads_ops::execute_beads_close(&issue_id, &path) {
@@ -2686,17 +2718,30 @@ impl App {
                                     KeyCode::Char('s') | KeyCode::Char('S') => {
                                         // Start working on the selected issue (from filtered list)
                                         let query_lower = state.search_query.to_lowercase();
-                                        let filtered_issues: Vec<_> = if state.search_query.is_empty() {
-                                            state.issues.iter().collect()
-                                        } else {
-                                            state.issues.iter().filter(|i| {
-                                                i.id.to_lowercase().contains(&query_lower) ||
-                                                i.title.to_lowercase().contains(&query_lower) ||
-                                                i.issue_type.to_lowercase().contains(&query_lower) ||
-                                                i.status.to_lowercase().contains(&query_lower)
-                                            }).collect()
-                                        };
-                                        if let Some(issue) = filtered_issues.get(state.selected_issue) {
+                                        let filtered_issues: Vec<_> =
+                                            if state.search_query.is_empty() {
+                                                state.issues.iter().collect()
+                                            } else {
+                                                state
+                                                    .issues
+                                                    .iter()
+                                                    .filter(|i| {
+                                                        i.id.to_lowercase().contains(&query_lower)
+                                                            || i.title
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.issue_type
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                            || i.status
+                                                                .to_lowercase()
+                                                                .contains(&query_lower)
+                                                    })
+                                                    .collect()
+                                            };
+                                        if let Some(issue) =
+                                            filtered_issues.get(state.selected_issue)
+                                        {
                                             let issue_id = issue.id.clone();
                                             let path = self.current_path.clone();
                                             match beads_ops::execute_beads_update_status(
@@ -2707,14 +2752,20 @@ impl App {
                                                 Ok(msg) => {
                                                     // Refresh the list
                                                     match current_view {
-                                                        BeadsView::List => beads_ops::load_beads_list(
-                                                            state, &path, None,
-                                                        ),
+                                                        BeadsView::List => {
+                                                            beads_ops::load_beads_list(
+                                                                state, &path, None,
+                                                            )
+                                                        }
                                                         BeadsView::Ready => {
-                                                            beads_ops::load_beads_ready(state, &path)
+                                                            beads_ops::load_beads_ready(
+                                                                state, &path,
+                                                            )
                                                         }
                                                         BeadsView::Blocked => {
-                                                            beads_ops::load_beads_blocked(state, &path)
+                                                            beads_ops::load_beads_blocked(
+                                                                state, &path,
+                                                            )
                                                         }
                                                         _ => {}
                                                     }
@@ -2800,36 +2851,32 @@ impl App {
                                         state.create_field += 1;
                                     }
                                 }
-                                KeyCode::Char('h') if !in_title_field => {
-                                    match state.create_field {
-                                        1 => {
-                                            if state.create_type > 0 {
-                                                state.create_type -= 1;
-                                            }
+                                KeyCode::Char('h') if !in_title_field => match state.create_field {
+                                    1 => {
+                                        if state.create_type > 0 {
+                                            state.create_type -= 1;
                                         }
-                                        2 => {
-                                            if state.create_priority > 0 {
-                                                state.create_priority -= 1;
-                                            }
-                                        }
-                                        _ => {}
                                     }
-                                }
-                                KeyCode::Char('l') if !in_title_field => {
-                                    match state.create_field {
-                                        1 => {
-                                            if state.create_type < 2 {
-                                                state.create_type += 1;
-                                            }
+                                    2 => {
+                                        if state.create_priority > 0 {
+                                            state.create_priority -= 1;
                                         }
-                                        2 => {
-                                            if state.create_priority < 4 {
-                                                state.create_priority += 1;
-                                            }
-                                        }
-                                        _ => {}
                                     }
-                                }
+                                    _ => {}
+                                },
+                                KeyCode::Char('l') if !in_title_field => match state.create_field {
+                                    1 => {
+                                        if state.create_type < 2 {
+                                            state.create_type += 1;
+                                        }
+                                    }
+                                    2 => {
+                                        if state.create_priority < 4 {
+                                            state.create_priority += 1;
+                                        }
+                                    }
+                                    _ => {}
+                                },
                                 KeyCode::Char(c) => {
                                     if in_title_field {
                                         state.create_title.push(c);
@@ -2863,9 +2910,10 @@ impl App {
                                             ) {
                                                 Ok(new_id) => {
                                                     state.subtask_parent_id.clear();
-                                                    self.modal = Modal::Success(
-                                                        format!("Subtask {} created", new_id)
-                                                    );
+                                                    self.modal = Modal::Success(format!(
+                                                        "Subtask {} created",
+                                                        new_id
+                                                    ));
                                                 }
                                                 Err(e) => {
                                                     state.error = Some(e);
@@ -2921,13 +2969,15 @@ impl App {
                                     }
                                     _ => {}
                                 },
-                                KeyCode::Backspace => {
-                                    match state.edit_field {
-                                        0 => { state.edit_title.pop(); }
-                                        1 => { state.edit_description.pop(); }
-                                        _ => {}
+                                KeyCode::Backspace => match state.edit_field {
+                                    0 => {
+                                        state.edit_title.pop();
                                     }
-                                }
+                                    1 => {
+                                        state.edit_description.pop();
+                                    }
+                                    _ => {}
+                                },
                                 KeyCode::Char('k') if !in_text_field => {
                                     if state.edit_field > 0 {
                                         state.edit_field -= 1;
@@ -2938,43 +2988,37 @@ impl App {
                                         state.edit_field += 1;
                                     }
                                 }
-                                KeyCode::Char('h') if !in_text_field => {
-                                    match state.edit_field {
-                                        2 => {
-                                            if state.edit_status > 0 {
-                                                state.edit_status -= 1;
-                                            }
+                                KeyCode::Char('h') if !in_text_field => match state.edit_field {
+                                    2 => {
+                                        if state.edit_status > 0 {
+                                            state.edit_status -= 1;
                                         }
-                                        3 => {
-                                            if state.edit_priority > 0 {
-                                                state.edit_priority -= 1;
-                                            }
-                                        }
-                                        _ => {}
                                     }
-                                }
-                                KeyCode::Char('l') if !in_text_field => {
-                                    match state.edit_field {
-                                        2 => {
-                                            if state.edit_status < 2 {
-                                                state.edit_status += 1;
-                                            }
+                                    3 => {
+                                        if state.edit_priority > 0 {
+                                            state.edit_priority -= 1;
                                         }
-                                        3 => {
-                                            if state.edit_priority < 4 {
-                                                state.edit_priority += 1;
-                                            }
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Char('l') if !in_text_field => match state.edit_field {
+                                    2 => {
+                                        if state.edit_status < 2 {
+                                            state.edit_status += 1;
                                         }
-                                        _ => {}
                                     }
-                                }
-                                KeyCode::Char(c) => {
-                                    match state.edit_field {
-                                        0 => state.edit_title.push(c),
-                                        1 => state.edit_description.push(c),
-                                        _ => {}
+                                    3 => {
+                                        if state.edit_priority < 4 {
+                                            state.edit_priority += 1;
+                                        }
                                     }
-                                }
+                                    _ => {}
+                                },
+                                KeyCode::Char(c) => match state.edit_field {
+                                    0 => state.edit_title.push(c),
+                                    1 => state.edit_description.push(c),
+                                    _ => {}
+                                },
                                 KeyCode::Enter => {
                                     if !state.edit_title.is_empty() {
                                         let issue_id = state.edit_issue_id.clone();
@@ -2992,13 +3036,16 @@ impl App {
                                         ) {
                                             Ok(_) => {
                                                 // Reload issue detail
-                                                if let Ok(updated) = beads_ops::load_beads_issue_detail(
-                                                    &issue_id, &path
-                                                ) {
+                                                if let Ok(updated) =
+                                                    beads_ops::load_beads_issue_detail(
+                                                        &issue_id, &path,
+                                                    )
+                                                {
                                                     state.detail_issue = Some(updated);
                                                 }
                                                 state.view = BeadsView::Detail;
-                                                self.modal = Modal::Success("Issue updated".to_string());
+                                                self.modal =
+                                                    Modal::Success("Issue updated".to_string());
                                             }
                                             Err(e) => {
                                                 state.error = Some(e);
@@ -3136,7 +3183,9 @@ impl App {
                             }
                             KeyCode::Char('h') | KeyCode::Char('H') => {
                                 // View issue history timeline
-                                if let Some(issue_id) = state.detail_issue.as_ref().map(|i| i.id.clone()) {
+                                if let Some(issue_id) =
+                                    state.detail_issue.as_ref().map(|i| i.id.clone())
+                                {
                                     beads_ops::load_issue_activity(
                                         state,
                                         &issue_id,
@@ -3152,15 +3201,16 @@ impl App {
                                 if let Some(ref issue) = state.detail_issue {
                                     state.edit_issue_id = issue.id.clone();
                                     state.edit_title = issue.title.clone();
-                                    state.edit_description = issue.description.clone().unwrap_or_default();
+                                    state.edit_description =
+                                        issue.description.clone().unwrap_or_default();
                                     state.edit_status = match issue.status.as_str() {
                                         "open" => 0,
                                         "in_progress" => 1,
                                         "closed" => 2,
                                         _ => 0,
                                     };
-                                    state.edit_priority = issue.priority.trim_start_matches('P')
-                                        .parse().unwrap_or(2);
+                                    state.edit_priority =
+                                        issue.priority.trim_start_matches('P').parse().unwrap_or(2);
                                     state.edit_field = 0;
                                     state.view = BeadsView::Edit;
                                 }
@@ -3205,7 +3255,8 @@ impl App {
                                                                 &issue_id, &path,
                                                             )
                                                         {
-                                                            state.detail_issue = Some(updated_issue);
+                                                            state.detail_issue =
+                                                                Some(updated_issue);
                                                         }
                                                         state.comment_input.clear();
                                                         state.comment_input_active = false;
@@ -3280,11 +3331,9 @@ impl App {
                             KeyCode::Enter => {
                                 // View issue detail
                                 if !state.issues.is_empty() {
-                                    let issue_id =
-                                        state.issues[state.selected_issue].id.clone();
+                                    let issue_id = state.issues[state.selected_issue].id.clone();
                                     let path = self.current_path.clone();
-                                    match beads_ops::load_beads_issue_detail(&issue_id, &path)
-                                    {
+                                    match beads_ops::load_beads_issue_detail(&issue_id, &path) {
                                         Ok(issue) => {
                                             state.detail_issue = Some(issue);
                                             state.selected_subtask = 0;
@@ -3305,11 +3354,8 @@ impl App {
                         },
                         BeadsView::Kanban => {
                             // Helper to get issues for each column
-                            let open_issues: Vec<_> = state
-                                .issues
-                                .iter()
-                                .filter(|i| i.status == "open")
-                                .collect();
+                            let open_issues: Vec<_> =
+                                state.issues.iter().filter(|i| i.status == "open").collect();
                             let in_progress_issues: Vec<_> = state
                                 .issues
                                 .iter()
@@ -3418,7 +3464,9 @@ impl App {
                             }
                             KeyCode::Char('r') | KeyCode::Char('R') => {
                                 // Refresh activity
-                                if let Some(issue_id) = state.detail_issue.as_ref().map(|i| i.id.clone()) {
+                                if let Some(issue_id) =
+                                    state.detail_issue.as_ref().map(|i| i.id.clone())
+                                {
                                     beads_ops::load_issue_activity(
                                         state,
                                         &issue_id,
