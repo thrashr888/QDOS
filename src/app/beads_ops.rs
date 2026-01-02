@@ -371,10 +371,7 @@ pub fn load_beads_issue_detail(issue_id: &str, cwd: &PathBuf) -> Result<BeadsIss
 
 /// Execute beads init
 pub fn execute_beads_init(cwd: &PathBuf) -> Result<String, String> {
-    let output = Command::new("bd")
-        .args(["init"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(["init"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -391,10 +388,7 @@ pub fn execute_beads_init(cwd: &PathBuf) -> Result<String, String> {
 
 /// Execute beads human (returns help text)
 pub fn execute_beads_human(cwd: &PathBuf) -> Result<Vec<String>, String> {
-    let output = Command::new("bd")
-        .args(["human"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(["human"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -423,4 +417,40 @@ pub fn execute_beads_doctor(cwd: &PathBuf) -> Result<Vec<String>, String> {
         }
         Err(e) => Err(format!("Failed to run doctor: {}", e)),
     }
+}
+
+/// Quick counts for status bar display
+/// Returns (open_count, ready_count) or None if beads not available
+pub fn get_beads_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
+    // Get stats for open count
+    let stats_output = Command::new("bd")
+        .args(["stats", "--json"])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if !stats_output.status.success() {
+        return None;
+    }
+
+    let stats_stdout = String::from_utf8_lossy(&stats_output.stdout);
+    let stats: BeadsStatsJson = serde_json::from_str(&stats_stdout).ok()?;
+    let open_count = stats.summary.open_issues + stats.summary.in_progress_issues;
+
+    // Get ready count
+    let ready_output = Command::new("bd")
+        .args(["ready", "--json"])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if !ready_output.status.success() {
+        return Some((open_count, 0));
+    }
+
+    let ready_stdout = String::from_utf8_lossy(&ready_output.stdout);
+    let ready_issues: Vec<BeadsJsonIssue> = serde_json::from_str(&ready_stdout).unwrap_or_default();
+    let ready_count = ready_issues.len();
+
+    Some((open_count, ready_count))
 }

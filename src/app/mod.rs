@@ -57,6 +57,10 @@ pub struct App {
     pub config: Config,
     /// Show hidden files
     pub show_hidden: bool,
+    /// Beads status bar info: (open_count, ready_count) - None if not in beads project
+    pub beads_status: Option<(usize, usize)>,
+    /// Git status bar info: (modified_count, staged_count) - None if not in git repo
+    pub git_status_counts: Option<(usize, usize)>,
 }
 
 impl App {
@@ -73,7 +77,7 @@ impl App {
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
 
-        Ok(Self {
+        let mut app = Self {
             current_path,
             files,
             selected_index: 0,
@@ -89,7 +93,14 @@ impl App {
             color_theme,
             config,
             show_hidden,
-        })
+            beads_status: None,
+            git_status_counts: None,
+        };
+
+        // Load status bar info
+        app.refresh_status_bar();
+
+        Ok(app)
     }
 
     /// Save current settings to config file
@@ -908,12 +919,17 @@ impl App {
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
                                         let mut viewer_state = FileViewerState::new(
-                                            file_name, file_path.clone(), content,
+                                            file_name,
+                                            file_path.clone(),
+                                            content,
                                         );
                                         // Load git history if in a git repo
                                         let is_repo = git_ops::is_git_repo(&self.current_path);
                                         if is_repo {
-                                            let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                            let history = git_ops::load_file_history(
+                                                &file_path,
+                                                &self.current_path,
+                                            );
                                             viewer_state.set_git_history(history, true);
                                         }
                                         self.modal = Modal::FileViewer(viewer_state);
@@ -1019,12 +1035,17 @@ impl App {
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
                                         let mut viewer_state = FileViewerState::new(
-                                            file_name, file_path.clone(), content,
+                                            file_name,
+                                            file_path.clone(),
+                                            content,
                                         );
                                         // Load git history if in a git repo
                                         let is_repo = git_ops::is_git_repo(&self.current_path);
                                         if is_repo {
-                                            let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                            let history = git_ops::load_file_history(
+                                                &file_path,
+                                                &self.current_path,
+                                            );
                                             viewer_state.set_git_history(history, true);
                                         }
                                         self.modal = Modal::FileViewer(viewer_state);
@@ -2515,13 +2536,13 @@ impl App {
                                 format!("{}.{}", file.name, file.extension)
                             };
                             let file_path = file.path.clone();
-                            let mut viewer_state = FileViewerState::new(
-                                file_name, file_path.clone(), content,
-                            );
+                            let mut viewer_state =
+                                FileViewerState::new(file_name, file_path.clone(), content);
                             // Load git history if in a git repo
                             let is_repo = git_ops::is_git_repo(&self.current_path);
                             if is_repo {
-                                let history = git_ops::load_file_history(&file_path, &self.current_path);
+                                let history =
+                                    git_ops::load_file_history(&file_path, &self.current_path);
                                 viewer_state.set_git_history(history, true);
                             }
                             self.modal = Modal::FileViewer(viewer_state);
@@ -2649,12 +2670,14 @@ impl App {
         }
     }
 
-    /// Refresh the current file list
+    /// Refresh the current file list and status bar
     fn refresh_files(&mut self) -> Result<()> {
         self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
         if self.selected_index >= self.files.len() && !self.files.is_empty() {
             self.selected_index = self.files.len() - 1;
         }
+        // Refresh status bar when files change (e.g., after git/beads operations)
+        self.refresh_status_bar();
         Ok(())
     }
 
@@ -2874,6 +2897,23 @@ impl App {
             }
         }
         false
+    }
+
+    /// Refresh status bar info (beads and git)
+    pub fn refresh_status_bar(&mut self) {
+        // Refresh beads status
+        if self.is_beads_project() {
+            self.beads_status = beads_ops::get_beads_quick_counts(&self.current_path);
+        } else {
+            self.beads_status = None;
+        }
+
+        // Refresh git status
+        if self.is_git_repo() {
+            self.git_status_counts = git_ops::get_git_quick_counts(&self.current_path);
+        } else {
+            self.git_status_counts = None;
+        }
     }
 }
 

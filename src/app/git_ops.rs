@@ -279,6 +279,46 @@ pub fn is_git_repo(cwd: &PathBuf) -> bool {
         .unwrap_or(false)
 }
 
+/// Quick counts for status bar display
+/// Returns (modified_count, staged_count) or None if not in git repo
+pub fn get_git_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
+    let output = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut modified = 0;
+    let mut staged = 0;
+
+    for line in stdout.lines() {
+        if line.len() >= 2 {
+            let index_char = line.chars().next().unwrap_or(' ');
+            let worktree_char = line.chars().nth(1).unwrap_or(' ');
+
+            // Index (staged) changes
+            if index_char != ' ' && index_char != '?' {
+                staged += 1;
+            }
+            // Worktree (unstaged) changes
+            if worktree_char != ' ' {
+                modified += 1;
+            }
+            // Untracked files count as modified
+            if index_char == '?' {
+                modified += 1;
+            }
+        }
+    }
+
+    Some((modified, staged))
+}
+
 /// Load git history for a specific file
 /// Returns commits from newest to oldest, but we store them oldest to newest
 /// so index 0 = oldest, last = newest (before working copy)

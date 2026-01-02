@@ -215,7 +215,7 @@ impl FileViewerState {
             return false;
         }
         match self.history_index {
-            None => true, // Currently at working copy, can go back
+            None => true,         // Currently at working copy, can go back
             Some(idx) => idx > 0, // Can go back if not at oldest
         }
     }

@@ -2747,17 +2747,21 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 for line in state.output_lines.iter().skip(start).take(end - start) {
                     // Color lines based on content
-                    let style = if line.contains("✓") || line.contains("OK") || line.contains("passed") {
-                        Style::default().fg(colors.green())
-                    } else if line.contains("✗") || line.contains("ERROR") || line.contains("failed") {
-                        Style::default().fg(colors.red())
-                    } else if line.contains("WARNING") {
-                        Style::default().fg(colors.yellow())
-                    } else if line.starts_with("  ") {
-                        Style::default().fg(colors.grey())
-                    } else {
-                        Style::default().fg(colors.fg())
-                    };
+                    let style =
+                        if line.contains("✓") || line.contains("OK") || line.contains("passed") {
+                            Style::default().fg(colors.green())
+                        } else if line.contains("✗")
+                            || line.contains("ERROR")
+                            || line.contains("failed")
+                        {
+                            Style::default().fg(colors.red())
+                        } else if line.contains("WARNING") {
+                            Style::default().fg(colors.yellow())
+                        } else if line.starts_with("  ") {
+                            Style::default().fg(colors.grey())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
                     lines.push(Line::from(Span::styled(line.clone(), style)));
                 }
 
@@ -2765,11 +2769,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 if total_lines > visible_height.saturating_sub(4) {
                     lines.push(Line::from(""));
                     lines.push(Line::from(Span::styled(
-                        format!(
-                            "-- Line {}/{} --",
-                            start + 1,
-                            total_lines.max(1)
-                        ),
+                        format!("-- Line {}/{} --", start + 1, total_lines.max(1)),
                         Style::default().fg(colors.grey()),
                     )));
                 }
