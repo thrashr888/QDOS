@@ -2741,77 +2741,122 @@ impl App {
                             }
                             _ => {}
                         },
-                        BeadsView::Create => match key.code {
-                            KeyCode::Esc => {
-                                state.view = BeadsView::Menu;
-                            }
-                            KeyCode::Up | KeyCode::Char('k') => {
-                                if state.create_field > 0 {
-                                    state.create_field -= 1;
+                        BeadsView::Create => {
+                            // When in title field (field 0), prioritize text input
+                            let in_title_field = state.create_field == 0;
+
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = BeadsView::Menu;
                                 }
-                            }
-                            KeyCode::Down | KeyCode::Char('j') => {
-                                if state.create_field < 2 {
-                                    state.create_field += 1;
-                                }
-                            }
-                            KeyCode::Left | KeyCode::Char('h') => match state.create_field {
-                                1 => {
-                                    if state.create_type > 0 {
-                                        state.create_type -= 1;
+                                KeyCode::Up => {
+                                    if state.create_field > 0 {
+                                        state.create_field -= 1;
                                     }
                                 }
-                                2 => {
-                                    if state.create_priority > 0 {
-                                        state.create_priority -= 1;
+                                KeyCode::Down => {
+                                    if state.create_field < 2 {
+                                        state.create_field += 1;
+                                    }
+                                }
+                                KeyCode::Left => match state.create_field {
+                                    1 => {
+                                        if state.create_type > 0 {
+                                            state.create_type -= 1;
+                                        }
+                                    }
+                                    2 => {
+                                        if state.create_priority > 0 {
+                                            state.create_priority -= 1;
+                                        }
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Right => match state.create_field {
+                                    1 => {
+                                        if state.create_type < 2 {
+                                            state.create_type += 1;
+                                        }
+                                    }
+                                    2 => {
+                                        if state.create_priority < 4 {
+                                            state.create_priority += 1;
+                                        }
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Backspace => {
+                                    if in_title_field {
+                                        state.create_title.pop();
+                                    }
+                                }
+                                KeyCode::Char('k') if !in_title_field => {
+                                    if state.create_field > 0 {
+                                        state.create_field -= 1;
+                                    }
+                                }
+                                KeyCode::Char('j') if !in_title_field => {
+                                    if state.create_field < 2 {
+                                        state.create_field += 1;
+                                    }
+                                }
+                                KeyCode::Char('h') if !in_title_field => {
+                                    match state.create_field {
+                                        1 => {
+                                            if state.create_type > 0 {
+                                                state.create_type -= 1;
+                                            }
+                                        }
+                                        2 => {
+                                            if state.create_priority > 0 {
+                                                state.create_priority -= 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char('l') if !in_title_field => {
+                                    match state.create_field {
+                                        1 => {
+                                            if state.create_type < 2 {
+                                                state.create_type += 1;
+                                            }
+                                        }
+                                        2 => {
+                                            if state.create_priority < 4 {
+                                                state.create_priority += 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char(c) => {
+                                    if in_title_field {
+                                        state.create_title.push(c);
+                                    }
+                                }
+                                KeyCode::Enter => {
+                                    if !state.create_title.is_empty() {
+                                        let title = state.create_title.clone();
+                                        let issue_type = state.create_type;
+                                        let priority = state.create_priority;
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_create(
+                                            &title, issue_type, priority, &path,
+                                        ) {
+                                            Ok(_) => {
+                                                self.modal =
+                                                    Modal::Success("Issue created".to_string());
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
                                     }
                                 }
                                 _ => {}
-                            },
-                            KeyCode::Right | KeyCode::Char('l') => match state.create_field {
-                                1 => {
-                                    if state.create_type < 2 {
-                                        state.create_type += 1;
-                                    }
-                                }
-                                2 => {
-                                    if state.create_priority < 4 {
-                                        state.create_priority += 1;
-                                    }
-                                }
-                                _ => {}
-                            },
-                            KeyCode::Backspace => {
-                                if state.create_field == 0 {
-                                    state.create_title.pop();
-                                }
                             }
-                            KeyCode::Char(c) => {
-                                if state.create_field == 0 {
-                                    state.create_title.push(c);
-                                }
-                            }
-                            KeyCode::Enter => {
-                                if !state.create_title.is_empty() {
-                                    let title = state.create_title.clone();
-                                    let issue_type = state.create_type;
-                                    let priority = state.create_priority;
-                                    let path = self.current_path.clone();
-                                    match beads_ops::execute_beads_create(
-                                        &title, issue_type, priority, &path,
-                                    ) {
-                                        Ok(_) => {
-                                            self.modal =
-                                                Modal::Success("Issue created".to_string());
-                                        }
-                                        Err(e) => {
-                                            state.error = Some(e);
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {}
-                        },
+                        }
                         BeadsView::Detail => match key.code {
                             KeyCode::Esc => {
                                 state.detail_issue = None;
