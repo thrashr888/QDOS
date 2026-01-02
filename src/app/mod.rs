@@ -57,8 +57,8 @@ pub struct App {
     pub config: Config,
     /// Show hidden files
     pub show_hidden: bool,
-    /// Beads status bar info: (open_count, ready_count) - None if not in beads project
-    pub beads_status: Option<(usize, usize)>,
+    /// Beads status bar info - None if not in beads project
+    pub beads_status_info: Option<beads_ops::BeadsStatusInfo>,
     /// Git status bar info - None if not in git repo
     pub git_status_info: Option<git_ops::GitStatusInfo>,
 }
@@ -93,7 +93,7 @@ impl App {
             color_theme,
             config,
             show_hidden,
-            beads_status: None,
+            beads_status_info: None,
             git_status_info: None,
         };
 
@@ -2903,9 +2903,9 @@ impl App {
     pub fn refresh_status_bar(&mut self) {
         // Refresh beads status
         if self.is_beads_project() {
-            self.beads_status = beads_ops::get_beads_quick_counts(&self.current_path);
+            self.beads_status_info = beads_ops::get_beads_status_info(&self.current_path);
         } else {
-            self.beads_status = None;
+            self.beads_status_info = None;
         }
 
         // Refresh git status

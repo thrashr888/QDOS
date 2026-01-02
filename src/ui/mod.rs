@@ -593,10 +593,25 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     // Row 21: Beads status (only if in beads project)
-    if let Some((open, ready)) = app.beads_status {
+    // Format: " bd: ○19 ●3 ✓12" (open, in-progress, ready)
+    if let Some(ref info) = app.beads_status_info {
         let y = area.y + 21;
-        let beads_status = format!(" BEADS: {} open, {} ready", open, ready);
-        let padded = format!("{:<width$}", beads_status, width = status_width);
+        let mut parts = Vec::new();
+        if info.open > 0 {
+            parts.push(format!("○{}", info.open));
+        }
+        if info.in_progress > 0 {
+            parts.push(format!("●{}", info.in_progress));
+        }
+        if info.ready > 0 {
+            parts.push(format!("✓{}", info.ready));
+        }
+        let status = if parts.is_empty() {
+            " bd: ✓".to_string() // All clear
+        } else {
+            format!(" bd: {}", parts.join(" "))
+        };
+        let padded = format!("{:<width$}", status, width = status_width);
         frame.render_widget(
             Paragraph::new(Span::styled(padded, green_style)),
             Rect::new(area.x, y, left_width - 1, 1),

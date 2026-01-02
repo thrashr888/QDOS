@@ -419,10 +419,18 @@ pub fn execute_beads_doctor(cwd: &PathBuf) -> Result<Vec<String>, String> {
     }
 }
 
-/// Quick counts for status bar display
-/// Returns (open_count, ready_count) or None if beads not available
-pub fn get_beads_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
-    // Get stats for open count
+/// Beads status info for status bar display
+#[derive(Debug, Clone)]
+pub struct BeadsStatusInfo {
+    pub open: usize,
+    pub in_progress: usize,
+    pub ready: usize,
+}
+
+/// Quick status for status bar display
+/// Returns BeadsStatusInfo or None if beads not available
+pub fn get_beads_status_info(cwd: &PathBuf) -> Option<BeadsStatusInfo> {
+    // Get stats
     let stats_output = Command::new("bd")
         .args(["stats", "--json"])
         .current_dir(cwd)
@@ -435,7 +443,6 @@ pub fn get_beads_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
 
     let stats_stdout = String::from_utf8_lossy(&stats_output.stdout);
     let stats: BeadsStatsJson = serde_json::from_str(&stats_stdout).ok()?;
-    let open_count = stats.summary.open_issues + stats.summary.in_progress_issues;
 
     // Get ready count
     let ready_output = Command::new("bd")
@@ -444,13 +451,18 @@ pub fn get_beads_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
         .output()
         .ok()?;
 
-    if !ready_output.status.success() {
-        return Some((open_count, 0));
-    }
+    let ready_count = if ready_output.status.success() {
+        let ready_stdout = String::from_utf8_lossy(&ready_output.stdout);
+        let ready_issues: Vec<BeadsJsonIssue> =
+            serde_json::from_str(&ready_stdout).unwrap_or_default();
+        ready_issues.len()
+    } else {
+        0
+    };
 
-    let ready_stdout = String::from_utf8_lossy(&ready_output.stdout);
-    let ready_issues: Vec<BeadsJsonIssue> = serde_json::from_str(&ready_stdout).unwrap_or_default();
-    let ready_count = ready_issues.len();
-
-    Some((open_count, ready_count))
+    Some(BeadsStatusInfo {
+        open: stats.summary.open_issues,
+        in_progress: stats.summary.in_progress_issues,
+        ready: ready_count,
+    })
 }
