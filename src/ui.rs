@@ -1,4 +1,4 @@
-use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter};
+use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode};
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
@@ -218,10 +218,37 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         Paragraph::new(Span::styled("║", border_style)),
         Rect::new(file_table_x - 1, y, 1, 1),
     );
-    // File table headers
+    // File table headers with sort indicators
     let mut x = file_table_x;
+    // Helper to get sort arrow for a column
+    let name_arrow = match app.sort_mode {
+        SortMode::NameAsc => " ↑",
+        SortMode::NameDesc => " ↓",
+        _ => "",
+    };
+    let size_arrow = match app.sort_mode {
+        SortMode::SizeAsc => " ↑",
+        SortMode::SizeDesc => " ↓",
+        _ => "",
+    };
+    let date_arrow = match app.sort_mode {
+        SortMode::DateAsc => " ↑",
+        SortMode::DateDesc => " ↓",
+        _ => "",
+    };
+    // Extension sort shows on Name column since we don't have a separate ext column
+    let ext_arrow = match app.sort_mode {
+        SortMode::ExtAsc => " (Ext↑)",
+        SortMode::ExtDesc => " (Ext↓)",
+        _ => "",
+    };
+    let name_header = if !ext_arrow.is_empty() {
+        format!(" File Name{}", ext_arrow)
+    } else {
+        format!(" File Name{}", name_arrow)
+    };
     frame.render_widget(
-        Paragraph::new(Span::styled(format!(" {:<width$}", "File Name", width = name_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(format!("{:<width$}", name_header, width = name_col as usize), header_style)),
         Rect::new(x, y, name_col, 1),
     );
     x += name_col;
@@ -234,15 +261,17 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     x += kind_col;
     frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
     x += 1;
+    let size_header = format!("Size{}", size_arrow);
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{:>width$} ", "Size", width = size_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(format!("{:>width$} ", size_header, width = size_col as usize - 1), header_style)),
         Rect::new(x, y, size_col, 1),
     );
     x += size_col;
     frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
     x += 1;
+    let date_header = format!(" Date{}", date_arrow);
     frame.render_widget(
-        Paragraph::new(Span::styled(format!(" {:<width$}", "Date", width = date_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(format!("{:<width$}", date_header, width = date_col as usize), header_style)),
         Rect::new(x, y, date_col, 1),
     );
     x += date_col;
@@ -689,35 +718,32 @@ fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::Syst
 
 /// Draw quit confirmation modal (Q-DOS II style)
 fn draw_quit_modal(frame: &mut Frame, area: Rect) {
-    let quit_area = centered_rect(55, 25, area);
+    let quit_area = centered_rect(60, 30, area);
 
+    // White border, no title in border (title is inside)
     let quit_block = Block::default()
-        .title(" F10 - Quit Q-DOS II ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_RED))
+        .border_style(Style::default().fg(COLOR_FG))
         .style(Style::default().bg(COLOR_BG));
 
+    // Title inside the box, then the messages
     let quit_text = vec![
+        Line::from(Span::styled(
+            "F10 - Quit Q-DOS II",
+            Style::default().fg(COLOR_FG),
+        )),
+        Line::from(""),
         Line::from(""),
         Line::from(Span::styled(
             "Press F10 again to quit, or RETURN for options",
             Style::default().fg(COLOR_FG),
         )),
         Line::from(""),
+        Line::from(""),
         Line::from(Span::styled(
             "Press ESC to return to Q-DOS II",
             Style::default().fg(COLOR_FG),
         )),
-        Line::from(""),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("F10", Style::default().fg(COLOR_BLUE)),
-            Span::raw("/"),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" Quit   "),
-            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" Cancel"),
-        ]),
     ];
 
     let paragraph = Paragraph::new(quit_text)
