@@ -543,7 +543,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     );
     let y = area.y + 19;
     frame.render_widget(
-        Paragraph::new(Span::styled("   Rust remake of Q-DOS II   ", blue_style)),
+        Paragraph::new(Span::styled(" Paul Thrasher - SF, CA      ", blue_style)),
         Rect::new(area.x, y, left_width - 1, 1),
     );
 
