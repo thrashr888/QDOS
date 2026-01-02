@@ -10,7 +10,7 @@ use ratatui::{
 };
 
 /// QDOS color scheme - exact DOS 16-color palette RGB values
-const COLOR_BG: Color = Color::Rgb(0, 0, 0);         // Black
+const COLOR_BG: Color = Color::Reset;                 // Terminal default (transparent)
 const COLOR_FG: Color = Color::Rgb(255, 255, 255);   // White
 const COLOR_BLUE: Color = Color::Rgb(102, 183, 179);     // DOS Blue - borders, menu items
 const COLOR_GREEN: Color = Color::Rgb(103, 204, 77);    // DOS Green - help text, descriptions
