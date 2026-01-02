@@ -1563,15 +1563,17 @@ pub enum BeadsMenuItem {
     Blocked,
     Stats,
     Create,
+    Sync,
 }
 
 impl BeadsMenuItem {
-    pub const ALL: [BeadsMenuItem; 5] = [
+    pub const ALL: [BeadsMenuItem; 6] = [
         BeadsMenuItem::List,
         BeadsMenuItem::Ready,
         BeadsMenuItem::Blocked,
         BeadsMenuItem::Stats,
         BeadsMenuItem::Create,
+        BeadsMenuItem::Sync,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -1581,6 +1583,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::Blocked => "Blocked",
             BeadsMenuItem::Stats => "Stats",
             BeadsMenuItem::Create => "Create",
+            BeadsMenuItem::Sync => "Sync",
         }
     }
 
@@ -1591,6 +1594,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::Blocked => "Show blocked issues",
             BeadsMenuItem::Stats => "Project statistics",
             BeadsMenuItem::Create => "Create a new issue",
+            BeadsMenuItem::Sync => "Sync with git remote",
         }
     }
 }
@@ -1600,10 +1604,30 @@ impl BeadsMenuItem {
 pub struct BeadsIssue {
     pub id: String,
     pub title: String,
+    pub description: Option<String>,
     pub status: String,
     pub priority: String,
     pub issue_type: String,
     pub blocked_by: Vec<String>,
+    pub dependents: Vec<BeadsSubIssue>,
+    pub comments: Vec<BeadsComment>,
+}
+
+/// Sub-issue info for epic children
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeadsSubIssue {
+    pub id: String,
+    pub title: String,
+    pub status: String,
+    pub issue_type: String,
+}
+
+/// Comment on an issue
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeadsComment {
+    pub author: String,
+    pub text: String,
+    pub created_at: String,
 }
 
 /// Beads view type
@@ -1630,6 +1654,10 @@ pub struct BeadsState {
     pub issues: Vec<BeadsIssue>,
     /// Selected issue in list view
     pub selected_issue: usize,
+    /// Detailed issue (loaded when viewing detail)
+    pub detail_issue: Option<BeadsIssue>,
+    /// Selected subtask in detail view (for epics)
+    pub selected_subtask: usize,
     /// Scroll offset for list view
     pub scroll_offset: usize,
     /// Stats data
@@ -1664,6 +1692,8 @@ impl Default for BeadsState {
             menu_selected: 0,
             issues: Vec::new(),
             selected_issue: 0,
+            detail_issue: None,
+            selected_subtask: 0,
             scroll_offset: 0,
             stats: BeadsStats::default(),
             create_title: String::new(),

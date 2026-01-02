@@ -1717,6 +1717,17 @@ impl App {
                                         state.create_priority = 2;
                                         state.create_field = 0;
                                     }
+                                    BeadsMenuItem::Sync => {
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_sync(&path) {
+                                            Ok(msg) => {
+                                                state.success_message = Some(msg);
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             _ => {}
@@ -1738,6 +1749,21 @@ impl App {
                                     }
                                 }
                                 KeyCode::Enter => {
+                                    // Load detailed issue info before showing detail view
+                                    if !state.issues.is_empty() {
+                                        let issue_id =
+                                            state.issues[state.selected_issue].id.clone();
+                                        let path = self.current_path.clone();
+                                        match beads_ops::load_beads_issue_detail(&issue_id, &path) {
+                                            Ok(issue) => {
+                                                state.detail_issue = Some(issue);
+                                                state.selected_subtask = 0;
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
                                     state.view = BeadsView::Detail;
                                 }
                                 KeyCode::Char('r') | KeyCode::Char('R') => {
@@ -1890,7 +1916,42 @@ impl App {
                         },
                         BeadsView::Detail => match key.code {
                             KeyCode::Esc => {
+                                state.detail_issue = None;
                                 state.view = BeadsView::List;
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                // Navigate subtasks for epics
+                                if state.selected_subtask > 0 {
+                                    state.selected_subtask -= 1;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                // Navigate subtasks for epics
+                                if let Some(ref issue) = state.detail_issue {
+                                    if state.selected_subtask + 1 < issue.dependents.len() {
+                                        state.selected_subtask += 1;
+                                    }
+                                }
+                            }
+                            KeyCode::Enter => {
+                                // Open selected subtask
+                                if let Some(ref issue) = state.detail_issue {
+                                    if !issue.dependents.is_empty() {
+                                        let subtask_id =
+                                            issue.dependents[state.selected_subtask].id.clone();
+                                        let path = self.current_path.clone();
+                                        match beads_ops::load_beads_issue_detail(&subtask_id, &path)
+                                        {
+                                            Ok(new_issue) => {
+                                                state.detail_issue = Some(new_issue);
+                                                state.selected_subtask = 0;
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             KeyCode::Char('s') | KeyCode::Char('S') => {
                                 // Start working on issue

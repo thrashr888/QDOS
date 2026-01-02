@@ -2495,7 +2495,13 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             BeadsView::Detail => {
                 let mut lines = vec![];
 
-                if let Some(issue) = state.issues.get(state.selected_issue) {
+                // Use detail_issue if available, otherwise fall back to issues list
+                let issue = state
+                    .detail_issue
+                    .as_ref()
+                    .or_else(|| state.issues.get(state.selected_issue));
+
+                if let Some(issue) = issue {
                     lines.push(Line::from(""));
                     lines.push(Line::from(vec![
                         Span::styled("  ID:       ", Style::default().fg(colors.green())),
@@ -2505,6 +2511,25 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         Span::styled("  Title:    ", Style::default().fg(colors.green())),
                         Span::styled(&issue.title, Style::default().fg(colors.fg())),
                     ]));
+
+                    // Description if available
+                    if let Some(ref desc) = issue.description {
+                        if !desc.is_empty() {
+                            lines.push(Line::from(""));
+                            lines.push(Line::from(Span::styled(
+                                "  Description:",
+                                Style::default().fg(colors.green()),
+                            )));
+                            for line in desc.lines().take(3) {
+                                lines.push(Line::from(vec![
+                                    Span::styled("    ", Style::default()),
+                                    Span::styled(line, Style::default().fg(colors.grey())),
+                                ]));
+                            }
+                        }
+                    }
+
+                    lines.push(Line::from(""));
 
                     // Status with color
                     let status_color = match issue.status.as_str() {
@@ -2522,6 +2547,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     let type_color = match issue.issue_type.as_str() {
                         "bug" => colors.red(),
                         "feature" => colors.green(),
+                        "epic" => colors.cyan(),
                         _ => colors.fg(),
                     };
                     lines.push(Line::from(vec![
@@ -2555,6 +2581,104 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                 Style::default().fg(colors.red()),
                             ),
                         ]));
+                    }
+
+                    // Show subtasks for epics
+                    if !issue.dependents.is_empty() {
+                        lines.push(Line::from(""));
+                        let closed_count = issue
+                            .dependents
+                            .iter()
+                            .filter(|d| d.status == "closed")
+                            .count();
+                        let total_count = issue.dependents.len();
+                        lines.push(Line::from(Span::styled(
+                            format!("  ─── Subtasks ({}/{}) ───", closed_count, total_count),
+                            Style::default()
+                                .fg(colors.cyan())
+                                .add_modifier(Modifier::BOLD),
+                        )));
+
+                        for (i, subtask) in issue.dependents.iter().enumerate() {
+                            let is_selected = i == state.selected_subtask;
+                            let prefix = if is_selected { "▶ " } else { "  " };
+
+                            let status_char = match subtask.status.as_str() {
+                                "closed" => "✓",
+                                "in_progress" => "◆",
+                                _ => "○",
+                            };
+                            let status_color = match subtask.status.as_str() {
+                                "closed" => colors.grey(),
+                                "in_progress" => colors.yellow(),
+                                _ => colors.green(),
+                            };
+
+                            let bg = if is_selected {
+                                colors.red()
+                            } else {
+                                Color::Reset
+                            };
+
+                            lines.push(Line::from(vec![
+                                Span::styled(
+                                    format!("  {}", prefix),
+                                    Style::default().fg(colors.yellow()).bg(bg),
+                                ),
+                                Span::styled(
+                                    format!("{} ", status_char),
+                                    Style::default().fg(status_color).bg(bg),
+                                ),
+                                Span::styled(
+                                    format!("{} ", subtask.id),
+                                    Style::default().fg(colors.blue()).bg(bg),
+                                ),
+                                Span::styled(
+                                    &subtask.title,
+                                    Style::default().fg(colors.fg()).bg(bg),
+                                ),
+                            ]));
+                        }
+                    }
+
+                    // Show comments if any
+                    if !issue.comments.is_empty() {
+                        lines.push(Line::from(""));
+                        lines.push(Line::from(Span::styled(
+                            format!("  ─── Comments ({}) ───", issue.comments.len()),
+                            Style::default()
+                                .fg(colors.magenta())
+                                .add_modifier(Modifier::BOLD),
+                        )));
+
+                        for comment in issue.comments.iter().take(3) {
+                            lines.push(Line::from(vec![
+                                Span::styled(
+                                    format!("  {} ", comment.author),
+                                    Style::default().fg(colors.blue()),
+                                ),
+                                Span::styled(
+                                    &comment.created_at[..10], // Just date
+                                    Style::default().fg(colors.grey()),
+                                ),
+                            ]));
+                            // Truncate comment text if too long
+                            let text = if comment.text.len() > 60 {
+                                format!("{}...", &comment.text[..57])
+                            } else {
+                                comment.text.clone()
+                            };
+                            lines.push(Line::from(vec![
+                                Span::styled("    ", Style::default()),
+                                Span::styled(text, Style::default().fg(colors.fg())),
+                            ]));
+                        }
+                        if issue.comments.len() > 3 {
+                            lines.push(Line::from(Span::styled(
+                                format!("    ... and {} more", issue.comments.len() - 3),
+                                Style::default().fg(colors.grey()),
+                            )));
+                        }
                     }
 
                     // Actions section
@@ -2616,7 +2740,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "S start  C close  O reopen  ESC back",
+            BeadsView::Detail => "↑↓ subtasks  Enter open  S start  C close  O reopen  ESC back",
         }
     };
     frame.render_widget(
