@@ -50,23 +50,23 @@ rdos /path/to/directory
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| ↑/↓ or j/k | Move selection |
-| ←/→ or h/l | Navigate menu |
-| Enter | Open directory / Execute action |
-| Space | Tag/untag file |
-| PgUp/PgDn | Scroll page |
-| Home/End | Jump to start/end |
-| F1 | Help |
-| F2 | System Status |
-| F4 | Parent Directory |
-| F5 | Change Directory |
-| F7 | Search Specification |
-| F8 | Cycle Sort Mode |
-| F10 or q | Quit |
-| Esc | Close dialog |
-| Ctrl+C | Force quit |
+| Key        | Action                          |
+| ---------- | ------------------------------- |
+| ↑/↓ or j/k | Move selection                  |
+| ←/→ or h/l | Navigate menu                   |
+| Enter      | Open directory / Execute action |
+| Space      | Tag/untag file                  |
+| PgUp/PgDn  | Scroll page                     |
+| Home/End   | Jump to start/end               |
+| F1         | Help                            |
+| F2         | System Status                   |
+| F4         | Parent Directory                |
+| F5         | Change Directory                |
+| F7         | Search Specification            |
+| F8         | Cycle Sort Mode                 |
+| F10 or q   | Quit                            |
+| Esc        | Close dialog                    |
+| Ctrl+C     | Force quit                      |
 
 ## Navigation Menu
 
@@ -84,7 +84,7 @@ rdos /path/to/directory
 
 ## Screenshots
 
-![R-DOS Screenshot](rdos.png)
+![R-DOS Screenshot](./images/rdos.png)
 
 ## Dependencies
 
@@ -99,4 +99,10 @@ rdos /path/to/directory
 
 ## License
 
-MIT
+Copyright 2026 Paul Thrasher
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

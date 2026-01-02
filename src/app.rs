@@ -117,6 +117,39 @@ impl SortMode {
     }
 }
 
+/// Shell command state
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellCommandState {
+    /// Command input buffer
+    pub input: String,
+    /// Output lines from executed command
+    pub output: Vec<String>,
+    /// Whether a command is currently running
+    pub running: bool,
+    /// Exit code of last command (None if not yet executed)
+    pub exit_code: Option<i32>,
+    /// Scroll offset for output
+    pub scroll_offset: usize,
+    /// Command history
+    pub history: Vec<String>,
+    /// Current position in history
+    pub history_index: Option<usize>,
+}
+
+impl Default for ShellCommandState {
+    fn default() -> Self {
+        Self {
+            input: String::new(),
+            output: Vec::new(),
+            running: false,
+            exit_code: None,
+            scroll_offset: 0,
+            history: Vec::new(),
+            history_index: None,
+        }
+    }
+}
+
 /// Active modal dialog
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modal {
@@ -133,6 +166,7 @@ pub enum Modal {
     MoveTo(String),
     EraseConfirm,
     RenameInput(String),
+    ShellCommand(ShellCommandState),
 }
 
 /// Application state
@@ -240,9 +274,9 @@ impl App {
                 let path = self.current_path.to_string_lossy().to_string();
                 self.modal = Modal::PathInput(path);
             }
-            // DOS Command (not implemented)
+            // Shell Command
             KeyCode::F(6) => {
-                self.modal = Modal::Error("DOS Command not implemented".to_string());
+                self.modal = Modal::ShellCommand(ShellCommandState::default());
             }
             // Search spec
             KeyCode::F(7) => {
@@ -464,6 +498,73 @@ impl App {
                     }
                     KeyCode::Char(c) => {
                         new_name.push(c);
+                    }
+                    _ => {}
+                }
+            }
+            Modal::ShellCommand(ref mut state) => {
+                match key.code {
+                    KeyCode::Esc => {
+                        self.modal = Modal::None;
+                    }
+                    KeyCode::Enter => {
+                        if !state.input.is_empty() {
+                            let cmd = state.input.clone();
+                            let cwd = self.current_path.clone();
+                            // Add to history
+                            state.history.push(cmd.clone());
+                            state.history_index = None;
+                            // Execute command (use standalone function to avoid borrow issues)
+                            let output = execute_shell_command_impl(&cmd, &cwd);
+                            state.output = output.0;
+                            state.exit_code = Some(output.1);
+                            state.input.clear();
+                            state.scroll_offset = 0;
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        state.input.pop();
+                    }
+                    KeyCode::Up => {
+                        // Navigate history up
+                        if !state.history.is_empty() {
+                            let new_idx = match state.history_index {
+                                Some(idx) if idx > 0 => idx - 1,
+                                Some(idx) => idx,
+                                None => state.history.len() - 1,
+                            };
+                            state.history_index = Some(new_idx);
+                            state.input = state.history[new_idx].clone();
+                        }
+                    }
+                    KeyCode::Down => {
+                        // Navigate history down
+                        if let Some(idx) = state.history_index {
+                            if idx + 1 < state.history.len() {
+                                let new_idx = idx + 1;
+                                state.history_index = Some(new_idx);
+                                state.input = state.history[new_idx].clone();
+                            } else {
+                                state.history_index = None;
+                                state.input.clear();
+                            }
+                        }
+                    }
+                    KeyCode::PageUp => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                    }
+                    KeyCode::PageDown => {
+                        let max_scroll = state.output.len().saturating_sub(10);
+                        state.scroll_offset = (state.scroll_offset + 10).min(max_scroll);
+                    }
+                    KeyCode::Tab => {
+                        // Tab completion for commands/paths
+                        if let Some(completed) = Self::tab_complete(&state.input) {
+                            state.input = completed;
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        state.input.push(c);
                     }
                     _ => {}
                 }
@@ -845,4 +946,48 @@ fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Execute a shell command and return (output lines, exit code)
+fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
+    use std::process::{Command, Stdio};
+    use std::io::{BufRead, BufReader};
+
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+
+    let result = Command::new(&shell)
+        .arg("-c")
+        .arg(cmd)
+        .current_dir(cwd)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output();
+
+    match result {
+        Ok(output) => {
+            let mut lines = Vec::new();
+
+            // Add stdout lines
+            let stdout_reader = BufReader::new(&output.stdout[..]);
+            for line in stdout_reader.lines() {
+                if let Ok(l) = line {
+                    lines.push(l);
+                }
+            }
+
+            // Add stderr lines
+            let stderr_reader = BufReader::new(&output.stderr[..]);
+            for line in stderr_reader.lines() {
+                if let Ok(l) = line {
+                    lines.push(format!("stderr: {}", l));
+                }
+            }
+
+            let exit_code = output.status.code().unwrap_or(-1);
+            (lines, exit_code)
+        }
+        Err(e) => {
+            (vec![format!("Error executing command: {}", e)], -1)
+        }
+    }
 }

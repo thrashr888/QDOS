@@ -1,4 +1,4 @@
-use crate::app::{App, Modal, NavItem};
+use crate::app::{App, Modal, NavItem, ShellCommandState};
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
 use ratatui::{
@@ -523,6 +523,7 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
         Modal::EraseConfirm => draw_erase_modal(frame, modal_area, app),
         Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
+        Modal::ShellCommand(state) => draw_shell_command(frame, area, state, app),
         Modal::None => {}
     }
 }
@@ -951,6 +952,126 @@ fn draw_rename_modal(frame: &mut Frame, area: Rect, name: &str) {
 
     frame.render_widget(Clear, rename_area);
     frame.render_widget(paragraph, rename_area);
+}
+
+/// Draw shell command screen (full screen)
+fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, app: &App) {
+    // Clear the entire screen
+    frame.render_widget(Clear, area);
+
+    // Layout: title, separator, working dir, input, separator, output, separator, help
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Length(1),  // Separator
+            Constraint::Length(1),  // Working directory
+            Constraint::Length(1),  // Empty
+            Constraint::Length(1),  // Input prompt
+            Constraint::Length(1),  // Separator
+            Constraint::Min(5),     // Output area
+            Constraint::Length(1),  // Separator
+            Constraint::Length(1),  // Help line
+        ])
+        .split(area);
+
+    // Title (centered)
+    let title = "R-DOS Shell Command";
+    let padding = (area.width as usize).saturating_sub(title.len()) / 2;
+    let title_line = format!("{:>width$}{}", "", title, width = padding);
+    frame.render_widget(
+        Paragraph::new(Span::styled(title_line, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        chunks[0],
+    );
+
+    // Separator
+    let sep = "═".repeat(area.width as usize);
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, Style::default().fg(COLOR_FG))),
+        chunks[1],
+    );
+
+    // Working directory
+    let wd_line = format!(" Working Directory: {}", app.current_path.display());
+    frame.render_widget(
+        Paragraph::new(Span::styled(wd_line, Style::default().fg(COLOR_GREEN))),
+        chunks[2],
+    );
+
+    // Input prompt with cursor
+    let input_line = format!(" $ {}_", state.input);
+    frame.render_widget(
+        Paragraph::new(Span::styled(input_line, Style::default().fg(COLOR_FG))),
+        chunks[4],
+    );
+
+    // Separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, Style::default().fg(COLOR_FG))),
+        chunks[5],
+    );
+
+    // Output area
+    let output_height = chunks[6].height as usize;
+    let visible_lines: Vec<Line> = state.output
+        .iter()
+        .skip(state.scroll_offset)
+        .take(output_height)
+        .map(|line| {
+            let style = if line.starts_with("stderr:") {
+                Style::default().fg(COLOR_RED)
+            } else {
+                Style::default().fg(COLOR_FG)
+            };
+            Line::from(Span::styled(format!(" {}", line), style))
+        })
+        .collect();
+
+    // Show exit code at bottom if command completed
+    let mut output_lines = visible_lines;
+    if let Some(code) = state.exit_code {
+        if output_lines.len() < output_height {
+            output_lines.push(Line::from(""));
+            let exit_style = if code == 0 {
+                Style::default().fg(COLOR_GREEN)
+            } else {
+                Style::default().fg(COLOR_RED)
+            };
+            output_lines.push(Line::from(Span::styled(
+                format!(" [Exit code: {}]", code),
+                exit_style,
+            )));
+        }
+    }
+
+    frame.render_widget(
+        Paragraph::new(output_lines),
+        chunks[6],
+    );
+
+    // Separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, Style::default().fg(COLOR_FG))),
+        chunks[7],
+    );
+
+    // Help line
+    let help_spans = vec![
+        Span::styled(" Enter", Style::default().fg(COLOR_BLUE)),
+        Span::raw(" run, "),
+        Span::styled("↑/↓", Style::default().fg(COLOR_BLUE)),
+        Span::raw(" history, "),
+        Span::styled("PgUp/PgDn", Style::default().fg(COLOR_BLUE)),
+        Span::raw(" scroll, "),
+        Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
+        Span::raw(" complete, "),
+        Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
+        Span::raw(" exit"),
+    ];
+    frame.render_widget(
+        Paragraph::new(Line::from(help_spans)),
+        chunks[8],
+    );
 }
 
 /// Create a centered rectangle
