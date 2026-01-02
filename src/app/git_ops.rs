@@ -293,7 +293,7 @@ pub fn load_file_history(file_path: &PathBuf, cwd: &PathBuf) -> Vec<FileHistoryE
         .args([
             "log",
             "--follow",
-            "--format=%H|%s",
+            "--format=%H|%ar|%s",
             "-50", // Limit to 50 commits
             "--",
             &rel_path,
@@ -307,11 +307,12 @@ pub fn load_file_history(file_path: &PathBuf, cwd: &PathBuf) -> Vec<FileHistoryE
             let mut entries: Vec<FileHistoryEntry> = stdout
                 .lines()
                 .filter_map(|line| {
-                    let parts: Vec<&str> = line.splitn(2, '|').collect();
-                    if parts.len() == 2 {
+                    let parts: Vec<&str> = line.splitn(3, '|').collect();
+                    if parts.len() == 3 {
                         Some(FileHistoryEntry {
                             hash: parts[0].to_string(),
-                            message: parts[1].to_string(),
+                            date: parts[1].to_string(),
+                            message: parts[2].to_string(),
                         })
                     } else {
                         None

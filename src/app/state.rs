@@ -163,6 +163,7 @@ impl ViewFilter {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileHistoryEntry {
     pub hash: String,
+    pub date: String,
     pub message: String,
 }
 

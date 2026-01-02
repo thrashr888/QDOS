@@ -83,12 +83,12 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
     // Show commit info if viewing a historical version
     let version_str = if let Some(entry) = state.current_commit() {
         let short_hash = &entry.hash[..7.min(entry.hash.len())];
-        let short_msg = if entry.message.len() > 30 {
-            format!("{}...", &entry.message[..27])
+        let short_msg = if entry.message.len() > 25 {
+            format!("{}...", &entry.message[..22])
         } else {
             entry.message.clone()
         };
-        format!("  [{}] {}", short_hash, short_msg)
+        format!("  [{}] {} - {}", short_hash, entry.date, short_msg)
     } else if state.is_git_repo && !state.git_history.is_empty() {
         "  [working copy]".to_string()
     } else {
