@@ -1,7 +1,7 @@
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, DirectoryMapState, FileViewerState,
-    FindPhase, FindState, HelpState, Modal, NavItem, SearchSpecState, ShellCommandState, SortMode,
-    ViewFilter, ViewMode,
+    FindPhase, FindState, HelpState, Modal, NavItem, ProgressState, SearchSpecState,
+    ShellCommandState, SortMode, ViewFilter, ViewMode,
 };
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
@@ -793,6 +793,7 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
         Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
+        Modal::Progress(state) => draw_progress_modal(frame, area, state),
         Modal::None => {}
     }
 }
@@ -1351,6 +1352,83 @@ fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
     ];
 
     draw_qdos_modal_colored(frame, area, "Success", content, COLOR_GREEN);
+}
+
+/// Draw progress modal for file operations
+fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &ProgressState) {
+    let total = state.files.len();
+    let current = state.current_index.min(total);
+    let percentage = if total > 0 {
+        (current * 100) / total
+    } else {
+        100
+    };
+
+    // Get current filename being processed
+    let current_file = state
+        .current_file()
+        .map(|p| {
+            p.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| p.to_string_lossy().to_string())
+        })
+        .unwrap_or_else(|| "Complete".to_string());
+
+    // Build progress bar (40 chars wide)
+    let bar_width = 40;
+    let filled = (bar_width * percentage) / 100;
+    let empty = bar_width - filled;
+    let progress_bar = format!("[{}{}]", "█".repeat(filled), "░".repeat(empty));
+
+    let title = format!("{} Files", state.operation_name());
+
+    let mut content = vec![
+        Line::from(""),
+        Line::from(Span::styled(
+            format!("{} {} of {}", state.operation_name(), current, total),
+            Style::default().fg(COLOR_FG),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            progress_bar,
+            Style::default().fg(COLOR_BLUE),
+        )),
+        Line::from(Span::styled(
+            format!("{}%", percentage),
+            Style::default().fg(COLOR_GREEN),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            current_file,
+            Style::default().fg(COLOR_YELLOW),
+        )),
+    ];
+
+    // Show error if any
+    if let Some(ref err) = state.last_error {
+        content.push(Line::from(""));
+        content.push(Line::from(Span::styled(
+            format!("Error: {}", err),
+            Style::default().fg(COLOR_RED),
+        )));
+    }
+
+    // Show stats
+    content.push(Line::from(""));
+    content.push(Line::from(Span::styled(
+        format!(
+            "Completed: {}  Failed: {}",
+            state.completed, state.failed
+        ),
+        Style::default().fg(COLOR_GREEN),
+    )));
+    content.push(Line::from(""));
+    content.push(Line::from(Span::styled(
+        "Press ESC to cancel",
+        Style::default().fg(COLOR_GREY),
+    )));
+
+    draw_qdos_modal_colored(frame, area, &title, content, COLOR_BLUE);
 }
 
 /// Draw copy modal

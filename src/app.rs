@@ -1035,6 +1035,56 @@ SPACE   - Tag/untag file"#
     }
 }
 
+/// Type of file operation for progress tracking
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProgressOperation {
+    Copy,
+    Move,
+    Erase,
+}
+
+/// Progress state for file operations
+#[derive(Debug, Clone)]
+pub struct ProgressState {
+    pub operation: ProgressOperation,
+    pub files: Vec<PathBuf>,
+    pub current_index: usize,
+    pub destination: Option<PathBuf>,
+    pub completed: usize,
+    pub failed: usize,
+    pub last_error: Option<String>,
+}
+
+impl ProgressState {
+    pub fn new(operation: ProgressOperation, files: Vec<PathBuf>, destination: Option<PathBuf>) -> Self {
+        Self {
+            operation,
+            files,
+            current_index: 0,
+            destination,
+            completed: 0,
+            failed: 0,
+            last_error: None,
+        }
+    }
+
+    pub fn is_done(&self) -> bool {
+        self.current_index >= self.files.len()
+    }
+
+    pub fn current_file(&self) -> Option<&PathBuf> {
+        self.files.get(self.current_index)
+    }
+
+    pub fn operation_name(&self) -> &'static str {
+        match self.operation {
+            ProgressOperation::Copy => "Copying",
+            ProgressOperation::Move => "Moving",
+            ProgressOperation::Erase => "Erasing",
+        }
+    }
+}
+
 pub enum Modal {
     None,
     Help(HelpState),
@@ -1055,6 +1105,7 @@ pub enum Modal {
     Find(FindState),
     BatchRename(BatchRenameState),
     Attribute(AttributeState),
+    Progress(ProgressState),
 }
 
 /// Application state
@@ -1133,14 +1184,30 @@ impl App {
 
     /// Handle keyboard input
     fn handle_key(&mut self, key: KeyEvent) -> Result<()> {
-        // Handle modal-specific input first
+        // Global quit shortcuts - F10 and Ctrl+C can open quit modal from anywhere
+        let is_quit_key = key.code == KeyCode::F(10)
+            || (key.code == KeyCode::Char('c')
+                && key.modifiers.contains(KeyModifiers::CONTROL));
+
+        if is_quit_key {
+            if matches!(self.modal, Modal::Quit) {
+                // Already in quit modal - quit immediately
+                self.should_quit = true;
+            } else {
+                // Open quit modal from any state
+                self.modal = Modal::Quit;
+            }
+            return Ok(());
+        }
+
+        // Handle modal-specific input
         if !matches!(self.modal, Modal::None) {
             return self.handle_modal_key(key);
         }
 
         match key.code {
-            // Quit
-            KeyCode::F(10) | KeyCode::Char('q') => {
+            // Quit (also handles 'q' which is not a global shortcut)
+            KeyCode::Char('q') => {
                 self.modal = Modal::Quit;
             }
             // Help
@@ -1296,17 +1363,22 @@ impl App {
             Modal::CopyTo(ref mut dest) => match key.code {
                 KeyCode::Enter => {
                     let dest_path = PathBuf::from(dest.clone());
-                    self.modal = Modal::None;
-                    match self.copy_tagged_files(&dest_path) {
-                        Ok(count) => {
-                            self.modal = Modal::Success(format!("Copied {} file(s)", count));
-                        }
-                        Err(e) => {
-                            self.modal = Modal::Error(format!("Copy failed: {}", e));
-                        }
+                    let files = self.tagged_files.clone();
+                    if files.is_empty() {
+                        self.modal = Modal::Error("No files to copy".to_string());
+                    } else {
+                        // Start progress modal
+                        let state = ProgressState::new(
+                            ProgressOperation::Copy,
+                            files,
+                            Some(dest_path),
+                        );
+                        self.modal = Modal::Progress(state);
                     }
                 }
                 KeyCode::Esc => {
+                    // Clear any temporarily tagged files
+                    self.tagged_files.clear();
                     self.modal = Modal::None;
                 }
                 KeyCode::Backspace => {
@@ -1326,19 +1398,22 @@ impl App {
                 match key.code {
                     KeyCode::Enter => {
                         let dest_path = PathBuf::from(dest.clone());
-                        self.modal = Modal::None;
-                        match self.move_tagged_files(&dest_path) {
-                            Ok(count) => {
-                                self.modal = Modal::Success(format!("Moved {} file(s)", count));
-                                // Refresh the file list
-                                let _ = self.refresh_files();
-                            }
-                            Err(e) => {
-                                self.modal = Modal::Error(format!("Move failed: {}", e));
-                            }
+                        let files = self.tagged_files.clone();
+                        if files.is_empty() {
+                            self.modal = Modal::Error("No files to move".to_string());
+                        } else {
+                            // Start progress modal
+                            let state = ProgressState::new(
+                                ProgressOperation::Move,
+                                files,
+                                Some(dest_path),
+                            );
+                            self.modal = Modal::Progress(state);
                         }
                     }
                     KeyCode::Esc => {
+                        // Clear any temporarily tagged files
+                        self.tagged_files.clear();
                         self.modal = Modal::None;
                     }
                     KeyCode::Backspace => {
@@ -1357,15 +1432,13 @@ impl App {
             }
             Modal::EraseConfirm => match key.code {
                 KeyCode::Char('y') | KeyCode::Char('Y') => {
-                    self.modal = Modal::None;
-                    match self.erase_tagged_files() {
-                        Ok(count) => {
-                            self.modal = Modal::Success(format!("Erased {} file(s)", count));
-                            let _ = self.refresh_files();
-                        }
-                        Err(e) => {
-                            self.modal = Modal::Error(format!("Erase failed: {}", e));
-                        }
+                    let files = self.tagged_files.clone();
+                    if files.is_empty() {
+                        self.modal = Modal::Error("No files to erase".to_string());
+                    } else {
+                        // Start progress modal
+                        let state = ProgressState::new(ProgressOperation::Erase, files, None);
+                        self.modal = Modal::Progress(state);
                     }
                 }
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
@@ -2201,6 +2274,26 @@ impl App {
                     _ => {}
                 }
             }
+            Modal::Progress(ref mut state) => {
+                match key.code {
+                    KeyCode::Esc => {
+                        // Cancel operation
+                        let completed = state.completed;
+                        self.modal = Modal::Success(format!(
+                            "Cancelled. {} completed, {} remaining.",
+                            completed,
+                            state.files.len() - state.current_index
+                        ));
+                        // Clear tagged files and refresh
+                        self.tagged_files.clear();
+                        let _ = self.refresh_files();
+                    }
+                    _ => {
+                        // Process next file on any key press
+                        self.process_next_progress_file();
+                    }
+                }
+            }
             Modal::Status(_) | Modal::Space | Modal::Error(_) | Modal::Success(_) => {
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
@@ -2243,6 +2336,92 @@ impl App {
             self.tagged_files.remove(pos);
         } else {
             self.tagged_files.push(path);
+        }
+    }
+
+    /// Process the next file in the progress queue
+    fn process_next_progress_file(&mut self) {
+        let (op, file, dest) = {
+            if let Modal::Progress(ref state) = self.modal {
+                if state.is_done() {
+                    return;
+                }
+                (
+                    state.operation.clone(),
+                    state.current_file().cloned(),
+                    state.destination.clone(),
+                )
+            } else {
+                return;
+            }
+        };
+
+        let Some(file_path) = file else {
+            return;
+        };
+
+        // Process the current file
+        let result = match op {
+            ProgressOperation::Copy => {
+                if let Some(ref dest) = dest {
+                    let file_name = file_path.file_name().unwrap_or_default();
+                    let dest_path = dest.join(file_name);
+                    fs::copy(&file_path, &dest_path).map(|_| ())
+                } else {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "No destination",
+                    ))
+                }
+            }
+            ProgressOperation::Move => {
+                if let Some(ref dest) = dest {
+                    let file_name = file_path.file_name().unwrap_or_default();
+                    let dest_path = dest.join(file_name);
+                    fs::rename(&file_path, &dest_path)
+                } else {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "No destination",
+                    ))
+                }
+            }
+            ProgressOperation::Erase => fs::remove_file(&file_path),
+        };
+
+        // Update progress state
+        if let Modal::Progress(ref mut state) = self.modal {
+            state.current_index += 1;
+            match result {
+                Ok(_) => state.completed += 1,
+                Err(e) => {
+                    state.failed += 1;
+                    state.last_error = Some(e.to_string());
+                }
+            }
+
+            // Check if done
+            if state.is_done() {
+                let completed = state.completed;
+                let failed = state.failed;
+                let op_name = match state.operation {
+                    ProgressOperation::Copy => "copied",
+                    ProgressOperation::Move => "moved",
+                    ProgressOperation::Erase => "erased",
+                };
+
+                self.tagged_files.clear();
+                let _ = self.refresh_files();
+
+                if failed == 0 {
+                    self.modal = Modal::Success(format!("{} file(s) {}", completed, op_name));
+                } else {
+                    self.modal = Modal::Success(format!(
+                        "{} file(s) {}, {} failed",
+                        completed, op_name, failed
+                    ));
+                }
+            }
         }
     }
 
