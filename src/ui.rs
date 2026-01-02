@@ -779,9 +779,9 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
-        Modal::Space => draw_space_modal(frame, modal_area, app),
-        Modal::Error(msg) => draw_error_modal(frame, modal_area, msg),
-        Modal::Success(msg) => draw_success_modal(frame, modal_area, msg),
+        Modal::Space => draw_space_modal(frame, area, app),
+        Modal::Error(msg) => draw_error_modal(frame, area, msg),
+        Modal::Success(msg) => draw_success_modal(frame, area, msg),
         Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
         Modal::CopyTo(dest) => draw_copy_modal(frame, modal_area, dest, app),
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
@@ -1147,6 +1147,95 @@ fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &SearchSpecState
     frame.render_widget(paragraph, area);
 }
 
+/// Draw Q-DOS II style modal with header separator and dynamic height
+/// Layout:
+/// ╔════════════════════════════════╗
+/// ║            Title               ║
+/// ╠════════════════════════════════╣
+/// ║           Content              ║
+/// ╚════════════════════════════════╝
+fn draw_qdos_modal_colored(
+    frame: &mut Frame,
+    area: Rect,
+    title: &str,
+    content: Vec<Line>,
+    _border_color: Color, // Reserved for future use
+) {
+    // Calculate modal dimensions based on content
+    let modal_width = area.width.min(60);
+    let content_lines = content.len() as u16;
+    let modal_height = content_lines + 4; // top + title + separator + bottom
+
+    // Center the modal within the given area
+    let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
+    let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
+    let modal_area = Rect::new(x, y, modal_width, modal_height);
+
+    // Clear only the modal's own space
+    frame.render_widget(Clear, modal_area);
+
+    let width = modal_area.width as usize;
+    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG); // White borders
+    let title_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+
+    // Top border: ╔═══╗
+    let top = format!("╔{}╗", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, border_style)),
+        Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
+    );
+
+    // Title row: ║ Title ║
+    let title_padded = format!("{:^width$}", title, width = width.saturating_sub(2));
+    let title_line = format!("║{}║", title_padded);
+    frame.render_widget(
+        Paragraph::new(Span::styled(&title_line, title_style)),
+        Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
+    );
+
+    // Header separator: ╠═══╣
+    let sep = format!("╠{}╣", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
+    );
+
+    // Content area
+    for (i, line) in content.iter().enumerate() {
+        let row_y = modal_area.y + 3 + i as u16;
+        // Render left border
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(modal_area.x, row_y, 1, 1),
+        );
+        // Render content
+        let content_rect = Rect::new(modal_area.x + 1, row_y, modal_area.width - 2, 1);
+        frame.render_widget(
+            Paragraph::new(line.clone())
+                .alignment(ratatui::layout::Alignment::Center)
+                .style(Style::default().bg(COLOR_BG)),
+            content_rect,
+        );
+        // Render right border
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(modal_area.x + modal_area.width - 1, row_y, 1, 1),
+        );
+    }
+
+    // Bottom border: ╚═══╝
+    let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, border_style)),
+        Rect::new(
+            modal_area.x,
+            modal_area.y + modal_area.height - 1,
+            modal_area.width,
+            1,
+        ),
+    );
+}
+
 /// Draw disk space modal
 fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
     // Get disk name from current path (use first component or root)
@@ -1157,43 +1246,34 @@ fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
         .map(|c| c.as_os_str().to_string_lossy().to_string())
         .unwrap_or_else(|| "/".to_string());
 
-    let title = format!(" Space On Disk {} ", disk_name);
-    let space_block = Block::default()
-        .title(title)
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
+    let title = format!("Space On Disk {}", disk_name);
 
     let (available, total) = get_disk_space(&app.current_path).unwrap_or((0, 0));
     let used = total.saturating_sub(available);
     let used_percent = if total > 0 {
-        (used as f64 / total as f64 * 100.0) as u64
+        used as f64 / total as f64 * 100.0
     } else {
-        0
+        0.0
     };
 
-    let space_text = vec![
+    let content = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("   Total space:  ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled("Total space:      ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled(format_size_short(total), Style::default().fg(COLOR_CYAN)),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Total used:       ", Style::default().fg(COLOR_YELLOW)),
             Span::styled(
-                format!("{:>10}", format_size_short(total)),
+                format!("{} ({:.1}%)", format_size_short(used), used_percent),
                 Style::default().fg(COLOR_CYAN),
             ),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("    Total used:  ", Style::default().fg(COLOR_YELLOW)),
-            Span::styled(
-                format!("{:>10} ({}%)", format_size_short(used), used_percent),
-                Style::default().fg(COLOR_CYAN),
-            ),
-        ]),
-        Line::from(vec![
-            Span::styled("Total available: ", Style::default().fg(COLOR_YELLOW)),
-            Span::styled(
-                format!("{:>10}", format_size_short(available)),
-                Style::default().fg(COLOR_CYAN),
-            ),
+            Span::styled("Total available:  ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled(format_size_short(available), Style::default().fg(COLOR_CYAN)),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -1202,24 +1282,12 @@ fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
         )),
     ];
 
-    let paragraph = Paragraph::new(space_text)
-        .block(space_block)
-        .wrap(Wrap { trim: true })
-        .alignment(ratatui::layout::Alignment::Center);
-
-    frame.render_widget(paragraph, area);
+    draw_qdos_modal_colored(frame, area, &title, content, COLOR_BLUE);
 }
 
 /// Draw error modal
 fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
-    // Use the modal area directly (already centered by draw_modal)
-    let error_block = Block::default()
-        .title(" Error ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_RED))
-        .style(Style::default().bg(COLOR_BG));
-
-    let error_text = vec![
+    let content = vec![
         Line::from(""),
         Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
         Line::from(""),
@@ -1229,11 +1297,7 @@ fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
         )),
     ];
 
-    let paragraph = Paragraph::new(error_text)
-        .block(error_block)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
+    draw_qdos_modal_colored(frame, area, "Error", content, COLOR_RED);
 }
 
 /// Draw path input modal
@@ -1276,14 +1340,7 @@ fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
 
 /// Draw success modal
 fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
-    // Use the modal area directly (already centered by draw_modal)
-    let success_block = Block::default()
-        .title(" Success ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_GREEN))
-        .style(Style::default().bg(COLOR_BG));
-
-    let success_text = vec![
+    let content = vec![
         Line::from(""),
         Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
         Line::from(""),
@@ -1293,11 +1350,7 @@ fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
         )),
     ];
 
-    let paragraph = Paragraph::new(success_text)
-        .block(success_block)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
+    draw_qdos_modal_colored(frame, area, "Success", content, COLOR_GREEN);
 }
 
 /// Draw copy modal
