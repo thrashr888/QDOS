@@ -1,7 +1,7 @@
 //! File viewer UI components
 //!
 //! This module contains all file viewer drawing functions including:
-//! - Normal/ASCII view
+//! - Normal/ASCII view with syntax highlighting
 //! - Hex view
 //! - Image view
 //! - Markdown view
@@ -15,8 +15,40 @@ use ratatui::{
     widgets::{Clear, Paragraph},
     Frame,
 };
+use std::sync::OnceLock;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::ThemeSet;
+use syntect::parsing::SyntaxSet;
 
 use super::{COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED};
+
+// Lazy-loaded syntax highlighting resources
+static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
+static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
+
+fn get_syntax_set() -> &'static SyntaxSet {
+    SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines)
+}
+
+fn get_theme_set() -> &'static ThemeSet {
+    THEME_SET.get_or_init(ThemeSet::load_defaults)
+}
+
+/// Convert syntect color to ratatui color
+fn syntect_to_ratatui_color(color: syntect::highlighting::Color) -> Color {
+    Color::Rgb(color.r, color.g, color.b)
+}
+
+/// Check if a file extension supports syntax highlighting
+#[allow(dead_code)] // May be used for UI indicator
+fn supports_syntax_highlighting(file_name: &str) -> bool {
+    let ss = get_syntax_set();
+    ss.find_syntax_for_file(file_name)
+        .ok()
+        .flatten()
+        .map(|s| s.name != "Plain Text")
+        .unwrap_or(false)
+}
 
 /// Draw file viewer screen (full screen)
 pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewerState) {
@@ -103,62 +135,112 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
     frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[4]);
 }
 
-/// Draw normal/ASCII view mode
+/// Draw normal/ASCII view mode with optional syntax highlighting
 fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height: usize) {
-    // Convert content to lines based on filter
-    let lines: Vec<String> = state
-        .content
-        .split(|&b| b == b'\n')
-        .map(|line| {
-            line.iter()
-                .map(|&b| match state.filter {
-                    ViewFilter::Off => {
-                        if b >= 32 && b < 127 {
-                            b as char
-                        } else if b == b'\t' {
-                            ' '
-                        } else if b == b'\r' {
-                            ' '
-                        } else {
-                            '.'
-                        }
-                    }
-                    ViewFilter::Ascii => {
-                        if b >= 32 && b < 127 {
-                            b as char
-                        } else {
-                            ' '
-                        }
-                    }
-                    ViewFilter::WordStar => {
-                        let b = b & 0x7F; // Strip high bit
-                        if b >= 32 && b < 127 {
-                            b as char
-                        } else {
-                            ' '
-                        }
-                    }
-                })
-                .collect::<String>()
-        })
-        .collect();
+    // Try to get content as string for syntax highlighting
+    let content_str = String::from_utf8_lossy(&state.content);
 
-    // Calculate max scroll
-    let max_scroll = lines.len().saturating_sub(height);
+    // Check if we should use syntax highlighting
+    let ss = get_syntax_set();
+    let ts = get_theme_set();
+
+    let syntax = ss.find_syntax_for_file(&state.file_name)
+        .ok()
+        .flatten()
+        .filter(|s| s.name != "Plain Text");
+
+    // Calculate scroll
+    let all_lines: Vec<&str> = content_str.lines().collect();
+    let max_scroll = all_lines.len().saturating_sub(height);
     let scroll = state.scroll_offset.min(max_scroll);
 
-    // Render visible lines
-    let visible_lines: Vec<Line> = lines
-        .iter()
-        .skip(scroll)
-        .take(height)
-        .map(|line| {
-            Line::from(Span::styled(
-                format!(" {}", line),
-                Style::default().fg(COLOR_FG),
-            ))
-        })
-        .collect();
+    let visible_lines: Vec<Line> = if let Some(syntax) = syntax {
+        // Use syntax highlighting
+        let theme = &ts.themes["base16-ocean.dark"];
+        let mut highlighter = HighlightLines::new(syntax, theme);
+
+        all_lines
+            .iter()
+            .enumerate()
+            .skip(scroll)
+            .take(height)
+            .map(|(_, line)| {
+                let highlighted = highlighter.highlight_line(line, ss).unwrap_or_default();
+
+                let mut spans: Vec<Span> = vec![Span::raw(" ")]; // Left padding
+
+                for (style, text) in highlighted {
+                    let fg = syntect_to_ratatui_color(style.foreground);
+                    let mut ratatui_style = Style::default().fg(fg);
+
+                    // Apply font style modifiers
+                    if style.font_style.contains(syntect::highlighting::FontStyle::BOLD) {
+                        ratatui_style = ratatui_style.add_modifier(Modifier::BOLD);
+                    }
+                    if style.font_style.contains(syntect::highlighting::FontStyle::ITALIC) {
+                        ratatui_style = ratatui_style.add_modifier(Modifier::ITALIC);
+                    }
+                    if style.font_style.contains(syntect::highlighting::FontStyle::UNDERLINE) {
+                        ratatui_style = ratatui_style.add_modifier(Modifier::UNDERLINED);
+                    }
+
+                    spans.push(Span::styled(text.to_string(), ratatui_style));
+                }
+
+                Line::from(spans)
+            })
+            .collect()
+    } else {
+        // Fall back to plain text with filter applied
+        let lines: Vec<String> = state
+            .content
+            .split(|&b| b == b'\n')
+            .map(|line| {
+                line.iter()
+                    .map(|&b| match state.filter {
+                        ViewFilter::Off => {
+                            if b >= 32 && b < 127 {
+                                b as char
+                            } else if b == b'\t' {
+                                ' '
+                            } else if b == b'\r' {
+                                ' '
+                            } else {
+                                '.'
+                            }
+                        }
+                        ViewFilter::Ascii => {
+                            if b >= 32 && b < 127 {
+                                b as char
+                            } else {
+                                ' '
+                            }
+                        }
+                        ViewFilter::WordStar => {
+                            let b = b & 0x7F; // Strip high bit
+                            if b >= 32 && b < 127 {
+                                b as char
+                            } else {
+                                ' '
+                            }
+                        }
+                    })
+                    .collect::<String>()
+            })
+            .collect();
+
+        lines
+            .iter()
+            .skip(scroll)
+            .take(height)
+            .map(|line| {
+                Line::from(Span::styled(
+                    format!(" {}", line),
+                    Style::default().fg(COLOR_FG),
+                ))
+            })
+            .collect()
+    };
 
     frame.render_widget(Paragraph::new(visible_lines), area);
 }

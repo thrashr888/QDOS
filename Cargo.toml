@@ -41,6 +41,9 @@ image = "0.25"
 # Markdown rendering
 termimad = "0.30"
 
+# Syntax highlighting
+syntect = "5.2"
+
 [profile.release]
 lto = true
 codegen-units = 1

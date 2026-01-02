@@ -906,7 +906,7 @@ F5  - Change Directory: Enter path to navigate
 F6  - DOS Command: Run a shell command
 F7  - Search Spec: Set file filter pattern
 F8  - Sort: Cycle through sort modes
-F9  - Edit: Open file in editor (not implemented)
+F9  - Edit: Open file in default text editor
 F10 - Quit: Exit Q-DOS II"#.to_string(),
             },
             HelpTopic {
@@ -994,6 +994,208 @@ impl ProgressState {
     }
 }
 
+/// Color theme options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ColorTheme {
+    #[default]
+    Default,
+    Monochrome,
+    Blue,
+    Green,
+    Amber,
+}
+
+impl ColorTheme {
+    pub const ALL: [ColorTheme; 5] = [
+        ColorTheme::Default,
+        ColorTheme::Monochrome,
+        ColorTheme::Blue,
+        ColorTheme::Green,
+        ColorTheme::Amber,
+    ];
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            ColorTheme::Default => "Default",
+            ColorTheme::Monochrome => "Monochrome",
+            ColorTheme::Blue => "Blue",
+            ColorTheme::Green => "Green",
+            ColorTheme::Amber => "Amber",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            ColorTheme::Default => "DOS-style blue/white/yellow",
+            ColorTheme::Monochrome => "Black and white only",
+            ColorTheme::Blue => "Classic blue theme",
+            ColorTheme::Green => "Matrix-style green",
+            ColorTheme::Amber => "Vintage amber monitor",
+        }
+    }
+
+    /// Get the RGB color values for this theme
+    pub fn colors(&self) -> ThemeColors {
+        match self {
+            ColorTheme::Default => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (255, 255, 255),
+                blue: (102, 183, 179),
+                green: (103, 204, 77),
+                red: (157, 31, 20),
+                yellow: (232, 218, 89),
+                grey: (128, 128, 128),
+                cyan: (0, 170, 170),
+                magenta: (170, 0, 170),
+            },
+            ColorTheme::Monochrome => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (170, 170, 170),
+                blue: (170, 170, 170),
+                green: (170, 170, 170),
+                red: (85, 85, 85),
+                yellow: (255, 255, 255),
+                grey: (128, 128, 128),
+                cyan: (170, 170, 170),
+                magenta: (170, 170, 170),
+            },
+            ColorTheme::Blue => ThemeColors {
+                background: (0, 0, 64),
+                foreground: (255, 255, 255),
+                blue: (100, 149, 237),
+                green: (144, 238, 144),
+                red: (255, 99, 71),
+                yellow: (255, 255, 0),
+                grey: (128, 128, 128),
+                cyan: (0, 255, 255),
+                magenta: (255, 0, 255),
+            },
+            ColorTheme::Green => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (0, 255, 0),
+                blue: (0, 180, 0),
+                green: (0, 255, 0),
+                red: (0, 100, 0),
+                yellow: (180, 255, 0),
+                grey: (0, 128, 0),
+                cyan: (0, 200, 100),
+                magenta: (100, 200, 0),
+            },
+            ColorTheme::Amber => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (255, 176, 0),
+                blue: (255, 128, 0),
+                green: (255, 200, 0),
+                red: (128, 64, 0),
+                yellow: (255, 255, 0),
+                grey: (180, 100, 0),
+                cyan: (255, 200, 50),
+                magenta: (200, 100, 0),
+            },
+        }
+    }
+}
+
+/// RGB color values for a theme
+#[derive(Debug, Clone, Copy)]
+pub struct ThemeColors {
+    pub background: (u8, u8, u8),
+    pub foreground: (u8, u8, u8),
+    pub blue: (u8, u8, u8),
+    pub green: (u8, u8, u8),
+    pub red: (u8, u8, u8),
+    pub yellow: (u8, u8, u8),
+    pub grey: (u8, u8, u8),
+    pub cyan: (u8, u8, u8),
+    pub magenta: (u8, u8, u8),
+}
+
+impl ThemeColors {
+    /// Get background color (Reset for terminal default)
+    pub fn bg(&self) -> ratatui::style::Color {
+        if self.background == (0, 0, 0) {
+            ratatui::style::Color::Reset
+        } else {
+            let (r, g, b) = self.background;
+            ratatui::style::Color::Rgb(r, g, b)
+        }
+    }
+
+    /// Get foreground color
+    pub fn fg(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.foreground;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get blue color
+    pub fn blue(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.blue;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get green color
+    pub fn green(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.green;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get red color
+    pub fn red(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.red;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get yellow color
+    pub fn yellow(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.yellow;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get grey color
+    pub fn grey(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.grey;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get cyan color
+    pub fn cyan(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.cyan;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Get magenta color
+    pub fn magenta(&self) -> ratatui::style::Color {
+        let (r, g, b) = self.magenta;
+        ratatui::style::Color::Rgb(r, g, b)
+    }
+}
+
+/// State for color theme selection modal
+#[derive(Debug, Clone)]
+pub struct ColorThemeState {
+    /// Currently selected theme in the list
+    pub selected: usize,
+    /// The theme that was active when the modal opened
+    pub original_theme: ColorTheme,
+}
+
+impl ColorThemeState {
+    pub fn new(current_theme: ColorTheme) -> Self {
+        let selected = ColorTheme::ALL
+            .iter()
+            .position(|&t| t == current_theme)
+            .unwrap_or(0);
+        Self {
+            selected,
+            original_theme: current_theme,
+        }
+    }
+
+    pub fn selected_theme(&self) -> ColorTheme {
+        ColorTheme::ALL[self.selected]
+    }
+}
+
 /// Modal dialog types
 pub enum Modal {
     None,
@@ -1016,4 +1218,5 @@ pub enum Modal {
     BatchRename(BatchRenameState),
     Attribute(AttributeState),
     Progress(ProgressState),
+    ColorTheme(ColorThemeState),
 }

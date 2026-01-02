@@ -112,6 +112,7 @@ fn format_number(n: u64) -> String {
 /// Draw the entire UI
 pub fn draw(frame: &mut Frame, app: &App) {
     let size = frame.area();
+    let colors = app.colors();
 
     // Minimum size check - show message if too small (must check before drawing anything)
     let min_width: u16 = 80;
@@ -123,7 +124,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
             min_width, min_height, size.width, size.height
         );
         frame.render_widget(
-            Paragraph::new(Span::styled(msg, Style::default().fg(COLOR_RED))),
+            Paragraph::new(Span::styled(msg, Style::default().fg(colors.red()))),
             size,
         );
         return;
@@ -144,7 +145,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     draw_nav_bar(frame, app, main_chunks[0]);
 
     // Draw separator line above path (double line white)
-    draw_separator_line(frame, main_chunks[1]);
+    draw_separator_line(frame, app, main_chunks[1]);
 
     // Draw path bar with red background on path text only
     draw_path_bar(frame, app, main_chunks[2]);
@@ -160,15 +161,17 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
 /// Draw the navigation menu bar
 fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let colors = app.colors();
+
     // First line: menu items - white text, selected is yellow on red
     let nav_items: Vec<Span> = NavItem::ALL
         .iter()
         .enumerate()
         .flat_map(|(i, item)| {
             let style = if i == app.nav_index {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
-                Style::default().fg(COLOR_FG) // White text for unselected
+                Style::default().fg(colors.fg()) // White text for unselected
             };
 
             vec![Span::styled(item.as_str(), style), Span::raw("  ")]
@@ -179,7 +182,7 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     // Second line: description in green (like original)
     let description = NavItem::ALL[app.nav_index].description();
-    let desc_line = Line::from(Span::styled(description, Style::default().fg(COLOR_GREEN)));
+    let desc_line = Line::from(Span::styled(description, Style::default().fg(colors.green())));
 
     let nav_text = vec![nav_line, desc_line];
     let nav_paragraph = Paragraph::new(nav_text);
@@ -187,18 +190,20 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw separator line above path (double line white on black)
-fn draw_separator_line(frame: &mut Frame, area: Rect) {
+fn draw_separator_line(frame: &mut Frame, app: &App, area: Rect) {
+    let colors = app.colors();
     let line_char = "═";
     let line = line_char.repeat(area.width as usize);
     let separator = Paragraph::new(Line::from(Span::styled(
         line,
-        Style::default().fg(COLOR_FG),
+        Style::default().fg(colors.fg()),
     )));
     frame.render_widget(separator, area);
 }
 
 /// Draw the path bar - "PATH  >> " is white, only the path value is yellow on red (extending to far right)
 fn draw_path_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let colors = app.colors();
     let label = " PATH  >>  ";
     let path_str = format!("{}", app.current_path.display());
     // Pad the path value to fill remaining width
@@ -206,10 +211,10 @@ fn draw_path_bar(frame: &mut Frame, app: &App, area: Rect) {
     let padded_path = format!("{:<width$}", path_str, width = remaining_width);
 
     let path_line = Line::from(vec![
-        Span::styled(label, Style::default().fg(COLOR_FG)), // White label
+        Span::styled(label, Style::default().fg(colors.fg())), // White label
         Span::styled(
             padded_path,
-            Style::default().fg(COLOR_YELLOW).bg(COLOR_RED), // Yellow on red for path value
+            Style::default().fg(colors.yellow()).bg(colors.red()), // Yellow on red for path value
         ),
     ]);
 
@@ -220,8 +225,9 @@ fn draw_path_bar(frame: &mut Frame, app: &App, area: Rect) {
 /// Draw integrated content area - stats panel and file table as one grid
 /// This matches the original QDOS layout where panels share borders
 fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
-    let border_style = Style::default().fg(COLOR_FG);
-    let header_style = Style::default().fg(COLOR_BLUE);
+    let colors = app.colors();
+    let border_style = Style::default().fg(colors.fg());
+    let header_style = Style::default().fg(colors.blue());
 
     // Left panel width (stats/keybindings/copyright)
     let left_width: u16 = 30;
@@ -449,14 +455,14 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             Span::styled("║", border_style),
             Span::styled(
                 format!("{:>4}", tagged_count),
-                Style::default().fg(COLOR_FG),
+                Style::default().fg(colors.fg()),
             ),
             Span::styled("║ ", border_style),
-            Span::styled("Tagged", Style::default().fg(COLOR_FG)),
+            Span::styled("Tagged", Style::default().fg(colors.fg())),
             Span::styled(" ║", border_style),
             Span::styled(
                 format!("{:>11}", format_number(tagged_size)),
-                Style::default().fg(COLOR_FG),
+                Style::default().fg(colors.fg()),
             ),
             Span::styled("║   ", border_style),
         ])),
@@ -480,7 +486,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     );
 
     // ROWS 10-17: Keybindings
-    let white_style = Style::default().fg(COLOR_FG);
+    let white_style = Style::default().fg(colors.fg());
     let keybindings = [
         " F1- Help       F2- Status   ",
         " F3- Chg Drive  F4- Prev Dir ",
@@ -506,7 +512,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     );
 
     // ROWS 18-20: Copyright
-    let blue_style = Style::default().fg(COLOR_BLUE);
+    let blue_style = Style::default().fg(colors.blue());
     let y = area.y + 18;
     frame.render_widget(
         Paragraph::new(Span::styled(" R-DOS — Version 0.1.0       ", blue_style)),
@@ -545,15 +551,15 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
             // Determine base style based on selection, tag, hidden, dir status
             let style = if is_selected {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else if is_tagged {
-                Style::default().fg(COLOR_YELLOW)
+                Style::default().fg(colors.yellow())
             } else if file.is_hidden {
-                Style::default().fg(COLOR_GREY)
+                Style::default().fg(colors.grey())
             } else if file.is_dir {
-                Style::default().fg(COLOR_BLUE)
+                Style::default().fg(colors.blue())
             } else {
-                Style::default().fg(COLOR_FG)
+                Style::default().fg(colors.fg())
             };
 
             // Git status indicator style
@@ -561,15 +567,15 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 style
             } else {
                 match file.git_status {
-                    GitStatus::Modified => Style::default().fg(COLOR_YELLOW),
-                    GitStatus::Added => Style::default().fg(COLOR_CYAN),
-                    GitStatus::Deleted => Style::default().fg(COLOR_RED),
-                    GitStatus::Renamed => Style::default().fg(COLOR_CYAN),
-                    GitStatus::Untracked => Style::default().fg(COLOR_MAGENTA),
+                    GitStatus::Modified => Style::default().fg(colors.yellow()),
+                    GitStatus::Added => Style::default().fg(colors.cyan()),
+                    GitStatus::Deleted => Style::default().fg(colors.red()),
+                    GitStatus::Renamed => Style::default().fg(colors.cyan()),
+                    GitStatus::Untracked => Style::default().fg(colors.magenta()),
                     GitStatus::Conflict => {
-                        Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD)
+                        Style::default().fg(colors.red()).add_modifier(Modifier::BOLD)
                     }
-                    GitStatus::Ignored => Style::default().fg(COLOR_GREY),
+                    GitStatus::Ignored => Style::default().fg(colors.grey()),
                     GitStatus::None => style,
                 }
             };

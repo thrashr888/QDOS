@@ -2,9 +2,9 @@ mod state;
 
 // Re-export state types for external use
 pub use state::{
-    AttrValue, AttributeState, BatchRenameState, DirectoryMapState, FileViewerState, FindPhase,
-    FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, SearchSpecState,
-    ShellCommandState, SortMode, ViewFilter, ViewMode,
+    AttrValue, AttributeState, BatchRenameState, ColorTheme, ColorThemeState, DirectoryMapState,
+    FileViewerState, FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation,
+    ProgressState, SearchSpecState, ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
 };
 
 use crate::errors;
@@ -45,6 +45,8 @@ pub struct App {
     pub history: Vec<PathBuf>,
     /// Last find pattern (for Ctrl+R recall)
     pub last_find_pattern: String,
+    /// Current color theme
+    pub color_theme: ColorTheme,
 }
 
 impl App {
@@ -65,6 +67,7 @@ impl App {
             search_spec: "*.*".to_string(),
             history: Vec::new(),
             last_find_pattern: String::new(),
+            color_theme: ColorTheme::Default,
         })
     }
 
@@ -116,6 +119,12 @@ impl App {
             return Ok(());
         }
 
+        // Color theme shortcut (Ctrl+T)
+        if key.code == KeyCode::Char('t') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.modal = Modal::ColorTheme(ColorThemeState::new(self.color_theme));
+            return Ok(());
+        }
+
         // Handle modal-specific input
         if !matches!(self.modal, Modal::None) {
             return self.handle_modal_key(key);
@@ -162,9 +171,9 @@ impl App {
             KeyCode::F(8) => {
                 self.cycle_sort_mode()?;
             }
-            // Edit (not implemented)
+            // Edit - open in default editor
             KeyCode::F(9) => {
-                self.modal = Modal::Error("Edit not implemented".to_string());
+                self.edit_selected_file()?;
             }
             // Navigation
             KeyCode::Up | KeyCode::Char('k') => {
@@ -1218,6 +1227,53 @@ impl App {
                     _ => {}
                 }
             }
+            Modal::ColorTheme(state) => match key.code {
+                KeyCode::Esc => {
+                    // Cancel - restore original theme
+                    self.color_theme = state.original_theme;
+                    self.modal = Modal::None;
+                }
+                KeyCode::Enter => {
+                    // Apply selected theme
+                    self.color_theme = state.selected_theme();
+                    self.modal = Modal::None;
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if state.selected > 0 {
+                        state.selected -= 1;
+                        // Live preview
+                        self.color_theme = state.selected_theme();
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if state.selected < ColorTheme::ALL.len() - 1 {
+                        state.selected += 1;
+                        // Live preview
+                        self.color_theme = state.selected_theme();
+                    }
+                }
+                KeyCode::Char('1') => {
+                    state.selected = 0;
+                    self.color_theme = state.selected_theme();
+                }
+                KeyCode::Char('2') => {
+                    state.selected = 1;
+                    self.color_theme = state.selected_theme();
+                }
+                KeyCode::Char('3') => {
+                    state.selected = 2;
+                    self.color_theme = state.selected_theme();
+                }
+                KeyCode::Char('4') => {
+                    state.selected = 3;
+                    self.color_theme = state.selected_theme();
+                }
+                KeyCode::Char('5') => {
+                    state.selected = 4;
+                    self.color_theme = state.selected_theme();
+                }
+                _ => {}
+            },
             Modal::None => {}
         }
 
@@ -1530,7 +1586,7 @@ impl App {
                 }
             }
             NavItem::Print => {
-                self.modal = Modal::Error("Print not yet implemented".to_string());
+                self.print_selected_file()?;
             }
         }
 
@@ -1545,6 +1601,11 @@ impl App {
     /// Get count of regular files in file list
     pub fn file_count(&self) -> usize {
         self.files.iter().filter(|f| !f.is_dir).count()
+    }
+
+    /// Get the current theme colors
+    pub fn colors(&self) -> ThemeColors {
+        self.color_theme.colors()
     }
 
     /// Get total size of all files
@@ -1742,6 +1803,78 @@ impl App {
         } else {
             Vec::new()
         }
+    }
+
+    /// Open the selected file in the default editor
+    fn edit_selected_file(&mut self) -> Result<()> {
+        if self.files.is_empty() {
+            self.modal = Modal::Error("No file selected".to_string());
+            return Ok(());
+        }
+
+        let file = &self.files[self.selected_index];
+        if file.name == ".." {
+            self.modal = Modal::Error("Cannot edit parent directory".to_string());
+            return Ok(());
+        }
+
+        if file.is_dir {
+            self.modal = Modal::Error("Cannot edit a directory".to_string());
+            return Ok(());
+        }
+
+        // Use the 'open' command on macOS to open in default editor
+        // This works without suspending the TUI since it opens a separate window
+        let result = std::process::Command::new("open")
+            .arg("-t") // Open in default text editor
+            .arg(&file.path)
+            .spawn();
+
+        match result {
+            Ok(_) => {
+                self.modal = Modal::Success(format!("Opening {} in editor...", file.name));
+            }
+            Err(e) => {
+                self.modal = Modal::Error(format!("Failed to open editor: {}", e));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Print the selected file
+    fn print_selected_file(&mut self) -> Result<()> {
+        if self.files.is_empty() {
+            self.modal = Modal::Error("No file selected".to_string());
+            return Ok(());
+        }
+
+        let file = &self.files[self.selected_index];
+        if file.name == ".." {
+            self.modal = Modal::Error("Cannot print parent directory".to_string());
+            return Ok(());
+        }
+
+        if file.is_dir {
+            self.modal = Modal::Error("Cannot print a directory".to_string());
+            return Ok(());
+        }
+
+        // Use the 'lpr' command to print the file
+        let result = std::process::Command::new("lpr")
+            .arg(&file.path)
+            .spawn();
+
+        match result {
+            Ok(_) => {
+                self.modal = Modal::Success(format!("Sent {} to printer", file.name));
+            }
+            Err(e) => {
+                self.modal = Modal::Error(format!("Failed to print: {}", e));
+            }
+        }
+
+        Ok(())
     }
 }
 

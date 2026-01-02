@@ -8,8 +8,8 @@
 //\! - Error, Success, Progress modals
 
 use crate::app::{
-    App, AttrValue, AttributeState, BatchRenameState, DirectoryMapState, FindPhase, FindState,
-    HelpState, Modal, ProgressState, SearchSpecState,
+    App, AttrValue, AttributeState, BatchRenameState, ColorTheme, ColorThemeState,
+    DirectoryMapState, FindPhase, FindState, HelpState, Modal, ProgressState, SearchSpecState,
 };
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
@@ -66,8 +66,8 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
         Modal::Space => draw_space_modal(frame, area, app),
-        Modal::Error(msg) => draw_error_modal(frame, area, msg),
-        Modal::Success(msg) => draw_success_modal(frame, area, msg),
+        Modal::Error(msg) => draw_error_modal(frame, area, msg, app),
+        Modal::Success(msg) => draw_success_modal(frame, area, msg, app),
         Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
         Modal::CopyTo(dest) => draw_copy_modal(frame, modal_area, dest, app),
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
@@ -80,6 +80,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
         Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
         Modal::Progress(state) => draw_progress_modal(frame, area, state),
+        Modal::ColorTheme(state) => draw_color_theme_modal(frame, modal_area, state, app),
         Modal::None => {}
     }
 }
@@ -573,18 +574,19 @@ pub(super) fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 /// Draw error modal
-pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
+pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app: &App) {
+    let colors = app.colors();
     let content = vec![
         Line::from(""),
-        Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(message, Style::default().fg(colors.fg()))),
         Line::from(""),
         Line::from(Span::styled(
             "Press any key to close",
-            Style::default().fg(COLOR_GREEN),
+            Style::default().fg(colors.green()),
         )),
     ];
 
-    draw_qdos_modal_colored(frame, area, "Error", content, COLOR_RED);
+    draw_qdos_modal_colored(frame, area, "Error", content, colors.red());
 }
 
 /// Draw path input modal
@@ -626,18 +628,19 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
 }
 
 /// Draw success modal
-pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
+pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str, app: &App) {
+    let colors = app.colors();
     let content = vec![
         Line::from(""),
-        Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(message, Style::default().fg(colors.fg()))),
         Line::from(""),
         Line::from(Span::styled(
             "Press any key to close",
-            Style::default().fg(COLOR_GREEN),
+            Style::default().fg(colors.green()),
         )),
     ];
 
-    draw_qdos_modal_colored(frame, area, "Success", content, COLOR_GREEN);
+    draw_qdos_modal_colored(frame, area, "Success", content, colors.green());
 }
 
 /// Draw progress modal for file operations
@@ -1436,5 +1439,87 @@ pub(super) fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &Attrib
 
     let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
 
+    frame.render_widget(paragraph, inner);
+}
+
+/// Draw color theme selection modal (QDCOLOR)
+fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState, app: &App) {
+    let colors = app.colors();
+
+    let theme_block = Block::default()
+        .title(" R-DOS Color Configuration ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(colors.blue()))
+        .style(Style::default().bg(colors.bg()));
+
+    frame.render_widget(theme_block.clone(), area);
+    let inner = theme_block.inner(area);
+
+    let mut lines = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Current Theme: ", Style::default().fg(colors.green())),
+            Span::styled(
+                app.color_theme.name(),
+                Style::default().fg(colors.yellow()).add_modifier(Modifier::BOLD),
+            ),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled(
+            "Select a color theme:",
+            Style::default().fg(colors.fg()),
+        )),
+        Line::from(""),
+    ];
+
+    // List all themes
+    for (i, theme) in ColorTheme::ALL.iter().enumerate() {
+        let is_selected = i == state.selected;
+        let number = format!("{}. ", i + 1);
+        let name = format!("{:<12}", theme.name());
+        let desc = theme.description();
+
+        let style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.fg())
+        };
+
+        let number_style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.blue())
+        };
+
+        let desc_style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.green())
+        };
+
+        lines.push(Line::from(vec![
+            Span::styled("  ", style),
+            Span::styled(number, number_style),
+            Span::styled(name, style),
+            Span::styled(desc, desc_style),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        "Theme changes preview live as you select.",
+        Style::default().fg(colors.grey()),
+    )));
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("↑↓/1-5", Style::default().fg(colors.blue())),
+        Span::raw(" select  "),
+        Span::styled("Enter", Style::default().fg(colors.blue())),
+        Span::raw(" apply  "),
+        Span::styled("ESC", Style::default().fg(colors.blue())),
+        Span::raw(" cancel"),
+    ]));
+
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
     frame.render_widget(paragraph, inner);
 }
