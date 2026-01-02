@@ -1863,6 +1863,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
             RemoteAction::Pull => " GIT PULL FROM REMOTE ",
         },
         GitView::Config => " GIT CONFIG ",
+        GitView::Conflicts => " MERGE CONFLICTS ",
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -1928,6 +1929,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                         GitMenuItem::Stash => "H",
                         GitMenuItem::Tag => "T",
                         GitMenuItem::Config => "G",
+                        GitMenuItem::Conflicts => "X",
                     };
 
                     lines.push(Line::from(vec![
@@ -2523,6 +2525,156 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            GitView::Conflicts => {
+                let mut lines = vec![];
+
+                if state.conflict_files.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  No merge conflicts detected",
+                        Style::default().fg(colors.green()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  All conflicts have been resolved or there is no merge in progress.",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    // Header
+                    lines.push(Line::from(vec![
+                        Span::styled(
+                            format!(
+                                "  {} conflicting file(s) - ←→ to switch files",
+                                state.conflict_files.len()
+                            ),
+                            Style::default().fg(colors.yellow()),
+                        ),
+                    ]));
+                    lines.push(Line::from(""));
+
+                    // Current file info
+                    let file = &state.conflict_files[state.selected_conflict_file];
+                    lines.push(Line::from(vec![
+                        Span::styled(
+                            format!(
+                                "  File [{}/{}]: ",
+                                state.selected_conflict_file + 1,
+                                state.conflict_files.len()
+                            ),
+                            Style::default().fg(colors.grey()),
+                        ),
+                        Span::styled(&file.path, Style::default().fg(colors.blue())),
+                    ]));
+                    lines.push(Line::from(vec![
+                        Span::styled("  ", Style::default()),
+                        Span::styled(
+                            format!("{} conflict section(s)", file.sections.len()),
+                            Style::default().fg(colors.red()),
+                        ),
+                    ]));
+                    lines.push(Line::from(""));
+
+                    // Show sections
+                    let visible_height = content_area.height.saturating_sub(8) as usize;
+                    for (i, section) in file.sections.iter().enumerate().take(visible_height / 6) {
+                        let is_selected = i == file.selected_section;
+                        let bg = if is_selected {
+                            colors.red()
+                        } else {
+                            Color::Reset
+                        };
+                        let prefix = if is_selected { "▶ " } else { "  " };
+
+                        // Section header
+                        lines.push(Line::from(vec![
+                            Span::styled(prefix, Style::default().fg(colors.yellow()).bg(bg)),
+                            Span::styled(
+                                format!("Conflict {} (line {})", i + 1, section.start_line),
+                                Style::default()
+                                    .fg(colors.cyan())
+                                    .bg(bg)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                        ]));
+
+                        // Ours section (green)
+                        lines.push(Line::from(vec![
+                            Span::styled("    ", Style::default().bg(bg)),
+                            Span::styled(
+                                "<<<< OURS (current branch)",
+                                Style::default().fg(colors.green()).bg(bg),
+                            ),
+                        ]));
+                        for (j, line) in section.ours.iter().take(3).enumerate() {
+                            let truncated = if line.len() > 60 {
+                                format!("{}...", &line[..57])
+                            } else {
+                                line.clone()
+                            };
+                            lines.push(Line::from(vec![
+                                Span::styled("      ", Style::default().bg(bg)),
+                                Span::styled(
+                                    format!("{}: {}", j + 1, truncated),
+                                    Style::default().fg(colors.green()).bg(bg),
+                                ),
+                            ]));
+                        }
+                        if section.ours.len() > 3 {
+                            lines.push(Line::from(vec![
+                                Span::styled("      ", Style::default().bg(bg)),
+                                Span::styled(
+                                    format!("... and {} more lines", section.ours.len() - 3),
+                                    Style::default().fg(colors.grey()).bg(bg),
+                                ),
+                            ]));
+                        }
+
+                        // Theirs section (red/yellow)
+                        lines.push(Line::from(vec![
+                            Span::styled("    ", Style::default().bg(bg)),
+                            Span::styled(
+                                ">>>> THEIRS (incoming)",
+                                Style::default().fg(colors.yellow()).bg(bg),
+                            ),
+                        ]));
+                        for (j, line) in section.theirs.iter().take(3).enumerate() {
+                            let truncated = if line.len() > 60 {
+                                format!("{}...", &line[..57])
+                            } else {
+                                line.clone()
+                            };
+                            lines.push(Line::from(vec![
+                                Span::styled("      ", Style::default().bg(bg)),
+                                Span::styled(
+                                    format!("{}: {}", j + 1, truncated),
+                                    Style::default().fg(colors.yellow()).bg(bg),
+                                ),
+                            ]));
+                        }
+                        if section.theirs.len() > 3 {
+                            lines.push(Line::from(vec![
+                                Span::styled("      ", Style::default().bg(bg)),
+                                Span::styled(
+                                    format!("... and {} more lines", section.theirs.len() - 3),
+                                    Style::default().fg(colors.grey()).bg(bg),
+                                ),
+                            ]));
+                        }
+
+                        lines.push(Line::from(""));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
         }
     }
 
@@ -2559,6 +2711,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
             },
             GitView::Remote => "↑↓ select  Enter execute  ESC back",
             GitView::Config => "↑↓ scroll  PgUp/PgDn fast scroll  R refresh  ESC back",
+            GitView::Conflicts => "←→ files  ↑↓ sections  O ours  T theirs  B both  M mark resolved  A abort  ESC back",
         }
     };
     frame.render_widget(
@@ -2596,6 +2749,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         BeadsView::Create => " BEADS - CREATE ISSUE ",
         BeadsView::Detail => " BEADS - ISSUE DETAIL ",
         BeadsView::Comments => " BEADS - COMMENTS ",
+        BeadsView::History => " BEADS - ISSUE HISTORY ",
+        BeadsView::FileIssues => " BEADS - FILE ISSUES ",
         BeadsView::Dependencies => " BEADS - DEPENDENCY GRAPH ",
         BeadsView::Kanban => " BEADS - KANBAN BOARD ",
         BeadsView::Human => " BEADS - COMMAND HELP ",
@@ -3358,6 +3513,211 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            BeadsView::History => {
+                let visible_height = content_area.height.saturating_sub(4) as usize;
+                let mut lines = vec![];
+
+                if let Some(ref issue) = state.detail_issue {
+                    // Issue title at top
+                    lines.push(Line::from(vec![
+                        Span::styled("  Issue: ", Style::default().fg(colors.green())),
+                        Span::styled(&issue.id, Style::default().fg(colors.blue())),
+                        Span::styled(" - ", Style::default().fg(colors.grey())),
+                        Span::styled(&issue.title, Style::default().fg(colors.fg())),
+                    ]));
+                    lines.push(Line::from(""));
+                }
+
+                if state.activity_entries.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  No activity history available.",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  Activity is tracked when issues are modified.",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    // Timeline header
+                    lines.push(Line::from(Span::styled(
+                        format!("  ─── Timeline ({} events) ───", state.activity_entries.len()),
+                        Style::default()
+                            .fg(colors.magenta())
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    lines.push(Line::from(""));
+
+                    // Calculate scroll offset for selected item visibility
+                    let start = if state.selected_activity >= visible_height {
+                        state.selected_activity - visible_height + 1
+                    } else {
+                        0
+                    };
+
+                    for (i, entry) in state
+                        .activity_entries
+                        .iter()
+                        .enumerate()
+                        .skip(start)
+                        .take(visible_height)
+                    {
+                        let is_selected = i == state.selected_activity;
+                        let bg = if is_selected {
+                            colors.red()
+                        } else {
+                            Color::Reset
+                        };
+                        let prefix = if is_selected { "▶ " } else { "  " };
+
+                        // Event type color
+                        let event_color = match entry.event_type.as_str() {
+                            "created" => colors.green(),
+                            "status_change" => colors.yellow(),
+                            "closed" => colors.grey(),
+                            "reopened" => colors.cyan(),
+                            "comment_added" => colors.blue(),
+                            "priority_change" => colors.magenta(),
+                            "assignment_change" => colors.cyan(),
+                            _ => colors.fg(),
+                        };
+
+                        // Timeline connector
+                        let connector = if i == 0 { "┌" } else { "├" };
+
+                        // Main event line with timestamp
+                        lines.push(Line::from(vec![
+                            Span::styled(prefix, Style::default().fg(colors.yellow()).bg(bg)),
+                            Span::styled(
+                                format!("{} ", connector),
+                                Style::default().fg(colors.grey()).bg(bg),
+                            ),
+                            Span::styled(
+                                format!("{} ", entry.symbol),
+                                Style::default().fg(event_color).bg(bg),
+                            ),
+                            Span::styled(
+                                &entry.timestamp,
+                                Style::default().fg(colors.grey()).bg(bg),
+                            ),
+                        ]));
+
+                        // Event detail line
+                        let detail_prefix = if i == state.activity_entries.len() - 1 {
+                            "└──"
+                        } else {
+                            "│  "
+                        };
+                        lines.push(Line::from(vec![
+                            Span::styled("  ", Style::default().bg(bg)),
+                            Span::styled(
+                                format!("{} ", detail_prefix),
+                                Style::default().fg(colors.grey()).bg(bg),
+                            ),
+                            Span::styled(&entry.message, Style::default().fg(colors.fg()).bg(bg)),
+                        ]));
+
+                        // Status transition if present
+                        if let (Some(old), Some(new)) = (&entry.old_status, &entry.new_status) {
+                            lines.push(Line::from(vec![
+                                Span::styled("  ", Style::default().bg(bg)),
+                                Span::styled("│     ", Style::default().fg(colors.grey()).bg(bg)),
+                                Span::styled(old, Style::default().fg(colors.grey()).bg(bg)),
+                                Span::styled(" → ", Style::default().fg(colors.yellow()).bg(bg)),
+                                Span::styled(new, Style::default().fg(colors.green()).bg(bg)),
+                            ]));
+                        }
+
+                        // Actor if present
+                        if let Some(ref actor) = entry.actor {
+                            lines.push(Line::from(vec![
+                                Span::styled("  ", Style::default().bg(bg)),
+                                Span::styled("│     ", Style::default().fg(colors.grey()).bg(bg)),
+                                Span::styled("by ", Style::default().fg(colors.grey()).bg(bg)),
+                                Span::styled(actor, Style::default().fg(colors.blue()).bg(bg)),
+                            ]));
+                        }
+
+                        lines.push(Line::from(""));
+                    }
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            BeadsView::FileIssues => {
+                let visible_height = content_area.height.saturating_sub(4) as usize;
+                let mut lines = vec![];
+
+                // Show the file being queried
+                lines.push(Line::from(vec![
+                    Span::styled("  File: ", Style::default().fg(colors.green())),
+                    Span::styled(&state.file_query_path, Style::default().fg(colors.blue())),
+                ]));
+                lines.push(Line::from(""));
+
+                if state.file_related_issues.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  No issues found mentioning this file.",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  Create an issue with the filename to link it.",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    lines.push(Line::from(Span::styled(
+                        format!("  ─── Related Issues ({}) ───", state.file_related_issues.len()),
+                        Style::default()
+                            .fg(colors.magenta())
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    lines.push(Line::from(""));
+
+                    for (i, issue) in state.file_related_issues.iter().enumerate().take(visible_height) {
+                        let is_selected = i == state.file_issue_selected;
+                        let bg = if is_selected {
+                            colors.red()
+                        } else {
+                            Color::Reset
+                        };
+                        let prefix = if is_selected { "▶ " } else { "  " };
+
+                        // Status indicator
+                        let status_char = match issue.status.as_str() {
+                            "closed" => "✓",
+                            "in_progress" => "◆",
+                            "open" => "○",
+                            _ => "?",
+                        };
+                        let status_color = match issue.status.as_str() {
+                            "closed" => colors.grey(),
+                            "in_progress" => colors.yellow(),
+                            "open" => colors.green(),
+                            _ => colors.fg(),
+                        };
+
+                        // Issue line
+                        lines.push(Line::from(vec![
+                            Span::styled(prefix, Style::default().fg(colors.yellow()).bg(bg)),
+                            Span::styled(status_char, Style::default().fg(status_color).bg(bg)),
+                            Span::styled(" ", Style::default().bg(bg)),
+                            Span::styled(&issue.id, Style::default().fg(colors.blue()).bg(bg)),
+                            Span::styled(" ", Style::default().bg(bg)),
+                            Span::styled(
+                                format!("[{}]", issue.priority),
+                                Style::default().fg(colors.cyan()).bg(bg),
+                            ),
+                            Span::styled(" ", Style::default().bg(bg)),
+                            Span::styled(&issue.title, Style::default().fg(colors.fg()).bg(bg)),
+                        ]));
+                    }
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
             BeadsView::Dependencies => {
                 let visible_height = content_area.height.saturating_sub(2) as usize;
                 let mut lines = vec![];
@@ -3707,7 +4067,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "↑↓ subtasks  M comments  A add comment  S start  C close  O reopen",
+            BeadsView::Detail => "↑↓ subtasks  M comments  H history  A add comment  S start  C close  O reopen",
             BeadsView::Comments => {
                 if state.comment_input_active {
                     "Type comment  Enter submit  ESC cancel"
@@ -3715,6 +4075,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     "↑↓ navigate  A add comment  ESC back"
                 }
             }
+            BeadsView::History => "↑↓ navigate  PgUp/PgDn page  Home/End  R refresh  ESC back",
+            BeadsView::FileIssues => "↑↓ navigate  Enter view detail  R refresh  ESC back",
             BeadsView::Dependencies => "↑↓ navigate  Enter view detail  R refresh  ESC back",
             BeadsView::Kanban => "←→ columns  ↑↓ rows  Enter view detail  R refresh  ESC back",
             BeadsView::Human | BeadsView::Doctor => "↑↓ scroll  PgUp/PgDn page  ESC back",

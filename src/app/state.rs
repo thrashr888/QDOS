@@ -1501,10 +1501,11 @@ pub enum GitMenuItem {
     Stash,
     Tag,
     Config,
+    Conflicts,
 }
 
 impl GitMenuItem {
-    pub const ALL: [GitMenuItem; 10] = [
+    pub const ALL: [GitMenuItem; 11] = [
         GitMenuItem::Status,
         GitMenuItem::Log,
         GitMenuItem::Diff,
@@ -1515,6 +1516,7 @@ impl GitMenuItem {
         GitMenuItem::Stash,
         GitMenuItem::Tag,
         GitMenuItem::Config,
+        GitMenuItem::Conflicts,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -1529,6 +1531,7 @@ impl GitMenuItem {
             GitMenuItem::Stash => "Stash",
             GitMenuItem::Tag => "Tag",
             GitMenuItem::Config => "Config",
+            GitMenuItem::Conflicts => "Conflicts",
         }
     }
 
@@ -1544,6 +1547,7 @@ impl GitMenuItem {
             GitMenuItem::Stash => "Stash and restore changes",
             GitMenuItem::Tag => "Manage git tags",
             GitMenuItem::Config => "View git configuration",
+            GitMenuItem::Conflicts => "Resolve merge conflicts",
         }
     }
 }
@@ -1586,6 +1590,31 @@ pub struct GitTag {
 pub struct GitRemote {
     pub name: String,
     pub url: String,
+}
+
+/// Git conflict section (ours vs theirs)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConflictSection {
+    pub start_line: usize,
+    pub ours: Vec<String>,
+    pub theirs: Vec<String>,
+    pub resolved: Option<ConflictResolution>,
+}
+
+/// How a conflict was resolved
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConflictResolution {
+    Ours,
+    Theirs,
+    Both,
+}
+
+/// Git conflict file with sections
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConflictFile {
+    pub path: String,
+    pub sections: Vec<ConflictSection>,
+    pub selected_section: usize,
 }
 
 /// Remote action type (push or pull)
@@ -1659,6 +1688,10 @@ pub struct GitState {
     pub config_entries: Vec<GitConfigEntry>,
     /// Selected config entry
     pub selected_config: usize,
+    /// Conflict files
+    pub conflict_files: Vec<ConflictFile>,
+    /// Selected conflict file
+    pub selected_conflict_file: usize,
 }
 
 /// Git view type
@@ -1675,6 +1708,7 @@ pub enum GitView {
     Tag,
     Remote,
     Config,
+    Conflicts,
 }
 
 /// Git config entry
@@ -1727,6 +1761,8 @@ impl Default for GitState {
             remote_action: RemoteAction::Push,
             config_entries: Vec::new(),
             selected_config: 0,
+            conflict_files: Vec::new(),
+            selected_conflict_file: 0,
         }
     }
 }
@@ -1848,6 +1884,18 @@ pub struct BeadsComment {
     pub created_at: String,
 }
 
+/// Beads activity/history entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeadsActivityEntry {
+    pub timestamp: String,
+    pub event_type: String,
+    pub symbol: String,
+    pub message: String,
+    pub old_status: Option<String>,
+    pub new_status: Option<String>,
+    pub actor: Option<String>,
+}
+
 /// Beads view type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BeadsView {
@@ -1862,6 +1910,8 @@ pub enum BeadsView {
     Comments,
     Dependencies,
     Kanban,
+    History,
+    FileIssues,
     Human,
     Doctor,
 }
@@ -1912,6 +1962,16 @@ pub struct BeadsState {
     pub kanban_column: usize,
     /// Selected row within current kanban column
     pub kanban_row: usize,
+    /// Activity/history entries for timeline view
+    pub activity_entries: Vec<BeadsActivityEntry>,
+    /// Selected activity entry in history view
+    pub selected_activity: usize,
+    /// Current file path being queried for related issues
+    pub file_query_path: String,
+    /// Issues related to the currently queried file
+    pub file_related_issues: Vec<BeadsIssue>,
+    /// Selected issue in file-issues view
+    pub file_issue_selected: usize,
 }
 
 /// Beads project statistics
@@ -1950,6 +2010,11 @@ impl Default for BeadsState {
             selected_comment: 0,
             kanban_column: 0,
             kanban_row: 0,
+            activity_entries: Vec::new(),
+            selected_activity: 0,
+            file_query_path: String::new(),
+            file_related_issues: Vec::new(),
+            file_issue_selected: 0,
         }
     }
 }

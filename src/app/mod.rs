@@ -5,10 +5,10 @@ mod state;
 // Re-export state types for external use
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView, ColorTheme,
-    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState, GitMenuItem,
-    GitState, GitView, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
-    QdstartState, RemoteAction, SearchSpecState, ShellCommandState, SortMode, ThemeColors,
-    ViewFilter, ViewMode,
+    ColorThemeState, ConflictResolution, DirectoryMapState, FileViewerState, FindPhase, FindState,
+    GitMenuItem, GitState, GitView, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
+    QdstartField, QdstartState, RemoteAction, SearchSpecState, ShellCommandState, SortMode,
+    ThemeColors, ViewFilter, ViewMode,
 };
 // Internal types used by git_ops and beads_ops modules:
 // BeadsIssue, BeadsStats, GitFileStatus, GitLogEntry
@@ -199,6 +199,20 @@ impl App {
             KeyCode::Char('b') | KeyCode::Char('B') => {
                 let is_beads = self.is_beads_project();
                 self.modal = Modal::Beads(BeadsState::new(is_beads));
+            }
+            // File issues (I key) - show beads issues related to selected file
+            KeyCode::Char('i') | KeyCode::Char('I') => {
+                if self.is_beads_project() {
+                    let mut state = BeadsState::new(true);
+                    if let Some(entry) = self.files.get(self.selected_index) {
+                        let file_path = entry.path.to_string_lossy().to_string();
+                        beads_ops::find_issues_for_file(&mut state, &file_path, &self.current_path);
+                        state.view = BeadsView::FileIssues;
+                    }
+                    self.modal = Modal::Beads(state);
+                } else {
+                    self.modal = Modal::Error("Beads not initialized in this project".to_string());
+                }
             }
             // Help
             KeyCode::F(1) => {
@@ -1625,6 +1639,10 @@ impl App {
                                         state.view = GitView::Config;
                                         git_ops::load_git_config(state, &path);
                                     }
+                                    GitMenuItem::Conflicts => {
+                                        state.view = GitView::Conflicts;
+                                        git_ops::load_conflict_files(state, &path);
+                                    }
                                 }
                             }
                             KeyCode::Char('s') | KeyCode::Char('S') => {
@@ -1677,6 +1695,11 @@ impl App {
                                 state.view = GitView::Config;
                                 let path = self.current_path.clone();
                                 git_ops::load_git_config(state, &path);
+                            }
+                            KeyCode::Char('x') | KeyCode::Char('X') => {
+                                state.view = GitView::Conflicts;
+                                let path = self.current_path.clone();
+                                git_ops::load_conflict_files(state, &path);
                             }
                             _ => {}
                         },
@@ -2169,6 +2192,149 @@ impl App {
                                 // Refresh
                                 let path = self.current_path.clone();
                                 git_ops::load_git_config(state, &path);
+                            }
+                            _ => {}
+                        },
+                        GitView::Conflicts => match key.code {
+                            KeyCode::Esc => {
+                                state.view = GitView::Menu;
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                // Navigate sections within current file
+                                if !state.conflict_files.is_empty() {
+                                    let file = &mut state.conflict_files[state.selected_conflict_file];
+                                    if file.selected_section > 0 {
+                                        file.selected_section -= 1;
+                                    }
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if !state.conflict_files.is_empty() {
+                                    let file = &mut state.conflict_files[state.selected_conflict_file];
+                                    if file.selected_section + 1 < file.sections.len() {
+                                        file.selected_section += 1;
+                                    }
+                                }
+                            }
+                            KeyCode::Left | KeyCode::Char('h') => {
+                                // Previous file
+                                if state.selected_conflict_file > 0 {
+                                    state.selected_conflict_file -= 1;
+                                }
+                            }
+                            KeyCode::Right | KeyCode::Char('l') => {
+                                // Next file
+                                if state.selected_conflict_file + 1 < state.conflict_files.len() {
+                                    state.selected_conflict_file += 1;
+                                }
+                            }
+                            KeyCode::Char('o') | KeyCode::Char('O') => {
+                                // Choose ours
+                                if !state.conflict_files.is_empty() {
+                                    let file_idx = state.selected_conflict_file;
+                                    let file = &state.conflict_files[file_idx];
+                                    let section_idx = file.selected_section;
+                                    let file_path = file.path.clone();
+                                    let path = self.current_path.clone();
+                                    match git_ops::resolve_conflict_section(
+                                        &file_path,
+                                        section_idx,
+                                        ConflictResolution::Ours,
+                                        &path,
+                                    ) {
+                                        Ok(_) => {
+                                            state.error = None;
+                                            // Reload conflicts
+                                            git_ops::load_conflict_files(state, &path);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('t') | KeyCode::Char('T') => {
+                                // Choose theirs
+                                if !state.conflict_files.is_empty() {
+                                    let file_idx = state.selected_conflict_file;
+                                    let file = &state.conflict_files[file_idx];
+                                    let section_idx = file.selected_section;
+                                    let file_path = file.path.clone();
+                                    let path = self.current_path.clone();
+                                    match git_ops::resolve_conflict_section(
+                                        &file_path,
+                                        section_idx,
+                                        ConflictResolution::Theirs,
+                                        &path,
+                                    ) {
+                                        Ok(_) => {
+                                            state.error = None;
+                                            git_ops::load_conflict_files(state, &path);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('b') | KeyCode::Char('B') => {
+                                // Choose both
+                                if !state.conflict_files.is_empty() {
+                                    let file_idx = state.selected_conflict_file;
+                                    let file = &state.conflict_files[file_idx];
+                                    let section_idx = file.selected_section;
+                                    let file_path = file.path.clone();
+                                    let path = self.current_path.clone();
+                                    match git_ops::resolve_conflict_section(
+                                        &file_path,
+                                        section_idx,
+                                        ConflictResolution::Both,
+                                        &path,
+                                    ) {
+                                        Ok(_) => {
+                                            state.error = None;
+                                            git_ops::load_conflict_files(state, &path);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('m') | KeyCode::Char('M') => {
+                                // Mark file as resolved
+                                if !state.conflict_files.is_empty() {
+                                    let file = &state.conflict_files[state.selected_conflict_file];
+                                    let file_path = file.path.clone();
+                                    let path = self.current_path.clone();
+                                    match git_ops::mark_conflict_resolved(&file_path, &path) {
+                                        Ok(_) => {
+                                            state.error = None;
+                                            git_ops::load_conflict_files(state, &path);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('a') | KeyCode::Char('A') => {
+                                // Abort merge
+                                let path = self.current_path.clone();
+                                match git_ops::abort_merge(&path) {
+                                    Ok(_) => {
+                                        state.error = None;
+                                        state.view = GitView::Menu;
+                                    }
+                                    Err(e) => {
+                                        state.error = Some(e);
+                                    }
+                                }
+                            }
+                            KeyCode::Char('r') | KeyCode::Char('R') => {
+                                // Refresh
+                                let path = self.current_path.clone();
+                                git_ops::load_conflict_files(state, &path);
                             }
                             _ => {}
                         },
@@ -2686,6 +2852,19 @@ impl App {
                                 state.comment_input_active = true;
                                 state.comment_input.clear();
                             }
+                            KeyCode::Char('h') | KeyCode::Char('H') => {
+                                // View issue history timeline
+                                if let Some(issue_id) = state.detail_issue.as_ref().map(|i| i.id.clone()) {
+                                    beads_ops::load_issue_activity(
+                                        state,
+                                        &issue_id,
+                                        &self.current_path,
+                                    );
+                                    state.view = BeadsView::History;
+                                    state.selected_activity = 0;
+                                    state.scroll_offset = 0;
+                                }
+                            }
                             _ => {}
                         },
                         BeadsView::Comments => {
@@ -2893,6 +3072,94 @@ impl App {
                                 _ => {}
                             }
                         }
+                        BeadsView::History => match key.code {
+                            KeyCode::Esc => {
+                                state.view = BeadsView::Detail;
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                if state.selected_activity > 0 {
+                                    state.selected_activity -= 1;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if state.selected_activity + 1 < state.activity_entries.len() {
+                                    state.selected_activity += 1;
+                                }
+                            }
+                            KeyCode::PageUp => {
+                                state.selected_activity =
+                                    state.selected_activity.saturating_sub(10);
+                            }
+                            KeyCode::PageDown => {
+                                let max = state.activity_entries.len().saturating_sub(1);
+                                state.selected_activity = (state.selected_activity + 10).min(max);
+                            }
+                            KeyCode::Home => {
+                                state.selected_activity = 0;
+                            }
+                            KeyCode::End => {
+                                if !state.activity_entries.is_empty() {
+                                    state.selected_activity =
+                                        state.activity_entries.len().saturating_sub(1);
+                                }
+                            }
+                            KeyCode::Char('r') | KeyCode::Char('R') => {
+                                // Refresh activity
+                                if let Some(issue_id) = state.detail_issue.as_ref().map(|i| i.id.clone()) {
+                                    beads_ops::load_issue_activity(
+                                        state,
+                                        &issue_id,
+                                        &self.current_path,
+                                    );
+                                }
+                            }
+                            _ => {}
+                        },
+                        BeadsView::FileIssues => match key.code {
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                if state.file_issue_selected > 0 {
+                                    state.file_issue_selected -= 1;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if state.file_issue_selected + 1 < state.file_related_issues.len() {
+                                    state.file_issue_selected += 1;
+                                }
+                            }
+                            KeyCode::Enter => {
+                                // View issue detail
+                                if !state.file_related_issues.is_empty() {
+                                    let issue_id = state.file_related_issues
+                                        [state.file_issue_selected]
+                                        .id
+                                        .clone();
+                                    let path = self.current_path.clone();
+                                    match beads_ops::load_beads_issue_detail(&issue_id, &path) {
+                                        Ok(issue) => {
+                                            state.detail_issue = Some(issue);
+                                            state.selected_subtask = 0;
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                    state.view = BeadsView::Detail;
+                                }
+                            }
+                            KeyCode::Char('r') | KeyCode::Char('R') => {
+                                // Refresh
+                                let file_path = state.file_query_path.clone();
+                                beads_ops::find_issues_for_file(
+                                    state,
+                                    &file_path,
+                                    &self.current_path,
+                                );
+                            }
+                            _ => {}
+                        },
                         BeadsView::Human | BeadsView::Doctor => match key.code {
                             KeyCode::Esc => {
                                 state.view = BeadsView::Menu;

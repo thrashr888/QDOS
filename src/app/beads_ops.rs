@@ -3,7 +3,7 @@
 //! Provides helper functions for Beads issue tracker integration in Q-DOS II.
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
-use super::state::{BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue};
+use super::state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::process::Command;
@@ -488,5 +488,203 @@ pub fn get_beads_status_info(cwd: &PathBuf) -> Option<BeadsStatusInfo> {
         open: stats.summary.open_issues,
         in_progress: stats.summary.in_progress_issues,
         ready: ready_count,
+    })
+}
+
+/// JSON structure for beads activity from bd activity --json
+#[derive(Debug, Deserialize)]
+struct BeadsJsonActivity {
+    timestamp: String,
+    #[serde(rename = "type")]
+    event_type: String,
+    #[serde(default)]
+    symbol: String,
+    #[serde(default)]
+    message: String,
+    #[serde(default)]
+    old_status: Option<String>,
+    #[serde(default)]
+    new_status: Option<String>,
+    #[serde(default)]
+    actor: Option<String>,
+}
+
+/// Load activity/history for an issue
+pub fn load_issue_activity(state: &mut BeadsState, issue_id: &str, cwd: &PathBuf) {
+    state.activity_entries.clear();
+    state.selected_activity = 0;
+    state.error = None;
+
+    let output = Command::new("bd")
+        .args(["activity", "--mol", issue_id, "--limit", "50", "--json"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if let Ok(activities) = serde_json::from_str::<Vec<BeadsJsonActivity>>(&stdout) {
+                    state.activity_entries = activities
+                        .into_iter()
+                        .map(|a| BeadsActivityEntry {
+                            timestamp: a.timestamp,
+                            event_type: a.event_type,
+                            symbol: a.symbol,
+                            message: a.message,
+                            old_status: a.old_status,
+                            new_status: a.new_status,
+                            actor: a.actor,
+                        })
+                        .collect();
+                }
+            } else {
+                state.error = Some("Failed to load activity".to_string());
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to load activity: {}", e));
+        }
+    }
+}
+
+/// Load all recent activity
+#[allow(dead_code)]
+pub fn load_recent_activity(state: &mut BeadsState, cwd: &PathBuf) {
+    state.activity_entries.clear();
+    state.selected_activity = 0;
+    state.error = None;
+
+    let output = Command::new("bd")
+        .args(["activity", "--limit", "100", "--json"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if let Ok(activities) = serde_json::from_str::<Vec<BeadsJsonActivity>>(&stdout) {
+                    state.activity_entries = activities
+                        .into_iter()
+                        .map(|a| BeadsActivityEntry {
+                            timestamp: a.timestamp,
+                            event_type: a.event_type,
+                            symbol: a.symbol,
+                            message: a.message,
+                            old_status: a.old_status,
+                            new_status: a.new_status,
+                            actor: a.actor,
+                        })
+                        .collect();
+                }
+            } else {
+                state.error = Some("Failed to load activity".to_string());
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to load activity: {}", e));
+        }
+    }
+}
+
+/// Search for issues that mention a specific file path
+pub fn find_issues_for_file(state: &mut BeadsState, file_path: &str, cwd: &PathBuf) {
+    state.file_related_issues.clear();
+    state.file_issue_selected = 0;
+    state.file_query_path = file_path.to_string();
+    state.error = None;
+
+    // Extract filename from path for broader matching
+    let filename = std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(file_path);
+
+    // Use bd search to find issues mentioning the file
+    let output = Command::new("bd")
+        .args(["search", filename, "--json"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                // Parse JSON array of issues
+                if let Ok(issues) = serde_json::from_str::<Vec<BeadsJsonIssue>>(&stdout) {
+                    state.file_related_issues = issues
+                        .into_iter()
+                        .filter(|issue| {
+                            // Check if issue title or description contains the file path or filename
+                            let title_match = issue.title.contains(file_path)
+                                || issue.title.contains(filename);
+                            let desc_match = issue
+                                .description
+                                .as_ref()
+                                .map(|d| d.contains(file_path) || d.contains(filename))
+                                .unwrap_or(false);
+                            title_match || desc_match
+                        })
+                        .map(|i| BeadsIssue {
+                            id: i.id,
+                            title: i.title,
+                            status: i.status,
+                            priority: i.priority.to_string(),
+                            issue_type: i.issue_type,
+                            description: i.description,
+                            blocked_by: i.blocked_by.unwrap_or_default(),
+                            dependents: i
+                                .dependents
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(|d| BeadsSubIssue {
+                                    id: d.id,
+                                    title: d.title,
+                                    status: d.status,
+                                    issue_type: d.issue_type,
+                                })
+                                .collect(),
+                            comments: Vec::new(),
+                        })
+                        .collect();
+                }
+            } else {
+                // If search fails, try listing all and filtering manually
+                load_beads_list(state, cwd, None);
+                let all_issues = state.issues.clone();
+                state.file_related_issues = all_issues
+                    .into_iter()
+                    .filter(|issue| {
+                        let title_match = issue.title.contains(file_path)
+                            || issue.title.contains(filename);
+                        let desc_match = issue.description.as_ref()
+                            .map(|d| d.contains(file_path) || d.contains(filename))
+                            .unwrap_or(false);
+                        title_match || desc_match
+                    })
+                    .collect();
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to search issues: {}", e));
+        }
+    }
+}
+
+/// Check if any issues mention a specific file (for highlighting)
+#[allow(dead_code)]
+pub fn file_has_issues(file_path: &str, issues: &[BeadsIssue]) -> bool {
+    let filename = std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(file_path);
+
+    issues.iter().any(|issue| {
+        issue.title.contains(file_path)
+            || issue.title.contains(filename)
+            || issue.description.as_ref()
+                .map(|d| d.contains(file_path) || d.contains(filename))
+                .unwrap_or(false)
     })
 }

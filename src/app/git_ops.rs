@@ -4,8 +4,8 @@
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
 use super::state::{
-    BlameLine, FileHistoryEntry, GitBranch, GitConfigEntry, GitFileStatus, GitLogEntry, GitRemote,
-    GitStashEntry, GitState, GitTag,
+    BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitRemote, GitStashEntry, GitState, GitTag,
 };
 use std::path::PathBuf;
 use std::process::Command;
@@ -1085,4 +1085,230 @@ pub fn load_git_config(state: &mut GitState, cwd: &PathBuf) {
 
     // Sort by key for easier reading
     state.config_entries.sort_by(|a, b| a.key.cmp(&b.key));
+}
+
+// ============================================================
+// Conflict Resolution Operations
+// ============================================================
+
+/// Check if there are merge conflicts
+#[allow(dead_code)]
+pub fn has_conflicts(cwd: &PathBuf) -> bool {
+    let output = Command::new("git")
+        .args(["diff", "--name-only", "--diff-filter=U"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            output.status.success() && !output.stdout.is_empty()
+        }
+        Err(_) => false,
+    }
+}
+
+/// Load list of conflicting files
+pub fn load_conflict_files(state: &mut GitState, cwd: &PathBuf) {
+    state.conflict_files.clear();
+    state.selected_conflict_file = 0;
+    state.error = None;
+
+    let output = Command::new("git")
+        .args(["diff", "--name-only", "--diff-filter=U"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for path in stdout.lines() {
+                    if !path.is_empty() {
+                        // Parse conflict sections for this file
+                        let sections = parse_conflict_sections(cwd, path);
+                        state.conflict_files.push(ConflictFile {
+                            path: path.to_string(),
+                            sections,
+                            selected_section: 0,
+                        });
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to check conflicts: {}", e));
+        }
+    }
+}
+
+/// Parse conflict sections from a file
+fn parse_conflict_sections(cwd: &PathBuf, file_path: &str) -> Vec<ConflictSection> {
+    let full_path = cwd.join(file_path);
+    let content = match std::fs::read_to_string(&full_path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut sections = Vec::new();
+    let mut in_conflict = false;
+    let mut in_ours = false;
+    let mut current_section: Option<ConflictSection> = None;
+
+    for (line_num, line) in content.lines().enumerate() {
+        if line.starts_with("<<<<<<<") {
+            in_conflict = true;
+            in_ours = true;
+            current_section = Some(ConflictSection {
+                start_line: line_num + 1,
+                ours: Vec::new(),
+                theirs: Vec::new(),
+                resolved: None,
+            });
+        } else if line.starts_with("=======") && in_conflict {
+            in_ours = false;
+        } else if line.starts_with(">>>>>>>") && in_conflict {
+            if let Some(section) = current_section.take() {
+                sections.push(section);
+            }
+            in_conflict = false;
+        } else if in_conflict {
+            if let Some(ref mut section) = current_section {
+                if in_ours {
+                    section.ours.push(line.to_string());
+                } else {
+                    section.theirs.push(line.to_string());
+                }
+            }
+        }
+    }
+
+    sections
+}
+
+/// Resolve a conflict section with specified resolution
+pub fn resolve_conflict_section(
+    file_path: &str,
+    section_idx: usize,
+    resolution: ConflictResolution,
+    cwd: &PathBuf,
+) -> Result<String, String> {
+    let full_path = cwd.join(file_path);
+    let content = std::fs::read_to_string(&full_path)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+
+    let mut new_content = String::new();
+    let mut in_conflict = false;
+    let mut in_ours = false;
+    let mut current_section_idx = 0;
+    let mut ours_lines: Vec<String> = Vec::new();
+    let mut theirs_lines: Vec<String> = Vec::new();
+
+    for line in content.lines() {
+        if line.starts_with("<<<<<<<") {
+            in_conflict = true;
+            in_ours = true;
+            ours_lines.clear();
+            theirs_lines.clear();
+        } else if line.starts_with("=======") && in_conflict {
+            in_ours = false;
+        } else if line.starts_with(">>>>>>>") && in_conflict {
+            // End of conflict - apply resolution if this is the target section
+            if current_section_idx == section_idx {
+                match resolution {
+                    ConflictResolution::Ours => {
+                        for l in &ours_lines {
+                            new_content.push_str(l);
+                            new_content.push('\n');
+                        }
+                    }
+                    ConflictResolution::Theirs => {
+                        for l in &theirs_lines {
+                            new_content.push_str(l);
+                            new_content.push('\n');
+                        }
+                    }
+                    ConflictResolution::Both => {
+                        for l in &ours_lines {
+                            new_content.push_str(l);
+                            new_content.push('\n');
+                        }
+                        for l in &theirs_lines {
+                            new_content.push_str(l);
+                            new_content.push('\n');
+                        }
+                    }
+                }
+            } else {
+                // Keep the conflict markers for unresolved sections
+                new_content.push_str("<<<<<<<\n");
+                for l in &ours_lines {
+                    new_content.push_str(l);
+                    new_content.push('\n');
+                }
+                new_content.push_str("=======\n");
+                for l in &theirs_lines {
+                    new_content.push_str(l);
+                    new_content.push('\n');
+                }
+                new_content.push_str(">>>>>>>\n");
+            }
+            current_section_idx += 1;
+            in_conflict = false;
+        } else if in_conflict {
+            if in_ours {
+                ours_lines.push(line.to_string());
+            } else {
+                theirs_lines.push(line.to_string());
+            }
+        } else {
+            new_content.push_str(line);
+            new_content.push('\n');
+        }
+    }
+
+    // Write the resolved content back
+    std::fs::write(&full_path, &new_content)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(format!("Resolved conflict {} in {}", section_idx + 1, file_path))
+}
+
+/// Mark a file as resolved (stage it)
+pub fn mark_conflict_resolved(file_path: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["add", file_path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Marked {} as resolved", file_path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to stage: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Abort the current merge
+pub fn abort_merge(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["merge", "--abort"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Merge aborted".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to abort: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
 }

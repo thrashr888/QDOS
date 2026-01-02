@@ -25,10 +25,66 @@ use crossterm::{
 use ratatui::prelude::*;
 use std::io;
 
+fn print_help() {
+    let version = env!("CARGO_PKG_VERSION");
+    println!(
+        r#"rdos - Q-DOS II File Manager v{}
+
+A modern TUI file manager inspired by Q-DOS, with Git and Beads integration.
+
+USAGE:
+    rdos [OPTIONS] [PATH]
+
+ARGUMENTS:
+    [PATH]    Starting directory (defaults to current directory)
+
+OPTIONS:
+    -h, --help       Show this help message
+    -v, --version    Show version information
+
+KEYBOARD SHORTCUTS:
+    F1-F8           Quick navigation menu items
+    G               Open Git menu
+    B               Open Beads issue tracker
+    V               View selected file
+    Enter           Enter directory / execute action
+    Space           Tag/untag file
+    Tab             Toggle directory panels
+    Esc             Cancel / close modal
+    Q / Ctrl+C      Quit
+
+For more information, see the in-app help (F10 or ?).
+
+Repository: https://github.com/thrashr888/QDOS"#,
+        version
+    );
+}
+
+fn print_version() {
+    let version = env!("CARGO_PKG_VERSION");
+    println!("rdos v{}", version);
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Check for help/version flags
+    let args: Vec<String> = std::env::args().collect();
+    for arg in &args[1..] {
+        match arg.as_str() {
+            "-h" | "--help" => {
+                print_help();
+                return Ok(());
+            }
+            "-v" | "--version" => {
+                print_version();
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+
     // Get starting directory from args or use current directory
-    let start_path = std::env::args().nth(1).unwrap_or_else(|| {
+    let start_path = args.get(1).cloned().unwrap_or_else(|| {
         std::env::current_dir()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|_| ".".to_string())
