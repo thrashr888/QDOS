@@ -264,6 +264,228 @@ impl Default for ShellCommandState {
     }
 }
 
+/// Directory tree node for Directory Map
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DirTreeNode {
+    pub name: String,
+    pub path: PathBuf,
+    pub expanded: bool,
+    pub children: Vec<DirTreeNode>,
+    pub depth: usize,
+}
+
+impl DirTreeNode {
+    pub fn new(name: String, path: PathBuf, depth: usize) -> Self {
+        Self {
+            name,
+            path,
+            expanded: false,
+            children: Vec::new(),
+            depth,
+        }
+    }
+
+    /// Load immediate children (one level deep)
+    pub fn load_children(&mut self) {
+        if !self.children.is_empty() {
+            return; // Already loaded
+        }
+        if let Ok(entries) = fs::read_dir(&self.path) {
+            let mut dirs: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_dir())
+                .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+                .map(|e| DirTreeNode::new(
+                    e.file_name().to_string_lossy().to_string(),
+                    e.path(),
+                    self.depth + 1,
+                ))
+                .collect();
+            dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+            self.children = dirs;
+        }
+    }
+}
+
+/// Directory Map state
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DirectoryMapState {
+    pub root: DirTreeNode,
+    pub selected_index: usize,
+    pub flat_list: Vec<(PathBuf, usize, bool, bool)>, // (path, depth, expanded, has_children)
+    pub input_mode: Option<String>, // For make directory input
+    pub input_buffer: String,
+    pub confirm_delete: Option<PathBuf>, // For delete confirmation
+}
+
+impl DirectoryMapState {
+    pub fn new(start_path: &PathBuf) -> Self {
+        // Find root (or use home/current)
+        let root_path = if let Some(root) = start_path.ancestors().last() {
+            root.to_path_buf()
+        } else {
+            start_path.clone()
+        };
+
+        let mut root = DirTreeNode::new(
+            root_path.to_string_lossy().to_string(),
+            root_path,
+            0,
+        );
+        root.expanded = true;
+        root.load_children();
+
+        // Expand path to current directory
+        let mut state = Self {
+            root,
+            selected_index: 0,
+            flat_list: Vec::new(),
+            input_mode: None,
+            input_buffer: String::new(),
+            confirm_delete: None,
+        };
+        state.expand_to_path(start_path);
+        state.rebuild_flat_list();
+
+        // Select the start path
+        if let Some(idx) = state.flat_list.iter().position(|(p, _, _, _)| p == start_path) {
+            state.selected_index = idx;
+        }
+
+        state
+    }
+
+    /// Expand all directories from root to the given path
+    fn expand_to_path(&mut self, target: &PathBuf) {
+        let ancestors: Vec<_> = target.ancestors().collect();
+        for ancestor in ancestors.into_iter().rev() {
+            self.expand_path_in_tree(&mut self.root.clone(), &ancestor.to_path_buf());
+        }
+    }
+
+    fn expand_path_in_tree(&mut self, _node: &DirTreeNode, target: &PathBuf) {
+        // Recursive expand - simplified version
+        fn expand_recursive(node: &mut DirTreeNode, target: &PathBuf) {
+            if target.starts_with(&node.path) {
+                node.expanded = true;
+                node.load_children();
+                for child in &mut node.children {
+                    expand_recursive(child, target);
+                }
+            }
+        }
+        expand_recursive(&mut self.root, target);
+    }
+
+    /// Rebuild flat list from tree for display
+    pub fn rebuild_flat_list(&mut self) {
+        self.flat_list.clear();
+        fn flatten(node: &DirTreeNode, list: &mut Vec<(PathBuf, usize, bool, bool)>) {
+            let has_children = !node.children.is_empty() || {
+                // Check if directory has subdirs
+                fs::read_dir(&node.path)
+                    .map(|entries| entries
+                        .filter_map(|e| e.ok())
+                        .any(|e| e.path().is_dir() && !e.file_name().to_string_lossy().starts_with('.')))
+                    .unwrap_or(false)
+            };
+            list.push((node.path.clone(), node.depth, node.expanded, has_children));
+            if node.expanded {
+                for child in &node.children {
+                    flatten(child, list);
+                }
+            }
+        }
+        flatten(&self.root, &mut self.flat_list);
+    }
+
+    /// Toggle expand/collapse at index
+    pub fn toggle_expand(&mut self, index: usize) {
+        if index >= self.flat_list.len() {
+            return;
+        }
+        let (path, _, expanded, _) = &self.flat_list[index];
+        let path = path.clone();
+        let expanded = *expanded;
+
+        fn toggle_in_tree(node: &mut DirTreeNode, target: &PathBuf, expand: bool) -> bool {
+            if node.path == *target {
+                node.expanded = expand;
+                if expand {
+                    node.load_children();
+                }
+                return true;
+            }
+            for child in &mut node.children {
+                if toggle_in_tree(child, target, expand) {
+                    return true;
+                }
+            }
+            false
+        }
+
+        toggle_in_tree(&mut self.root, &path, !expanded);
+        self.rebuild_flat_list();
+    }
+
+    /// Get currently selected path
+    pub fn selected_path(&self) -> Option<PathBuf> {
+        self.flat_list.get(self.selected_index).map(|(p, _, _, _)| p.clone())
+    }
+}
+
+/// Find file search state
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FindState {
+    /// Search pattern (e.g., "*.txt", "foo*")
+    pub pattern: String,
+    /// Whether to pause on each match
+    pub pause_on_match: bool,
+    /// Current phase: InputPattern, AskPause, Searching, ShowResult, NoResults
+    pub phase: FindPhase,
+    /// Found matches: (path, display_string)
+    pub matches: Vec<(PathBuf, String)>,
+    /// Current match index (when pausing)
+    pub current_match: usize,
+    /// Scroll offset for results list
+    pub scroll_offset: usize,
+    /// Last search pattern (for Ctrl+R recall)
+    pub last_pattern: String,
+    /// Is search complete?
+    pub search_complete: bool,
+}
+
+/// Find command phases
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FindPhase {
+    InputPattern,
+    AskPause,
+    Searching,
+    ShowResult,
+    ShowAllResults,
+    NoResults,
+}
+
+impl FindState {
+    pub fn new(last_pattern: String) -> Self {
+        Self {
+            pattern: String::new(),
+            pause_on_match: true,
+            phase: FindPhase::InputPattern,
+            matches: Vec::new(),
+            current_match: 0,
+            scroll_offset: 0,
+            last_pattern,
+            search_complete: false,
+        }
+    }
+
+    /// Get current match
+    pub fn current_result(&self) -> Option<&(PathBuf, String)> {
+        self.matches.get(self.current_match)
+    }
+}
+
 /// Active modal dialog
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modal {
@@ -282,6 +504,8 @@ pub enum Modal {
     RenameInput(String),
     ShellCommand(ShellCommandState),
     FileViewer(FileViewerState),
+    DirectoryMap(DirectoryMapState),
+    Find(FindState),
 }
 
 /// Application state
@@ -308,6 +532,8 @@ pub struct App {
     pub search_spec: String,
     /// Navigation history
     pub history: Vec<PathBuf>,
+    /// Last find pattern (for Ctrl+R recall)
+    pub last_find_pattern: String,
 }
 
 impl App {
@@ -327,6 +553,7 @@ impl App {
             should_quit: false,
             search_spec: "*.*".to_string(),
             history: Vec::new(),
+            last_find_pattern: String::new(),
         })
     }
 
@@ -757,6 +984,163 @@ impl App {
                     _ => {}
                 }
             }
+            Modal::DirectoryMap(ref mut state) => {
+                // Handle delete confirmation mode
+                if let Some(ref path_to_delete) = state.confirm_delete.clone() {
+                    match key.code {
+                        KeyCode::Char('y') | KeyCode::Char('Y') => {
+                            // Confirmed - delete the directory
+                            match fs::remove_dir(&path_to_delete) {
+                                Ok(()) => {
+                                    // Refresh tree
+                                    let parent_idx = if state.selected_index > 0 {
+                                        state.selected_index - 1
+                                    } else {
+                                        0
+                                    };
+                                    state.confirm_delete = None;
+                                    state.rebuild_flat_list();
+                                    state.selected_index = parent_idx.min(state.flat_list.len().saturating_sub(1));
+                                }
+                                Err(e) => {
+                                    state.confirm_delete = None;
+                                    self.modal = Modal::Error(format!("Cannot remove directory: {}", e));
+                                    return Ok(());
+                                }
+                            }
+                        }
+                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                            // Cancelled
+                            state.confirm_delete = None;
+                        }
+                        _ => {}
+                    }
+                }
+                // Handle input mode (for make directory)
+                else if state.input_mode.is_some() {
+                    match key.code {
+                        KeyCode::Enter => {
+                            let dir_name = state.input_buffer.clone();
+                            if !dir_name.is_empty() {
+                                if let Some(parent_path) = state.selected_path() {
+                                    let new_dir = parent_path.join(&dir_name);
+                                    match fs::create_dir(&new_dir) {
+                                        Ok(()) => {
+                                            // Refresh the tree
+                                            state.input_mode = None;
+                                            state.input_buffer.clear();
+                                            // Reload children of selected node
+                                            state.toggle_expand(state.selected_index);
+                                            state.toggle_expand(state.selected_index);
+                                        }
+                                        Err(e) => {
+                                            state.input_mode = None;
+                                            state.input_buffer.clear();
+                                            self.modal = Modal::Error(format!("Failed to create directory: {}", e));
+                                            return Ok(());
+                                        }
+                                    }
+                                }
+                            }
+                            state.input_mode = None;
+                            state.input_buffer.clear();
+                        }
+                        KeyCode::Esc => {
+                            state.input_mode = None;
+                            state.input_buffer.clear();
+                        }
+                        KeyCode::Backspace => {
+                            state.input_buffer.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            state.input_buffer.push(c);
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        KeyCode::Esc => {
+                            self.modal = Modal::None;
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            if state.selected_index > 0 {
+                                state.selected_index -= 1;
+                            }
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            if state.selected_index + 1 < state.flat_list.len() {
+                                state.selected_index += 1;
+                            }
+                        }
+                        KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
+                            // Navigate to directory or expand
+                            if let Some((_, _, expanded, has_children)) = state.flat_list.get(state.selected_index) {
+                                if *has_children && !*expanded {
+                                    state.toggle_expand(state.selected_index);
+                                } else if let Some(path) = state.selected_path() {
+                                    // Navigate to the selected directory
+                                    let path = path.clone();
+                                    self.modal = Modal::None;
+                                    let _ = self.navigate_to(&path);
+                                }
+                            }
+                        }
+                        KeyCode::Left | KeyCode::Char('h') | KeyCode::Backspace => {
+                            // Collapse if expanded, otherwise go to parent
+                            if let Some((_, _, expanded, _)) = state.flat_list.get(state.selected_index) {
+                                if *expanded {
+                                    state.toggle_expand(state.selected_index);
+                                } else if state.selected_index > 0 {
+                                    // Find parent (look for item with depth - 1)
+                                    let current_depth = state.flat_list.get(state.selected_index)
+                                        .map(|(_, d, _, _)| *d)
+                                        .unwrap_or(0);
+                                    if current_depth > 0 {
+                                        for i in (0..state.selected_index).rev() {
+                                            if let Some((_, d, _, _)) = state.flat_list.get(i) {
+                                                if *d < current_depth {
+                                                    state.selected_index = i;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        KeyCode::Char('m') | KeyCode::Char('M') => {
+                            // Make directory mode
+                            state.input_mode = Some("New directory name".to_string());
+                            state.input_buffer.clear();
+                        }
+                        KeyCode::Char('d') | KeyCode::Char('D') => {
+                            // Request delete confirmation
+                            if let Some(path) = state.selected_path() {
+                                // Don't allow deleting root
+                                if path != state.root.path {
+                                    state.confirm_delete = Some(path);
+                                }
+                            }
+                        }
+                        KeyCode::Home => {
+                            state.selected_index = 0;
+                        }
+                        KeyCode::End => {
+                            state.selected_index = state.flat_list.len().saturating_sub(1);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            Modal::Find(_state) => {
+                // TODO: Implement Find modal key handling
+                match key.code {
+                    KeyCode::Esc => {
+                        self.modal = Modal::None;
+                    }
+                    _ => {}
+                }
+            }
             Modal::Help | Modal::Status(_) | Modal::SearchSpec | Modal::Space
             | Modal::Error(_) | Modal::Success(_) => {
                 match key.code {
@@ -869,8 +1253,9 @@ impl App {
         let nav_item = NavItem::ALL[self.nav_index];
         match nav_item {
             NavItem::Directory => {
-                let path = self.current_path.to_string_lossy().to_string();
-                self.modal = Modal::PathInput(path);
+                // Open Directory Map tree view
+                let state = DirectoryMapState::new(&self.current_path);
+                self.modal = Modal::DirectoryMap(state);
             }
             NavItem::Tag => {
                 self.toggle_tag();

@@ -28,6 +28,19 @@ A detailed specification for recreating Q-DOS II as a modern Rust TUI applicatio
 
 ---
 
+## Design Principles
+
+### Destructive Action Confirmation
+All destructive actions (delete, erase, overwrite, etc.) MUST require explicit user confirmation before execution. This includes:
+- Directory deletion
+- File erasure
+- Overwriting existing files during copy/move
+- Any operation that cannot be undone
+
+The original Q-DOS II had a configurable "Confirm Delete" option in QDSTART. R-DOS defaults to requiring confirmation, with the option to disable it via settings (when implemented).
+
+---
+
 ## 1. Screen Layout (80x25)
 
 ### 1.1 Main Screen Structure

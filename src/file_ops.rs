@@ -419,6 +419,94 @@ pub fn get_disk_space(path: &PathBuf) -> Result<(u64, u64)> {
     Ok((0, 0))
 }
 
+/// Match a filename against a DOS-style wildcard pattern
+/// Supports * (any characters) and ? (single character)
+pub fn match_pattern(name: &str, pattern: &str) -> bool {
+    let name = name.to_lowercase();
+    let pattern = pattern.to_lowercase();
+
+    // Split name and pattern into base and extension
+    let (name_base, name_ext) = if let Some(pos) = name.rfind('.') {
+        (&name[..pos], &name[pos + 1..])
+    } else {
+        (name.as_str(), "")
+    };
+
+    let (pat_base, pat_ext) = if let Some(pos) = pattern.rfind('.') {
+        (&pattern[..pos], &pattern[pos + 1..])
+    } else {
+        // If no extension in pattern, match any extension
+        (pattern.as_str(), "*")
+    };
+
+    match_wildcard(name_base, pat_base) && match_wildcard(name_ext, pat_ext)
+}
+
+/// Match a string against a wildcard pattern
+fn match_wildcard(s: &str, pattern: &str) -> bool {
+    let s_chars: Vec<char> = s.chars().collect();
+    let p_chars: Vec<char> = pattern.chars().collect();
+
+    fn helper(s: &[char], p: &[char]) -> bool {
+        match (s.is_empty(), p.is_empty()) {
+            (true, true) => true,
+            (_, true) => false,
+            (true, false) => p.iter().all(|&c| c == '*'),
+            (false, false) => {
+                match p[0] {
+                    '*' => {
+                        // * matches zero or more characters
+                        helper(s, &p[1..]) || helper(&s[1..], p)
+                    }
+                    '?' => {
+                        // ? matches exactly one character
+                        helper(&s[1..], &p[1..])
+                    }
+                    c => {
+                        // Exact character match
+                        s[0].to_ascii_lowercase() == c.to_ascii_lowercase() && helper(&s[1..], &p[1..])
+                    }
+                }
+            }
+        }
+    }
+
+    helper(&s_chars, &p_chars)
+}
+
+/// Recursively find files matching a pattern
+/// Returns a list of (full_path, display_string) tuples
+pub fn find_files_recursive(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
+    let mut results = Vec::new();
+    find_files_recursive_impl(root, pattern, &mut results);
+    results
+}
+
+fn find_files_recursive_impl(dir: &PathBuf, pattern: &str, results: &mut Vec<(PathBuf, String)>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+
+            // Skip hidden files/dirs (starting with .)
+            if name.starts_with('.') {
+                continue;
+            }
+
+            if path.is_dir() {
+                // Recurse into subdirectories
+                find_files_recursive_impl(&path, pattern, results);
+            } else {
+                // Check if file matches pattern
+                if match_pattern(&name, pattern) {
+                    let display = format!("{} - {}", name, path.parent().unwrap_or(&path).display());
+                    results.push((path, display));
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,4 +1,4 @@
-use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode};
+use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode, DirectoryMapState};
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
@@ -631,6 +631,13 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
         Modal::ShellCommand(state) => draw_shell_command(frame, area, state, app),
         Modal::FileViewer(state) => draw_file_viewer(frame, area, state),
+        Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
+        Modal::Find(_state) => {
+            // TODO: Implement Find modal UI
+            let msg = Paragraph::new("Find - Coming Soon (press ESC to close)")
+                .style(Style::default().fg(COLOR_FG).bg(COLOR_BG));
+            frame.render_widget(msg, modal_area);
+        }
         Modal::None => {}
     }
 }
@@ -1659,4 +1666,102 @@ fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+/// Draw the Directory Map modal (tree view)
+fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) {
+    // Clear the entire screen
+    frame.render_widget(Clear, area);
+
+    // Layout: title bar, separator, tree content, separator, help/input
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title bar
+            Constraint::Length(1),  // Separator
+            Constraint::Min(5),     // Tree content
+            Constraint::Length(1),  // Separator
+            Constraint::Length(1),  // Help/input line
+        ])
+        .split(area);
+
+    // Title bar
+    let title = " DIRECTORY MAP - Tree View ";
+    frame.render_widget(
+        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        chunks[0],
+    );
+
+    // Separator (double line)
+    let sep = "═".repeat(area.width as usize);
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
+        chunks[1],
+    );
+
+    // Tree content area
+    let tree_area = chunks[2];
+    let visible_height = tree_area.height as usize;
+
+    // Calculate scroll position to keep selected item visible
+    let scroll_offset = if state.selected_index >= visible_height {
+        state.selected_index - visible_height + 1
+    } else {
+        0
+    };
+
+    // Render tree lines
+    let mut lines: Vec<Line> = Vec::new();
+    for (i, (path, depth, expanded, has_children)) in state.flat_list.iter().enumerate().skip(scroll_offset).take(visible_height) {
+        let is_selected = i == state.selected_index;
+
+        // Build the tree line with indentation and expand/collapse indicator
+        let indent = "  ".repeat(*depth);
+        let indicator = if *has_children {
+            if *expanded { "▼ " } else { "▶ " }
+        } else {
+            "  "
+        };
+
+        // Get the directory name (last component of path)
+        let name = path.file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string());
+
+        let line_text = format!("{}{}{}", indent, indicator, name);
+
+        let style = if is_selected {
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+        } else {
+            Style::default().fg(COLOR_FG)
+        };
+
+        // Pad to full width for selection highlighting
+        let padded = format!("{:<width$}", line_text, width = tree_area.width as usize);
+        lines.push(Line::from(Span::styled(padded, style)));
+    }
+
+    frame.render_widget(Paragraph::new(lines), tree_area);
+
+    // Bottom separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
+        chunks[3],
+    );
+
+    // Help/input line
+    let (help_text, help_style) = if let Some(ref path) = state.confirm_delete {
+        let dir_name = path.file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string());
+        (format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name), Style::default().fg(COLOR_YELLOW))
+    } else if let Some(ref mode) = state.input_mode {
+        (format!("{}: {}█", mode, state.input_buffer), Style::default().fg(COLOR_GREEN))
+    } else {
+        ("↑↓ Navigate  Enter/→ Expand  ←/Backspace Collapse  M Make Dir  D Delete Dir  ESC Close".to_string(), Style::default().fg(COLOR_GREEN))
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(help_text, help_style)),
+        chunks[4],
+    );
 }
