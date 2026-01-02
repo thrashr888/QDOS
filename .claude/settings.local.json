@@ -14,7 +14,9 @@
       "Bash(bd close:*)",
       "Bash(bd sync:*)",
       "Bash(cargo run:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo clippy:*)"
     ]
   }
 }
