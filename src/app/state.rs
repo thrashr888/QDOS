@@ -1502,10 +1502,11 @@ pub enum GitMenuItem {
     Tag,
     Config,
     Conflicts,
+    Submodules,
 }
 
 impl GitMenuItem {
-    pub const ALL: [GitMenuItem; 11] = [
+    pub const ALL: [GitMenuItem; 12] = [
         GitMenuItem::Status,
         GitMenuItem::Log,
         GitMenuItem::Diff,
@@ -1517,6 +1518,7 @@ impl GitMenuItem {
         GitMenuItem::Tag,
         GitMenuItem::Config,
         GitMenuItem::Conflicts,
+        GitMenuItem::Submodules,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -1531,6 +1533,7 @@ impl GitMenuItem {
             GitMenuItem::Stash => "Stash",
             GitMenuItem::Tag => "Tag",
             GitMenuItem::Config => "Config",
+            GitMenuItem::Submodules => "Submodules",
             GitMenuItem::Conflicts => "Conflicts",
         }
     }
@@ -1692,6 +1695,10 @@ pub struct GitState {
     pub conflict_files: Vec<ConflictFile>,
     /// Selected conflict file
     pub selected_conflict_file: usize,
+    /// Submodules list
+    pub submodules: Vec<GitSubmodule>,
+    /// Selected submodule
+    pub selected_submodule: usize,
 }
 
 /// Git view type
@@ -1709,6 +1716,7 @@ pub enum GitView {
     Remote,
     Config,
     Conflicts,
+    Submodules,
 }
 
 /// Git config entry
@@ -1726,6 +1734,27 @@ pub struct GitLogEntry {
     pub author: String,
     pub date: String,
     pub message: String,
+}
+
+/// Git submodule entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitSubmodule {
+    pub name: String,
+    pub path: String,
+    pub url: String,
+    pub status: SubmoduleStatus,
+    pub commit: String,
+}
+
+/// Submodule status
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SubmoduleStatus {
+    #[default]
+    Uninitialized,
+    Initialized,
+    OutOfDate,
+    Modified,
+    Conflict,
 }
 
 impl Default for GitState {
@@ -1763,6 +1792,8 @@ impl Default for GitState {
             selected_config: 0,
             conflict_files: Vec::new(),
             selected_conflict_file: 0,
+            submodules: Vec::new(),
+            selected_submodule: 0,
         }
     }
 }
