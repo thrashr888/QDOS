@@ -15,6 +15,17 @@
       "Bash(bd sync:*)",
       "Bash(cargo run:*)",
       "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo clippy:*)"
     ]
