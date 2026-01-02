@@ -1394,3 +1394,283 @@ When Git menu is active:
 - [ ] Git configuration viewer/editor
 - [ ] Submodule support
 - [ ] Tag management
+
+---
+
+## 15. Beads Integration
+
+R-DOS provides integrated support for the Beads issue tracker, allowing project management directly from the file manager.
+
+### 15.1 Beads Detection
+
+When navigating to a directory containing a `.beads/` folder, R-DOS automatically detects it as a Beads-enabled project and shows an indicator in the status bar:
+
+```
+ C:\PROJECT                           [BEADS: 5 open, 2 ready]    12 Files
+```
+
+### 15.2 Beads Menu
+
+New top-level menu item `Beads` (press `B`) for issue tracking operations:
+
+```
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Git  Beads
+Issue tracking and project management
+```
+
+**Beads Submenu:**
+
+| Item | Description |
+|------|-------------|
+| List | Show all issues (with filters) |
+| Ready | Show ready-to-work issues |
+| Blocked | Show blocked issues |
+| Create | Create new issue |
+| Stats | Show project statistics |
+| Sync | Sync with git remote |
+
+### 15.3 Issue List Screen
+
+**Main issue list (press L or enter Beads menu):**
+```
+                         R-DOS Beads Issues
+═══════════════════════════════════════════════════════════════════════════════
+ Project: /home/user/project                              Filter: [open] [all]
+
+ ID         Pri  Type     Status       Title
+ ─────────────────────────────────────────────────────────────────────────────
+ PROJ-abc   P1   bug      in_progress  Fix critical login issue
+ PROJ-def   P2   feature  open         Add user preferences
+ PROJ-ghi   P2   task     open         Update documentation
+ PROJ-jkl   P3   feature  blocked      Implement dark mode
+ PROJ-mno   P4   task     open         Cleanup unused code
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Navigate  ENTER Details  N New  F Filter  R Ready  B Blocked  S Sync  ESC
+```
+
+**Color coding:**
+| Element | Color |
+|---------|-------|
+| P0/P1 (Critical/High) | Red |
+| P2 (Medium) | Yellow |
+| P3 (Low) | White |
+| P4 (Backlog) | Grey |
+| in_progress | Cyan |
+| blocked | Magenta |
+| closed | Grey/strikethrough |
+
+### 15.4 Issue Detail Screen
+
+**View issue details (press ENTER on issue):**
+```
+                         R-DOS Issue Details
+═══════════════════════════════════════════════════════════════════════════════
+ PROJ-abc: Fix critical login issue
+
+ Status: in_progress          Priority: P1 (High)
+ Type: bug                    Assignee: thrashr888
+ Created: 2026-01-02          Updated: 2026-01-02
+
+ ───────────────────────────────────────────────────────────────────────────────
+ Description:
+
+ Users are unable to log in when using special characters in their password.
+ This affects all authentication flows.
+
+ ───────────────────────────────────────────────────────────────────────────────
+ Dependencies:
+   Blocks: PROJ-jkl (Implement dark mode)
+
+ ───────────────────────────────────────────────────────────────────────────────
+ Comments (2):
+   [2026-01-02 10:30] thrashr888: Started investigation
+   [2026-01-02 14:15] thrashr888: Found root cause in auth.rs
+
+═══════════════════════════════════════════════════════════════════════════════
+ E Edit  S Status  P Priority  A Assign  C Comment  D Dependencies  X Close  ESC
+```
+
+### 15.5 Create Issue Screen
+
+**Create new issue (press N):**
+```
+                         R-DOS Create Issue
+═══════════════════════════════════════════════════════════════════════════════
+
+ Title: _______________________________________________
+
+ Type:     ( ) task    (•) feature    ( ) bug    ( ) epic
+
+ Priority: ( ) P0-Critical  ( ) P1-High  (•) P2-Medium  ( ) P3-Low  ( ) P4-Backlog
+
+ Description:
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │                                                                             │
+ │                                                                             │
+ │                                                                             │
+ └─────────────────────────────────────────────────────────────────────────────┘
+
+ Assignee: [none]                    Parent Epic: [none]
+
+═══════════════════════════════════════════════════════════════════════════════
+ TAB Next field  ENTER Create  ESC Cancel
+```
+
+### 15.6 Ready/Blocked Views
+
+**Ready issues (press R):**
+```
+                         R-DOS Ready Issues
+═══════════════════════════════════════════════════════════════════════════════
+ 📋 Ready work (3 issues with no blockers):
+
+ 1. [P1] [bug]     PROJ-abc: Fix critical login issue
+ 2. [P2] [feature] PROJ-def: Add user preferences
+ 3. [P2] [task]    PROJ-ghi: Update documentation
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Navigate  ENTER Start working (set in_progress)  ESC back
+```
+
+**Blocked issues (press B in Beads menu):**
+```
+                         R-DOS Blocked Issues
+═══════════════════════════════════════════════════════════════════════════════
+ 🚫 Blocked issues (2):
+
+ [P3] PROJ-jkl: Implement dark mode
+   Blocked by: PROJ-abc (Fix critical login issue)
+
+ [P2] PROJ-xyz: Deploy to production
+   Blocked by: PROJ-def (Add user preferences), PROJ-ghi (Update docs)
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Navigate  ENTER View blocker  ESC back
+```
+
+### 15.7 Project Statistics
+
+**Stats screen (press S in Beads menu):**
+```
+                         R-DOS Project Stats
+═══════════════════════════════════════════════════════════════════════════════
+ Project: my-project
+
+ Issues by Status:              Issues by Type:
+ ├─ Open:        12             ├─ Features:  8
+ ├─ In Progress:  3             ├─ Bugs:      4
+ ├─ Blocked:      2             ├─ Tasks:     5
+ └─ Closed:      45             └─ Epics:     2
+
+ Issues by Priority:            Recent Activity:
+ ├─ P0 Critical:  0             ├─ Created today:    2
+ ├─ P1 High:      2             ├─ Updated today:    5
+ ├─ P2 Medium:    8             └─ Closed this week: 3
+ ├─ P3 Low:       5
+ └─ P4 Backlog:   2
+
+ Epics Progress:
+ ├─ Git Integration [████████░░] 80% (8/10)
+ └─ UI Improvements [███░░░░░░░] 30% (3/10)
+
+═══════════════════════════════════════════════════════════════════════════════
+ ESC to return
+```
+
+### 15.8 Quick Actions
+
+**From file list, with issue context:**
+- When viewing files, issues mentioning the current file/directory are highlighted
+- Press `I` on a file to see related issues
+- Quick status updates without leaving file browser
+
+**Keyboard shortcuts in Beads screens:**
+
+| Key | Action |
+|-----|--------|
+| N | Create new issue |
+| E | Edit selected issue |
+| S | Change status (cycle: open → in_progress → closed) |
+| P | Change priority |
+| A | Assign/unassign |
+| C | Add comment |
+| D | Manage dependencies |
+| X | Close issue |
+| Y | Sync with remote |
+| / | Search/filter issues |
+
+### 15.9 Implementation Notes
+
+**Beads Detection:**
+```rust
+fn has_beads(path: &Path) -> bool {
+    path.join(".beads").is_dir()
+}
+
+fn get_beads_stats(path: &Path) -> Option<BeadsStats> {
+    let output = Command::new("bd")
+        .args(["stats", "--json"])
+        .current_dir(path)
+        .output()
+        .ok()?;
+    serde_json::from_slice(&output.stdout).ok()
+}
+```
+
+**Issue Listing:**
+```rust
+fn get_issues(path: &Path, filter: &IssueFilter) -> Vec<Issue> {
+    let mut args = vec!["list", "--json"];
+    if let Some(status) = &filter.status {
+        args.extend(["--status", status]);
+    }
+    let output = Command::new("bd")
+        .args(&args)
+        .current_dir(path)
+        .output()?;
+    serde_json::from_slice(&output.stdout)?
+}
+```
+
+**Status Bar Integration:**
+```rust
+fn render_status_bar(path: &Path) -> String {
+    if has_beads(path) {
+        let stats = get_beads_stats(path);
+        format!("[BEADS: {} open, {} ready]", stats.open, stats.ready)
+    } else {
+        String::new()
+    }
+}
+```
+
+### 15.10 Beads Menu Keybindings
+
+When Beads menu is active:
+
+| Key | Action |
+|-----|--------|
+| L | List all issues |
+| R | Show ready issues |
+| B | Show blocked issues |
+| N | Create new issue |
+| S | Project statistics |
+| Y | Sync with remote |
+| E | Show epics |
+| / | Search issues |
+
+### 15.11 Planned Beads Features
+
+- [ ] Issue list with filtering and sorting
+- [ ] Issue detail view with full information
+- [ ] Create/edit issues from TUI
+- [ ] Ready/blocked issue views
+- [ ] Project statistics dashboard
+- [ ] Sync operations
+- [ ] Epic progress visualization
+- [ ] Dependency graph view
+- [ ] Quick status cycling
+- [ ] Comment management
+- [ ] File-to-issue linking
+- [ ] Search across issues
