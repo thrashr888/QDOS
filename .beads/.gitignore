@@ -31,6 +31,9 @@ beads.left.meta.json
 beads.right.jsonl
 beads.right.meta.json
 
+# Last-touched tracking (local state, not shared)
+last-touched
+
 # NOTE: Do NOT add negation patterns (e.g., !issues.jsonl) here.
 # They would override fork protection in .git/info/exclude, allowing
 # contributors to accidentally commit upstream issue databases.
