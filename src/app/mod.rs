@@ -173,6 +173,12 @@ impl App {
             return Ok(());
         }
 
+        // Refresh shortcut (Ctrl+R)
+        if key.code == KeyCode::Char('r') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            let _ = self.refresh_files();
+            return Ok(());
+        }
+
         // Handle modal-specific input
         if !matches!(self.modal, Modal::None) {
             return self.handle_modal_key(key);

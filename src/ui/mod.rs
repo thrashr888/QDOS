@@ -519,8 +519,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         " F5- Chg Dir    F6- DOS Cmd  ",
         " F7- Srch Spec  F8- Sort     ",
         " F9- Edit      F10- Quit     ",
-        " ⌃S- Config    ⌃T- Color     ",
-        "   SPACE BAR- Tag file       ",
+        " ⌃R- Refresh   ⌃S- Config    ",
+        " ⌃T- Color    SPC- Tag file  ",
         "   ESC- Abort Command        ",
     ];
     for (i, kb) in keybindings.iter().enumerate() {

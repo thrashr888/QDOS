@@ -20,6 +20,7 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 - **File Tagging**: Mark files with Space key for batch operations
 - **Sorting**: 9 different sort modes (F8 to cycle) - by name, extension, size, or date (ascending/descending)
 - **File Viewing**: View the contents of any file on the screen (in "ASCII", "HEX", "MARKDOWN", or "IMAGE")
+- **Syntax Highlighting**: Highlight the contents of any file in the viewer
 - **Git Integration**: View Git status, log, diff, and commit history
 - **Beads Integration**: View and manage Beads issues and comments
 - **Keyboard-First Interface**: All actions accessible via keyboard shortcuts
