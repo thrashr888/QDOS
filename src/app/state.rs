@@ -138,6 +138,8 @@ pub enum ViewMode {
     Hex,
     Image,
     Markdown,
+    Blame,
+    Diff,
 }
 
 /// File viewer filter mode
@@ -167,6 +169,15 @@ pub struct FileHistoryEntry {
     pub message: String,
 }
 
+/// Git blame line entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlameLine {
+    pub hash: String,
+    pub author: String,
+    pub time_ago: String,
+    pub line_content: String,
+}
+
 /// File viewer state
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileViewerState {
@@ -190,6 +201,10 @@ pub struct FileViewerState {
     pub history_index: Option<usize>,
     /// Whether we're in a git repo
     pub is_git_repo: bool,
+    /// Git blame data for blame view
+    pub blame_lines: Vec<BlameLine>,
+    /// Git diff lines for diff view
+    pub diff_lines: Vec<String>,
 }
 
 impl FileViewerState {
@@ -206,6 +221,8 @@ impl FileViewerState {
             git_history: Vec::new(),
             history_index: None,
             is_git_repo: false,
+            blame_lines: Vec::new(),
+            diff_lines: Vec::new(),
         }
     }
 
@@ -252,6 +269,8 @@ impl FileViewerState {
                 total_lines.saturating_sub(visible_height)
             }
             ViewMode::Image => 0,
+            ViewMode::Blame => self.blame_lines.len().saturating_sub(visible_height),
+            ViewMode::Diff => self.diff_lines.len().saturating_sub(visible_height),
         }
     }
 
@@ -1478,16 +1497,24 @@ pub enum GitMenuItem {
     Commit,
     Push,
     Pull,
+    Branch,
+    Stash,
+    Tag,
+    Config,
 }
 
 impl GitMenuItem {
-    pub const ALL: [GitMenuItem; 6] = [
+    pub const ALL: [GitMenuItem; 10] = [
         GitMenuItem::Status,
         GitMenuItem::Log,
         GitMenuItem::Diff,
         GitMenuItem::Commit,
         GitMenuItem::Push,
         GitMenuItem::Pull,
+        GitMenuItem::Branch,
+        GitMenuItem::Stash,
+        GitMenuItem::Tag,
+        GitMenuItem::Config,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -1498,6 +1525,10 @@ impl GitMenuItem {
             GitMenuItem::Commit => "Commit",
             GitMenuItem::Push => "Push",
             GitMenuItem::Pull => "Pull",
+            GitMenuItem::Branch => "Branch",
+            GitMenuItem::Stash => "Stash",
+            GitMenuItem::Tag => "Tag",
+            GitMenuItem::Config => "Config",
         }
     }
 
@@ -1509,6 +1540,10 @@ impl GitMenuItem {
             GitMenuItem::Commit => "Commit staged changes",
             GitMenuItem::Push => "Push commits to remote",
             GitMenuItem::Pull => "Pull changes from remote",
+            GitMenuItem::Branch => "List, switch, create, delete branches",
+            GitMenuItem::Stash => "Stash and restore changes",
+            GitMenuItem::Tag => "Manage git tags",
+            GitMenuItem::Config => "View git configuration",
         }
     }
 }
@@ -1519,6 +1554,46 @@ pub struct GitFileStatus {
     pub path: String,
     pub status: char, // M, A, D, R, C, U, ?
     pub staged: bool,
+}
+
+/// Git branch entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitBranch {
+    pub name: String,
+    pub is_current: bool,
+    pub is_remote: bool,
+    pub last_commit: String,
+}
+
+/// Git stash entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitStashEntry {
+    pub index: usize,
+    pub message: String,
+    pub branch: String,
+}
+
+/// Git tag entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitTag {
+    pub name: String,
+    pub commit: String,
+    pub message: Option<String>,
+}
+
+/// Git remote entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitRemote {
+    pub name: String,
+    pub url: String,
+}
+
+/// Remote action type (push or pull)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RemoteAction {
+    #[default]
+    Push,
+    Pull,
 }
 
 /// Git state for the git modal
@@ -1550,6 +1625,40 @@ pub struct GitState {
     pub is_repo: bool,
     /// Previous view to return to from diff
     pub prev_view: Option<GitView>,
+    /// Branch list
+    pub branches: Vec<GitBranch>,
+    /// Selected branch in branch view
+    pub selected_branch: usize,
+    /// Input mode for branch creation
+    pub branch_input_mode: bool,
+    /// New branch name input
+    pub branch_name_input: String,
+    /// Stash list
+    pub stashes: Vec<GitStashEntry>,
+    /// Selected stash in stash view
+    pub selected_stash: usize,
+    /// Input mode for stash message
+    pub stash_input_mode: bool,
+    /// Stash message input
+    pub stash_message_input: String,
+    /// Tag list
+    pub tags: Vec<GitTag>,
+    /// Selected tag in tag view
+    pub selected_tag: usize,
+    /// Input mode for tag creation
+    pub tag_input_mode: bool,
+    /// New tag name input
+    pub tag_name_input: String,
+    /// Remote list
+    pub remotes: Vec<GitRemote>,
+    /// Selected remote in remote view
+    pub selected_remote: usize,
+    /// Current remote action (push or pull)
+    pub remote_action: RemoteAction,
+    /// Config entries
+    pub config_entries: Vec<GitConfigEntry>,
+    /// Selected config entry
+    pub selected_config: usize,
 }
 
 /// Git view type
@@ -1561,6 +1670,19 @@ pub enum GitView {
     Log,
     Diff,
     Commit,
+    Branch,
+    Stash,
+    Tag,
+    Remote,
+    Config,
+}
+
+/// Git config entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitConfigEntry {
+    pub key: String,
+    pub value: String,
+    pub scope: String, // "local", "global", or "system"
 }
 
 /// Git log entry
@@ -1588,6 +1710,23 @@ impl Default for GitState {
             error: None,
             is_repo: false,
             prev_view: None,
+            branches: Vec::new(),
+            selected_branch: 0,
+            branch_input_mode: false,
+            branch_name_input: String::new(),
+            stashes: Vec::new(),
+            selected_stash: 0,
+            stash_input_mode: false,
+            stash_message_input: String::new(),
+            tags: Vec::new(),
+            selected_tag: 0,
+            tag_input_mode: false,
+            tag_name_input: String::new(),
+            remotes: Vec::new(),
+            selected_remote: 0,
+            remote_action: RemoteAction::Push,
+            config_entries: Vec::new(),
+            selected_config: 0,
         }
     }
 }
@@ -1610,6 +1749,8 @@ pub enum BeadsMenuItem {
     Blocked,
     Stats,
     Create,
+    Graph,
+    Kanban,
     Sync,
     Human,
     Init,
@@ -1618,12 +1759,14 @@ pub enum BeadsMenuItem {
 
 impl BeadsMenuItem {
     /// Items shown when beads is initialized
-    pub const INITIALIZED: [BeadsMenuItem; 8] = [
+    pub const INITIALIZED: [BeadsMenuItem; 10] = [
         BeadsMenuItem::List,
         BeadsMenuItem::Ready,
         BeadsMenuItem::Blocked,
         BeadsMenuItem::Stats,
         BeadsMenuItem::Create,
+        BeadsMenuItem::Graph,
+        BeadsMenuItem::Kanban,
         BeadsMenuItem::Sync,
         BeadsMenuItem::Human,
         BeadsMenuItem::Doctor,
@@ -1648,6 +1791,8 @@ impl BeadsMenuItem {
             BeadsMenuItem::Blocked => "Blocked",
             BeadsMenuItem::Stats => "Stats",
             BeadsMenuItem::Create => "Create",
+            BeadsMenuItem::Graph => "Graph",
+            BeadsMenuItem::Kanban => "Kanban",
             BeadsMenuItem::Sync => "Sync",
             BeadsMenuItem::Human => "Human",
             BeadsMenuItem::Init => "Init",
@@ -1662,6 +1807,8 @@ impl BeadsMenuItem {
             BeadsMenuItem::Blocked => "Show blocked issues",
             BeadsMenuItem::Stats => "Project statistics",
             BeadsMenuItem::Create => "Create a new issue",
+            BeadsMenuItem::Graph => "View dependency graph",
+            BeadsMenuItem::Kanban => "Kanban board view",
             BeadsMenuItem::Sync => "Sync with git remote",
             BeadsMenuItem::Human => "Show common commands help",
             BeadsMenuItem::Init => "Initialize beads in this project",
@@ -1712,6 +1859,9 @@ pub enum BeadsView {
     Stats,
     Create,
     Detail,
+    Comments,
+    Dependencies,
+    Kanban,
     Human,
     Doctor,
 }
@@ -1748,6 +1898,20 @@ pub struct BeadsState {
     pub success_message: Option<String>,
     /// Output lines for Human/Doctor views
     pub output_lines: Vec<String>,
+    /// Search query for filtering issues
+    pub search_query: String,
+    /// Whether search input is active
+    pub search_active: bool,
+    /// Comment text input
+    pub comment_input: String,
+    /// Whether comment input is active
+    pub comment_input_active: bool,
+    /// Selected comment in comments view
+    pub selected_comment: usize,
+    /// Current kanban column (0=Open, 1=In Progress, 2=Closed)
+    pub kanban_column: usize,
+    /// Selected row within current kanban column
+    pub kanban_row: usize,
 }
 
 /// Beads project statistics
@@ -1779,6 +1943,13 @@ impl Default for BeadsState {
             error: None,
             success_message: None,
             output_lines: Vec::new(),
+            search_query: String::new(),
+            search_active: false,
+            comment_input: String::new(),
+            comment_input_active: false,
+            selected_comment: 0,
+            kanban_column: 0,
+            kanban_row: 0,
         }
     }
 }

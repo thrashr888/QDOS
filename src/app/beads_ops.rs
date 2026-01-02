@@ -419,6 +419,30 @@ pub fn execute_beads_doctor(cwd: &PathBuf) -> Result<Vec<String>, String> {
     }
 }
 
+/// Execute beads add comment
+pub fn execute_beads_add_comment(
+    issue_id: &str,
+    comment: &str,
+    cwd: &PathBuf,
+) -> Result<String, String> {
+    let output = Command::new("bd")
+        .args(["comments", "add", issue_id, comment])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Comment added to {}", issue_id))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Add comment failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to add comment: {}", e)),
+    }
+}
+
 /// Beads status info for status bar display
 #[derive(Debug, Clone)]
 pub struct BeadsStatusInfo {

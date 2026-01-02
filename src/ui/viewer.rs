@@ -73,6 +73,8 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         ViewMode::Hex => "HEX",
         ViewMode::Image => "IMAGE",
         ViewMode::Markdown => "MARKDOWN",
+        ViewMode::Blame => "BLAME",
+        ViewMode::Diff => "DIFF",
     };
     let filter_str = match state.filter {
         ViewFilter::Off => "",
@@ -124,6 +126,8 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         ViewMode::Hex => draw_hex_view(frame, chunks[2], state, content_height),
         ViewMode::Image => draw_image_view(frame, chunks[2], state),
         ViewMode::Markdown => draw_markdown_view(frame, chunks[2], state, content_height),
+        ViewMode::Blame => draw_blame_view(frame, chunks[2], state, content_height),
+        ViewMode::Diff => draw_diff_view(frame, chunks[2], state, content_height),
     }
 
     // Separator
@@ -142,11 +146,20 @@ pub(super) fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewer
         Span::raw("mage "),
         Span::styled("M", Style::default().fg(COLOR_BLUE)),
         Span::raw("arkdown "),
-        Span::styled("F", Style::default().fg(COLOR_BLUE)),
-        Span::raw("ilter "),
-        Span::styled("↑↓", Style::default().fg(COLOR_BLUE)),
-        Span::raw(" scroll "),
     ];
+
+    // Add git-specific options if in git repo
+    if state.is_git_repo {
+        help_spans.push(Span::styled("B", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::raw("lame "));
+        help_spans.push(Span::styled("D", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::raw("iff "));
+    }
+
+    help_spans.push(Span::styled("F", Style::default().fg(COLOR_BLUE)));
+    help_spans.push(Span::raw("ilter "));
+    help_spans.push(Span::styled("↑↓", Style::default().fg(COLOR_BLUE)));
+    help_spans.push(Span::raw(" scroll "));
 
     // Add history navigation if available
     if state.has_older_version() {
@@ -700,6 +713,133 @@ fn draw_markdown_view(frame: &mut Frame, area: Rect, state: &FileViewerState, he
 
     // Render visible lines
     let visible_lines: Vec<Line> = lines.into_iter().skip(scroll).take(height).collect();
+
+    frame.render_widget(Paragraph::new(visible_lines), area);
+}
+
+/// Draw git blame view mode
+fn draw_blame_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height: usize) {
+    if state.blame_lines.is_empty() {
+        let error_msg = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                " No blame data available",
+                Style::default().fg(COLOR_RED),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                " File may not be tracked by git",
+                Style::default().fg(COLOR_FG),
+            )),
+        ];
+        frame.render_widget(Paragraph::new(error_msg), area);
+        return;
+    }
+
+    // Calculate scroll
+    let max_scroll = state.blame_lines.len().saturating_sub(height);
+    let scroll = state.scroll_offset.min(max_scroll);
+
+    // Build visible lines
+    let visible_lines: Vec<Line> = state
+        .blame_lines
+        .iter()
+        .enumerate()
+        .skip(scroll)
+        .take(height)
+        .map(|(line_num, blame)| {
+            // Truncate author to 10 chars
+            let author = if blame.author.len() > 10 {
+                format!("{}…", &blame.author[..9])
+            } else {
+                format!("{:10}", blame.author)
+            };
+
+            // Format: hash author time_ago | content
+            let mut spans = vec![
+                Span::styled(
+                    format!(" {:>4} ", line_num + 1),
+                    Style::default().fg(COLOR_BLUE),
+                ),
+                Span::styled(
+                    format!("{} ", blame.hash),
+                    Style::default().fg(Color::Rgb(128, 128, 128)),
+                ),
+                Span::styled(author, Style::default().fg(COLOR_GREEN)),
+                Span::styled(
+                    format!(" {:>8} │ ", blame.time_ago),
+                    Style::default().fg(Color::Rgb(128, 128, 128)),
+                ),
+                Span::styled(&blame.line_content, Style::default().fg(COLOR_FG)),
+            ];
+
+            // Pad to fill width
+            let content_len = 6 + 8 + 10 + 11 + blame.line_content.len();
+            if content_len < area.width as usize {
+                spans.push(Span::raw(" ".repeat(area.width as usize - content_len)));
+            }
+
+            Line::from(spans)
+        })
+        .collect();
+
+    frame.render_widget(Paragraph::new(visible_lines), area);
+}
+
+/// Draw git diff view mode
+fn draw_diff_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height: usize) {
+    if state.diff_lines.is_empty() {
+        let error_msg = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                " No diff data available",
+                Style::default().fg(COLOR_FG),
+            )),
+        ];
+        frame.render_widget(Paragraph::new(error_msg), area);
+        return;
+    }
+
+    // Calculate scroll
+    let max_scroll = state.diff_lines.len().saturating_sub(height);
+    let scroll = state.scroll_offset.min(max_scroll);
+
+    // Color for cyan (hunk headers)
+    let color_cyan = Color::Rgb(0, 170, 170);
+
+    // Build visible lines with color coding
+    let visible_lines: Vec<Line> = state
+        .diff_lines
+        .iter()
+        .skip(scroll)
+        .take(height)
+        .map(|line| {
+            let (style, prefix) = if line.starts_with('+') && !line.starts_with("+++") {
+                // Added line - green
+                (Style::default().fg(COLOR_GREEN), "+")
+            } else if line.starts_with('-') && !line.starts_with("---") {
+                // Removed line - red
+                (Style::default().fg(COLOR_RED), "-")
+            } else if line.starts_with("@@") {
+                // Hunk header - cyan
+                (Style::default().fg(color_cyan), "@")
+            } else if line.starts_with("diff ") || line.starts_with("index ") {
+                // File header - blue
+                (Style::default().fg(COLOR_BLUE), " ")
+            } else if line.starts_with("+++") || line.starts_with("---") {
+                // File names - blue
+                (Style::default().fg(COLOR_BLUE), " ")
+            } else {
+                // Context line
+                (Style::default().fg(COLOR_FG), " ")
+            };
+
+            Line::from(vec![
+                Span::styled(format!(" {} ", prefix), style),
+                Span::styled(line.as_str(), style),
+            ])
+        })
+        .collect();
 
     frame.render_widget(Paragraph::new(visible_lines), area);
 }

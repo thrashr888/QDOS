@@ -11,7 +11,8 @@
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
     ColorTheme, ColorThemeState, DirectoryMapState, FindPhase, FindState, GitMenuItem, GitState,
-    GitView, HelpState, Modal, ProgressState, QdstartField, QdstartState, SearchSpecState,
+    GitView, HelpState, Modal, ProgressState, QdstartField, QdstartState, RemoteAction,
+    SearchSpecState,
 };
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
@@ -1854,6 +1855,14 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
         GitView::Log => " GIT LOG ",
         GitView::Diff => " GIT DIFF ",
         GitView::Commit => " GIT COMMIT ",
+        GitView::Branch => " GIT BRANCHES ",
+        GitView::Stash => " GIT STASH ",
+        GitView::Tag => " GIT TAGS ",
+        GitView::Remote => match state.remote_action {
+            RemoteAction::Push => " GIT PUSH TO REMOTE ",
+            RemoteAction::Pull => " GIT PULL FROM REMOTE ",
+        },
+        GitView::Config => " GIT CONFIG ",
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -1915,6 +1924,10 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                         GitMenuItem::Commit => "C",
                         GitMenuItem::Push => "P",
                         GitMenuItem::Pull => "U",
+                        GitMenuItem::Branch => "B",
+                        GitMenuItem::Stash => "H",
+                        GitMenuItem::Tag => "T",
+                        GitMenuItem::Config => "G",
                     };
 
                     lines.push(Line::from(vec![
@@ -2119,6 +2132,397 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            GitView::Branch => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.branch_input_mode {
+                    // Show branch name input
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Create new branch:",
+                        Style::default().fg(colors.green()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(vec![
+                        Span::styled(
+                            &state.branch_name_input,
+                            Style::default().fg(colors.yellow()).bg(colors.red()),
+                        ),
+                        Span::styled("█", Style::default().fg(colors.yellow()).bg(colors.red())),
+                    ]));
+                } else if state.branches.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No branches found",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    // List branches
+                    for (i, branch) in state.branches.iter().enumerate() {
+                        if i >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_branch;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        let marker = if branch.is_current { "* " } else { "  " };
+                        let marker_style = if branch.is_current {
+                            Style::default().fg(colors.green())
+                        } else {
+                            style
+                        };
+
+                        // Truncate commit message
+                        let commit_display = if branch.last_commit.len() > 40 {
+                            format!("{}...", &branch.last_commit[..37])
+                        } else {
+                            branch.last_commit.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(marker, marker_style),
+                            Span::styled(format!("{:<20} ", branch.name), style),
+                            Span::styled(
+                                commit_display,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            GitView::Stash => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.stash_input_mode {
+                    // Show stash message input
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Stash message (optional):",
+                        Style::default().fg(colors.green()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(vec![
+                        Span::styled(
+                            &state.stash_message_input,
+                            Style::default().fg(colors.yellow()).bg(colors.red()),
+                        ),
+                        Span::styled("█", Style::default().fg(colors.yellow()).bg(colors.red())),
+                    ]));
+                } else if state.stashes.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No stashes",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Press S to stash current changes",
+                        Style::default().fg(colors.green()),
+                    )));
+                } else {
+                    // List stashes
+                    for (i, stash) in state.stashes.iter().enumerate() {
+                        if i >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_stash;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Truncate message
+                        let msg_display = if stash.message.len() > 50 {
+                            format!("{}...", &stash.message[..47])
+                        } else {
+                            stash.message.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(format!("  stash@{{{}}}: ", stash.index), style),
+                            Span::styled(
+                                msg_display,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            GitView::Tag => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.tag_input_mode {
+                    // Show tag name input
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Create new tag:",
+                        Style::default().fg(colors.green()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(vec![
+                        Span::styled(
+                            &state.tag_name_input,
+                            Style::default().fg(colors.yellow()).bg(colors.red()),
+                        ),
+                        Span::styled("█", Style::default().fg(colors.yellow()).bg(colors.red())),
+                    ]));
+                } else if state.tags.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No tags",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Press N to create a new tag",
+                        Style::default().fg(colors.green()),
+                    )));
+                } else {
+                    // List tags
+                    for (i, tag) in state.tags.iter().enumerate() {
+                        if i >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_tag;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        let msg = tag
+                            .message
+                            .as_ref()
+                            .map(|m| {
+                                if m.len() > 40 {
+                                    format!(" - {}...", &m[..37])
+                                } else {
+                                    format!(" - {}", m)
+                                }
+                            })
+                            .unwrap_or_default();
+
+                        lines.push(Line::from(vec![
+                            Span::styled(format!("  {:<20} ", tag.name), style),
+                            Span::styled(
+                                format!("{}", tag.commit),
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.blue())
+                                },
+                            ),
+                            Span::styled(
+                                msg,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            GitView::Remote => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                let action_text = match state.remote_action {
+                    RemoteAction::Push => "Push to",
+                    RemoteAction::Pull => "Pull from",
+                };
+
+                if state.remotes.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No remotes configured",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Use 'git remote add <name> <url>' to add a remote",
+                        Style::default().fg(colors.green()),
+                    )));
+                } else {
+                    lines.push(Line::from(Span::styled(
+                        format!("Select remote to {}:", action_text),
+                        Style::default().fg(colors.green()),
+                    )));
+                    lines.push(Line::from(""));
+
+                    // List remotes
+                    for (i, remote) in state.remotes.iter().enumerate() {
+                        if i + 2 >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_remote;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Truncate URL if too long
+                        let url = if remote.url.len() > 50 {
+                            format!("{}...", &remote.url[..47])
+                        } else {
+                            remote.url.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(format!("  {:<12} ", remote.name), style),
+                            Span::styled(
+                                url,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.blue())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            GitView::Config => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.config_entries.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No config entries found",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    // Calculate scroll offset
+                    let start = if state.selected_config >= visible_height {
+                        state.selected_config - visible_height + 1
+                    } else {
+                        0
+                    };
+
+                    // List config entries
+                    for (idx, entry) in state.config_entries.iter().enumerate().skip(start) {
+                        if idx >= start + visible_height {
+                            break;
+                        }
+
+                        let is_selected = idx == state.selected_config;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Format: [scope] key = value
+                        let scope_color = match entry.scope.as_str() {
+                            "local" => colors.green(),
+                            "global" => colors.blue(),
+                            _ => colors.grey(),
+                        };
+
+                        // Truncate value if too long
+                        let max_val_len = 40;
+                        let value = if entry.value.len() > max_val_len {
+                            format!("{}...", &entry.value[..max_val_len - 3])
+                        } else {
+                            entry.value.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(
+                                format!("[{:6}] ", entry.scope),
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(scope_color)
+                                },
+                            ),
+                            Span::styled(format!("{:<30} ", entry.key), style),
+                            Span::styled("= ", Style::default().fg(colors.grey())),
+                            Span::styled(
+                                value,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.cyan())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
         }
     }
 
@@ -2133,11 +2537,28 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
         "Press any key to close"
     } else {
         match state.view {
-            GitView::Menu => "↑↓ select  Enter open  S/L/D/C quick select  ESC close",
+            GitView::Menu => "↑↓ select  Enter open  S/L/D/C/B/H/T/G quick select  ESC close",
             GitView::Status => "↑↓ navigate  Enter view diff  A stage/unstage  R refresh  ESC back",
             GitView::Log => "↑↓ select  Enter view diff  PgUp/PgDn fast scroll  ESC back",
             GitView::Diff => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
             GitView::Commit => "Type message  Shift+Enter newline  Enter commit  ESC cancel",
+            GitView::Branch => if state.branch_input_mode {
+                "Type branch name  Enter create  ESC cancel"
+            } else {
+                "↑↓ select  Enter switch  N new  D delete  R refresh  ESC back"
+            },
+            GitView::Stash => if state.stash_input_mode {
+                "Type stash message  Enter create  ESC cancel"
+            } else {
+                "↑↓ select  S stash  P pop  A apply  D drop  R refresh  ESC back"
+            },
+            GitView::Tag => if state.tag_input_mode {
+                "Type tag name  Enter create  ESC cancel"
+            } else {
+                "↑↓ select  N new  D delete  P push tags  R refresh  ESC back"
+            },
+            GitView::Remote => "↑↓ select  Enter execute  ESC back",
+            GitView::Config => "↑↓ scroll  PgUp/PgDn fast scroll  R refresh  ESC back",
         }
     };
     frame.render_widget(
@@ -2174,6 +2595,9 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         BeadsView::Stats => " BEADS - STATISTICS ",
         BeadsView::Create => " BEADS - CREATE ISSUE ",
         BeadsView::Detail => " BEADS - ISSUE DETAIL ",
+        BeadsView::Comments => " BEADS - COMMENTS ",
+        BeadsView::Dependencies => " BEADS - DEPENDENCY GRAPH ",
+        BeadsView::Kanban => " BEADS - KANBAN BOARD ",
         BeadsView::Human => " BEADS - COMMAND HELP ",
         BeadsView::Doctor => " BEADS - HEALTH CHECK ",
     };
@@ -2258,13 +2682,61 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
             BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
-                let visible_height = content_area.height.saturating_sub(1) as usize; // -1 for header
+                // Account for search bar and header
+                let search_height = if state.search_active || !state.search_query.is_empty() {
+                    1
+                } else {
+                    0
+                };
+                let visible_height =
+                    content_area.height.saturating_sub(1 + search_height as u16) as usize;
                 let mut lines: Vec<Line> = vec![];
 
-                if state.issues.is_empty() {
+                // Show search bar if active or has query
+                if state.search_active || !state.search_query.is_empty() {
+                    let search_style = if state.search_active {
+                        Style::default().fg(colors.yellow())
+                    } else {
+                        Style::default().fg(colors.blue())
+                    };
+                    let prompt = if state.search_active { "/" } else { "🔍" };
+                    lines.push(Line::from(vec![
+                        Span::styled(format!("{} ", prompt), search_style),
+                        Span::styled(&state.search_query, search_style),
+                        if state.search_active {
+                            Span::styled("█", search_style)
+                        } else {
+                            Span::raw("")
+                        },
+                    ]));
+                }
+
+                // Filter issues based on search query
+                let query_lower = state.search_query.to_lowercase();
+                let filtered_issues: Vec<_> = if state.search_query.is_empty() {
+                    state.issues.iter().collect()
+                } else {
+                    state
+                        .issues
+                        .iter()
+                        .filter(|i| {
+                            i.id.to_lowercase().contains(&query_lower)
+                                || i.title.to_lowercase().contains(&query_lower)
+                                || i.issue_type.to_lowercase().contains(&query_lower)
+                                || i.status.to_lowercase().contains(&query_lower)
+                        })
+                        .collect()
+                };
+
+                if filtered_issues.is_empty() {
                     lines.push(Line::from(""));
+                    let msg = if !state.search_query.is_empty() {
+                        "No matching issues"
+                    } else {
+                        "No issues found"
+                    };
                     lines.push(Line::from(Span::styled(
-                        "No issues found",
+                        msg,
                         Style::default().fg(colors.grey()),
                     )));
                 } else {
@@ -2291,15 +2763,13 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         Span::styled(format!("{:<title_w$}", "TITLE"), header_style),
                     ]));
 
-                    for (i, issue) in state
-                        .issues
+                    for (i, issue) in filtered_issues
                         .iter()
                         .skip(state.scroll_offset)
                         .enumerate()
                         .take(visible_height)
                     {
-                        let actual_index = i + state.scroll_offset;
-                        let is_selected = actual_index == state.selected_issue;
+                        let is_selected = i == state.selected_issue;
                         let style = if is_selected {
                             Style::default().fg(colors.yellow()).bg(colors.red())
                         } else {
@@ -2357,19 +2827,83 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                         let pri = issue.priority.chars().last().unwrap_or('2');
 
-                        let title = if issue.title.len() > title_w {
-                            format!("{}…", &issue.title[..title_w.saturating_sub(1)])
+                        // For epics, show progress bar
+                        let is_epic = issue.issue_type == "epic";
+                        let progress_str = if is_epic && !issue.dependents.is_empty() {
+                            let total = issue.dependents.len();
+                            let closed = issue
+                                .dependents
+                                .iter()
+                                .filter(|d| d.status == "closed")
+                                .count();
+                            let pct = if total > 0 {
+                                (closed * 100) / total
+                            } else {
+                                0
+                            };
+                            // Create progress bar: [████░░░░] 4/6
+                            let bar_width = 8;
+                            let filled = (pct * bar_width) / 100;
+                            let empty = bar_width - filled;
+                            format!(
+                                " [{}{}] {}/{}",
+                                "█".repeat(filled),
+                                "░".repeat(empty),
+                                closed,
+                                total
+                            )
+                        } else {
+                            String::new()
+                        };
+
+                        let progress_len = progress_str.len();
+                        let available_title_w = title_w.saturating_sub(progress_len);
+                        let title = if issue.title.len() > available_title_w {
+                            format!("{}…", &issue.title[..available_title_w.saturating_sub(1)])
                         } else {
                             issue.title.clone()
                         };
 
-                        lines.push(Line::from(vec![
-                            Span::styled(format!(" {:<id_w$}", id_short), style),
-                            Span::styled(format!("{:<type_w$}", type_short), type_style),
-                            Span::styled(format!("{:<status_w$}", status_short), status_style),
-                            Span::styled(format!("{:<pri_w$}", pri), priority_style),
-                            Span::styled(format!("{:<title_w$}", title), style),
-                        ]));
+                        if is_epic && !issue.dependents.is_empty() {
+                            let closed_count = issue
+                                .dependents
+                                .iter()
+                                .filter(|d| d.status == "closed")
+                                .count();
+                            let total = issue.dependents.len();
+                            let pct = (closed_count * 100) / total.max(1);
+                            let progress_color = if is_selected {
+                                style
+                            } else if pct == 100 {
+                                Style::default().fg(colors.green())
+                            } else if pct >= 50 {
+                                Style::default().fg(colors.yellow())
+                            } else {
+                                Style::default().fg(colors.grey())
+                            };
+
+                            lines.push(Line::from(vec![
+                                Span::styled(format!(" {:<id_w$}", id_short), style),
+                                Span::styled(format!("{:<type_w$}", type_short), type_style),
+                                Span::styled(format!("{:<status_w$}", status_short), status_style),
+                                Span::styled(format!("{:<pri_w$}", pri), priority_style),
+                                Span::styled(title, style),
+                                Span::styled(progress_str, progress_color),
+                            ]));
+                        } else {
+                            let title = if issue.title.len() > title_w {
+                                format!("{}…", &issue.title[..title_w.saturating_sub(1)])
+                            } else {
+                                issue.title.clone()
+                            };
+                            lines.push(Line::from(vec![
+                                Span::styled(format!(" {:<id_w$}", id_short), style),
+                                Span::styled(format!("{:<type_w$}", type_short), type_style),
+                                Span::styled(format!("{:<status_w$}", status_short), status_style),
+                                Span::styled(format!("{:<pri_w$}", pri), priority_style),
+                                Span::styled(format!("{:<title_w$}", title), style),
+                            ]));
+                        }
                     }
                 }
 
@@ -2723,6 +3257,377 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            BeadsView::Comments => {
+                let mut lines = vec![];
+
+                if let Some(ref issue) = state.detail_issue {
+                    // Issue title at top
+                    lines.push(Line::from(vec![
+                        Span::styled("  Issue: ", Style::default().fg(colors.green())),
+                        Span::styled(&issue.id, Style::default().fg(colors.blue())),
+                        Span::styled(" - ", Style::default().fg(colors.grey())),
+                        Span::styled(&issue.title, Style::default().fg(colors.fg())),
+                    ]));
+                    lines.push(Line::from(""));
+
+                    // Comment input area at top if active
+                    if state.comment_input_active {
+                        lines.push(Line::from(Span::styled(
+                            "  Add comment:",
+                            Style::default()
+                                .fg(colors.yellow())
+                                .add_modifier(Modifier::BOLD),
+                        )));
+                        lines.push(Line::from(vec![
+                            Span::styled("  > ", Style::default().fg(colors.green())),
+                            Span::styled(&state.comment_input, Style::default().fg(colors.fg())),
+                            Span::styled("█", Style::default().fg(colors.yellow())),
+                        ]));
+                        lines.push(Line::from(""));
+                    }
+
+                    if issue.comments.is_empty() {
+                        lines.push(Line::from(""));
+                        lines.push(Line::from(Span::styled(
+                            "  No comments yet. Press 'A' to add one.",
+                            Style::default().fg(colors.grey()),
+                        )));
+                    } else {
+                        // Header
+                        lines.push(Line::from(Span::styled(
+                            format!("  ─── Comments ({}) ───", issue.comments.len()),
+                            Style::default()
+                                .fg(colors.magenta())
+                                .add_modifier(Modifier::BOLD),
+                        )));
+                        lines.push(Line::from(""));
+
+                        // List all comments with scrolling
+                        for (i, comment) in issue.comments.iter().enumerate() {
+                            let is_selected = i == state.selected_comment;
+                            let bg = if is_selected {
+                                colors.red()
+                            } else {
+                                Color::Reset
+                            };
+                            let prefix = if is_selected { "▶ " } else { "  " };
+
+                            // Author and date line
+                            lines.push(Line::from(vec![
+                                Span::styled(prefix, Style::default().fg(colors.yellow()).bg(bg)),
+                                Span::styled(
+                                    format!("{} ", comment.author),
+                                    Style::default().fg(colors.blue()).bg(bg),
+                                ),
+                                Span::styled(
+                                    &comment.created_at,
+                                    Style::default().fg(colors.grey()).bg(bg),
+                                ),
+                            ]));
+
+                            // Comment text - wrap if too long
+                            let text_style = Style::default().fg(colors.fg()).bg(bg);
+                            let max_width = content_area.width.saturating_sub(6) as usize;
+                            let text = &comment.text;
+                            if text.len() <= max_width {
+                                lines.push(Line::from(vec![
+                                    Span::styled("    ", Style::default().bg(bg)),
+                                    Span::styled(text.clone(), text_style),
+                                ]));
+                            } else {
+                                // Wrap text
+                                for chunk in text.as_bytes().chunks(max_width) {
+                                    let line_text =
+                                        String::from_utf8_lossy(chunk).to_string();
+                                    lines.push(Line::from(vec![
+                                        Span::styled("    ", Style::default().bg(bg)),
+                                        Span::styled(line_text, text_style),
+                                    ]));
+                                }
+                            }
+                            lines.push(Line::from(""));
+                        }
+                    }
+                } else {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No issue selected",
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            BeadsView::Dependencies => {
+                let visible_height = content_area.height.saturating_sub(2) as usize;
+                let mut lines = vec![];
+
+                if state.issues.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  No issues to display",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    lines.push(Line::from(Span::styled(
+                        "  Issue ID          Status        Blocked By → Dependents",
+                        Style::default()
+                            .fg(colors.blue())
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    lines.push(Line::from(""));
+
+                    for (i, issue) in state
+                        .issues
+                        .iter()
+                        .skip(state.scroll_offset)
+                        .enumerate()
+                        .take(visible_height)
+                    {
+                        let is_selected = i == state.selected_issue;
+                        let bg = if is_selected {
+                            colors.red()
+                        } else {
+                            Color::Reset
+                        };
+                        let prefix = if is_selected { "▶ " } else { "  " };
+
+                        // Status indicator
+                        let status_char = match issue.status.as_str() {
+                            "closed" => "✓",
+                            "in_progress" => "◆",
+                            "open" => "○",
+                            _ => "?",
+                        };
+                        let status_color = match issue.status.as_str() {
+                            "closed" => colors.grey(),
+                            "in_progress" => colors.yellow(),
+                            "open" => colors.green(),
+                            _ => colors.fg(),
+                        };
+
+                        // Build dependency info
+                        let blocked_by_str = if issue.blocked_by.is_empty() {
+                            "none".to_string()
+                        } else {
+                            issue.blocked_by.iter().map(|b| {
+                                // Shorten the ID
+                                if b.len() > 8 { format!("{}…", &b[..7]) } else { b.clone() }
+                            }).collect::<Vec<_>>().join(", ")
+                        };
+
+                        let dependents_str = if issue.dependents.is_empty() {
+                            "none".to_string()
+                        } else {
+                            format!("{} items", issue.dependents.len())
+                        };
+
+                        // ID shortened if needed
+                        let id_short = if issue.id.len() > 12 {
+                            format!("{}…", &issue.id[..11])
+                        } else {
+                            issue.id.clone()
+                        };
+
+                        // Type indicator
+                        let type_symbol = match issue.issue_type.as_str() {
+                            "epic" => "⊞",
+                            "bug" => "●",
+                            "feature" => "★",
+                            _ => "□",
+                        };
+                        let type_color = match issue.issue_type.as_str() {
+                            "epic" => colors.cyan(),
+                            "bug" => colors.red(),
+                            "feature" => colors.green(),
+                            _ => colors.grey(),
+                        };
+
+                        // First line: ID and status
+                        lines.push(Line::from(vec![
+                            Span::styled(prefix, Style::default().fg(colors.yellow()).bg(bg)),
+                            Span::styled(
+                                format!("{} ", type_symbol),
+                                Style::default().fg(type_color).bg(bg),
+                            ),
+                            Span::styled(
+                                format!("{:<12} ", id_short),
+                                Style::default().fg(colors.blue()).bg(bg),
+                            ),
+                            Span::styled(
+                                format!("{} ", status_char),
+                                Style::default().fg(status_color).bg(bg),
+                            ),
+                            Span::styled(
+                                format!("{:<12}", issue.status),
+                                Style::default().fg(status_color).bg(bg),
+                            ),
+                        ]));
+
+                        // Second line: Dependencies
+                        let block_color = if issue.blocked_by.is_empty() {
+                            colors.grey()
+                        } else {
+                            colors.red()
+                        };
+                        let dep_color = if issue.dependents.is_empty() {
+                            colors.grey()
+                        } else {
+                            colors.cyan()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(
+                                "      ← ",
+                                Style::default().fg(block_color).bg(bg),
+                            ),
+                            Span::styled(
+                                format!("{:<20}", blocked_by_str),
+                                Style::default().fg(block_color).bg(bg),
+                            ),
+                            Span::styled(" → ", Style::default().fg(dep_color).bg(bg)),
+                            Span::styled(
+                                dependents_str,
+                                Style::default().fg(dep_color).bg(bg),
+                            ),
+                        ]));
+
+                        // Third line: Title (truncated)
+                        let max_title_w = content_area.width.saturating_sub(8) as usize;
+                        let title = if issue.title.len() > max_title_w {
+                            format!("{}…", &issue.title[..max_title_w.saturating_sub(1)])
+                        } else {
+                            issue.title.clone()
+                        };
+                        lines.push(Line::from(vec![
+                            Span::styled("      ", Style::default().bg(bg)),
+                            Span::styled(title, Style::default().fg(colors.fg()).bg(bg)),
+                        ]));
+
+                        // Separator
+                        lines.push(Line::from(""));
+                    }
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            BeadsView::Kanban => {
+                // Kanban board with three columns: Open, In Progress, Closed
+                let column_width = content_area.width / 3;
+                let visible_height = content_area.height.saturating_sub(3) as usize;
+
+                // Filter issues by status
+                let open_issues: Vec<_> =
+                    state.issues.iter().filter(|i| i.status == "open").collect();
+                let in_progress_issues: Vec<_> = state
+                    .issues
+                    .iter()
+                    .filter(|i| i.status == "in_progress")
+                    .collect();
+                let closed_issues: Vec<_> = state
+                    .issues
+                    .iter()
+                    .filter(|i| i.status == "closed")
+                    .collect();
+
+                let columns = [
+                    ("OPEN", &open_issues, colors.green()),
+                    ("IN PROGRESS", &in_progress_issues, colors.yellow()),
+                    ("CLOSED", &closed_issues, colors.grey()),
+                ];
+
+                let mut lines = vec![];
+
+                // Header row
+                let mut header_spans = vec![];
+                for (i, (title, issues, color)) in columns.iter().enumerate() {
+                    let selected = i == state.kanban_column;
+                    let style = if selected {
+                        Style::default()
+                            .fg(*color)
+                            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+                    } else {
+                        Style::default().fg(*color).add_modifier(Modifier::BOLD)
+                    };
+                    header_spans.push(Span::styled(
+                        format!(
+                            " {:^width$}",
+                            format!("{} ({})", title, issues.len()),
+                            width = column_width.saturating_sub(2) as usize
+                        ),
+                        style,
+                    ));
+                }
+                lines.push(Line::from(header_spans));
+                lines.push(Line::from(""));
+
+                // Render rows
+                let max_items = open_issues
+                    .len()
+                    .max(in_progress_issues.len())
+                    .max(closed_issues.len());
+
+                for row in 0..visible_height.min(max_items) {
+                    let mut row_spans = vec![];
+
+                    for (col_idx, (_, issues, color)) in columns.iter().enumerate() {
+                        let is_selected_cell =
+                            col_idx == state.kanban_column && row == state.kanban_row;
+                        let bg = if is_selected_cell {
+                            colors.red()
+                        } else {
+                            Color::Reset
+                        };
+
+                        if row < issues.len() {
+                            let issue = &issues[row];
+                            let type_symbol = match issue.issue_type.as_str() {
+                                "epic" => "⊞",
+                                "bug" => "●",
+                                "feature" => "★",
+                                _ => "□",
+                            };
+
+                            // Truncate title to fit column
+                            let max_title = column_width.saturating_sub(6) as usize;
+                            let title = if issue.title.len() > max_title {
+                                format!("{}…", &issue.title[..max_title.saturating_sub(1)])
+                            } else {
+                                issue.title.clone()
+                            };
+
+                            row_spans.push(Span::styled(
+                                format!(
+                                    " {} {:width$}",
+                                    type_symbol,
+                                    title,
+                                    width = column_width.saturating_sub(4) as usize
+                                ),
+                                Style::default().fg(*color).bg(bg),
+                            ));
+                        } else {
+                            // Empty cell
+                            row_spans.push(Span::styled(
+                                format!("{:width$}", "", width = column_width as usize),
+                                Style::default().bg(bg),
+                            ));
+                        }
+                    }
+
+                    lines.push(Line::from(row_spans));
+                }
+
+                // If no issues at all
+                if state.issues.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  No issues to display",
+                        Style::default().fg(colors.grey()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
             BeadsView::Human | BeadsView::Doctor => {
                 let visible_height = content_area.height as usize;
                 let mut lines = vec![];
@@ -2792,11 +3697,26 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         match state.view {
             BeadsView::Menu => "↑↓ select  Enter open  ESC close",
             BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
-                "↑↓ nav  C close  S start  R refresh  ESC back"
+                if state.search_active {
+                    "Type to search  Enter finish  ESC cancel"
+                } else if !state.search_query.is_empty() {
+                    "↑↓ nav  / search  C close  S start  R refresh  ESC clear"
+                } else {
+                    "↑↓ nav  / search  C close  S start  R refresh  ESC back"
+                }
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "↑↓ subtasks  Enter open  S start  C close  O reopen  ESC back",
+            BeadsView::Detail => "↑↓ subtasks  M comments  A add comment  S start  C close  O reopen",
+            BeadsView::Comments => {
+                if state.comment_input_active {
+                    "Type comment  Enter submit  ESC cancel"
+                } else {
+                    "↑↓ navigate  A add comment  ESC back"
+                }
+            }
+            BeadsView::Dependencies => "↑↓ navigate  Enter view detail  R refresh  ESC back",
+            BeadsView::Kanban => "←→ columns  ↑↓ rows  Enter view detail  R refresh  ESC back",
             BeadsView::Human | BeadsView::Doctor => "↑↓ scroll  PgUp/PgDn page  ESC back",
         }
     };

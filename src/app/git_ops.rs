@@ -3,7 +3,10 @@
 //! Provides helper functions for Git integration in Q-DOS II.
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
-use super::state::{FileHistoryEntry, GitFileStatus, GitLogEntry, GitState};
+use super::state::{
+    BlameLine, FileHistoryEntry, GitBranch, GitConfigEntry, GitFileStatus, GitLogEntry, GitRemote,
+    GitStashEntry, GitState, GitTag,
+};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -140,7 +143,8 @@ pub fn execute_git_commit(message: &str, cwd: &PathBuf) -> Result<(), String> {
     }
 }
 
-/// Execute git push
+/// Execute git push (legacy - use execute_git_push_to for remote selection)
+#[allow(dead_code)]
 pub fn execute_git_push(cwd: &PathBuf) -> Result<String, String> {
     let output = Command::new("git").args(["push"]).current_dir(cwd).output();
 
@@ -169,7 +173,8 @@ pub fn execute_git_push(cwd: &PathBuf) -> Result<String, String> {
     }
 }
 
-/// Execute git pull
+/// Execute git pull (legacy - use execute_git_pull_from for remote selection)
+#[allow(dead_code)]
 pub fn execute_git_pull(cwd: &PathBuf) -> Result<String, String> {
     let output = Command::new("git").args(["pull"]).current_dir(cwd).output();
 
@@ -446,4 +451,638 @@ pub fn load_file_at_commit(
         }
         Err(e) => Err(format!("Git error: {}", e)),
     }
+}
+
+/// Load git blame for a file
+/// Returns blame annotations for each line
+pub fn load_file_blame(file_path: &PathBuf, cwd: &PathBuf) -> Vec<BlameLine> {
+    // Get relative path from cwd
+    let rel_path = file_path
+        .strip_prefix(cwd)
+        .unwrap_or(file_path)
+        .to_string_lossy();
+
+    let output = Command::new("git")
+        .args([
+            "blame",
+            "--line-porcelain",
+            "--",
+            &rel_path,
+        ])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if !output.status.success() {
+                return Vec::new();
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut blame_lines = Vec::new();
+            let mut current_hash = String::new();
+            let mut current_author = String::new();
+            let mut current_time_ago = String::new();
+
+            for line in stdout.lines() {
+                if line.len() == 40 && line.chars().all(|c| c.is_ascii_hexdigit()) {
+                    // This is a commit hash line (first 40 chars)
+                    current_hash = line[..7].to_string();
+                } else if line.len() > 40 && line.chars().take(40).all(|c| c.is_ascii_hexdigit()) {
+                    // Hash with line numbers
+                    current_hash = line[..7].to_string();
+                } else if let Some(author) = line.strip_prefix("author ") {
+                    current_author = author.to_string();
+                } else if let Some(time) = line.strip_prefix("author-time ") {
+                    // Convert unix timestamp to relative time
+                    if let Ok(timestamp) = time.parse::<i64>() {
+                        let now = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or(0);
+                        let diff = now - timestamp;
+                        current_time_ago = if diff < 60 {
+                            "just now".to_string()
+                        } else if diff < 3600 {
+                            format!("{} min", diff / 60)
+                        } else if diff < 86400 {
+                            format!("{} hr", diff / 3600)
+                        } else if diff < 2592000 {
+                            format!("{} day", diff / 86400)
+                        } else if diff < 31536000 {
+                            format!("{} mo", diff / 2592000)
+                        } else {
+                            format!("{} yr", diff / 31536000)
+                        };
+                    }
+                } else if let Some(content) = line.strip_prefix('\t') {
+                    // This is the actual line content
+                    blame_lines.push(BlameLine {
+                        hash: current_hash.clone(),
+                        author: current_author.clone(),
+                        time_ago: current_time_ago.clone(),
+                        line_content: content.to_string(),
+                    });
+                }
+            }
+
+            blame_lines
+        }
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Load git diff for a file against HEAD
+/// Returns diff lines with +/- prefixes
+pub fn load_file_diff_against_head(file_path: &PathBuf, cwd: &PathBuf) -> Vec<String> {
+    // Get relative path from cwd
+    let rel_path = file_path
+        .strip_prefix(cwd)
+        .unwrap_or(file_path)
+        .to_string_lossy();
+
+    // First try unstaged changes
+    let output = Command::new("git")
+        .args(["diff", "--", &rel_path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.is_empty() {
+                // Try staged changes
+                let staged_output = Command::new("git")
+                    .args(["diff", "--cached", "--", &rel_path])
+                    .current_dir(cwd)
+                    .output();
+
+                match staged_output {
+                    Ok(staged_output) => {
+                        let staged_stdout = String::from_utf8_lossy(&staged_output.stdout);
+                        if staged_stdout.is_empty() {
+                            vec!["No changes compared to HEAD".to_string()]
+                        } else {
+                            staged_stdout.lines().map(|s| s.to_string()).collect()
+                        }
+                    }
+                    Err(_) => vec!["Error loading staged diff".to_string()],
+                }
+            } else {
+                stdout.lines().map(|s| s.to_string()).collect()
+            }
+        }
+        Err(_) => vec!["Error loading diff".to_string()],
+    }
+}
+
+// ============================================================================
+// Branch Operations
+// ============================================================================
+
+/// Load branch list into state
+pub fn load_branches(state: &mut GitState, cwd: &PathBuf) {
+    state.branches.clear();
+    state.error = None;
+    state.selected_branch = 0;
+
+    // Get local branches with last commit
+    let output = Command::new("git")
+        .args(["branch", "-v", "--no-color"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let is_current = line.starts_with('*');
+                let line = line.trim_start_matches('*').trim();
+
+                // Parse "branch_name hash commit_message"
+                let parts: Vec<&str> = line.splitn(3, char::is_whitespace).collect();
+                if parts.len() >= 2 {
+                    let name = parts[0].to_string();
+                    let last_commit = if parts.len() >= 3 {
+                        format!("{} {}", parts[1], parts[2])
+                    } else {
+                        parts[1].to_string()
+                    };
+
+                    state.branches.push(GitBranch {
+                        name,
+                        is_current,
+                        is_remote: false,
+                        last_commit,
+                    });
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to list branches: {}", e));
+        }
+    }
+}
+
+/// Switch to a branch
+pub fn switch_branch(branch_name: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["checkout", branch_name])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Switched to branch '{}'", branch_name))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to switch: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Create a new branch
+pub fn create_branch(branch_name: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["checkout", "-b", branch_name])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Created and switched to branch '{}'", branch_name))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to create: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Delete a branch
+pub fn delete_branch(branch_name: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["branch", "-d", branch_name])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Deleted branch '{}'", branch_name))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                // Try force delete if normal delete fails
+                if stderr.contains("not fully merged") {
+                    Err(format!(
+                        "Branch not merged. Use force delete? ({})",
+                        stderr.trim()
+                    ))
+                } else {
+                    Err(format!("Failed to delete: {}", stderr))
+                }
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+// ============================================================================
+// Stash Operations
+// ============================================================================
+
+/// Load stash list into state
+pub fn load_stashes(state: &mut GitState, cwd: &PathBuf) {
+    state.stashes.clear();
+    state.error = None;
+    state.selected_stash = 0;
+
+    let output = Command::new("git")
+        .args(["stash", "list"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for (index, line) in stdout.lines().enumerate() {
+                // Parse "stash@{0}: On branch: message"
+                let parts: Vec<&str> = line.splitn(2, ": ").collect();
+                if parts.len() >= 2 {
+                    let branch_msg: Vec<&str> = parts[1].splitn(2, ": ").collect();
+                    let (branch, message) = if branch_msg.len() >= 2 {
+                        (
+                            branch_msg[0].trim_start_matches("On ").to_string(),
+                            branch_msg[1].to_string(),
+                        )
+                    } else {
+                        ("".to_string(), parts[1].to_string())
+                    };
+
+                    state.stashes.push(GitStashEntry {
+                        index,
+                        message,
+                        branch,
+                    });
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to list stashes: {}", e));
+        }
+    }
+}
+
+/// Create a new stash
+pub fn create_stash(message: Option<&str>, cwd: &PathBuf) -> Result<String, String> {
+    let mut args = vec!["stash", "push"];
+    if let Some(msg) = message {
+        args.push("-m");
+        args.push(msg);
+    }
+
+    let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if stdout.contains("No local changes") {
+                    Err("No local changes to stash".to_string())
+                } else {
+                    Ok("Changes stashed".to_string())
+                }
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Stash failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Pop the top stash
+pub fn pop_stash(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["stash", "pop"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Stash applied and dropped".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Pop failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Apply a specific stash (don't drop it)
+pub fn apply_stash(index: usize, cwd: &PathBuf) -> Result<String, String> {
+    let stash_ref = format!("stash@{{{}}}", index);
+    let output = Command::new("git")
+        .args(["stash", "apply", &stash_ref])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Applied stash@{{{}}}", index))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Apply failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Drop a specific stash
+pub fn drop_stash(index: usize, cwd: &PathBuf) -> Result<String, String> {
+    let stash_ref = format!("stash@{{{}}}", index);
+    let output = Command::new("git")
+        .args(["stash", "drop", &stash_ref])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Dropped stash@{{{}}}", index))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Drop failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+// ============================================================================
+// Tag Operations
+// ============================================================================
+
+/// Load tag list into state
+pub fn load_tags(state: &mut GitState, cwd: &PathBuf) {
+    state.tags.clear();
+    state.error = None;
+    state.selected_tag = 0;
+
+    // Get tags with commit info
+    let output = Command::new("git")
+        .args([
+            "tag",
+            "-l",
+            "--format=%(refname:short)|%(objectname:short)|%(contents:subject)",
+        ])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let parts: Vec<&str> = line.splitn(3, '|').collect();
+                if !parts.is_empty() {
+                    state.tags.push(GitTag {
+                        name: parts[0].to_string(),
+                        commit: parts.get(1).unwrap_or(&"").to_string(),
+                        message: parts.get(2).map(|s| s.to_string()).filter(|s| !s.is_empty()),
+                    });
+                }
+            }
+            // Sort tags reverse alphabetically (newest version first for semver)
+            state.tags.sort_by(|a, b| b.name.cmp(&a.name));
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to list tags: {}", e));
+        }
+    }
+}
+
+/// Create a new tag (lightweight)
+pub fn create_tag(tag_name: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["tag", tag_name])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Created tag '{}'", tag_name))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to create: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Delete a tag
+pub fn delete_tag(tag_name: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["tag", "-d", tag_name])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Deleted tag '{}'", tag_name))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to delete: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Push tags to remote
+pub fn push_tags(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["push", "--tags"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Tags pushed to remote".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Push failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+// ============================================================
+// Remote Operations
+// ============================================================
+
+/// Load git remotes into state
+pub fn load_remotes(state: &mut GitState, cwd: &PathBuf) {
+    state.remotes.clear();
+    state.selected_remote = 0;
+
+    // Get remote names and URLs
+    let output = Command::new("git")
+        .args(["remote", "-v"])
+        .current_dir(cwd)
+        .output();
+
+    if let Ok(output) = output {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut seen = std::collections::HashSet::new();
+
+            for line in stdout.lines() {
+                // Format: "origin  https://github.com/user/repo.git (fetch)"
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    let name = parts[0].to_string();
+                    // Only add each remote once (skip the (push) duplicate)
+                    if !seen.contains(&name) {
+                        seen.insert(name.clone());
+                        let url = parts[1].to_string();
+                        state.remotes.push(GitRemote { name, url });
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Execute git push to a specific remote
+pub fn execute_git_push_to(remote: &str, cwd: &PathBuf) -> Result<String, String> {
+    // Get current branch name
+    let branch_output = Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .current_dir(cwd)
+        .output();
+
+    let branch = match branch_output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+        _ => "HEAD".to_string(),
+    };
+
+    let output = Command::new("git")
+        .args(["push", remote, &branch])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let msg = if stderr.is_empty() {
+                    format!("Pushed to {} successfully", remote)
+                } else {
+                    format!("Pushed to {}: {}", remote, stderr.lines().last().unwrap_or(""))
+                };
+                Ok(msg)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Push to {} failed: {}", remote, stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to push: {}", e)),
+    }
+}
+
+/// Execute git pull from a specific remote
+pub fn execute_git_pull_from(remote: &str, cwd: &PathBuf) -> Result<String, String> {
+    // Get current branch name
+    let branch_output = Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .current_dir(cwd)
+        .output();
+
+    let branch = match branch_output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+        _ => "HEAD".to_string(),
+    };
+
+    let output = Command::new("git")
+        .args(["pull", remote, &branch])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let msg = if stdout.trim().is_empty() {
+                    format!("Already up to date with {}", remote)
+                } else {
+                    format!(
+                        "Pulled from {}: {}",
+                        remote,
+                        stdout.lines().last().unwrap_or("success")
+                    )
+                };
+                Ok(msg)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Pull from {} failed: {}", remote, stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to pull: {}", e)),
+    }
+}
+
+// ============================================================
+// Config Operations
+// ============================================================
+
+/// Load git config into state
+pub fn load_git_config(state: &mut GitState, cwd: &PathBuf) {
+    state.config_entries.clear();
+    state.selected_config = 0;
+
+    // Load config from all scopes
+    for (scope, args) in [
+        ("local", vec!["config", "--local", "--list"]),
+        ("global", vec!["config", "--global", "--list"]),
+        ("system", vec!["config", "--system", "--list"]),
+    ] {
+        let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+        if let Ok(output) = output {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    // Format: "key=value"
+                    if let Some((key, value)) = line.split_once('=') {
+                        state.config_entries.push(GitConfigEntry {
+                            key: key.to_string(),
+                            value: value.to_string(),
+                            scope: scope.to_string(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort by key for easier reading
+    state.config_entries.sort_by(|a, b| a.key.cmp(&b.key));
 }
