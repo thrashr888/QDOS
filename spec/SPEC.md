@@ -1133,3 +1133,264 @@ yellow = "#FFFF00"
 │   └── work.toml
 └── history          # Command/path history (optional)
 ```
+
+---
+
+## 14. Git Integration
+
+R-DOS provides integrated Git support for repositories, including status display, file history, and common operations.
+
+### 14.1 File List Git Status
+
+Files in Git repositories show status indicators in the file name column (flush right):
+
+| Indicator | Color   | Meaning |
+|-----------|---------|---------|
+| `M`       | Yellow  | Modified (staged or unstaged) |
+| `A`       | Cyan    | Added (staged) |
+| `D`       | Red     | Deleted |
+| `R`       | Cyan    | Renamed |
+| `?`       | Magenta | Untracked |
+| `!`       | Grey    | Ignored |
+| `C`       | Bold Red| Conflict (merge conflict) |
+| ` `       | -       | Clean/unchanged |
+
+Directories containing modified files are also marked as modified.
+
+### 14.2 Git Menu
+
+New top-level menu item `Git` (press `G`) for repository operations:
+
+```
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Git
+Git operations and repository information
+```
+
+**Git Submenu:**
+
+| Item | Description |
+|------|-------------|
+| Status | Show `git status` output |
+| Log | Show commit history |
+| Diff | Show unstaged changes |
+| Staged | Show staged changes |
+| Commit | Commit staged changes (prompts for message) |
+| Add | Stage highlighted/tagged files |
+| Reset | Unstage highlighted/tagged files |
+| Stash | Stash/pop/list stashed changes |
+| Branch | List/switch/create branches |
+| Pull | Pull from remote |
+| Push | Push to remote |
+| Fetch | Fetch from remote |
+
+**Git Status Screen:**
+```
+                         R-DOS Git Status
+═══════════════════════════════════════════════════════════════════════════════
+ Repository: /home/user/project
+ Branch: main ↑2 (ahead of origin/main by 2 commits)
+
+ Staged changes:
+   M  src/app.rs
+   A  src/new_file.rs
+
+ Unstaged changes:
+   M  README.md
+   M  Cargo.toml
+
+ Untracked files:
+   ?  temp.txt
+   ?  notes/
+
+═══════════════════════════════════════════════════════════════════════════════
+ (A)dd  (R)eset  (C)ommit  (D)iff  (P)ull  (U)push  ESC to return
+```
+
+**Git Log Screen:**
+```
+                         R-DOS Git Log
+═══════════════════════════════════════════════════════════════════════════════
+ Repository: /home/user/project
+ Branch: main
+
+ abc1234  2 hours ago   John Doe      Add new feature
+ def5678  5 hours ago   Jane Smith    Fix bug in parser
+ ghi9012  1 day ago     John Doe      Update dependencies
+ jkl3456  2 days ago    Jane Smith    Initial commit
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Navigate  ENTER View commit  D Diff  C Checkout  ESC to return
+```
+
+### 14.3 File Viewer Git Integration
+
+When viewing a file in a Git repository, additional modes are available:
+
+**View Modes:**
+| Key | Mode | Description |
+|-----|------|-------------|
+| N/A | Normal | Plain text view |
+| H | Hex | Hexadecimal view |
+| I | Image | Image preview (if supported) |
+| M | Markdown | Rendered markdown |
+| G | Git History | Show file commit history |
+| B | Blame | Git blame annotations |
+| D | Diff | Diff against HEAD |
+
+**Git History View (press G):**
+```
+ VIEW: README.MD  Mode: GIT HISTORY
+═══════════════════════════════════════════════════════════════════════════════
+ Commit   Date         Author        Message
+ ─────────────────────────────────────────────────────────────────────────────
+ abc1234  2 hours ago  John Doe      Update documentation
+ def5678  1 day ago    Jane Smith    Add installation section
+ ghi9012  3 days ago   John Doe      Initial README
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Navigate  ENTER View version  D Diff with current  < Older  > Newer  ESC
+```
+
+**Navigation Between Versions:**
+- `<` or `[` — View previous (older) version
+- `>` or `]` — View next (newer) version
+- `ENTER` on history — View that specific version
+- `D` — Toggle diff view comparing selected version with current
+
+**Git Blame View (press B):**
+```
+ VIEW: README.MD  Mode: BLAME
+═══════════════════════════════════════════════════════════════════════════════
+ abc1234 John Doe   2h  │ # R-DOS
+ abc1234 John Doe   2h  │
+ def5678 Jane Smith 1d  │ A retro DOS-style file manager written in Rust.
+ def5678 Jane Smith 1d  │
+ ghi9012 John Doe   3d  │ ## Installation
+ ghi9012 John Doe   3d  │
+ ghi9012 John Doe   3d  │ ```bash
+ ghi9012 John Doe   3d  │ cargo install rdos
+ ghi9012 John Doe   3d  │ ```
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Scroll  ENTER View commit  N Normal view  ESC exit
+```
+
+**Diff View (press D):**
+```
+ VIEW: README.MD  Mode: DIFF (HEAD)
+═══════════════════════════════════════════════════════════════════════════════
+ @@ -1,5 +1,7 @@
+  # R-DOS
+
+- A file manager written in Rust.
++ A retro DOS-style file manager written in Rust.
++
++ Inspired by Q-DOS II from 1986.
+
+  ## Installation
+
+═══════════════════════════════════════════════════════════════════════════════
+ ↑↓ Scroll  C Compare versions  N Normal view  ESC exit
+```
+
+**Diff Color Scheme:**
+| Element | Color |
+|---------|-------|
+| Added lines (`+`) | Green |
+| Removed lines (`-`) | Red |
+| Context lines | White |
+| Hunk headers (`@@`) | Cyan |
+| File headers | Blue |
+
+### 14.4 Implementation Notes
+
+**Git Detection:**
+```rust
+fn is_git_repo(path: &Path) -> bool {
+    Command::new("git")
+        .args(["rev-parse", "--git-dir"])
+        .current_dir(path)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn get_git_root(path: &Path) -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(path)
+        .output()
+        .ok()?;
+    // ...
+}
+```
+
+**File History:**
+```rust
+fn get_file_history(path: &Path) -> Vec<Commit> {
+    let output = Command::new("git")
+        .args(["log", "--pretty=format:%h|%ar|%an|%s", "--", path.to_str()?])
+        .output()?;
+    // Parse output into Commit structs
+}
+```
+
+**View Specific Version:**
+```rust
+fn get_file_at_commit(path: &Path, commit: &str) -> Result<Vec<u8>> {
+    let relative_path = get_relative_to_git_root(path)?;
+    let output = Command::new("git")
+        .args(["show", &format!("{}:{}", commit, relative_path)])
+        .output()?;
+    Ok(output.stdout)
+}
+```
+
+**Diff Generation:**
+```rust
+fn get_file_diff(path: &Path, commit: Option<&str>) -> Result<String> {
+    let mut args = vec!["diff"];
+    if let Some(c) = commit {
+        args.push(c);
+    }
+    args.push("--");
+    args.push(path.to_str()?);
+
+    let output = Command::new("git").args(&args).output()?;
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+```
+
+### 14.5 Git Menu Keybindings
+
+When Git menu is active:
+
+| Key | Action |
+|-----|--------|
+| S | Git Status |
+| L | Git Log |
+| D | Git Diff (unstaged) |
+| T | Git Diff (staged) |
+| C | Commit (opens message prompt) |
+| A | Add (stage) files |
+| R | Reset (unstage) files |
+| H | Stash submenu |
+| B | Branch submenu |
+| P | Pull |
+| U | Push |
+| F | Fetch |
+
+### 14.6 Planned Git Features
+
+- [ ] Git Status screen with interactive staging
+- [ ] Git Log viewer with commit details
+- [ ] File history navigation in viewer
+- [ ] Git Blame view
+- [ ] Diff view with syntax highlighting
+- [ ] Branch management (create, switch, delete)
+- [ ] Stash operations
+- [ ] Pull/Push with remote selection
+- [ ] Merge conflict resolution helper
+- [ ] Git configuration viewer/editor
+- [ ] Submodule support
+- [ ] Tag management

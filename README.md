@@ -16,7 +16,7 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 
 - **Retro DOS Aesthetic**: Black background with cyan, green, red, and yellow colors reminiscent of classic DOS file managers
 - **Directory Navigation**: Browse directories with arrow keys, Enter to open, F4 for parent directory
-- **File Listing**: View files with name, size, date, and time columns
+- **File Listing**: View files with name, git status, kind, size, date, and time columns
 - **File Tagging**: Mark files with Space key for batch operations
 - **Sorting**: 9 different sort modes (F8 to cycle) - by name, extension, size, or date (ascending/descending)
 - **File Viewing**: View the contents of any file on the screen (in "ASCII", "HEX", "MARKDOWN", or "IMAGE")
