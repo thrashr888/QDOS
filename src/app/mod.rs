@@ -2841,12 +2841,164 @@ impl App {
                                         let issue_type = state.create_type;
                                         let priority = state.create_priority;
                                         let path = self.current_path.clone();
-                                        match beads_ops::execute_beads_create(
-                                            &title, issue_type, priority, &path,
+                                        let parent_id = state.subtask_parent_id.clone();
+
+                                        if parent_id.is_empty() {
+                                            // Create regular issue
+                                            match beads_ops::execute_beads_create(
+                                                &title, issue_type, priority, &path,
+                                            ) {
+                                                Ok(_) => {
+                                                    self.modal =
+                                                        Modal::Success("Issue created".to_string());
+                                                }
+                                                Err(e) => {
+                                                    state.error = Some(e);
+                                                }
+                                            }
+                                        } else {
+                                            // Create subtask under parent
+                                            match beads_ops::execute_beads_create_subtask(
+                                                &parent_id, &title, issue_type, priority, &path,
+                                            ) {
+                                                Ok(new_id) => {
+                                                    state.subtask_parent_id.clear();
+                                                    self.modal = Modal::Success(
+                                                        format!("Subtask {} created", new_id)
+                                                    );
+                                                }
+                                                Err(e) => {
+                                                    state.error = Some(e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        BeadsView::Edit => {
+                            // When in title field (field 0), prioritize text input
+                            let in_text_field = state.edit_field == 0 || state.edit_field == 1;
+
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = BeadsView::Detail;
+                                }
+                                KeyCode::Up => {
+                                    if state.edit_field > 0 {
+                                        state.edit_field -= 1;
+                                    }
+                                }
+                                KeyCode::Down => {
+                                    if state.edit_field < 3 {
+                                        state.edit_field += 1;
+                                    }
+                                }
+                                KeyCode::Left => match state.edit_field {
+                                    2 => {
+                                        if state.edit_status > 0 {
+                                            state.edit_status -= 1;
+                                        }
+                                    }
+                                    3 => {
+                                        if state.edit_priority > 0 {
+                                            state.edit_priority -= 1;
+                                        }
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Right => match state.edit_field {
+                                    2 => {
+                                        if state.edit_status < 2 {
+                                            state.edit_status += 1;
+                                        }
+                                    }
+                                    3 => {
+                                        if state.edit_priority < 4 {
+                                            state.edit_priority += 1;
+                                        }
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Backspace => {
+                                    match state.edit_field {
+                                        0 => { state.edit_title.pop(); }
+                                        1 => { state.edit_description.pop(); }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char('k') if !in_text_field => {
+                                    if state.edit_field > 0 {
+                                        state.edit_field -= 1;
+                                    }
+                                }
+                                KeyCode::Char('j') if !in_text_field => {
+                                    if state.edit_field < 3 {
+                                        state.edit_field += 1;
+                                    }
+                                }
+                                KeyCode::Char('h') if !in_text_field => {
+                                    match state.edit_field {
+                                        2 => {
+                                            if state.edit_status > 0 {
+                                                state.edit_status -= 1;
+                                            }
+                                        }
+                                        3 => {
+                                            if state.edit_priority > 0 {
+                                                state.edit_priority -= 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char('l') if !in_text_field => {
+                                    match state.edit_field {
+                                        2 => {
+                                            if state.edit_status < 2 {
+                                                state.edit_status += 1;
+                                            }
+                                        }
+                                        3 => {
+                                            if state.edit_priority < 4 {
+                                                state.edit_priority += 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char(c) => {
+                                    match state.edit_field {
+                                        0 => state.edit_title.push(c),
+                                        1 => state.edit_description.push(c),
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Enter => {
+                                    if !state.edit_title.is_empty() {
+                                        let issue_id = state.edit_issue_id.clone();
+                                        let title = state.edit_title.clone();
+                                        let status = state.edit_status;
+                                        let priority = state.edit_priority;
+                                        let path = self.current_path.clone();
+
+                                        match beads_ops::execute_beads_update(
+                                            &issue_id,
+                                            Some(&title),
+                                            Some(status),
+                                            Some(priority),
+                                            &path,
                                         ) {
                                             Ok(_) => {
-                                                self.modal =
-                                                    Modal::Success("Issue created".to_string());
+                                                // Reload issue detail
+                                                if let Ok(updated) = beads_ops::load_beads_issue_detail(
+                                                    &issue_id, &path
+                                                ) {
+                                                    state.detail_issue = Some(updated);
+                                                }
+                                                state.view = BeadsView::Detail;
+                                                self.modal = Modal::Success("Issue updated".to_string());
                                             }
                                             Err(e) => {
                                                 state.error = Some(e);
@@ -2993,6 +3145,37 @@ impl App {
                                     state.view = BeadsView::History;
                                     state.selected_activity = 0;
                                     state.scroll_offset = 0;
+                                }
+                            }
+                            KeyCode::Char('e') | KeyCode::Char('E') => {
+                                // Edit issue
+                                if let Some(ref issue) = state.detail_issue {
+                                    state.edit_issue_id = issue.id.clone();
+                                    state.edit_title = issue.title.clone();
+                                    state.edit_description = issue.description.clone().unwrap_or_default();
+                                    state.edit_status = match issue.status.as_str() {
+                                        "open" => 0,
+                                        "in_progress" => 1,
+                                        "closed" => 2,
+                                        _ => 0,
+                                    };
+                                    state.edit_priority = issue.priority.trim_start_matches('P')
+                                        .parse().unwrap_or(2);
+                                    state.edit_field = 0;
+                                    state.view = BeadsView::Edit;
+                                }
+                            }
+                            KeyCode::Char('n') | KeyCode::Char('N') => {
+                                // Create subtask (only for epics)
+                                if let Some(ref issue) = state.detail_issue {
+                                    if issue.issue_type == "epic" {
+                                        state.subtask_parent_id = issue.id.clone();
+                                        state.create_title.clear();
+                                        state.create_type = 0;
+                                        state.create_priority = 2;
+                                        state.create_field = 0;
+                                        state.view = BeadsView::Create;
+                                    }
                                 }
                             }
                             _ => {}

@@ -688,3 +688,107 @@ pub fn file_has_issues(file_path: &str, issues: &[BeadsIssue]) -> bool {
                 .unwrap_or(false)
     })
 }
+
+/// Update an existing issue
+pub fn execute_beads_update(
+    issue_id: &str,
+    title: Option<&str>,
+    status: Option<usize>,
+    priority: Option<usize>,
+    cwd: &PathBuf,
+) -> Result<(), String> {
+    let mut args = vec!["update".to_string(), issue_id.to_string()];
+
+    if let Some(t) = title {
+        args.push("--title".to_string());
+        args.push(t.to_string());
+    }
+
+    if let Some(s) = status {
+        let statuses = ["open", "in_progress", "closed"];
+        if s < statuses.len() {
+            args.push("--status".to_string());
+            args.push(statuses[s].to_string());
+        }
+    }
+
+    if let Some(p) = priority {
+        args.push("--priority".to_string());
+        args.push(p.to_string());
+    }
+
+    let output = Command::new("bd")
+        .args(&args)
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Update failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to run bd: {}", e)),
+    }
+}
+
+/// Create a subtask under a parent issue (epic)
+pub fn execute_beads_create_subtask(
+    parent_id: &str,
+    title: &str,
+    issue_type_idx: usize,
+    priority: usize,
+    cwd: &PathBuf,
+) -> Result<String, String> {
+    let issue_types = ["task", "bug", "feature"];
+    let issue_type = issue_types[issue_type_idx];
+
+    // First create the issue
+    let output = Command::new("bd")
+        .args([
+            "create",
+            "--title",
+            title,
+            "--type",
+            issue_type,
+            "--priority",
+            &priority.to_string(),
+        ])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                // Parse the created issue ID from output
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                // Output format: "✓ Created issue: QDOS-xxx"
+                if let Some(id) = stdout.split("Created issue: ").nth(1) {
+                    let new_id = id.trim().split_whitespace().next().unwrap_or("");
+                    if !new_id.is_empty() {
+                        // Add dependency: new issue depends on parent (parent blocks new issue)
+                        let dep_output = Command::new("bd")
+                            .args(["dep", "add", new_id, parent_id])
+                            .current_dir(cwd)
+                            .output();
+
+                        if let Ok(dep_out) = dep_output {
+                            if dep_out.status.success() {
+                                return Ok(new_id.to_string());
+                            }
+                        }
+                        return Ok(new_id.to_string()); // Created but dep might have failed
+                    }
+                }
+                Ok(String::new())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Create failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to run bd: {}", e)),
+    }
+}

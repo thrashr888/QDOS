@@ -1939,6 +1939,7 @@ pub enum BeadsView {
     Stats,
     Create,
     Detail,
+    Edit,
     Comments,
     Dependencies,
     Kanban,
@@ -2004,6 +2005,20 @@ pub struct BeadsState {
     pub file_related_issues: Vec<BeadsIssue>,
     /// Selected issue in file-issues view
     pub file_issue_selected: usize,
+    /// Edit mode - issue ID being edited
+    pub edit_issue_id: String,
+    /// Edit mode - title input
+    pub edit_title: String,
+    /// Edit mode - description input
+    pub edit_description: String,
+    /// Edit mode - current field (0=title, 1=description, 2=status, 3=priority)
+    pub edit_field: usize,
+    /// Edit mode - status (0=open, 1=in_progress, 2=closed)
+    pub edit_status: usize,
+    /// Edit mode - priority (0-4)
+    pub edit_priority: usize,
+    /// Subtask creation - parent issue ID
+    pub subtask_parent_id: String,
 }
 
 /// Beads project statistics
@@ -2047,6 +2062,13 @@ impl Default for BeadsState {
             file_query_path: String::new(),
             file_related_issues: Vec::new(),
             file_issue_selected: 0,
+            edit_issue_id: String::new(),
+            edit_title: String::new(),
+            edit_description: String::new(),
+            edit_field: 0,
+            edit_status: 0,
+            edit_priority: 2,
+            subtask_parent_id: String::new(),
         }
     }
 }

@@ -2832,6 +2832,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         BeadsView::Stats => " BEADS - STATISTICS ",
         BeadsView::Create => " BEADS - CREATE ISSUE ",
         BeadsView::Detail => " BEADS - ISSUE DETAIL ",
+        BeadsView::Edit => " BEADS - EDIT ISSUE ",
         BeadsView::Comments => " BEADS - COMMENTS ",
         BeadsView::History => " BEADS - ISSUE HISTORY ",
         BeadsView::FileIssues => " BEADS - FILE ISSUES ",
@@ -3288,7 +3289,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         Span::styled(&issue.title, Style::default().fg(colors.fg())),
                     ]));
 
-                    // Description if available
+                    // Description if available (with text wrapping)
                     if let Some(ref desc) = issue.description {
                         if !desc.is_empty() {
                             lines.push(Line::from(""));
@@ -3296,11 +3297,51 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                 "  Description:",
                                 Style::default().fg(colors.green()),
                             )));
-                            for line in desc.lines().take(3) {
-                                lines.push(Line::from(vec![
-                                    Span::styled("    ", Style::default()),
-                                    Span::styled(line, Style::default().fg(colors.grey())),
-                                ]));
+                            // Wrap text to fit content area (subtract 4 for indent)
+                            let max_width = (content_area.width as usize).saturating_sub(6);
+                            let mut line_count = 0;
+                            for paragraph in desc.lines() {
+                                if line_count >= 8 {
+                                    lines.push(Line::from(vec![
+                                        Span::styled("    ", Style::default()),
+                                        Span::styled("...", Style::default().fg(colors.grey())),
+                                    ]));
+                                    break;
+                                }
+                                // Simple word wrap
+                                let words: Vec<&str> = paragraph.split_whitespace().collect();
+                                if words.is_empty() {
+                                    lines.push(Line::from(""));
+                                    line_count += 1;
+                                    continue;
+                                }
+                                let mut current_line = String::new();
+                                for word in words {
+                                    if current_line.is_empty() {
+                                        current_line = word.to_string();
+                                    } else if current_line.len() + 1 + word.len() <= max_width {
+                                        current_line.push(' ');
+                                        current_line.push_str(word);
+                                    } else {
+                                        // Emit current line and start new one
+                                        lines.push(Line::from(vec![
+                                            Span::styled("    ", Style::default()),
+                                            Span::styled(current_line.clone(), Style::default().fg(colors.grey())),
+                                        ]));
+                                        line_count += 1;
+                                        if line_count >= 8 {
+                                            break;
+                                        }
+                                        current_line = word.to_string();
+                                    }
+                                }
+                                if !current_line.is_empty() && line_count < 8 {
+                                    lines.push(Line::from(vec![
+                                        Span::styled("    ", Style::default()),
+                                        Span::styled(current_line.clone(), Style::default().fg(colors.grey())),
+                                    ]));
+                                    line_count += 1;
+                                }
                             }
                         }
                     }
@@ -3486,10 +3527,114 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                             Span::styled("Reopen issue", Style::default().fg(colors.fg())),
                         ]));
                     }
+                    // Edit action always available
+                    lines.push(Line::from(vec![
+                        Span::styled("  [E] ", Style::default().fg(colors.yellow())),
+                        Span::styled("Edit issue", Style::default().fg(colors.fg())),
+                    ]));
+                    // Subtask creation for epics
+                    if issue.issue_type == "epic" {
+                        lines.push(Line::from(vec![
+                            Span::styled("  [N] ", Style::default().fg(colors.yellow())),
+                            Span::styled("New subtask", Style::default().fg(colors.fg())),
+                        ]));
+                    }
                 } else {
                     lines.push(Line::from(""));
                     lines.push(Line::from(Span::styled(
                         "Issue not found",
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            BeadsView::Edit => {
+                let statuses = ["open", "in_progress", "closed"];
+                let priorities = ["P0", "P1", "P2", "P3", "P4"];
+
+                let mut lines = vec![
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        format!("Edit Issue: {}", state.edit_issue_id),
+                        Style::default()
+                            .fg(colors.fg())
+                            .add_modifier(Modifier::BOLD),
+                    )),
+                    Line::from(""),
+                ];
+
+                // Title field
+                let title_style = if state.edit_field == 0 {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                lines.push(Line::from(vec![
+                    Span::styled("  Title:       ", Style::default().fg(colors.green())),
+                    Span::styled(&state.edit_title, title_style),
+                    if state.edit_field == 0 {
+                        Span::styled("█", title_style)
+                    } else {
+                        Span::styled("", Style::default())
+                    },
+                ]));
+
+                lines.push(Line::from(""));
+
+                // Description field
+                let desc_style = if state.edit_field == 1 {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                let desc_display = if state.edit_description.len() > 40 {
+                    format!("{}...", &state.edit_description[..37])
+                } else {
+                    state.edit_description.clone()
+                };
+                lines.push(Line::from(vec![
+                    Span::styled("  Description: ", Style::default().fg(colors.green())),
+                    Span::styled(&desc_display, desc_style),
+                    if state.edit_field == 1 {
+                        Span::styled("█", desc_style)
+                    } else {
+                        Span::styled("", Style::default())
+                    },
+                ]));
+
+                lines.push(Line::from(""));
+
+                // Status field
+                let status_style = if state.edit_field == 2 {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                let status_value = format!("< {} >", statuses[state.edit_status]);
+                lines.push(Line::from(vec![
+                    Span::styled("  Status:      ", Style::default().fg(colors.green())),
+                    Span::styled(status_value, status_style),
+                ]));
+
+                lines.push(Line::from(""));
+
+                // Priority field
+                let priority_style = if state.edit_field == 3 {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                let priority_value = format!("< {} >", priorities[state.edit_priority]);
+                lines.push(Line::from(vec![
+                    Span::styled("  Priority:    ", Style::default().fg(colors.green())),
+                    Span::styled(priority_value, priority_style),
+                ]));
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
                         Style::default().fg(colors.red()),
                     )));
                 }
@@ -4151,7 +4296,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
             }
             BeadsView::Stats => "R refresh  ESC back",
             BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => "↑↓ subtasks  M comments  H history  A add comment  S start  C close  O reopen",
+            BeadsView::Detail => "↑↓ subtasks  E edit  N new subtask  M comments  H history  S start  C close",
+            BeadsView::Edit => "↑↓ field  ←→ value  Enter save  ESC cancel",
             BeadsView::Comments => {
                 if state.comment_input_active {
                     "Type comment  Enter submit  ESC cancel"
