@@ -538,14 +538,27 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         Rect::new(area.x, y, left_width - 1, 1),
     );
 
-    // ROWS 18-19: Git and Beads status indicators
+    // ROWS 18-19: Copyright (always shown)
+    let blue_style = Style::default().fg(colors.blue());
+    let y = area.y + 18;
+    frame.render_widget(
+        Paragraph::new(Span::styled(" R-DOS — Version 0.1.0       ", blue_style)),
+        Rect::new(area.x, y, left_width - 1, 1),
+    );
+    let y = area.y + 19;
+    frame.render_widget(
+        Paragraph::new(Span::styled(" Paul Thrasher - SF, CA      ", blue_style)),
+        Rect::new(area.x, y, left_width - 1, 1),
+    );
+
+    // ROWS 20-21: Git and Beads status indicators (only when applicable)
     let green_style = Style::default().fg(colors.green());
     let cyan_style = Style::default().fg(colors.cyan());
     let status_width = left_width as usize - 1;
 
-    // Row 18: Git status (if in git repo)
-    let y = area.y + 18;
+    // Row 20: Git status (only if in git repo)
     if let Some((modified, staged)) = app.git_status_counts {
+        let y = area.y + 20;
         let git_status = format!(" GIT: {} mod, {} staged", modified, staged);
         let padded = format!("{:<width$}", git_status, width = status_width);
         frame.render_widget(
@@ -554,9 +567,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         );
     }
 
-    // Row 19: Beads status (if in beads project)
-    let y = area.y + 19;
+    // Row 21: Beads status (only if in beads project)
     if let Some((open, ready)) = app.beads_status {
+        let y = area.y + 21;
         let beads_status = format!(" BEADS: {} open, {} ready", open, ready);
         let padded = format!("{:<width$}", beads_status, width = status_width);
         frame.render_widget(
@@ -564,14 +577,6 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             Rect::new(area.x, y, left_width - 1, 1),
         );
     }
-
-    // ROW 20: Copyright/Version
-    let blue_style = Style::default().fg(colors.blue());
-    let y = area.y + 20;
-    frame.render_widget(
-        Paragraph::new(Span::styled(" R-DOS — v0.1.0              ", blue_style)),
-        Rect::new(area.x, y, left_width - 1, 1),
-    );
 
     // Calculate file table dimensions
     let data_start_y = area.y + 3; // After top border, header, header underline
