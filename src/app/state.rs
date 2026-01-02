@@ -1753,6 +1753,7 @@ pub enum SubmoduleStatus {
     #[default]
     Uninitialized,
     Initialized,
+    #[allow(dead_code)] // Reserved for future use
     OutOfDate,
     Modified,
     Conflict,
