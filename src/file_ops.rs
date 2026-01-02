@@ -1,9 +1,99 @@
 use crate::app::SortMode;
 use anyhow::Result;
 use chrono::{DateTime, Local};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use sysinfo::System;
+
+/// File type/kind classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FileKind {
+    Directory,
+    Text,
+    Code,
+    Image,
+    Audio,
+    Video,
+    Archive,
+    Document,
+    Executable,
+    #[default]
+    Binary,
+}
+
+impl FileKind {
+    /// Determine file kind from extension
+    pub fn from_extension(ext: &str) -> Self {
+        match ext.to_lowercase().as_str() {
+            // Text files
+            "txt" | "md" | "markdown" | "rst" | "log" | "csv" | "json" | "yaml" | "yml" | "toml" | "xml" | "html" | "htm" | "css" => FileKind::Text,
+            // Code files
+            "rs" | "py" | "js" | "ts" | "jsx" | "tsx" | "c" | "cpp" | "h" | "hpp" | "java" | "go" | "rb" | "php" | "swift" | "kt" | "scala" | "sh" | "bash" | "zsh" | "fish" | "ps1" | "sql" | "lua" | "vim" | "el" => FileKind::Code,
+            // Image files
+            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "svg" | "ico" | "tiff" | "tif" | "psd" | "raw" | "heic" | "heif" => FileKind::Image,
+            // Audio files
+            "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a" | "aiff" | "opus" => FileKind::Audio,
+            // Video files
+            "mp4" | "mkv" | "avi" | "mov" | "wmv" | "flv" | "webm" | "m4v" | "mpeg" | "mpg" => FileKind::Video,
+            // Archive files
+            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "tgz" | "tbz2" | "txz" | "zst" => FileKind::Archive,
+            // Document files
+            "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp" | "rtf" | "epub" => FileKind::Document,
+            // Executable files
+            "exe" | "msi" | "app" | "dmg" | "deb" | "rpm" | "apk" | "jar" | "out" => FileKind::Executable,
+            // Default to binary
+            _ => FileKind::Binary,
+        }
+    }
+
+    /// Get short display string for kind
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FileKind::Directory => "DIR",
+            FileKind::Text => "TEXT",
+            FileKind::Code => "CODE",
+            FileKind::Image => "IMG",
+            FileKind::Audio => "AUDIO",
+            FileKind::Video => "VIDEO",
+            FileKind::Archive => "ARCH",
+            FileKind::Document => "DOC",
+            FileKind::Executable => "EXEC",
+            FileKind::Binary => "BIN",
+        }
+    }
+}
+
+/// Git status for a file
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GitStatus {
+    #[default]
+    None,
+    Modified,
+    Added,
+    Deleted,
+    Renamed,
+    Untracked,
+    Ignored,
+    Conflict,
+}
+
+impl GitStatus {
+    /// Get single character indicator for git status
+    pub fn indicator(&self) -> &'static str {
+        match self {
+            GitStatus::None => " ",
+            GitStatus::Modified => "M",
+            GitStatus::Added => "A",
+            GitStatus::Deleted => "D",
+            GitStatus::Renamed => "R",
+            GitStatus::Untracked => "?",
+            GitStatus::Ignored => "!",
+            GitStatus::Conflict => "C",
+        }
+    }
+}
 
 /// Represents a file or directory entry
 #[derive(Debug, Clone)]
@@ -23,6 +113,12 @@ pub struct FileEntry {
     pub modified: DateTime<Local>,
     /// Creation time
     pub created: DateTime<Local>,
+    /// File type/kind
+    pub kind: FileKind,
+    /// Whether file is hidden (starts with .)
+    pub is_hidden: bool,
+    /// Git status
+    pub git_status: GitStatus,
 }
 
 impl FileEntry {
@@ -62,9 +158,74 @@ impl FileEntry {
     }
 }
 
+/// Get git status for all files in a directory
+fn get_git_status_map(path: &PathBuf) -> HashMap<PathBuf, GitStatus> {
+    let mut status_map = HashMap::new();
+
+    // Run git status --porcelain to get file statuses
+    let output = Command::new("git")
+        .args(["status", "--porcelain", "-uall"])
+        .current_dir(path)
+        .output();
+
+    if let Ok(output) = output {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.len() < 4 {
+                    continue;
+                }
+
+                let status_code = &line[0..2];
+                let file_path = line[3..].trim();
+
+                // Handle renamed files (format: "R  old -> new")
+                let file_path = if file_path.contains(" -> ") {
+                    file_path.split(" -> ").last().unwrap_or(file_path)
+                } else {
+                    file_path
+                };
+
+                let status = match status_code {
+                    "M " | " M" | "MM" => GitStatus::Modified,
+                    "A " | "AM" => GitStatus::Added,
+                    "D " | " D" => GitStatus::Deleted,
+                    "R " | "RM" => GitStatus::Renamed,
+                    "??" => GitStatus::Untracked,
+                    "!!" => GitStatus::Ignored,
+                    "UU" | "AA" | "DD" => GitStatus::Conflict,
+                    _ => GitStatus::None,
+                };
+
+                if status != GitStatus::None {
+                    // Store relative path
+                    let full_path = path.join(file_path);
+                    status_map.insert(full_path, status);
+
+                    // Also mark parent directories as modified if a file inside is modified
+                    let mut parent = PathBuf::from(file_path);
+                    while let Some(p) = parent.parent() {
+                        if p.as_os_str().is_empty() {
+                            break;
+                        }
+                        let parent_full = path.join(p);
+                        status_map.entry(parent_full).or_insert(GitStatus::Modified);
+                        parent = p.to_path_buf();
+                    }
+                }
+            }
+        }
+    }
+
+    status_map
+}
+
 /// Get directory contents with sorting
 pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec<FileEntry>> {
     let mut entries = Vec::new();
+
+    // Get git status for the directory
+    let git_status_map = get_git_status_map(path);
 
     // Add parent directory entry if not at root
     if let Some(parent) = path.parent() {
@@ -76,6 +237,9 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             is_dir: true,
             modified: DateTime::from(std::time::SystemTime::now()),
             created: DateTime::from(std::time::SystemTime::now()),
+            kind: FileKind::Directory,
+            is_hidden: false,
+            git_status: GitStatus::None,
         });
     }
 
@@ -85,10 +249,8 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
         let metadata = entry.metadata()?;
         let file_name = entry.file_name().to_string_lossy().to_string();
 
-        // Skip hidden files (starting with .)
-        if file_name.starts_with('.') {
-            continue;
-        }
+        // Check if file is hidden (starting with .)
+        let is_hidden = file_name.starts_with('.');
 
         // Extract name and extension
         let (name, extension) = if metadata.is_dir() {
@@ -112,14 +274,28 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             .map(DateTime::from)
             .unwrap_or_else(|_| Local::now());
 
+        // Determine file kind
+        let kind = if metadata.is_dir() {
+            FileKind::Directory
+        } else {
+            FileKind::from_extension(&extension)
+        };
+
+        // Get git status for this file
+        let file_path = entry.path();
+        let git_status = git_status_map.get(&file_path).copied().unwrap_or(GitStatus::None);
+
         entries.push(FileEntry {
             name,
             extension: extension.to_uppercase(),
-            path: entry.path(),
+            path: file_path,
             size: metadata.len(),
             is_dir: metadata.is_dir(),
             modified,
             created,
+            kind,
+            is_hidden,
+            git_status,
         });
     }
 
@@ -137,12 +313,19 @@ fn sort_entries(entries: &mut [FileEntry], sort_mode: SortMode) {
 
     let slice = &mut entries[start_idx..];
 
-    // Sort directories first, then files
+    // Sort: directories first, then non-hidden before hidden, then by sort mode
     slice.sort_by(|a, b| {
         // Directories always come first
         match (a.is_dir, b.is_dir) {
             (true, false) => return std::cmp::Ordering::Less,
             (false, true) => return std::cmp::Ordering::Greater,
+            _ => {}
+        }
+
+        // Hidden files come after non-hidden (within dirs and files)
+        match (a.is_hidden, b.is_hidden) {
+            (false, true) => return std::cmp::Ordering::Less,
+            (true, false) => return std::cmp::Ordering::Greater,
             _ => {}
         }
 

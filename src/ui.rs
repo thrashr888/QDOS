@@ -1,5 +1,5 @@
 use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter};
-use crate::file_ops::get_disk_space;
+use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -16,6 +16,9 @@ const COLOR_BLUE: Color = Color::Rgb(102, 183, 179);     // DOS Blue - borders, 
 const COLOR_GREEN: Color = Color::Rgb(103, 204, 77);    // DOS Green - help text, descriptions
 const COLOR_RED: Color = Color::Rgb(157, 31, 20);      // DOS Red - path bar, selection bg
 const COLOR_YELLOW: Color = Color::Rgb(232, 218, 89); // DOS Yellow - tagged items
+const COLOR_GREY: Color = Color::Rgb(128, 128, 128);   // Grey - hidden files
+const COLOR_CYAN: Color = Color::Rgb(0, 170, 170);     // Cyan - git added
+const COLOR_MAGENTA: Color = Color::Rgb(170, 0, 170);  // Magenta - git untracked
 
 /// Color usage:
 ///
@@ -164,11 +167,12 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     // Left panel width (stats/keybindings/copyright)
     let left_width: u16 = 30;
     // File table column widths - name column expands to fill remaining space
+    let kind_col: u16 = 6;  // "KIND" + padding
     let size_col: u16 = 12;
     let date_col: u16 = 10;
     let time_col: u16 = 9;
-    // Calculate name_col to fill remaining width (area.width - left_width - size - date - time - 4 separators - 1 right border)
-    let fixed_cols = left_width + size_col + date_col + time_col + 4 + 1;
+    // Calculate name_col to fill remaining width (area.width - left_width - kind - size - date - time - 5 separators - 1 right border)
+    let fixed_cols = left_width + kind_col + size_col + date_col + time_col + 5 + 1;
     let name_col: u16 = area.width.saturating_sub(fixed_cols).max(14);
 
     // Calculate positions
@@ -180,6 +184,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     top_line.push_str(&"═".repeat(left_width as usize - 1));
     top_line.push('╦');
     top_line.push_str(&"═".repeat(name_col as usize));
+    top_line.push('╦');
+    top_line.push_str(&"═".repeat(kind_col as usize));
     top_line.push('╦');
     top_line.push_str(&"═".repeat(size_col as usize));
     top_line.push('╦');
@@ -211,6 +217,13 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         Rect::new(x, y, name_col, 1),
     );
     x += name_col;
+    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    x += 1;
+    frame.render_widget(
+        Paragraph::new(Span::styled(format!(" {:<width$}", "Kind", width = kind_col as usize - 1), header_style)),
+        Rect::new(x, y, kind_col, 1),
+    );
+    x += kind_col;
     frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
     x += 1;
     frame.render_widget(
@@ -248,6 +261,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let mut header_ul = String::new();
     header_ul.push('╠');
     header_ul.push_str(&"═".repeat(name_col as usize));
+    header_ul.push('╬');
+    header_ul.push_str(&"═".repeat(kind_col as usize));
     header_ul.push('╬');
     header_ul.push_str(&"═".repeat(size_col as usize));
     header_ul.push('╬');
@@ -371,7 +386,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let scroll_offset = calculate_scroll_offset(app.selected_index, app.scroll_offset, data_height);
 
     // Calculate right border x position
-    let right_border_x = file_table_x + name_col + 1 + size_col + 1 + date_col + 1 + time_col;
+    let right_border_x = file_table_x + name_col + 1 + kind_col + 1 + size_col + 1 + date_col + 1 + time_col;
 
     // Draw all content rows (files + empty rows to fill height)
     for row_idx in 0..data_height {
@@ -389,14 +404,33 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             let is_selected = file_idx == app.selected_index;
             let is_tagged = app.is_tagged(&file.path);
 
+            // Determine base style based on selection, tag, hidden, dir status
             let style = if is_selected {
                 Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
             } else if is_tagged {
                 Style::default().fg(COLOR_YELLOW)
+            } else if file.is_hidden {
+                Style::default().fg(COLOR_GREY)
             } else if file.is_dir {
                 Style::default().fg(COLOR_BLUE)
             } else {
                 Style::default().fg(COLOR_FG)
+            };
+
+            // Git status indicator style
+            let git_style = if is_selected {
+                style
+            } else {
+                match file.git_status {
+                    GitStatus::Modified => Style::default().fg(COLOR_YELLOW),
+                    GitStatus::Added => Style::default().fg(COLOR_CYAN),
+                    GitStatus::Deleted => Style::default().fg(COLOR_RED),
+                    GitStatus::Renamed => Style::default().fg(COLOR_CYAN),
+                    GitStatus::Untracked => Style::default().fg(COLOR_MAGENTA),
+                    GitStatus::Conflict => Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
+                    GitStatus::Ignored => Style::default().fg(COLOR_GREY),
+                    GitStatus::None => style,
+                }
             };
 
             let (sep_char, sep_style) = if is_selected {
@@ -413,6 +447,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 format!(".{}", file.extension)
             };
+
+            // Format: git_status + name + ext
+            let git_indicator = file.git_status.indicator();
             let display_name = format!("{}{}", name, ext);
 
             let size_str = if file.is_dir {
@@ -421,14 +458,29 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 format_number(file.size)
             };
 
+            let kind_str = file.kind.as_str();
+
             let mut x = file_table_x;
 
-            // File name (name + ext combined)
+            // File name with git status indicator
+            let name_content = Line::from(vec![
+                Span::styled(git_indicator, git_style),
+                Span::styled(format!("{:<width$}", display_name, width = name_col as usize - 2), style),
+            ]);
             frame.render_widget(
-                Paragraph::new(Span::styled(format!(" {:<width$}", display_name, width = name_col as usize - 1), style)),
+                Paragraph::new(name_content),
                 Rect::new(x, row_y, name_col, 1),
             );
             x += name_col;
+            frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
+            x += 1;
+
+            // Kind column
+            frame.render_widget(
+                Paragraph::new(Span::styled(format!(" {:<width$}", kind_str, width = kind_col as usize - 1), style)),
+                Rect::new(x, row_y, kind_col, 1),
+            );
+            x += kind_col;
             frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
             x += 1;
 
@@ -459,6 +511,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             // Empty row - just draw column separators
             let mut x = file_table_x + name_col;
             frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
+            x += 1 + kind_col;
+            frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
             x += 1 + size_col;
             frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
             x += 1 + date_col;
@@ -475,6 +529,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     bottom_line.push_str(&" ".repeat(left_width as usize - 1));
     bottom_line.push('╚');
     bottom_line.push_str(&"═".repeat(name_col as usize));
+    bottom_line.push('╩');
+    bottom_line.push_str(&"═".repeat(kind_col as usize));
     bottom_line.push('╩');
     bottom_line.push_str(&"═".repeat(size_col as usize));
     bottom_line.push('╩');
