@@ -88,7 +88,13 @@ rdos /path/to/directory
 
 ## Screenshots
 
-![R-DOS Screenshot](./images/rdos.png)
+![R-DOS File Manager Screenshot](./images/rdos.png)
+
+![R-DOS Code Viewer Screenshot](./images/rdos-code.png)
+
+![R-DOS Git Log Screenshot](./images/rdos-git.png)
+
+![R-DOS Beads Issue Screenshot](./images/rdos-beads.png)
 
 ## Dependencies
 
