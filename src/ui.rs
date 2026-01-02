@@ -2,7 +2,7 @@ use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMo
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
@@ -605,15 +605,21 @@ fn calculate_scroll_offset(selected: usize, current_offset: usize, visible_heigh
 
 /// Draw modal dialogs
 fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
+    // Quit modal handles its own area - no Clear needed (overlays directly)
+    if matches!(app.modal, Modal::Quit) {
+        draw_quit_modal(frame, area);
+        return;
+    }
+
     let modal_area = centered_rect(60, 50, area);
 
-    // Clear the modal area
+    // Clear the modal area for other modals
     frame.render_widget(Clear, modal_area);
 
     match &app.modal {
         Modal::Help => draw_help_modal(frame, modal_area),
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
-        Modal::Quit => draw_quit_modal(frame, modal_area),
+        Modal::Quit => {} // Handled above
         Modal::SearchSpec => draw_search_spec_modal(frame, modal_area, app),
         Modal::Space => draw_space_modal(frame, modal_area, app),
         Modal::Error(msg) => draw_error_modal(frame, modal_area, msg),
@@ -716,43 +722,51 @@ fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::Syst
     frame.render_widget(paragraph, area);
 }
 
-/// Draw quit confirmation modal (Q-DOS II style)
+/// Draw quit confirmation modal (Q-DOS II style with double-line box)
 fn draw_quit_modal(frame: &mut Frame, area: Rect) {
-    let quit_area = centered_rect(60, 30, area);
+    // Modal is 60 chars wide, 8 lines tall (matching spec/ui.md)
+    let width: u16 = 60;
+    let height: u16 = 8;
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    let quit_area = Rect::new(x, y, width.min(area.width), height.min(area.height));
 
-    // White border, no title in border (title is inside)
-    let quit_block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_FG))
-        .style(Style::default().bg(COLOR_BG));
+    let style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
 
-    // Title inside the box, then the messages
-    let quit_text = vec![
-        Line::from(Span::styled(
-            "F10 - Quit Q-DOS II",
-            Style::default().fg(COLOR_FG),
-        )),
-        Line::from(""),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Press F10 again to quit, or RETURN for options",
-            Style::default().fg(COLOR_FG),
-        )),
-        Line::from(""),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Press ESC to return to Q-DOS II",
-            Style::default().fg(COLOR_FG),
-        )),
-    ];
+    // Build the modal line by line with double-line box characters
+    // Line 0: Top border
+    let top = format!("╔{}╗", "═".repeat(width as usize - 2));
+    frame.render_widget(Paragraph::new(Span::styled(&top, style)), Rect::new(quit_area.x, quit_area.y, width, 1));
 
-    let paragraph = Paragraph::new(quit_text)
-        .block(quit_block)
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+    // Line 1: Title row
+    let title = "F10 - Quit Q-DOS II";
+    let title_line = format!("║{:^w$}║", title, w = width as usize - 2);
+    frame.render_widget(Paragraph::new(Span::styled(&title_line, style)), Rect::new(quit_area.x, quit_area.y + 1, width, 1));
 
-    frame.render_widget(Clear, quit_area);
-    frame.render_widget(paragraph, quit_area);
+    // Line 2: Separator (double line)
+    let sep = format!("╠{}╣", "═".repeat(width as usize - 2));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, style)), Rect::new(quit_area.x, quit_area.y + 2, width, 1));
+
+    // Line 3: Empty row
+    let empty = format!("║{:w$}║", "", w = width as usize - 2);
+    frame.render_widget(Paragraph::new(Span::styled(&empty, style)), Rect::new(quit_area.x, quit_area.y + 3, width, 1));
+
+    // Line 4: First message
+    let msg1 = "Press F10 again to quit, or RETURN for options";
+    let msg1_line = format!("║{:^w$}║", msg1, w = width as usize - 2);
+    frame.render_widget(Paragraph::new(Span::styled(&msg1_line, style)), Rect::new(quit_area.x, quit_area.y + 4, width, 1));
+
+    // Line 5: Empty row
+    frame.render_widget(Paragraph::new(Span::styled(&empty, style)), Rect::new(quit_area.x, quit_area.y + 5, width, 1));
+
+    // Line 6: Second message
+    let msg2 = "Press ESC to return to Q-DOS II";
+    let msg2_line = format!("║{:^w$}║", msg2, w = width as usize - 2);
+    frame.render_widget(Paragraph::new(Span::styled(&msg2_line, style)), Rect::new(quit_area.x, quit_area.y + 6, width, 1));
+
+    // Line 7: Bottom border
+    let bottom = format!("╚{}╝", "═".repeat(width as usize - 2));
+    frame.render_widget(Paragraph::new(Span::styled(&bottom, style)), Rect::new(quit_area.x, quit_area.y + 7, width, 1));
 }
 
 /// Draw search specification modal

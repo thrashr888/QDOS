@@ -23,3 +23,12 @@ Change current directory, make or remove directory, see directory tree
  Q-DOS II —- Version 2.00     ║ DISKCOPY.COM ║     13,696 ║  7-29-87 ║   3:47p ║
    Copyright (c) 1986         ║ DRIVER  .SYS ║      1,036 ║  7-29-87 ║   3:47p ║
 GAZELLE SYSTEMS - Provo, Utah ╚══════════════╩════════════╩══════════╩═════════╝
+
+             ╔════════════════════════════════════════════════════════╗
+             ║                   F10 - Quit Q-DOS II                  ║
+             ╠════════════════════════════════════════════════════════╣
+             ║                                                        ║
+             ║    Press F10 again to quit, or RETURN for options      ║
+             ║                                                        ║
+             ║           Press ESC to return to Q-DOS II              ║
+             ╚════════════════════════════════════════════════════════╝ 
