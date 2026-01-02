@@ -412,7 +412,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     // Left side: stats box tops
     let file_count = app.file_count();
     let total_size = app.total_size();
-    let left_line = format!("╔════╗        ╔═══════════╗   ");
+    let left_line = "╔════╗        ╔═══════════╗   ".to_string();
     frame.render_widget(
         Paragraph::new(Span::styled(&left_line, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -450,7 +450,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     // ROW 4: Dirs row (close total size box)
     let y = area.y + 4;
     let dir_count = app.dir_count();
-    let dirs_line = format!("╠════╣        ╚═══════════╝   ");
+    let dirs_line = "╠════╣        ╚═══════════╝   ".to_string();
     frame.render_widget(
         Paragraph::new(Span::styled(&dirs_line, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -468,7 +468,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let y = area.y + 6;
     let tagged_count = app.tagged_files.len();
     let tagged_size = app.tagged_size();
-    let tagged_line1 = format!("╠════╣        ╔═══════════╗   ");
+    let tagged_line1 = "╠════╣        ╔═══════════╗   ".to_string();
     frame.render_widget(
         Paragraph::new(Span::styled(&tagged_line1, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -497,7 +497,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
     // ROW 8: Close both boxes
     let y = area.y + 8;
-    let close_boxes = format!("╚════╝        ╚═══════════╝   ");
+    let close_boxes = "╚════╝        ╚═══════════╝   ".to_string();
     frame.render_widget(
         Paragraph::new(Span::styled(&close_boxes, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -647,7 +647,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             // Format: " NAME...           M" (name left-aligned, git status flush right)
             let name_width = name_col as usize - 2; // -2 for leading space and trailing git indicator
             let truncated_name = if display_name.len() > name_width {
-                format!("{}", &display_name[..name_width])
+                (&display_name[..name_width]).to_string()
             } else {
                 format!("{:<width$}", display_name, width = name_width)
             };

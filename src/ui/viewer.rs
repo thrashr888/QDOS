@@ -209,7 +209,7 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
                 line.iter()
                     .map(|&b| match state.filter {
                         ViewFilter::Off => {
-                            if b >= 32 && b < 127 {
+                            if (32..127).contains(&b) {
                                 b as char
                             } else if b == b'\t' {
                                 ' '
@@ -220,7 +220,7 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
                             }
                         }
                         ViewFilter::Ascii => {
-                            if b >= 32 && b < 127 {
+                            if (32..127).contains(&b) {
                                 b as char
                             } else {
                                 ' '
@@ -228,7 +228,7 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
                         }
                         ViewFilter::WordStar => {
                             let b = b & 0x7F; // Strip high bit
-                            if b >= 32 && b < 127 {
+                            if (32..127).contains(&b) {
                                 b as char
                             } else {
                                 ' '
@@ -258,7 +258,7 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
 /// Draw hex view mode
 fn draw_hex_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height: usize) {
     let bytes_per_line: usize = 16;
-    let total_lines = (state.content.len() + bytes_per_line - 1) / bytes_per_line;
+    let total_lines = state.content.len().div_ceil(bytes_per_line);
 
     // Calculate max scroll
     let max_scroll = total_lines.saturating_sub(height);
@@ -303,7 +303,13 @@ fn draw_hex_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height:
         spans.push(Span::raw("  "));
         let ascii: String = chunk
             .iter()
-            .map(|&b| if b >= 32 && b < 127 { b as char } else { '.' })
+            .map(|&b| {
+                if (32..127).contains(&b) {
+                    b as char
+                } else {
+                    '.'
+                }
+            })
             .collect();
         spans.push(Span::styled(ascii, Style::default().fg(COLOR_GREEN)));
 

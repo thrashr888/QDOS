@@ -575,7 +575,7 @@ impl App {
                     match key.code {
                         KeyCode::Char('y') | KeyCode::Char('Y') => {
                             // Confirmed - delete the directory
-                            match fs::remove_dir(&path_to_delete) {
+                            match fs::remove_dir(path_to_delete) {
                                 Ok(()) => {
                                     // Refresh tree
                                     let parent_idx = if state.selected_index > 0 {
@@ -2612,18 +2612,14 @@ fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
 
             // Add stdout lines
             let stdout_reader = BufReader::new(&output.stdout[..]);
-            for line in stdout_reader.lines() {
-                if let Ok(l) = line {
-                    lines.push(l);
-                }
+            for l in stdout_reader.lines().flatten() {
+                lines.push(l);
             }
 
             // Add stderr lines
             let stderr_reader = BufReader::new(&output.stderr[..]);
-            for line in stderr_reader.lines() {
-                if let Ok(l) = line {
-                    lines.push(format!("stderr: {}", l));
-                }
+            for l in stderr_reader.lines().flatten() {
+                lines.push(format!("stderr: {}", l));
             }
 
             let exit_code = output.status.code().unwrap_or(-1);

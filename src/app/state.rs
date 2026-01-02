@@ -201,7 +201,7 @@ impl FileViewerState {
             }
             ViewMode::Hex => {
                 let bytes_per_line = 16;
-                let total_lines = (self.content.len() + bytes_per_line - 1) / bytes_per_line;
+                let total_lines = self.content.len().div_ceil(bytes_per_line);
                 total_lines.saturating_sub(visible_height)
             }
             ViewMode::Image => 0,
@@ -239,7 +239,7 @@ impl FileViewerState {
 }
 
 /// Shell command state
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShellCommandState {
     pub input: String,
     pub output: Vec<String>,
@@ -248,20 +248,6 @@ pub struct ShellCommandState {
     pub scroll_offset: usize,
     pub history: Vec<String>,
     pub history_index: Option<usize>,
-}
-
-impl Default for ShellCommandState {
-    fn default() -> Self {
-        Self {
-            input: String::new(),
-            output: Vec::new(),
-            running: false,
-            exit_code: None,
-            scroll_offset: 0,
-            history: Vec::new(),
-            history_index: None,
-        }
-    }
 }
 
 /// Directory tree node for Directory Map
@@ -356,7 +342,7 @@ impl DirectoryMapState {
     fn expand_to_path(&mut self, target: &PathBuf) {
         let ancestors: Vec<_> = target.ancestors().collect();
         for ancestor in ancestors.into_iter().rev() {
-            self.expand_path_in_tree(&mut self.root.clone(), &ancestor.to_path_buf());
+            self.expand_path_in_tree(&self.root.clone(), &ancestor.to_path_buf());
         }
     }
 

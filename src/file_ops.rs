@@ -485,8 +485,7 @@ fn match_wildcard(s: &str, pattern: &str) -> bool {
                     }
                     c => {
                         // Exact character match
-                        s[0].to_ascii_lowercase() == c.to_ascii_lowercase()
-                            && helper(&s[1..], &p[1..])
+                        s[0].eq_ignore_ascii_case(&c) && helper(&s[1..], &p[1..])
                     }
                 }
             }

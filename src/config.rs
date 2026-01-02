@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Main configuration struct
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub general: GeneralConfig,
@@ -17,16 +17,6 @@ pub struct Config {
     pub display: DisplayConfig,
     #[serde(default)]
     pub editor: EditorConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            general: GeneralConfig::default(),
-            display: DisplayConfig::default(),
-            editor: EditorConfig::default(),
-        }
-    }
 }
 
 /// General settings
@@ -66,7 +56,7 @@ impl Default for GeneralConfig {
 }
 
 /// Display settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DisplayConfig {
     /// Color theme name
     #[serde(default)]
@@ -76,27 +66,12 @@ pub struct DisplayConfig {
     pub uppercase_names: bool,
 }
 
-impl Default for DisplayConfig {
-    fn default() -> Self {
-        Self {
-            theme: ThemeConfig::default(),
-            uppercase_names: false,
-        }
-    }
-}
-
 /// Editor settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EditorConfig {
     /// Default editor command (uses $EDITOR if not set)
     #[serde(default)]
     pub command: Option<String>,
-}
-
-impl Default for EditorConfig {
-    fn default() -> Self {
-        Self { command: None }
-    }
 }
 
 /// Sort method for config serialization
