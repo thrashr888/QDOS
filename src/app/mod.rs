@@ -1,12 +1,16 @@
+mod beads_ops;
+mod git_ops;
 mod state;
 
 // Re-export state types for external use
 pub use state::{
-    AttrValue, AttributeState, BatchRenameState, ColorTheme, ColorThemeState, DirectoryMapState,
-    FileViewerState, FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation,
-    ProgressState, QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode,
-    ThemeColors, ViewFilter, ViewMode,
+    AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView, ColorTheme,
+    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState, GitMenuItem,
+    GitState, GitView, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
+    QdstartState, SearchSpecState, ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
 };
+// Internal types used by git_ops and beads_ops modules:
+// BeadsIssue, BeadsStats, GitFileStatus, GitLogEntry
 
 use crate::config::Config;
 use crate::errors;
@@ -168,6 +172,16 @@ impl App {
             // Quit (also handles 'q' which is not a global shortcut)
             KeyCode::Char('q') => {
                 self.modal = Modal::Quit;
+            }
+            // Git menu (G key)
+            KeyCode::Char('g') | KeyCode::Char('G') => {
+                let is_repo = self.is_git_repo();
+                self.modal = Modal::Git(GitState::new(is_repo));
+            }
+            // Beads menu (B key)
+            KeyCode::Char('b') | KeyCode::Char('B') => {
+                let is_beads = self.is_beads_project();
+                self.modal = Modal::Beads(BeadsState::new(is_beads));
             }
             // Help
             KeyCode::F(1) => {
@@ -1421,6 +1435,445 @@ impl App {
                     }
                 }
             }
+            Modal::Git(ref mut state) => {
+                if !state.is_repo {
+                    // Not a git repo - any key closes
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                            self.modal = Modal::None;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match state.view {
+                        GitView::Menu => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    self.modal = Modal::None;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.menu_selected > 0 {
+                                        state.menu_selected -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if state.menu_selected < GitMenuItem::ALL.len() - 1 {
+                                        state.menu_selected += 1;
+                                    }
+                                }
+                                KeyCode::Enter | KeyCode::Char(' ') => {
+                                    let item = GitMenuItem::ALL[state.menu_selected];
+                                    let path = self.current_path.clone();
+                                    match item {
+                                        GitMenuItem::Status => {
+                                            state.view = GitView::Status;
+                                            git_ops::load_git_status(state, &path);
+                                        }
+                                        GitMenuItem::Log => {
+                                            state.view = GitView::Log;
+                                            git_ops::load_git_log(state, &path);
+                                        }
+                                        GitMenuItem::Diff => {
+                                            state.view = GitView::Diff;
+                                            git_ops::load_git_diff(state, &path);
+                                        }
+                                        GitMenuItem::Commit => {
+                                            state.view = GitView::Commit;
+                                            state.commit_input_mode = true;
+                                        }
+                                        GitMenuItem::Push => {
+                                            match git_ops::execute_git_push(&path) {
+                                                Ok(msg) => {
+                                                    self.modal = Modal::Success(msg);
+                                                }
+                                                Err(e) => {
+                                                    state.error = Some(e);
+                                                }
+                                            }
+                                        }
+                                        GitMenuItem::Pull => {
+                                            match git_ops::execute_git_pull(&path) {
+                                                Ok(msg) => {
+                                                    self.modal = Modal::Success(msg);
+                                                }
+                                                Err(e) => {
+                                                    state.error = Some(e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                KeyCode::Char('s') | KeyCode::Char('S') => {
+                                    state.view = GitView::Status;
+                                    let path = self.current_path.clone();
+                                    git_ops::load_git_status(state, &path);
+                                }
+                                KeyCode::Char('l') | KeyCode::Char('L') => {
+                                    state.view = GitView::Log;
+                                    let path = self.current_path.clone();
+                                    git_ops::load_git_log(state, &path);
+                                }
+                                KeyCode::Char('d') | KeyCode::Char('D') => {
+                                    state.view = GitView::Diff;
+                                    let path = self.current_path.clone();
+                                    git_ops::load_git_diff(state, &path);
+                                }
+                                KeyCode::Char('c') | KeyCode::Char('C') => {
+                                    state.view = GitView::Commit;
+                                    state.commit_input_mode = true;
+                                }
+                                KeyCode::Char('p') | KeyCode::Char('P') => {
+                                    let path = self.current_path.clone();
+                                    match git_ops::execute_git_push(&path) {
+                                        Ok(msg) => {
+                                            self.modal = Modal::Success(msg);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                                KeyCode::Char('u') | KeyCode::Char('U') => {
+                                    let path = self.current_path.clone();
+                                    match git_ops::execute_git_pull(&path) {
+                                        Ok(msg) => {
+                                            self.modal = Modal::Success(msg);
+                                        }
+                                        Err(e) => {
+                                            state.error = Some(e);
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        GitView::Status => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = GitView::Menu;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.selected_file > 0 {
+                                        state.selected_file -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if state.selected_file + 1 < state.files.len() {
+                                        state.selected_file += 1;
+                                    }
+                                }
+                                KeyCode::Char('a') | KeyCode::Char('A') => {
+                                    let path = self.current_path.clone();
+                                    git_ops::toggle_git_stage(state, &path);
+                                }
+                                KeyCode::Char('r') | KeyCode::Char('R') => {
+                                    let path = self.current_path.clone();
+                                    git_ops::load_git_status(state, &path);
+                                }
+                                _ => {}
+                            }
+                        }
+                        GitView::Log => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = GitView::Menu;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.scroll_offset > 0 {
+                                        state.scroll_offset -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    state.scroll_offset += 1;
+                                }
+                                KeyCode::PageUp => {
+                                    state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                                }
+                                KeyCode::PageDown => {
+                                    state.scroll_offset += 10;
+                                }
+                                _ => {}
+                            }
+                        }
+                        GitView::Diff => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = GitView::Menu;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.scroll_offset > 0 {
+                                        state.scroll_offset -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    state.scroll_offset += 1;
+                                }
+                                KeyCode::PageUp => {
+                                    state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                                }
+                                KeyCode::PageDown => {
+                                    state.scroll_offset += 10;
+                                }
+                                _ => {}
+                            }
+                        }
+                        GitView::Commit => {
+                            if state.commit_input_mode {
+                                match key.code {
+                                    KeyCode::Esc => {
+                                        state.commit_input_mode = false;
+                                        state.view = GitView::Menu;
+                                    }
+                                    KeyCode::Enter => {
+                                        if !state.commit_message.is_empty() {
+                                            let msg = state.commit_message.clone();
+                                            let path = self.current_path.clone();
+                                            match git_ops::execute_git_commit(&msg, &path) {
+                                                Ok(_) => {
+                                                    state.commit_message.clear();
+                                                    state.commit_input_mode = false;
+                                                    self.modal = Modal::Success("Commit successful".to_string());
+                                                }
+                                                Err(e) => {
+                                                    state.error = Some(e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    KeyCode::Backspace => {
+                                        state.commit_message.pop();
+                                    }
+                                    KeyCode::Char(c) => {
+                                        state.commit_message.push(c);
+                                    }
+                                    _ => {}
+                                }
+                            } else if key.code == KeyCode::Esc {
+                                state.view = GitView::Menu;
+                            }
+                        }
+                    }
+                }
+            }
+            Modal::Beads(ref mut state) => {
+                if !state.is_beads_project {
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                            self.modal = Modal::None;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    match state.view {
+                        BeadsView::Menu => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    self.modal = Modal::None;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.menu_selected > 0 {
+                                        state.menu_selected -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if state.menu_selected < BeadsMenuItem::ALL.len() - 1 {
+                                        state.menu_selected += 1;
+                                    }
+                                }
+                                KeyCode::Enter | KeyCode::Char(' ') => {
+                                    let item = BeadsMenuItem::ALL[state.menu_selected];
+                                    let path = self.current_path.clone();
+                                    match item {
+                                        BeadsMenuItem::List => {
+                                            state.view = BeadsView::List;
+                                            beads_ops::load_beads_list(state, &path, None);
+                                        }
+                                        BeadsMenuItem::Ready => {
+                                            state.view = BeadsView::Ready;
+                                            beads_ops::load_beads_ready(state, &path);
+                                        }
+                                        BeadsMenuItem::Blocked => {
+                                            state.view = BeadsView::Blocked;
+                                            beads_ops::load_beads_blocked(state, &path);
+                                        }
+                                        BeadsMenuItem::Stats => {
+                                            state.view = BeadsView::Stats;
+                                            beads_ops::load_beads_stats(state, &path);
+                                        }
+                                        BeadsMenuItem::Create => {
+                                            state.view = BeadsView::Create;
+                                            state.create_title.clear();
+                                            state.create_type = 0;
+                                            state.create_priority = 2;
+                                            state.create_field = 0;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
+                            let current_view = state.view;
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = BeadsView::Menu;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.selected_issue > 0 {
+                                        state.selected_issue -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if state.selected_issue + 1 < state.issues.len() {
+                                        state.selected_issue += 1;
+                                    }
+                                }
+                                KeyCode::Enter => {
+                                    state.view = BeadsView::Detail;
+                                }
+                                KeyCode::Char('r') | KeyCode::Char('R') => {
+                                    let path = self.current_path.clone();
+                                    match current_view {
+                                        BeadsView::List => beads_ops::load_beads_list(state, &path, None),
+                                        BeadsView::Ready => beads_ops::load_beads_ready(state, &path),
+                                        BeadsView::Blocked => beads_ops::load_beads_blocked(state, &path),
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Char('c') | KeyCode::Char('C') => {
+                                    // Close the selected issue
+                                    if !state.issues.is_empty() {
+                                        let issue_id = state.issues[state.selected_issue].id.clone();
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_close(&issue_id, &path) {
+                                            Ok(msg) => {
+                                                self.modal = Modal::Success(msg);
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                }
+                                KeyCode::Char('s') | KeyCode::Char('S') => {
+                                    // Start working on the selected issue (set to in_progress)
+                                    if !state.issues.is_empty() {
+                                        let issue_id = state.issues[state.selected_issue].id.clone();
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_update_status(&issue_id, "in_progress", &path) {
+                                            Ok(msg) => {
+                                                // Refresh the list
+                                                match current_view {
+                                                    BeadsView::List => beads_ops::load_beads_list(state, &path, None),
+                                                    BeadsView::Ready => beads_ops::load_beads_ready(state, &path),
+                                                    BeadsView::Blocked => beads_ops::load_beads_blocked(state, &path),
+                                                    _ => {}
+                                                }
+                                                state.error = Some(msg);
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        BeadsView::Stats => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = BeadsView::Menu;
+                                }
+                                KeyCode::Char('r') | KeyCode::Char('R') => {
+                                    let path = self.current_path.clone();
+                                    beads_ops::load_beads_stats(state, &path);
+                                }
+                                _ => {}
+                            }
+                        }
+                        BeadsView::Create => {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.view = BeadsView::Menu;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if state.create_field > 0 {
+                                        state.create_field -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if state.create_field < 2 {
+                                        state.create_field += 1;
+                                    }
+                                }
+                                KeyCode::Left | KeyCode::Char('h') => {
+                                    match state.create_field {
+                                        1 => {
+                                            if state.create_type > 0 {
+                                                state.create_type -= 1;
+                                            }
+                                        }
+                                        2 => {
+                                            if state.create_priority > 0 {
+                                                state.create_priority -= 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Right | KeyCode::Char('l') => {
+                                    match state.create_field {
+                                        1 => {
+                                            if state.create_type < 2 {
+                                                state.create_type += 1;
+                                            }
+                                        }
+                                        2 => {
+                                            if state.create_priority < 4 {
+                                                state.create_priority += 1;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                KeyCode::Backspace => {
+                                    if state.create_field == 0 {
+                                        state.create_title.pop();
+                                    }
+                                }
+                                KeyCode::Char(c) => {
+                                    if state.create_field == 0 {
+                                        state.create_title.push(c);
+                                    }
+                                }
+                                KeyCode::Enter => {
+                                    if !state.create_title.is_empty() {
+                                        let title = state.create_title.clone();
+                                        let issue_type = state.create_type;
+                                        let priority = state.create_priority;
+                                        let path = self.current_path.clone();
+                                        match beads_ops::execute_beads_create(&title, issue_type, priority, &path) {
+                                            Ok(_) => {
+                                                self.modal = Modal::Success("Issue created".to_string());
+                                            }
+                                            Err(e) => {
+                                                state.error = Some(e);
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        BeadsView::Detail => {
+                            if key.code == KeyCode::Esc {
+                                state.view = BeadsView::List;
+                            }
+                        }
+                    }
+                }
+            }
             Modal::None => {}
         }
 
@@ -1748,6 +2201,14 @@ impl App {
                     };
                     self.modal = Modal::RenameInput(full_name);
                 }
+            }
+            NavItem::Git => {
+                let is_repo = self.is_git_repo();
+                self.modal = Modal::Git(GitState::new(is_repo));
+            }
+            NavItem::Beads => {
+                let is_beads = self.is_beads_project();
+                self.modal = Modal::Beads(BeadsState::new(is_beads));
             }
             NavItem::View => {
                 if self.files.is_empty() || self.files[self.selected_index].name == ".." {
@@ -2089,6 +2550,37 @@ impl App {
 
         Ok(())
     }
+
+    /// Check if current directory is in a git repository
+    pub fn is_git_repo(&self) -> bool {
+        // Walk up the directory tree looking for .git
+        let mut path = self.current_path.clone();
+        loop {
+            if path.join(".git").exists() {
+                return true;
+            }
+            if !path.pop() {
+                break;
+            }
+        }
+        false
+    }
+
+    /// Check if current directory is in a beads-enabled project
+    pub fn is_beads_project(&self) -> bool {
+        // Walk up the directory tree looking for .beads
+        let mut path = self.current_path.clone();
+        loop {
+            if path.join(".beads").exists() {
+                return true;
+            }
+            if !path.pop() {
+                break;
+            }
+        }
+        false
+    }
+
 }
 
 /// Recursively copy a directory

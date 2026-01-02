@@ -83,7 +83,7 @@ pub(crate) fn format_size_short(bytes: u64) -> String {
     }
 }
 
-/// Color usage:
+/// Color usage (based on the original QDOS default color scheme):
 ///
 /// L1: white on black. selected item is yellow on red.
 /// L2: green on black.

@@ -17,13 +17,15 @@ pub enum NavItem {
     Find,
     Erase,
     Rename,
+    Git,
+    Beads,
     Space,
     Attribute,
     Print,
 }
 
 impl NavItem {
-    pub const ALL: [NavItem; 11] = [
+    pub const ALL: [NavItem; 13] = [
         NavItem::Directory,
         NavItem::Tag,
         NavItem::View,
@@ -32,6 +34,8 @@ impl NavItem {
         NavItem::Find,
         NavItem::Erase,
         NavItem::Rename,
+        NavItem::Git,
+        NavItem::Beads,
         NavItem::Space,
         NavItem::Attribute,
         NavItem::Print,
@@ -47,6 +51,8 @@ impl NavItem {
             NavItem::Find => "Find",
             NavItem::Erase => "Erase",
             NavItem::Rename => "Rename",
+            NavItem::Git => "Git",
+            NavItem::Beads => "Beads",
             NavItem::Space => "Space",
             NavItem::Attribute => "Attribute",
             NavItem::Print => "Print",
@@ -69,6 +75,8 @@ impl NavItem {
             NavItem::Find => "Search all directories on the disk to find specified file(s)",
             NavItem::Erase => "Erase one or several files from this directory",
             NavItem::Rename => "Rename one or several files in this directory",
+            NavItem::Git => "Git integration: status, log, diff, commit, push, pull",
+            NavItem::Beads => "Beads issue tracker: list, create, manage issues",
             NavItem::Space => "Show the total, used, and free space on any disk",
             NavItem::Attribute => "Change/view file attributes",
             NavItem::Print => "Print one or several files on the printer",
@@ -930,6 +938,72 @@ GENERAL:
 ESC     - Cancel / Close modal
 SPACE   - Tag/untag file"#.to_string(),
             },
+            HelpTopic {
+                key: 'G',
+                title: "Git Integration".to_string(),
+                content: r#"GIT INTEGRATION
+
+Press G to open the Git menu (requires git repository).
+
+MENU OPTIONS:
+S - Status:  View modified/staged files
+L - Log:     View recent commit history
+D - Diff:    View unstaged changes
+C - Commit:  Create a new commit
+P - Push:    Push commits to remote
+U - Pull:    Pull changes from remote
+
+STATUS VIEW:
+↑/↓ - Select file
+A   - Stage/unstage file
+R   - Refresh status
+
+LOG VIEW:
+↑/↓ - Scroll through commits
+PgUp/PgDn - Scroll faster
+
+DIFF VIEW:
+↑/↓ - Scroll through diff
+PgUp/PgDn - Scroll faster
+
+COMMIT VIEW:
+Type your commit message and press Enter to commit.
+Press ESC to cancel.
+
+PUSH/PULL:
+Select from menu or press P/U to execute immediately."#.to_string(),
+            },
+            HelpTopic {
+                key: 'B',
+                title: "Beads Integration".to_string(),
+                content: r#"BEADS ISSUE TRACKER
+
+Press B to open the Beads menu (requires .beads directory).
+
+MENU OPTIONS:
+L - List:    View open issues
+R - Ready:   View issues ready to work (no blockers)
+B - Blocked: View blocked issues
+S - Stats:   View project statistics
+C - Create:  Create a new issue
+
+LIST/READY/BLOCKED VIEWS:
+↑/↓   - Select issue
+Enter - View issue details
+R     - Refresh list
+C     - Close selected issue
+S     - Start work (set to in_progress)
+
+CREATE VIEW:
+Use arrow keys to navigate fields:
+- Title: Type the issue title
+- Type: task/bug/feature (←/→ to change)
+- Priority: 0-4 (←/→ to change)
+Press Enter to create the issue.
+
+STATS VIEW:
+Shows total, open, in-progress, closed, and blocked counts."#.to_string(),
+            },
         ]
     }
 }
@@ -1326,6 +1400,262 @@ impl QdstartState {
     }
 }
 
+/// Git menu item options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GitMenuItem {
+    #[default]
+    Status,
+    Log,
+    Diff,
+    Commit,
+    Push,
+    Pull,
+}
+
+impl GitMenuItem {
+    pub const ALL: [GitMenuItem; 6] = [
+        GitMenuItem::Status,
+        GitMenuItem::Log,
+        GitMenuItem::Diff,
+        GitMenuItem::Commit,
+        GitMenuItem::Push,
+        GitMenuItem::Pull,
+    ];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GitMenuItem::Status => "Status",
+            GitMenuItem::Log => "Log",
+            GitMenuItem::Diff => "Diff",
+            GitMenuItem::Commit => "Commit",
+            GitMenuItem::Push => "Push",
+            GitMenuItem::Pull => "Pull",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            GitMenuItem::Status => "Show working tree status",
+            GitMenuItem::Log => "View commit history",
+            GitMenuItem::Diff => "Show changes in working directory",
+            GitMenuItem::Commit => "Commit staged changes",
+            GitMenuItem::Push => "Push commits to remote",
+            GitMenuItem::Pull => "Pull changes from remote",
+        }
+    }
+}
+
+/// Git status file entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitFileStatus {
+    pub path: String,
+    pub status: char,       // M, A, D, R, C, U, ?
+    pub staged: bool,
+}
+
+/// Git state for the git modal
+#[derive(Debug, Clone)]
+pub struct GitState {
+    /// Current view in git modal
+    pub view: GitView,
+    /// Selected menu item
+    pub menu_selected: usize,
+    /// Files with git status
+    pub files: Vec<GitFileStatus>,
+    /// Selected file in status view
+    pub selected_file: usize,
+    /// Scroll offset for status view
+    pub scroll_offset: usize,
+    /// Commit log entries
+    pub log_entries: Vec<GitLogEntry>,
+    /// Diff content
+    pub diff_content: Vec<String>,
+    /// Commit message input
+    pub commit_message: String,
+    /// Whether in commit input mode
+    pub commit_input_mode: bool,
+    /// Error message if any
+    pub error: Option<String>,
+    /// Whether we're in a git repository
+    pub is_repo: bool,
+}
+
+/// Git view type
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GitView {
+    #[default]
+    Menu,
+    Status,
+    Log,
+    Diff,
+    Commit,
+}
+
+/// Git log entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitLogEntry {
+    pub hash: String,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+}
+
+impl Default for GitState {
+    fn default() -> Self {
+        Self {
+            view: GitView::Menu,
+            menu_selected: 0,
+            files: Vec::new(),
+            selected_file: 0,
+            scroll_offset: 0,
+            log_entries: Vec::new(),
+            diff_content: Vec::new(),
+            commit_message: String::new(),
+            commit_input_mode: false,
+            error: None,
+            is_repo: false,
+        }
+    }
+}
+
+impl GitState {
+    pub fn new(is_repo: bool) -> Self {
+        Self {
+            is_repo,
+            ..Default::default()
+        }
+    }
+}
+
+/// Beads menu item options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BeadsMenuItem {
+    #[default]
+    List,
+    Ready,
+    Blocked,
+    Stats,
+    Create,
+}
+
+impl BeadsMenuItem {
+    pub const ALL: [BeadsMenuItem; 5] = [
+        BeadsMenuItem::List,
+        BeadsMenuItem::Ready,
+        BeadsMenuItem::Blocked,
+        BeadsMenuItem::Stats,
+        BeadsMenuItem::Create,
+    ];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            BeadsMenuItem::List => "List",
+            BeadsMenuItem::Ready => "Ready",
+            BeadsMenuItem::Blocked => "Blocked",
+            BeadsMenuItem::Stats => "Stats",
+            BeadsMenuItem::Create => "Create",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            BeadsMenuItem::List => "List all open issues",
+            BeadsMenuItem::Ready => "Show issues ready to work on",
+            BeadsMenuItem::Blocked => "Show blocked issues",
+            BeadsMenuItem::Stats => "Project statistics",
+            BeadsMenuItem::Create => "Create a new issue",
+        }
+    }
+}
+
+/// Beads issue entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeadsIssue {
+    pub id: String,
+    pub title: String,
+    pub status: String,
+    pub priority: String,
+    pub issue_type: String,
+    pub blocked_by: Vec<String>,
+}
+
+/// Beads view type
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BeadsView {
+    #[default]
+    Menu,
+    List,
+    Ready,
+    Blocked,
+    Stats,
+    Create,
+    Detail,
+}
+
+/// Beads state for the beads modal
+#[derive(Debug, Clone)]
+pub struct BeadsState {
+    /// Current view in beads modal
+    pub view: BeadsView,
+    /// Selected menu item
+    pub menu_selected: usize,
+    /// All issues
+    pub issues: Vec<BeadsIssue>,
+    /// Selected issue in list view
+    pub selected_issue: usize,
+    /// Scroll offset for list view
+    pub scroll_offset: usize,
+    /// Stats data
+    pub stats: BeadsStats,
+    /// Create form state
+    pub create_title: String,
+    pub create_type: usize,
+    pub create_priority: usize,
+    pub create_field: usize,
+    /// Whether we're in a beads-enabled project
+    pub is_beads_project: bool,
+    /// Error message if any
+    pub error: Option<String>,
+}
+
+/// Beads project statistics
+#[derive(Debug, Clone, Default)]
+pub struct BeadsStats {
+    pub total: usize,
+    pub open: usize,
+    pub in_progress: usize,
+    pub closed: usize,
+    pub blocked: usize,
+}
+
+impl Default for BeadsState {
+    fn default() -> Self {
+        Self {
+            view: BeadsView::Menu,
+            menu_selected: 0,
+            issues: Vec::new(),
+            selected_issue: 0,
+            scroll_offset: 0,
+            stats: BeadsStats::default(),
+            create_title: String::new(),
+            create_type: 0,
+            create_priority: 2,
+            create_field: 0,
+            is_beads_project: false,
+            error: None,
+        }
+    }
+}
+
+impl BeadsState {
+    pub fn new(is_beads_project: bool) -> Self {
+        Self {
+            is_beads_project,
+            ..Default::default()
+        }
+    }
+}
+
 /// Modal dialog types
 pub enum Modal {
     None,
@@ -1350,4 +1680,6 @@ pub enum Modal {
     Progress(ProgressState),
     ColorTheme(ColorThemeState),
     Qdstart(QdstartState),
+    Git(GitState),
+    Beads(BeadsState),
 }
