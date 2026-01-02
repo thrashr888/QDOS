@@ -8,7 +8,7 @@ pub use state::{
     ColorThemeState, ConflictResolution, DirectoryMapState, FileViewerState, FindPhase, FindState,
     GitMenuItem, GitState, GitView, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
     QdstartField, QdstartState, RemoteAction, SearchSpecState, ShellCommandState, SortMode,
-    ThemeColors, ViewFilter, ViewMode,
+    SubmoduleStatus, ThemeColors, ViewFilter, ViewMode,
 };
 // Internal types used by git_ops and beads_ops modules:
 // BeadsIssue, BeadsStats, GitFileStatus, GitLogEntry
@@ -1643,6 +1643,10 @@ impl App {
                                         state.view = GitView::Conflicts;
                                         git_ops::load_conflict_files(state, &path);
                                     }
+                                    GitMenuItem::Submodules => {
+                                        state.view = GitView::Submodules;
+                                        git_ops::load_submodules(state, &path);
+                                    }
                                 }
                             }
                             KeyCode::Char('s') | KeyCode::Char('S') => {
@@ -1700,6 +1704,11 @@ impl App {
                                 state.view = GitView::Conflicts;
                                 let path = self.current_path.clone();
                                 git_ops::load_conflict_files(state, &path);
+                            }
+                            KeyCode::Char('m') | KeyCode::Char('M') => {
+                                state.view = GitView::Submodules;
+                                let path = self.current_path.clone();
+                                git_ops::load_submodules(state, &path);
                             }
                             _ => {}
                         },
@@ -2335,6 +2344,82 @@ impl App {
                                 // Refresh
                                 let path = self.current_path.clone();
                                 git_ops::load_conflict_files(state, &path);
+                            }
+                            _ => {}
+                        },
+                        GitView::Submodules => match key.code {
+                            KeyCode::Esc => {
+                                state.view = GitView::Menu;
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                if state.selected_submodule > 0 {
+                                    state.selected_submodule -= 1;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if state.selected_submodule + 1 < state.submodules.len() {
+                                    state.selected_submodule += 1;
+                                }
+                            }
+                            KeyCode::Char('i') | KeyCode::Char('I') => {
+                                // Init selected submodule or all if none selected
+                                let path = self.current_path.clone();
+                                let submodule_path = if !state.submodules.is_empty() {
+                                    Some(state.submodules[state.selected_submodule].path.clone())
+                                } else {
+                                    None
+                                };
+                                match git_ops::init_submodule(
+                                    submodule_path.as_deref(),
+                                    &path,
+                                ) {
+                                    Ok(msg) => {
+                                        state.error = Some(msg);
+                                        git_ops::load_submodules(state, &path);
+                                    }
+                                    Err(e) => {
+                                        state.error = Some(e);
+                                    }
+                                }
+                            }
+                            KeyCode::Char('u') | KeyCode::Char('U') => {
+                                // Update selected submodule or all
+                                let path = self.current_path.clone();
+                                let submodule_path = if !state.submodules.is_empty() {
+                                    Some(state.submodules[state.selected_submodule].path.clone())
+                                } else {
+                                    None
+                                };
+                                match git_ops::update_submodule(
+                                    submodule_path.as_deref(),
+                                    &path,
+                                ) {
+                                    Ok(msg) => {
+                                        state.error = Some(msg);
+                                        git_ops::load_submodules(state, &path);
+                                    }
+                                    Err(e) => {
+                                        state.error = Some(e);
+                                    }
+                                }
+                            }
+                            KeyCode::Char('s') | KeyCode::Char('S') => {
+                                // Sync submodule URLs
+                                let path = self.current_path.clone();
+                                match git_ops::sync_submodules(&path) {
+                                    Ok(msg) => {
+                                        state.error = Some(msg);
+                                        git_ops::load_submodules(state, &path);
+                                    }
+                                    Err(e) => {
+                                        state.error = Some(e);
+                                    }
+                                }
+                            }
+                            KeyCode::Char('r') | KeyCode::Char('R') => {
+                                // Refresh
+                                let path = self.current_path.clone();
+                                git_ops::load_submodules(state, &path);
                             }
                             _ => {}
                         },

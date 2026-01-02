@@ -1864,6 +1864,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
         },
         GitView::Config => " GIT CONFIG ",
         GitView::Conflicts => " MERGE CONFLICTS ",
+        GitView::Submodules => " GIT SUBMODULES ",
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -1930,6 +1931,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
                         GitMenuItem::Tag => "T",
                         GitMenuItem::Config => "G",
                         GitMenuItem::Conflicts => "X",
+                        GitMenuItem::Submodules => "M",
                     };
 
                     lines.push(Line::from(vec![
@@ -2675,6 +2677,87 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            GitView::Submodules => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.submodules.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No submodules found",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Add submodules with 'git submodule add <url> <path>'",
+                        Style::default().fg(colors.green()),
+                    )));
+                } else {
+                    // List submodules
+                    for (i, submodule) in state.submodules.iter().enumerate() {
+                        if i >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_submodule;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Status indicator
+                        let status_indicator = match submodule.status {
+                            crate::app::SubmoduleStatus::Initialized => "+",
+                            crate::app::SubmoduleStatus::Uninitialized => "-",
+                            crate::app::SubmoduleStatus::Modified => "*",
+                            crate::app::SubmoduleStatus::Conflict => "!",
+                            crate::app::SubmoduleStatus::OutOfDate => "^",
+                        };
+
+                        let status_color = match submodule.status {
+                            crate::app::SubmoduleStatus::Initialized => colors.green(),
+                            crate::app::SubmoduleStatus::Uninitialized => colors.grey(),
+                            crate::app::SubmoduleStatus::Modified => colors.yellow(),
+                            crate::app::SubmoduleStatus::Conflict => colors.red(),
+                            crate::app::SubmoduleStatus::OutOfDate => colors.blue(),
+                        };
+
+                        // Truncate path if needed
+                        let path_display = if submodule.path.len() > 40 {
+                            format!("{}...", &submodule.path[..37])
+                        } else {
+                            submodule.path.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(
+                                format!(" {} ", status_indicator),
+                                Style::default().fg(status_color),
+                            ),
+                            Span::styled(format!("{:<42}", path_display), style),
+                            Span::styled(
+                                format!(" {}", &submodule.commit[..7.min(submodule.commit.len())]),
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
         }
     }
 
@@ -2712,6 +2795,7 @@ fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
             GitView::Remote => "↑↓ select  Enter execute  ESC back",
             GitView::Config => "↑↓ scroll  PgUp/PgDn fast scroll  R refresh  ESC back",
             GitView::Conflicts => "←→ files  ↑↓ sections  O ours  T theirs  B both  M mark resolved  A abort  ESC back",
+            GitView::Submodules => "↑↓ select  I init  U update  S sync  R refresh  ESC back",
         }
     };
     frame.render_widget(

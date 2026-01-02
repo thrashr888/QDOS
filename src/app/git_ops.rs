@@ -1313,3 +1313,161 @@ pub fn abort_merge(cwd: &PathBuf) -> Result<String, String> {
         Err(e) => Err(format!("Git error: {}", e)),
     }
 }
+
+// ============================================================
+// Submodule Operations
+// ============================================================
+
+/// Load git submodules into state
+pub fn load_submodules(state: &mut GitState, cwd: &PathBuf) {
+    state.submodules.clear();
+    state.selected_submodule = 0;
+    state.error = None;
+
+    // First, get submodule URLs from config
+    let config_output = Command::new("git")
+        .args(["config", "--file", ".gitmodules", "--get-regexp", "submodule\\..*\\.url"])
+        .current_dir(cwd)
+        .output();
+
+    let mut url_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    if let Ok(output) = config_output {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                // Format: "submodule.path/to/submod.url https://github.com/..."
+                let parts: Vec<&str> = line.splitn(2, ' ').collect();
+                if parts.len() == 2 {
+                    // Extract submodule name from "submodule.NAME.url"
+                    if let Some(name) = parts[0].strip_prefix("submodule.").and_then(|s| s.strip_suffix(".url")) {
+                        url_map.insert(name.to_string(), parts[1].to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Get submodule status
+    let output = Command::new("git")
+        .args(["submodule", "status", "--recursive"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    if line.is_empty() {
+                        continue;
+                    }
+
+                    // Parse status line: " abc1234 path (branch)" or "-abc1234 path" or "+abc1234 path"
+                    let status_char = line.chars().next().unwrap_or(' ');
+                    let status = match status_char {
+                        '-' => SubmoduleStatus::Uninitialized,
+                        '+' => SubmoduleStatus::Modified,
+                        'U' => SubmoduleStatus::Conflict,
+                        _ => SubmoduleStatus::Initialized,
+                    };
+
+                    // Skip status char and parse rest
+                    let rest = line.trim_start_matches(|c| c == '-' || c == '+' || c == 'U' || c == ' ');
+                    let parts: Vec<&str> = rest.split_whitespace().collect();
+
+                    if parts.len() >= 2 {
+                        let commit = parts[0].to_string();
+                        let path = parts[1].to_string();
+                        let name = path.clone(); // Use path as name
+                        let url = url_map.get(&path).cloned().unwrap_or_default();
+
+                        state.submodules.push(GitSubmodule {
+                            name,
+                            path,
+                            url,
+                            status,
+                            commit,
+                        });
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to list submodules: {}", e));
+        }
+    }
+}
+
+/// Initialize a submodule
+pub fn init_submodule(path: Option<&str>, cwd: &PathBuf) -> Result<String, String> {
+    let mut args = vec!["submodule", "init"];
+    if let Some(p) = path {
+        args.push(p);
+    }
+
+    let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let msg = if let Some(p) = path {
+                    format!("Initialized submodule '{}'", p)
+                } else {
+                    "Initialized all submodules".to_string()
+                };
+                Ok(msg)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Init failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Update a submodule
+pub fn update_submodule(path: Option<&str>, cwd: &PathBuf) -> Result<String, String> {
+    let mut args = vec!["submodule", "update", "--init"];
+    if let Some(p) = path {
+        args.push(p);
+    }
+
+    let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let msg = if let Some(p) = path {
+                    format!("Updated submodule '{}'", p)
+                } else {
+                    "Updated all submodules".to_string()
+                };
+                Ok(msg)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Update failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Sync submodule URLs
+pub fn sync_submodules(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["submodule", "sync", "--recursive"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Synced submodule URLs".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Sync failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}

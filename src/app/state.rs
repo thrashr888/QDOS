@@ -1551,6 +1551,7 @@ impl GitMenuItem {
             GitMenuItem::Tag => "Manage git tags",
             GitMenuItem::Config => "View git configuration",
             GitMenuItem::Conflicts => "Resolve merge conflicts",
+            GitMenuItem::Submodules => "Manage git submodules",
         }
     }
 }
