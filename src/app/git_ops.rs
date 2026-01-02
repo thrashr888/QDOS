@@ -279,24 +279,69 @@ pub fn is_git_repo(cwd: &PathBuf) -> bool {
         .unwrap_or(false)
 }
 
-/// Quick counts for status bar display
-/// Returns (modified_count, staged_count) or None if not in git repo
-pub fn get_git_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
-    let output = Command::new("git")
+/// Git status info for status bar display
+#[derive(Debug, Clone)]
+pub struct GitStatusInfo {
+    pub branch: String,
+    pub ahead: usize,
+    pub behind: usize,
+    pub staged: usize,
+    pub modified: usize,
+}
+
+/// Quick status for status bar display
+/// Returns GitStatusInfo or None if not in git repo
+pub fn get_git_status_info(cwd: &PathBuf) -> Option<GitStatusInfo> {
+    // Get branch and ahead/behind using status -sb
+    let branch_output = Command::new("git")
+        .args(["status", "-sb"])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if !branch_output.status.success() {
+        return None;
+    }
+
+    let branch_stdout = String::from_utf8_lossy(&branch_output.stdout);
+    let first_line = branch_stdout.lines().next().unwrap_or("");
+
+    // Parse "## branch...origin/branch [ahead 1, behind 2]" or "## branch"
+    let branch = first_line
+        .strip_prefix("## ")
+        .unwrap_or(first_line)
+        .split("...")
+        .next()
+        .unwrap_or("unknown")
+        .to_string();
+
+    let mut ahead = 0;
+    let mut behind = 0;
+    if let Some(bracket_start) = first_line.find('[') {
+        if let Some(bracket_end) = first_line.find(']') {
+            let tracking_info = &first_line[bracket_start + 1..bracket_end];
+            for part in tracking_info.split(", ") {
+                if let Some(num) = part.strip_prefix("ahead ") {
+                    ahead = num.parse().unwrap_or(0);
+                } else if let Some(num) = part.strip_prefix("behind ") {
+                    behind = num.parse().unwrap_or(0);
+                }
+            }
+        }
+    }
+
+    // Get file status counts using porcelain
+    let status_output = Command::new("git")
         .args(["status", "--porcelain"])
         .current_dir(cwd)
         .output()
         .ok()?;
 
-    if !output.status.success() {
-        return None;
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let status_stdout = String::from_utf8_lossy(&status_output.stdout);
     let mut modified = 0;
     let mut staged = 0;
 
-    for line in stdout.lines() {
+    for line in status_stdout.lines() {
         if line.len() >= 2 {
             let index_char = line.chars().next().unwrap_or(' ');
             let worktree_char = line.chars().nth(1).unwrap_or(' ');
@@ -316,7 +361,13 @@ pub fn get_git_quick_counts(cwd: &PathBuf) -> Option<(usize, usize)> {
         }
     }
 
-    Some((modified, staged))
+    Some(GitStatusInfo {
+        branch,
+        ahead,
+        behind,
+        staged,
+        modified,
+    })
 }
 
 /// Load git history for a specific file

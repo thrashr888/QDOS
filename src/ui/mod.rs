@@ -557,9 +557,34 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let status_width = left_width as usize - 1;
 
     // Row 20: Git status (only if in git repo)
-    if let Some((modified, staged)) = app.git_status_counts {
+    // Format: " ↑0↓5 +3 !2 branch-name..."
+    if let Some(ref info) = app.git_status_info {
         let y = area.y + 20;
-        let git_status = format!(" GIT: {} mod, {} staged", modified, staged);
+        // Build compact status: ↑ahead↓behind +staged !modified branch
+        let mut parts = Vec::new();
+        if info.ahead > 0 || info.behind > 0 {
+            parts.push(format!("↑{}↓{}", info.ahead, info.behind));
+        }
+        if info.staged > 0 {
+            parts.push(format!("+{}", info.staged));
+        }
+        if info.modified > 0 {
+            parts.push(format!("!{}", info.modified));
+        }
+        let status_prefix = if parts.is_empty() {
+            String::new()
+        } else {
+            format!("{} ", parts.join(" "))
+        };
+        // Calculate remaining space for branch name
+        let prefix_len = status_prefix.len() + 1; // +1 for leading space
+        let branch_space = status_width.saturating_sub(prefix_len);
+        let branch_display = if info.branch.len() > branch_space {
+            format!("{}…", &info.branch[..branch_space.saturating_sub(1)])
+        } else {
+            info.branch.clone()
+        };
+        let git_status = format!(" {}{}", status_prefix, branch_display);
         let padded = format!("{:<width$}", git_status, width = status_width);
         frame.render_widget(
             Paragraph::new(Span::styled(padded, cyan_style)),

@@ -59,8 +59,8 @@ pub struct App {
     pub show_hidden: bool,
     /// Beads status bar info: (open_count, ready_count) - None if not in beads project
     pub beads_status: Option<(usize, usize)>,
-    /// Git status bar info: (modified_count, staged_count) - None if not in git repo
-    pub git_status_counts: Option<(usize, usize)>,
+    /// Git status bar info - None if not in git repo
+    pub git_status_info: Option<git_ops::GitStatusInfo>,
 }
 
 impl App {
@@ -94,7 +94,7 @@ impl App {
             config,
             show_hidden,
             beads_status: None,
-            git_status_counts: None,
+            git_status_info: None,
         };
 
         // Load status bar info
@@ -2910,9 +2910,9 @@ impl App {
 
         // Refresh git status
         if self.is_git_repo() {
-            self.git_status_counts = git_ops::get_git_quick_counts(&self.current_path);
+            self.git_status_info = git_ops::get_git_status_info(&self.current_path);
         } else {
-            self.git_status_counts = None;
+            self.git_status_info = None;
         }
     }
 }
