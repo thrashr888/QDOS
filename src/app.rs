@@ -1,5 +1,5 @@
 use crate::event::EventHandler;
-use crate::file_ops::{FileEntry, get_directory_contents, get_system_info, SystemInfo};
+use crate::file_ops::{FileEntry, get_directory_contents, get_system_info, SystemInfo, find_files_recursive, apply_attributes};
 use crate::ui;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -486,6 +486,240 @@ impl FindState {
     }
 }
 
+/// Batch rename state for renaming multiple files
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BatchRenameState {
+    /// List of files to rename (original path, current new name)
+    pub files: Vec<(PathBuf, String)>,
+    /// Current file index being renamed
+    pub current_index: usize,
+    /// Input buffer for new name
+    pub input: String,
+    /// Number of files successfully renamed
+    pub renamed_count: usize,
+    /// Last error message (if any)
+    pub last_error: Option<String>,
+}
+
+impl BatchRenameState {
+    pub fn new(files: Vec<PathBuf>) -> Self {
+        let files: Vec<(PathBuf, String)> = files
+            .into_iter()
+            .map(|p| {
+                let name = p.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                (p, name)
+            })
+            .collect();
+
+        let input = files.first()
+            .map(|(_, name)| name.clone())
+            .unwrap_or_default();
+
+        Self {
+            files,
+            current_index: 0,
+            input,
+            renamed_count: 0,
+            last_error: None,
+        }
+    }
+
+    /// Get current file being renamed
+    pub fn current_file(&self) -> Option<&(PathBuf, String)> {
+        self.files.get(self.current_index)
+    }
+
+    /// Move to next file
+    pub fn next(&mut self) {
+        if self.current_index + 1 < self.files.len() {
+            self.current_index += 1;
+            if let Some((_, name)) = self.files.get(self.current_index) {
+                self.input = name.clone();
+            }
+        }
+    }
+
+    /// Check if all files have been processed
+    pub fn is_complete(&self) -> bool {
+        self.current_index >= self.files.len()
+    }
+}
+
+/// File attribute value for modification
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttrValue {
+    On,
+    Off,
+    NoChange,  // Only available for tagged files
+}
+
+impl AttrValue {
+    pub fn toggle(&self, for_tagged: bool) -> AttrValue {
+        match self {
+            AttrValue::On => AttrValue::Off,
+            AttrValue::Off => if for_tagged { AttrValue::NoChange } else { AttrValue::On },
+            AttrValue::NoChange => AttrValue::On,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AttrValue::On => "ON ",
+            AttrValue::Off => "OFF",
+            AttrValue::NoChange => "N/C",
+        }
+    }
+}
+
+/// Attribute state for viewing/editing file attributes
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttributeState {
+    /// File path being modified
+    pub path: PathBuf,
+    /// Original filename
+    pub name: String,
+    /// Whether this is for tagged files (enables N/C option)
+    pub for_tagged: bool,
+    /// Current attribute values: [HID, SYS, R/O, ARC]
+    /// Note: On Unix, only R/O (read-only) is actually modifiable
+    pub attrs: [AttrValue; 4],
+    /// Original attribute values (to show what changed)
+    pub original: [bool; 4],
+    /// Currently selected attribute index (0-3)
+    pub selected: usize,
+    /// Is this in display-only mode?
+    pub display_only: bool,
+}
+
+impl AttributeState {
+    pub fn new(path: PathBuf, for_tagged: bool) -> Self {
+        use std::os::unix::fs::PermissionsExt;
+
+        let name = path.file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string());
+
+        // Read current attributes
+        let metadata = std::fs::metadata(&path);
+        let (hidden, system, readonly, archive) = if let Ok(meta) = metadata {
+            let mode = meta.permissions().mode();
+            let readonly = (mode & 0o222) == 0;  // No write permission = read-only
+            let hidden = name.starts_with('.');  // Unix hidden convention
+            // System and Archive don't have Unix equivalents
+            (hidden, false, readonly, false)
+        } else {
+            (false, false, false, false)
+        };
+
+        let original = [hidden, system, readonly, archive];
+        let attrs = if for_tagged {
+            // For tagged files, start with N/C (no change)
+            [AttrValue::NoChange; 4]
+        } else {
+            // For single file, show current values
+            [
+                if hidden { AttrValue::On } else { AttrValue::Off },
+                if system { AttrValue::On } else { AttrValue::Off },
+                if readonly { AttrValue::On } else { AttrValue::Off },
+                if archive { AttrValue::On } else { AttrValue::Off },
+            ]
+        };
+
+        Self {
+            path,
+            name,
+            for_tagged,
+            attrs,
+            original,
+            selected: 0,
+            display_only: false,
+        }
+    }
+
+    pub fn new_display(path: PathBuf) -> Self {
+        let mut state = Self::new(path, false);
+        state.display_only = true;
+        state
+    }
+
+    /// Get attribute name by index
+    pub fn attr_name(index: usize) -> &'static str {
+        match index {
+            0 => "HID",
+            1 => "SYS",
+            2 => "R/O",
+            3 => "ARC",
+            _ => "???",
+        }
+    }
+
+    /// Toggle current attribute
+    pub fn toggle_current(&mut self) {
+        if self.display_only { return; }
+        self.attrs[self.selected] = self.attrs[self.selected].toggle(self.for_tagged);
+    }
+
+    /// Move to next attribute
+    pub fn next_attr(&mut self) {
+        if self.selected < 3 {
+            self.selected += 1;
+        }
+    }
+
+    /// Move to previous attribute
+    pub fn prev_attr(&mut self) {
+        if self.selected > 0 {
+            self.selected -= 1;
+        }
+    }
+}
+
+/// Search specification state for filtering files
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchSpecState {
+    /// File name pattern (e.g., "*.EXE", "*.COM")
+    pub pattern: String,
+    /// Phase: 0 = editing pattern, 1 = editing attributes
+    pub phase: u8,
+    /// Attribute filters: [NORM, DIR, HID, SYS, R/O, ARC]
+    /// true = include files with this attribute
+    pub attrs: [bool; 6],
+    /// Currently selected attribute (0-5) in phase 1
+    pub selected_attr: usize,
+}
+
+impl SearchSpecState {
+    pub fn new(current_spec: &str) -> Self {
+        Self {
+            pattern: current_spec.to_string(),
+            phase: 0,
+            // Default: NORM=true (normal files), DIR=true (directories), others=false
+            attrs: [true, true, false, false, false, false],
+            selected_attr: 0,
+        }
+    }
+
+    /// Get attribute name by index
+    pub fn attr_name(index: usize) -> &'static str {
+        match index {
+            0 => "NORM",
+            1 => "DIR ",
+            2 => "HID ",
+            3 => "SYS ",
+            4 => "R/O ",
+            5 => "ARC ",
+            _ => "????",
+        }
+    }
+
+    /// Toggle the currently selected attribute
+    pub fn toggle_current(&mut self) {
+        self.attrs[self.selected_attr] = !self.attrs[self.selected_attr];
+    }
+}
+
 /// Active modal dialog
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modal {
@@ -493,7 +727,7 @@ pub enum Modal {
     Help,
     Status(SystemInfo),
     Quit,
-    SearchSpec,
+    SearchSpec(SearchSpecState),
     Space,
     Error(String),
     Success(String),
@@ -506,6 +740,8 @@ pub enum Modal {
     FileViewer(FileViewerState),
     DirectoryMap(DirectoryMapState),
     Find(FindState),
+    BatchRename(BatchRenameState),
+    Attribute(AttributeState),
 }
 
 /// Application state
@@ -622,7 +858,8 @@ impl App {
             }
             // Search spec
             KeyCode::F(7) => {
-                self.modal = Modal::SearchSpec;
+                let state = SearchSpecState::new(&self.search_spec);
+                self.modal = Modal::SearchSpec(state);
             }
             // Sort
             KeyCode::F(8) => {
@@ -1132,16 +1369,434 @@ impl App {
                     }
                 }
             }
-            Modal::Find(_state) => {
-                // TODO: Implement Find modal key handling
+            Modal::Find(ref mut state) => {
+                match state.phase {
+                    FindPhase::InputPattern => {
+                        match key.code {
+                            KeyCode::Enter => {
+                                if state.pattern.is_empty() {
+                                    // Use *.* if no pattern entered
+                                    state.pattern = "*.*".to_string();
+                                }
+                                // Move to ask pause phase
+                                state.phase = FindPhase::AskPause;
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            KeyCode::Backspace => {
+                                state.pattern.pop();
+                            }
+                            KeyCode::Char('r') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                                // Recall last pattern
+                                state.pattern = state.last_pattern.clone();
+                            }
+                            KeyCode::Char(c) => {
+                                state.pattern.push(c);
+                            }
+                            _ => {}
+                        }
+                    }
+                    FindPhase::AskPause => {
+                        match key.code {
+                            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                                state.pause_on_match = true;
+                                // Start searching
+                                state.phase = FindPhase::Searching;
+                                let root = self.current_path.clone();
+                                state.matches = find_files_recursive(&root, &state.pattern);
+                                self.last_find_pattern = state.pattern.clone();
+                                state.search_complete = true;
+
+                                if state.matches.is_empty() {
+                                    state.phase = FindPhase::NoResults;
+                                } else {
+                                    state.phase = FindPhase::ShowResult;
+                                    state.current_match = 0;
+                                }
+                            }
+                            KeyCode::Char('n') | KeyCode::Char('N') => {
+                                state.pause_on_match = false;
+                                // Start searching
+                                state.phase = FindPhase::Searching;
+                                let root = self.current_path.clone();
+                                state.matches = find_files_recursive(&root, &state.pattern);
+                                self.last_find_pattern = state.pattern.clone();
+                                state.search_complete = true;
+
+                                if state.matches.is_empty() {
+                                    state.phase = FindPhase::NoResults;
+                                } else {
+                                    state.phase = FindPhase::ShowAllResults;
+                                    state.scroll_offset = 0;
+                                }
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            _ => {}
+                        }
+                    }
+                    FindPhase::Searching => {
+                        // Searching is synchronous for now, so this won't be hit
+                        // In future could make async with progress display
+                    }
+                    FindPhase::ShowResult => {
+                        match key.code {
+                            KeyCode::Char('c') | KeyCode::Char('C') => {
+                                // Continue to next match
+                                if state.current_match + 1 < state.matches.len() {
+                                    state.current_match += 1;
+                                } else {
+                                    // No more matches
+                                    state.phase = FindPhase::NoResults;
+                                }
+                            }
+                            KeyCode::Char('j') | KeyCode::Char('J') => {
+                                // Jump to directory containing the file
+                                if let Some((path, _)) = state.matches.get(state.current_match) {
+                                    if let Some(parent) = path.parent() {
+                                        let parent = parent.to_path_buf();
+                                        let file_name = path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string());
+                                        self.modal = Modal::None;
+                                        if let Ok(()) = self.navigate_to(&parent) {
+                                            // Try to select the file
+                                            if let Some(name) = file_name {
+                                                if let Some(idx) = self.files.iter().position(|f| {
+                                                    let full_name = if f.extension.is_empty() {
+                                                        f.name.clone()
+                                                    } else {
+                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                    };
+                                                    full_name.eq_ignore_ascii_case(&name)
+                                                }) {
+                                                    self.selected_index = idx;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('v') | KeyCode::Char('V') => {
+                                // View the file
+                                if let Some((path, _)) = state.matches.get(state.current_match) {
+                                    if let Ok(content) = std::fs::read(path) {
+                                        let file_name = path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string())
+                                            .unwrap_or_else(|| "file".to_string());
+                                        let file_path = path.clone();
+                                        self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                                    }
+                                }
+                            }
+                            KeyCode::Char('e') if key.modifiers.contains(KeyModifiers::ALT) => {
+                                // Alt-E: Erase the found file (with confirmation in future)
+                                // For now, skip this - requires confirmation workflow
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            _ => {}
+                        }
+                    }
+                    FindPhase::ShowAllResults => {
+                        let visible_height = 15; // Approximate visible lines
+
+                        match key.code {
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                // Move selection up
+                                if state.current_match > 0 {
+                                    state.current_match -= 1;
+                                    // Adjust scroll to keep selection visible
+                                    if state.current_match < state.scroll_offset {
+                                        state.scroll_offset = state.current_match;
+                                    }
+                                }
+                            }
+                            KeyCode::Down => {
+                                // Move selection down
+                                if state.current_match + 1 < state.matches.len() {
+                                    state.current_match += 1;
+                                    // Adjust scroll to keep selection visible
+                                    if state.current_match >= state.scroll_offset + visible_height {
+                                        state.scroll_offset = state.current_match - visible_height + 1;
+                                    }
+                                }
+                            }
+                            KeyCode::PageUp => {
+                                state.current_match = state.current_match.saturating_sub(visible_height);
+                                state.scroll_offset = state.scroll_offset.saturating_sub(visible_height);
+                            }
+                            KeyCode::PageDown => {
+                                let max = state.matches.len().saturating_sub(1);
+                                state.current_match = (state.current_match + visible_height).min(max);
+                                let max_scroll = state.matches.len().saturating_sub(visible_height);
+                                state.scroll_offset = (state.scroll_offset + visible_height).min(max_scroll);
+                            }
+                            KeyCode::Home => {
+                                state.current_match = 0;
+                                state.scroll_offset = 0;
+                            }
+                            KeyCode::End => {
+                                state.current_match = state.matches.len().saturating_sub(1);
+                                let max_scroll = state.matches.len().saturating_sub(visible_height);
+                                state.scroll_offset = max_scroll;
+                            }
+                            KeyCode::Char('j') | KeyCode::Char('J') => {
+                                // Jump to directory containing the selected file
+                                if let Some((path, _)) = state.matches.get(state.current_match) {
+                                    if let Some(parent) = path.parent() {
+                                        let parent = parent.to_path_buf();
+                                        let file_name = path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string());
+                                        self.modal = Modal::None;
+                                        if let Ok(()) = self.navigate_to(&parent) {
+                                            // Try to select the file
+                                            if let Some(name) = file_name {
+                                                if let Some(idx) = self.files.iter().position(|f| {
+                                                    let full_name = if f.extension.is_empty() {
+                                                        f.name.clone()
+                                                    } else {
+                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                    };
+                                                    full_name.eq_ignore_ascii_case(&name)
+                                                }) {
+                                                    self.selected_index = idx;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Char('v') | KeyCode::Char('V') => {
+                                // View the selected file
+                                if let Some((path, _)) = state.matches.get(state.current_match) {
+                                    if let Ok(content) = std::fs::read(path) {
+                                        let file_name = path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string())
+                                            .unwrap_or_else(|| "file".to_string());
+                                        let file_path = path.clone();
+                                        self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                                    }
+                                }
+                            }
+                            KeyCode::Enter => {
+                                // Jump to the selected file (same as J)
+                                if let Some((path, _)) = state.matches.get(state.current_match) {
+                                    if let Some(parent) = path.parent() {
+                                        let parent = parent.to_path_buf();
+                                        let file_name = path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string());
+                                        self.modal = Modal::None;
+                                        if let Ok(()) = self.navigate_to(&parent) {
+                                            if let Some(name) = file_name {
+                                                if let Some(idx) = self.files.iter().position(|f| {
+                                                    let full_name = if f.extension.is_empty() {
+                                                        f.name.clone()
+                                                    } else {
+                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                    };
+                                                    full_name.eq_ignore_ascii_case(&name)
+                                                }) {
+                                                    self.selected_index = idx;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            _ => {}
+                        }
+                    }
+                    FindPhase::NoResults => {
+                        // Any key closes
+                        self.modal = Modal::None;
+                    }
+                }
+            }
+            Modal::BatchRename(ref mut state) => {
                 match key.code {
+                    KeyCode::Enter => {
+                        // Rename the current file
+                        if let Some((path, _)) = state.current_file().cloned() {
+                            let new_name = state.input.clone();
+                            if !new_name.is_empty() && new_name != path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() {
+                                let new_path = path.parent().unwrap_or(&path).join(&new_name);
+                                match fs::rename(&path, &new_path) {
+                                    Ok(()) => {
+                                        state.renamed_count += 1;
+                                        state.last_error = None;
+                                        // Remove from tagged files
+                                        self.tagged_files.retain(|p| *p != path);
+                                    }
+                                    Err(e) => {
+                                        state.last_error = Some(format!("Error: {}", e));
+                                    }
+                                }
+                            }
+                        }
+                        // Move to next file
+                        state.next();
+                        if state.is_complete() {
+                            // Done - refresh and show summary
+                            let count = state.renamed_count;
+                            self.modal = Modal::None;
+                            let _ = self.refresh_files();
+                            if count > 0 {
+                                self.modal = Modal::Success(format!("Renamed {} file(s)", count));
+                            }
+                        }
+                    }
+                    KeyCode::Esc => {
+                        // Exit batch rename
+                        let count = state.renamed_count;
+                        self.modal = Modal::None;
+                        let _ = self.refresh_files();
+                        if count > 0 {
+                            self.modal = Modal::Success(format!("Renamed {} file(s)", count));
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        state.input.pop();
+                        state.last_error = None;
+                    }
+                    KeyCode::Char(c) => {
+                        state.input.push(c);
+                        state.last_error = None;
+                    }
+                    KeyCode::Tab => {
+                        // Skip this file without renaming
+                        state.next();
+                        if state.is_complete() {
+                            let count = state.renamed_count;
+                            self.modal = Modal::None;
+                            let _ = self.refresh_files();
+                            if count > 0 {
+                                self.modal = Modal::Success(format!("Renamed {} file(s)", count));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Modal::Attribute(ref mut state) => {
+                match key.code {
+                    KeyCode::Left | KeyCode::Char('h') => {
+                        state.prev_attr();
+                    }
+                    KeyCode::Right | KeyCode::Char('l') => {
+                        state.next_attr();
+                    }
+                    KeyCode::Char(' ') => {
+                        // Toggle current attribute
+                        state.toggle_current();
+                    }
+                    KeyCode::Enter => {
+                        if state.display_only {
+                            // Just close in display mode
+                            self.modal = Modal::None;
+                        } else {
+                            // Apply attribute changes
+                            let path = state.path.clone();
+                            let attrs = state.attrs;
+                            let for_tagged = state.for_tagged;
+
+                            // Apply to all tagged files if for_tagged, otherwise just the one file
+                            let files_to_update: Vec<PathBuf> = if for_tagged {
+                                self.tagged_files.clone()
+                            } else {
+                                vec![path]
+                            };
+
+                            let mut success_count = 0;
+                            let mut error_msg = None;
+
+                            for file_path in files_to_update {
+                                match apply_attributes(&file_path, &attrs) {
+                                    Ok(()) => success_count += 1,
+                                    Err(e) => {
+                                        if error_msg.is_none() {
+                                            error_msg = Some(format!("Error: {}", e));
+                                        }
+                                    }
+                                }
+                            }
+
+                            self.modal = Modal::None;
+                            let _ = self.refresh_files();
+
+                            if let Some(err) = error_msg {
+                                self.modal = Modal::Error(err);
+                            } else if success_count > 0 {
+                                self.modal = Modal::Success(format!("Updated attributes for {} file(s)", success_count));
+                            }
+                        }
+                    }
                     KeyCode::Esc => {
                         self.modal = Modal::None;
                     }
                     _ => {}
                 }
             }
-            Modal::Help | Modal::Status(_) | Modal::SearchSpec | Modal::Space
+            Modal::SearchSpec(ref mut state) => {
+                match state.phase {
+                    0 => {
+                        // Phase 0: Editing pattern
+                        match key.code {
+                            KeyCode::Enter => {
+                                // Move to attribute selection phase
+                                state.phase = 1;
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            KeyCode::Backspace => {
+                                state.pattern.pop();
+                            }
+                            KeyCode::Char(c) => {
+                                state.pattern.push(c);
+                            }
+                            _ => {}
+                        }
+                    }
+                    1 => {
+                        // Phase 1: Editing attributes
+                        match key.code {
+                            KeyCode::Left | KeyCode::Char('h') => {
+                                if state.selected_attr > 0 {
+                                    state.selected_attr -= 1;
+                                }
+                            }
+                            KeyCode::Right | KeyCode::Char('l') => {
+                                if state.selected_attr < 5 {
+                                    state.selected_attr += 1;
+                                }
+                            }
+                            KeyCode::Char(' ') => {
+                                state.toggle_current();
+                            }
+                            KeyCode::Enter => {
+                                // Apply the search specification
+                                let pattern = state.pattern.clone();
+                                self.search_spec = pattern;
+                                self.modal = Modal::None;
+                                let _ = self.refresh_files();
+                            }
+                            KeyCode::Esc => {
+                                // Go back to pattern phase
+                                state.phase = 0;
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Modal::Help | Modal::Status(_) | Modal::Space
             | Modal::Error(_) | Modal::Success(_) => {
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
@@ -1264,32 +1919,60 @@ impl App {
                 self.modal = Modal::Space;
             }
             NavItem::Copy => {
-                if self.tagged_files.is_empty() {
-                    self.modal = Modal::Error("No files tagged. Tag files with SPACE first.".to_string());
+                if !self.tagged_files.is_empty() {
+                    // Copy tagged files
+                    let dest = self.current_path.to_string_lossy().to_string();
+                    self.modal = Modal::CopyTo(dest);
+                } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    self.modal = Modal::Error("No file selected for copy.".to_string());
                 } else {
+                    // Copy the highlighted file - temporarily tag it
+                    let file = &self.files[self.selected_index];
+                    self.tagged_files.push(file.path.clone());
                     let dest = self.current_path.to_string_lossy().to_string();
                     self.modal = Modal::CopyTo(dest);
                 }
             }
             NavItem::Move => {
-                if self.tagged_files.is_empty() {
-                    self.modal = Modal::Error("No files tagged. Tag files with SPACE first.".to_string());
+                if !self.tagged_files.is_empty() {
+                    // Move tagged files
+                    let dest = self.current_path.to_string_lossy().to_string();
+                    self.modal = Modal::MoveTo(dest);
+                } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    self.modal = Modal::Error("No file selected for move.".to_string());
                 } else {
+                    // Move the highlighted file - temporarily tag it
+                    let file = &self.files[self.selected_index];
+                    self.tagged_files.push(file.path.clone());
                     let dest = self.current_path.to_string_lossy().to_string();
                     self.modal = Modal::MoveTo(dest);
                 }
             }
             NavItem::Erase => {
-                if self.tagged_files.is_empty() {
-                    self.modal = Modal::Error("No files tagged. Tag files with SPACE first.".to_string());
+                if !self.tagged_files.is_empty() {
+                    // Erase tagged files
+                    self.modal = Modal::EraseConfirm;
+                } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    self.modal = Modal::Error("No file selected for erase.".to_string());
+                } else if self.files[self.selected_index].is_dir {
+                    self.modal = Modal::Error("Use Directory Map (D) to delete directories.".to_string());
                 } else {
+                    // Erase the highlighted file - temporarily tag it for the confirm dialog
+                    let file = &self.files[self.selected_index];
+                    self.tagged_files.push(file.path.clone());
                     self.modal = Modal::EraseConfirm;
                 }
             }
             NavItem::Rename => {
-                if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                if !self.tagged_files.is_empty() {
+                    // Batch rename for tagged files
+                    let files = self.tagged_files.clone();
+                    let state = BatchRenameState::new(files);
+                    self.modal = Modal::BatchRename(state);
+                } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     self.modal = Modal::Error("No file selected for rename.".to_string());
                 } else {
+                    // Single file rename
                     let current_name = self.files[self.selected_index].name.clone();
                     let ext = &self.files[self.selected_index].extension;
                     let full_name = if ext.is_empty() {
@@ -1323,8 +2006,30 @@ impl App {
                     }
                 }
             }
-            NavItem::Find | NavItem::Attribute | NavItem::Print => {
-                self.modal = Modal::Error(format!("{} not yet implemented", nav_item.as_str()));
+            NavItem::Find => {
+                // Open Find dialog
+                let state = FindState::new(self.last_find_pattern.clone());
+                self.modal = Modal::Find(state);
+            }
+            NavItem::Attribute => {
+                if !self.tagged_files.is_empty() {
+                    // For tagged files, show attribute editor with N/C option
+                    // We'll use the first tagged file as reference
+                    let path = self.tagged_files[0].clone();
+                    let state = AttributeState::new(path, true);
+                    self.modal = Modal::Attribute(state);
+                } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    // No file selected - show display mode for current file or error
+                    self.modal = Modal::Error("No file selected for attribute display.".to_string());
+                } else {
+                    // Single file - show attribute editor
+                    let file = &self.files[self.selected_index];
+                    let state = AttributeState::new(file.path.clone(), false);
+                    self.modal = Modal::Attribute(state);
+                }
+            }
+            NavItem::Print => {
+                self.modal = Modal::Error("Print not yet implemented".to_string());
             }
         }
 

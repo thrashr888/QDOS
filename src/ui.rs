@@ -1,4 +1,4 @@
-use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode, DirectoryMapState};
+use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode, DirectoryMapState, FindState, FindPhase, BatchRenameState, AttributeState, AttrValue, SearchSpecState};
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
@@ -620,7 +620,7 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Help => draw_help_modal(frame, modal_area),
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
         Modal::Quit => {} // Handled above
-        Modal::SearchSpec => draw_search_spec_modal(frame, modal_area, app),
+        Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
         Modal::Space => draw_space_modal(frame, modal_area, app),
         Modal::Error(msg) => draw_error_modal(frame, modal_area, msg),
         Modal::Success(msg) => draw_success_modal(frame, modal_area, msg),
@@ -632,12 +632,9 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::ShellCommand(state) => draw_shell_command(frame, area, state, app),
         Modal::FileViewer(state) => draw_file_viewer(frame, area, state),
         Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
-        Modal::Find(_state) => {
-            // TODO: Implement Find modal UI
-            let msg = Paragraph::new("Find - Coming Soon (press ESC to close)")
-                .style(Style::default().fg(COLOR_FG).bg(COLOR_BG));
-            frame.render_widget(msg, modal_area);
-        }
+        Modal::Find(state) => draw_find_modal(frame, area, state),
+        Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
+        Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
         Modal::None => {}
     }
 }
@@ -777,29 +774,92 @@ fn draw_quit_modal(frame: &mut Frame, area: Rect) {
 }
 
 /// Draw search specification modal
-fn draw_search_spec_modal(frame: &mut Frame, area: Rect, app: &App) {
+fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &SearchSpecState) {
+    let title = if state.phase == 0 {
+        " Set Search Specification "
+    } else {
+        " Search Attributes "
+    };
+
     let search_block = Block::default()
-        .title(" Search Specification ")
+        .title(title)
         .borders(Borders::ALL)
         .border_style(Style::default().fg(COLOR_BLUE))
         .style(Style::default().bg(COLOR_BG));
 
-    let search_text = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Current spec: ", Style::default().fg(COLOR_GREEN)),
-            Span::styled(&app.search_spec, Style::default().fg(COLOR_FG)),
-        ]),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Search specification not yet implemented",
-            Style::default().fg(COLOR_GREEN),
-        )),
-        Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
-    ];
+    let mut lines = vec![Line::from("")];
 
-    let paragraph = Paragraph::new(search_text)
+    if state.phase == 0 {
+        // Phase 0: Pattern input
+        lines.push(Line::from(Span::styled(
+            "Enter file search specification:",
+            Style::default().fg(COLOR_GREEN),
+        )));
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
+            Span::styled(&state.pattern, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+            Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+        ]));
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "Examples: *.*  *.txt  *.rs  config.*",
+            Style::default().fg(COLOR_GREY),
+        )));
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" next  "),
+            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" cancel"),
+        ]));
+    } else {
+        // Phase 1: Attribute selection
+        lines.push(Line::from(vec![
+            Span::styled("Pattern: ", Style::default().fg(COLOR_GREEN)),
+            Span::styled(&state.pattern, Style::default().fg(COLOR_FG)),
+        ]));
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "Select which file types to display:",
+            Style::default().fg(COLOR_GREEN),
+        )));
+        lines.push(Line::from(""));
+
+        // Build attribute bar
+        let mut attr_spans: Vec<Span> = vec![Span::raw("  ")];
+        for i in 0..6 {
+            let name = SearchSpecState::attr_name(i);
+            let is_on = state.attrs[i];
+            let is_selected = i == state.selected_attr;
+
+            let style = if is_selected {
+                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+            } else if is_on {
+                Style::default().fg(COLOR_GREEN)
+            } else {
+                Style::default().fg(COLOR_GREY)
+            };
+
+            let indicator = if is_on { " ✓ " } else { "   " };
+            attr_spans.push(Span::styled(format!("[{}{}]", name, indicator), style));
+            attr_spans.push(Span::raw(" "));
+        }
+        lines.push(Line::from(attr_spans));
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("←→", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" select  "),
+            Span::styled("SPACE", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" toggle  "),
+            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" apply  "),
+            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" back"),
+        ]));
+    }
+
+    let paragraph = Paragraph::new(lines)
         .block(search_block)
         .wrap(Wrap { trim: true });
 
@@ -852,8 +912,7 @@ fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
 
 /// Draw error modal
 fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
-    let error_area = centered_rect(50, 25, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let error_block = Block::default()
         .title(" Error ")
         .borders(Borders::ALL)
@@ -871,14 +930,12 @@ fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
         .block(error_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, error_area);
-    frame.render_widget(paragraph, error_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw path input modal
 fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
-    let input_area = centered_rect(70, 30, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let input_block = Block::default()
         .title(" Change Directory ")
         .borders(Borders::ALL)
@@ -905,14 +962,12 @@ fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
         .block(input_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, input_area);
-    frame.render_widget(paragraph, input_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw success modal
 fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
-    let success_area = centered_rect(50, 25, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let success_block = Block::default()
         .title(" Success ")
         .borders(Borders::ALL)
@@ -930,14 +985,12 @@ fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
         .block(success_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, success_area);
-    frame.render_widget(paragraph, success_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw copy modal
 fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    let copy_area = centered_rect(70, 35, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let copy_block = Block::default()
         .title(" Copy Files ")
         .borders(Borders::ALL)
@@ -969,14 +1022,12 @@ fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
         .block(copy_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, copy_area);
-    frame.render_widget(paragraph, copy_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw move modal
 fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    let move_area = centered_rect(70, 35, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let move_block = Block::default()
         .title(" Move Files ")
         .borders(Borders::ALL)
@@ -1008,14 +1059,12 @@ fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
         .block(move_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, move_area);
-    frame.render_widget(paragraph, move_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw erase confirmation modal
 fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
-    let erase_area = centered_rect(50, 30, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let erase_block = Block::default()
         .title(" Erase Files ")
         .borders(Borders::ALL)
@@ -1046,14 +1095,12 @@ fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
         .block(erase_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, erase_area);
-    frame.render_widget(paragraph, erase_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw rename modal
 fn draw_rename_modal(frame: &mut Frame, area: Rect, name: &str) {
-    let rename_area = centered_rect(60, 30, area);
-
+    // Use the modal area directly (already centered by draw_modal)
     let rename_block = Block::default()
         .title(" Rename File ")
         .borders(Borders::ALL)
@@ -1078,8 +1125,7 @@ fn draw_rename_modal(frame: &mut Frame, area: Rect, name: &str) {
         .block(rename_block)
         .wrap(Wrap { trim: true });
 
-    frame.render_widget(Clear, rename_area);
-    frame.render_widget(paragraph, rename_area);
+    frame.render_widget(paragraph, area);
 }
 
 /// Draw file viewer screen (full screen)
@@ -1764,4 +1810,374 @@ fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) 
         Paragraph::new(Span::styled(help_text, help_style)),
         chunks[4],
     );
+}
+
+/// Draw the Find modal
+fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
+    // Clear the entire screen
+    frame.render_widget(Clear, area);
+
+    // Layout: title, separator, content, separator, help
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Length(1),  // Separator
+            Constraint::Min(5),     // Content
+            Constraint::Length(1),  // Separator
+            Constraint::Length(1),  // Help line
+        ])
+        .split(area);
+
+    // Title
+    let title = " FIND FILES ";
+    frame.render_widget(
+        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        chunks[0],
+    );
+
+    // Separator
+    let sep = "═".repeat(area.width as usize);
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
+        chunks[1],
+    );
+
+    // Content area based on phase
+    let content_area = chunks[2];
+    match state.phase {
+        FindPhase::InputPattern => {
+            let mut lines = vec![
+                Line::from(""),
+                Line::from(Span::styled("Find File -- Search for:", Style::default().fg(COLOR_GREEN))),
+                Line::from(""),
+                Line::from(vec![
+                    Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
+                    Span::styled(&state.pattern, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+                    Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+                ]),
+                Line::from(""),
+                Line::from(Span::styled("Examples: *.txt, foo*.rs, config.*", Style::default().fg(COLOR_GREY))),
+                Line::from(Span::styled("Ctrl+R to recall last pattern", Style::default().fg(COLOR_GREY))),
+            ];
+            if !state.last_pattern.is_empty() {
+                lines.push(Line::from(Span::styled(
+                    format!("Last pattern: {}", state.last_pattern),
+                    Style::default().fg(COLOR_GREY),
+                )));
+            }
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+        FindPhase::AskPause => {
+            let lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    format!("Searching for: {}", state.pattern),
+                    Style::default().fg(COLOR_GREEN),
+                )),
+                Line::from(""),
+                Line::from(Span::styled("Pause when a match is found?  (Y/N)", Style::default().fg(COLOR_FG))),
+                Line::from(""),
+                Line::from(Span::styled("Y = Stop at each match (can Jump/View/Continue)", Style::default().fg(COLOR_GREY))),
+                Line::from(Span::styled("N = Show all matches at once", Style::default().fg(COLOR_GREY))),
+            ];
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+        FindPhase::Searching => {
+            let lines = vec![
+                Line::from(""),
+                Line::from(Span::styled("Searching...", Style::default().fg(COLOR_YELLOW))),
+                Line::from(""),
+                Line::from(Span::styled(
+                    format!("Pattern: {}", state.pattern),
+                    Style::default().fg(COLOR_GREEN),
+                )),
+            ];
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+        FindPhase::ShowResult => {
+            if let Some((path, display)) = state.matches.get(state.current_match) {
+                let lines = vec![
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        format!("Match {} of {}", state.current_match + 1, state.matches.len()),
+                        Style::default().fg(COLOR_GREEN),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(display.clone(), Style::default().fg(COLOR_YELLOW))),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        format!("Path: {}", path.display()),
+                        Style::default().fg(COLOR_GREY),
+                    )),
+                ];
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+        }
+        FindPhase::ShowAllResults => {
+            let visible_height = content_area.height as usize;
+            let mut lines: Vec<Line> = vec![
+                Line::from(Span::styled(
+                    format!("Found {} matches for '{}':", state.matches.len(), state.pattern),
+                    Style::default().fg(COLOR_GREEN),
+                )),
+                Line::from(""),
+            ];
+
+            for (i, (path, _)) in state.matches.iter().enumerate().skip(state.scroll_offset).take(visible_height.saturating_sub(2)) {
+                let name = path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| path.to_string_lossy().to_string());
+                let parent = path.parent()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let line_text = format!("{:4}. {} - {}", i + 1, name, parent);
+                // Highlight the selected item
+                let style = if i == state.current_match {
+                    Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                } else {
+                    Style::default().fg(COLOR_FG)
+                };
+                lines.push(Line::from(Span::styled(line_text, style)));
+            }
+
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+        FindPhase::NoResults => {
+            let lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    format!("Pattern: {}", state.pattern),
+                    Style::default().fg(COLOR_GREEN),
+                )),
+                Line::from(""),
+                if state.search_complete && state.matches.is_empty() {
+                    Line::from(Span::styled("No matching files found.", Style::default().fg(COLOR_YELLOW)))
+                } else {
+                    Line::from(Span::styled(
+                        format!("Finished with FIND -- {} files found", state.matches.len()),
+                        Style::default().fg(COLOR_YELLOW),
+                    ))
+                },
+                Line::from(""),
+                Line::from(Span::styled("Press any key to continue", Style::default().fg(COLOR_GREEN))),
+            ];
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+    }
+
+    // Bottom separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
+        chunks[3],
+    );
+
+    // Help line based on phase
+    let help_text = match state.phase {
+        FindPhase::InputPattern => "Enter pattern, Ctrl+R recall, ESC cancel",
+        FindPhase::AskPause => "Y pause on match, N show all, ESC cancel",
+        FindPhase::Searching => "Searching...",
+        FindPhase::ShowResult => "(C)ontinue (J)ump (V)iew  ESC quit",
+        FindPhase::ShowAllResults => "↑↓ select  Enter/(J)ump  (V)iew  ESC close",
+        FindPhase::NoResults => "Press any key",
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(help_text, Style::default().fg(COLOR_GREEN))),
+        chunks[4],
+    );
+}
+
+/// Draw the Batch Rename modal
+fn draw_batch_rename_modal(frame: &mut Frame, area: Rect, state: &BatchRenameState) {
+    // Clear the entire screen
+    frame.render_widget(Clear, area);
+
+    // Layout: title, separator, content, separator, help
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Title
+            Constraint::Length(1),  // Separator
+            Constraint::Min(5),     // Content
+            Constraint::Length(1),  // Separator
+            Constraint::Length(1),  // Help line
+        ])
+        .split(area);
+
+    // Title
+    let title = format!(" RENAME FILES - {} of {} ", state.current_index + 1, state.files.len());
+    frame.render_widget(
+        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        chunks[0],
+    );
+
+    // Separator
+    let sep = "═".repeat(area.width as usize);
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
+        chunks[1],
+    );
+
+    // Content area
+    let content_area = chunks[2];
+
+    if let Some((path, original_name)) = state.current_file() {
+        let mut lines = vec![
+            Line::from(""),
+            Line::from(Span::styled("File to be renamed:", Style::default().fg(COLOR_GREEN))),
+            Line::from(""),
+            Line::from(Span::styled(original_name.clone(), Style::default().fg(COLOR_FG))),
+            Line::from(""),
+            Line::from(Span::styled(
+                format!("Path: {}", path.parent().unwrap_or(path).display()),
+                Style::default().fg(COLOR_GREY),
+            )),
+            Line::from(""),
+            Line::from(Span::styled("Enter new name:", Style::default().fg(COLOR_GREEN))),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled(&state.input, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+                Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+            ]),
+        ];
+
+        // Show error if any
+        if let Some(ref error) = state.last_error {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(error.clone(), Style::default().fg(COLOR_RED))));
+        }
+
+        // Show progress
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            format!("Renamed so far: {}", state.renamed_count),
+            Style::default().fg(COLOR_GREY),
+        )));
+
+        frame.render_widget(Paragraph::new(lines), content_area);
+    }
+
+    // Bottom separator
+    frame.render_widget(
+        Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
+        chunks[3],
+    );
+
+    // Help line
+    let help_text = "Enter: Rename  Tab: Skip  ESC: Exit";
+    frame.render_widget(
+        Paragraph::new(Span::styled(help_text, Style::default().fg(COLOR_GREEN))),
+        chunks[4],
+    );
+}
+
+/// Draw the Attribute modal
+fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &AttributeState) {
+    let attr_block = Block::default()
+        .title(if state.display_only {
+            " Display File Attributes "
+        } else if state.for_tagged {
+            " Change Tagged Files Attributes "
+        } else {
+            " Change File Attributes "
+        })
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(COLOR_BLUE))
+        .style(Style::default().bg(COLOR_BG));
+
+    frame.render_widget(attr_block.clone(), area);
+    let inner = attr_block.inner(area);
+
+    // Build attribute display lines
+    let mut lines = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("File: ", Style::default().fg(COLOR_GREEN)),
+            Span::styled(&state.name, Style::default().fg(COLOR_FG)),
+        ]),
+        Line::from(""),
+    ];
+
+    // Show current attributes row
+    lines.push(Line::from(Span::styled(
+        "Current attributes:",
+        Style::default().fg(COLOR_GREEN),
+    )));
+    lines.push(Line::from(""));
+
+    // Show original values
+    let orig_text = format!(
+        "  Original: {} {} {} {}",
+        if state.original[0] { "HID" } else { "   " },
+        if state.original[1] { "SYS" } else { "   " },
+        if state.original[2] { "R/O" } else { "   " },
+        if state.original[3] { "ARC" } else { "   " },
+    );
+    lines.push(Line::from(Span::styled(orig_text, Style::default().fg(COLOR_GREY))));
+    lines.push(Line::from(""));
+
+    // Build attribute bars
+    let mut attr_spans: Vec<Span> = vec![Span::raw("  ")];
+    for i in 0..4 {
+        let name = AttributeState::attr_name(i);
+        let value = state.attrs[i];
+
+        // Determine if this attribute is modifiable
+        // Only R/O (index 2) is modifiable on Unix
+        let is_modifiable = i == 2 && !state.display_only;
+        let is_selected = i == state.selected && !state.display_only;
+
+        let style = if is_selected {
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+        } else if is_modifiable {
+            Style::default().fg(COLOR_FG)
+        } else {
+            Style::default().fg(COLOR_GREY)
+        };
+
+        let value_style = if is_selected {
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+        } else {
+            match value {
+                AttrValue::On => Style::default().fg(COLOR_GREEN),
+                AttrValue::Off => Style::default().fg(COLOR_GREY),
+                AttrValue::NoChange => Style::default().fg(COLOR_BLUE),
+            }
+        };
+
+        attr_spans.push(Span::styled(format!("[ {} ", name), style));
+        attr_spans.push(Span::styled(value.as_str(), value_style));
+        attr_spans.push(Span::styled(" ]  ", style));
+    }
+    lines.push(Line::from(attr_spans));
+    lines.push(Line::from(""));
+
+    // Help text
+    if state.display_only {
+        lines.push(Line::from(Span::styled(
+            "Press any key to close",
+            Style::default().fg(COLOR_GREEN),
+        )));
+    } else {
+        lines.push(Line::from(Span::styled(
+            "Note: Only R/O (Read-Only) can be changed on Unix",
+            Style::default().fg(COLOR_GREY),
+        )));
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("←→", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" select  "),
+            Span::styled("SPACE", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" toggle  "),
+            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" apply  "),
+            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" cancel"),
+        ]));
+    }
+
+    let paragraph = Paragraph::new(lines)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, inner);
 }

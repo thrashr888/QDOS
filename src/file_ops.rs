@@ -507,6 +507,37 @@ fn find_files_recursive_impl(dir: &PathBuf, pattern: &str, results: &mut Vec<(Pa
     }
 }
 
+/// Apply attribute changes to a file
+/// Only R/O (read-only) is actually modifiable on Unix
+pub fn apply_attributes(path: &PathBuf, attrs: &[crate::app::AttrValue; 4]) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let metadata = fs::metadata(path)?;
+    let mut perms = metadata.permissions();
+    let current_mode = perms.mode();
+
+    // Only R/O (index 2) is modifiable
+    let readonly_attr = attrs[2];
+
+    match readonly_attr {
+        crate::app::AttrValue::On => {
+            // Remove all write permissions
+            perms.set_mode(current_mode & !0o222);
+            fs::set_permissions(path, perms)?;
+        }
+        crate::app::AttrValue::Off => {
+            // Add user write permission
+            perms.set_mode(current_mode | 0o200);
+            fs::set_permissions(path, perms)?;
+        }
+        crate::app::AttrValue::NoChange => {
+            // Do nothing
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
