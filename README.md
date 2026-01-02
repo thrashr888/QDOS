@@ -4,7 +4,7 @@ A retro DOS-style file manager for the terminal, written in Rust.
 
 R-DOS is inspired by the classic QDOS file manager, reimagined as a modern Terminal User Interface (TUI) using the [ratatui](https://ratatui.rs/) library.
 
-![The real Q-DOS II](qdos.png)
+![The real Q-DOS II](./images/qdos.png)
 
 I loved Q-DOS so here it is as a terminal app. Watch it in action: [Q-DOS II Demo on YouTube](https://www.youtube.com/watch?v=82j6NpSDTWQ)
 
@@ -19,6 +19,7 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 - **File Listing**: View files with name, size, date, and time columns
 - **File Tagging**: Mark files with Space key for batch operations
 - **Sorting**: 9 different sort modes (F8 to cycle) - by name, extension, size, or date (ascending/descending)
+- **File Viewing**: View the contents of any file on the screen (in "ASCII", "HEX", "MARKDOWN", or "IMAGE")
 - **Keyboard-First Interface**: All actions accessible via keyboard shortcuts
 - **Modal Dialogs**: Help (F1), Status (F2), Disk Space (Space menu), and more
 - **Cross-Platform**: Works on macOS, Linux, and Windows
