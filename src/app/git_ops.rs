@@ -81,10 +81,7 @@ pub fn load_git_diff(state: &mut GitState, cwd: &PathBuf) {
     state.error = None;
     state.scroll_offset = 0;
 
-    let output = Command::new("git")
-        .args(["diff"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("git").args(["diff"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -116,10 +113,7 @@ pub fn toggle_git_stage(state: &mut GitState, cwd: &PathBuf) {
         vec!["add", &file_path]
     };
 
-    let _ = Command::new("git")
-        .args(&args)
-        .current_dir(cwd)
-        .output();
+    let _ = Command::new("git").args(&args).current_dir(cwd).output();
 
     // Reload status
     load_git_status(state, cwd);
@@ -147,10 +141,7 @@ pub fn execute_git_commit(message: &str, cwd: &PathBuf) -> Result<(), String> {
 
 /// Execute git push
 pub fn execute_git_push(cwd: &PathBuf) -> Result<String, String> {
-    let output = Command::new("git")
-        .args(["push"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("git").args(["push"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -179,10 +170,7 @@ pub fn execute_git_push(cwd: &PathBuf) -> Result<String, String> {
 
 /// Execute git pull
 pub fn execute_git_pull(cwd: &PathBuf) -> Result<String, String> {
-    let output = Command::new("git")
-        .args(["pull"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("git").args(["pull"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -191,7 +179,11 @@ pub fn execute_git_pull(cwd: &PathBuf) -> Result<String, String> {
                 let msg = if stdout.trim().is_empty() {
                     "Already up to date".to_string()
                 } else {
-                    stdout.lines().last().unwrap_or("Pull successful").to_string()
+                    stdout
+                        .lines()
+                        .last()
+                        .unwrap_or("Pull successful")
+                        .to_string()
                 };
                 Ok(msg)
             } else {

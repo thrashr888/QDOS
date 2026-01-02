@@ -24,7 +24,8 @@ use ratatui::{
 };
 
 use super::{
-    format_size_short, viewer::{draw_file_viewer, draw_shell_command},
+    format_size_short,
+    viewer::{draw_file_viewer, draw_shell_command},
     COLOR_BG, COLOR_BLUE, COLOR_CYAN, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
 };
 
@@ -48,7 +49,6 @@ pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect 
         ])
         .split(popup_layout[1])[1]
 }
-
 
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     // Modals that handle their own area/clearing (overlay directly like quit modal)
@@ -86,8 +86,8 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
-        Modal::Space => {} // Handled above
-        Modal::Error(_) => {} // Handled above
+        Modal::Space => {}      // Handled above
+        Modal::Error(_) => {}   // Handled above
         Modal::Success(_) => {} // Handled above
         Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
         Modal::CopyTo(dest) => draw_copy_modal(frame, modal_area, dest, app),
@@ -149,7 +149,9 @@ pub(super) fn draw_help_modal(frame: &mut Frame, area: Rect, state: &HelpState) 
             lines.push(Line::from(vec![
                 Span::styled(
                     format!("  {}  ", topic.key),
-                    Style::default().fg(COLOR_YELLOW).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(COLOR_YELLOW)
+                        .add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(&topic.title, Style::default().fg(COLOR_FG)),
             ]));
@@ -477,7 +479,12 @@ pub(super) fn draw_qdos_modal_colored(
 
     let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
-    let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
+    let modal_area = Rect::new(
+        x,
+        y,
+        modal_width.min(area.width),
+        modal_height.min(area.height),
+    );
 
     frame.render_widget(Clear, modal_area);
 
@@ -568,7 +575,12 @@ pub(super) fn draw_qdos_modal_themed(
     // Center the modal within the given area
     let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
-    let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
+    let modal_area = Rect::new(
+        x,
+        y,
+        modal_width.min(area.width),
+        modal_height.min(area.height),
+    );
 
     // Clear only the exact modal area
     frame.render_widget(Clear, modal_area);
@@ -637,7 +649,12 @@ pub(super) fn draw_qdos_modal_themed(
     let bottom = format!("╚{}╝", "═".repeat(inner_w));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(modal_area.x, modal_area.y + modal_height - 1, modal_area.width, 1),
+        Rect::new(
+            modal_area.x,
+            modal_area.y + modal_height - 1,
+            modal_area.width,
+            1,
+        ),
     );
 }
 
@@ -680,7 +697,10 @@ pub(super) fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(""),
         Line::from(vec![
             Span::styled("Total available:  ", Style::default().fg(colors.yellow())),
-            Span::styled(format_size_short(available), Style::default().fg(colors.cyan())),
+            Span::styled(
+                format_size_short(available),
+                Style::default().fg(colors.cyan()),
+            ),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -797,10 +817,7 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
             Style::default().fg(COLOR_FG),
         )),
         Line::from(""),
-        Line::from(Span::styled(
-            progress_bar,
-            Style::default().fg(COLOR_BLUE),
-        )),
+        Line::from(Span::styled(progress_bar, Style::default().fg(COLOR_BLUE))),
         Line::from(Span::styled(
             format!("{}%", percentage),
             Style::default().fg(COLOR_GREEN),
@@ -824,10 +841,7 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     // Show stats
     content.push(Line::from(""));
     content.push(Line::from(Span::styled(
-        format!(
-            "Completed: {}  Failed: {}",
-            state.completed, state.failed
-        ),
+        format!("Completed: {}  Failed: {}", state.completed, state.failed),
         Style::default().fg(COLOR_GREEN),
     )));
     content.push(Line::from(""));
@@ -1580,7 +1594,9 @@ fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState
             Span::styled("Current Theme: ", Style::default().fg(colors.green())),
             Span::styled(
                 app.color_theme.name(),
-                Style::default().fg(colors.yellow()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.yellow())
+                    .add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(""),
@@ -2259,7 +2275,8 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                         // Calculate available width for title (area width - priority - id - padding)
                         let prefix_len = 4 + 14; // " P{} " + id formatted
-                        let available_width = content_area.width.saturating_sub(prefix_len as u16 + 2) as usize;
+                        let available_width =
+                            content_area.width.saturating_sub(prefix_len as u16 + 2) as usize;
                         let title = if issue.title.len() > available_width {
                             format!("{}...", &issue.title[..available_width.saturating_sub(3)])
                         } else {

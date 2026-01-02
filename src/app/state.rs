@@ -592,10 +592,26 @@ impl AttributeState {
             [AttrValue::NoChange; 4]
         } else {
             [
-                if hidden { AttrValue::On } else { AttrValue::Off },
-                if system { AttrValue::On } else { AttrValue::Off },
-                if readonly { AttrValue::On } else { AttrValue::Off },
-                if archive { AttrValue::On } else { AttrValue::Off },
+                if hidden {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if system {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if readonly {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if archive {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
             ]
         };
 
@@ -733,7 +749,8 @@ Press SPACE BAR to tag/untag the highlighted file.
 THE ESC KEY
 
 The Escape (ESC) key returns you to the Main Screen. When pressed
-in the middle of a command, it will cancel the command."#.to_string(),
+in the middle of a command, it will cancel the command."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'A',
@@ -752,7 +769,8 @@ TO USE:
 4. Press SPACE to toggle ON/OFF/N/C
 5. Press ENTER to apply changes
 
-Note: You cannot change DIR, NORM, or VOL attributes."#.to_string(),
+Note: You cannot change DIR, NORM, or VOL attributes."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'C',
@@ -766,7 +784,8 @@ TO USE:
 4. Press ENTER to copy
 
 The original files remain in their current location.
-Use Tab for path auto-completion."#.to_string(),
+Use Tab for path auto-completion."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'D',
@@ -784,7 +803,8 @@ CHANGE DIRECTORY (F5):
 Enter a path to change to a different directory.
 
 PREVIOUS DIRECTORY (F4):
-Return to the previously visited directory."#.to_string(),
+Return to the previously visited directory."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'E',
@@ -798,7 +818,8 @@ TO USE:
 
 WARNING: Erased files cannot be recovered!
 
-To delete directories, use the Directory Map (D key)."#.to_string(),
+To delete directories, use the Directory Map (D key)."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'F',
@@ -817,7 +838,8 @@ WILDCARDS:
 When a match is found:
 - J: Jump to the file's directory
 - V: View the file contents
-- C: Continue searching"#.to_string(),
+- C: Continue searching"#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'M',
@@ -830,7 +852,8 @@ TO USE:
 3. Enter destination path (Tab for completion)
 4. Press ENTER to move
 
-Unlike COPY, the original files are removed after moving."#.to_string(),
+Unlike COPY, the original files are removed after moving."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'R',
@@ -848,7 +871,8 @@ BATCH RENAME (tagged files):
 2. Select RENAME from the menu
 3. Edit each filename, press ENTER to rename
 4. Press TAB to skip a file
-5. Press ESC when done"#.to_string(),
+5. Press ESC when done"#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'S',
@@ -860,7 +884,8 @@ Shows:
 - Used space (and percentage)
 - Available space
 
-Press any key to close the display."#.to_string(),
+Press any key to close the display."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'T',
@@ -878,7 +903,8 @@ TAG OPTIONS:
 - Untag All: Remove all tags
 - Invert: Toggle all tags
 
-Tags are used by: COPY, MOVE, ERASE, RENAME, ATTRIBUTE"#.to_string(),
+Tags are used by: COPY, MOVE, ERASE, RENAME, ATTRIBUTE"#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'V',
@@ -899,7 +925,8 @@ NAVIGATION:
 FILTERS:
 - 1: Show all lines
 - 2: Non-empty lines only
-- 3: Code lines (no comments)"#.to_string(),
+- 3: Code lines (no comments)"#
+                    .to_string(),
             },
             HelpTopic {
                 key: '1',
@@ -915,7 +942,8 @@ F6  - DOS Command: Run a shell command
 F7  - Search Spec: Set file filter pattern
 F8  - Sort: Cycle through sort modes
 F9  - Edit: Open file in default text editor
-F10 - Quit: Exit Q-DOS II"#.to_string(),
+F10 - Quit: Exit Q-DOS II"#
+                    .to_string(),
             },
             HelpTopic {
                 key: '2',
@@ -936,7 +964,8 @@ Letter  - Jump to command by first letter
 
 GENERAL:
 ESC     - Cancel / Close modal
-SPACE   - Tag/untag file"#.to_string(),
+SPACE   - Tag/untag file"#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'G',
@@ -971,7 +1000,8 @@ Type your commit message and press Enter to commit.
 Press ESC to cancel.
 
 PUSH/PULL:
-Select from menu or press P/U to execute immediately."#.to_string(),
+Select from menu or press P/U to execute immediately."#
+                    .to_string(),
             },
             HelpTopic {
                 key: 'B',
@@ -1002,7 +1032,8 @@ Use arrow keys to navigate fields:
 Press Enter to create the issue.
 
 STATS VIEW:
-Shows total, open, in-progress, closed, and blocked counts."#.to_string(),
+Shows total, open, in-progress, closed, and blocked counts."#
+                    .to_string(),
             },
         ]
     }
@@ -1134,15 +1165,15 @@ impl ColorTheme {
                 magenta: (170, 170, 170),
             },
             ColorTheme::Blue => ThemeColors {
-                background: (0, 0, 173),        // Original QDOS blue background
-                foreground: (255, 255, 255),    // White (same as default)
-                blue: (149, 249, 253),          // Bright cyan for borders/menus
-                green: (103, 204, 77),          // Same as default
-                red: (157, 31, 20),             // Same as default
-                yellow: (232, 218, 89),         // Same as default
-                grey: (128, 128, 128),          // Same as default
-                cyan: (149, 249, 253),          // Bright cyan
-                magenta: (170, 0, 170),         // Same as default
+                background: (0, 0, 173),     // Original QDOS blue background
+                foreground: (255, 255, 255), // White (same as default)
+                blue: (149, 249, 253),       // Bright cyan for borders/menus
+                green: (103, 204, 77),       // Same as default
+                red: (157, 31, 20),          // Same as default
+                yellow: (232, 218, 89),      // Same as default
+                grey: (128, 128, 128),       // Same as default
+                cyan: (149, 249, 253),       // Bright cyan
+                magenta: (170, 0, 170),      // Same as default
             },
             ColorTheme::Green => ThemeColors {
                 background: (0, 0, 0),
@@ -1449,7 +1480,7 @@ impl GitMenuItem {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitFileStatus {
     pub path: String,
-    pub status: char,       // M, A, D, R, C, U, ?
+    pub status: char, // M, A, D, R, C, U, ?
     pub staged: bool,
 }
 

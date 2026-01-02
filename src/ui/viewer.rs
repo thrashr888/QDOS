@@ -144,7 +144,8 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
     let ss = get_syntax_set();
     let ts = get_theme_set();
 
-    let syntax = ss.find_syntax_for_file(&state.file_name)
+    let syntax = ss
+        .find_syntax_for_file(&state.file_name)
         .ok()
         .flatten()
         .filter(|s| s.name != "Plain Text");
@@ -174,13 +175,22 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
                     let mut ratatui_style = Style::default().fg(fg);
 
                     // Apply font style modifiers
-                    if style.font_style.contains(syntect::highlighting::FontStyle::BOLD) {
+                    if style
+                        .font_style
+                        .contains(syntect::highlighting::FontStyle::BOLD)
+                    {
                         ratatui_style = ratatui_style.add_modifier(Modifier::BOLD);
                     }
-                    if style.font_style.contains(syntect::highlighting::FontStyle::ITALIC) {
+                    if style
+                        .font_style
+                        .contains(syntect::highlighting::FontStyle::ITALIC)
+                    {
                         ratatui_style = ratatui_style.add_modifier(Modifier::ITALIC);
                     }
-                    if style.font_style.contains(syntect::highlighting::FontStyle::UNDERLINE) {
+                    if style
+                        .font_style
+                        .contains(syntect::highlighting::FontStyle::UNDERLINE)
+                    {
                         ratatui_style = ratatui_style.add_modifier(Modifier::UNDERLINED);
                     }
 
@@ -304,7 +314,12 @@ fn draw_hex_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height:
 }
 
 /// Draw shell command screen (full screen)
-pub(super) fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, app: &App) {
+pub(super) fn draw_shell_command(
+    frame: &mut Frame,
+    area: Rect,
+    state: &ShellCommandState,
+    app: &App,
+) {
     // Clear the entire screen
     frame.render_widget(Clear, area);
 

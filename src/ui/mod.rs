@@ -205,7 +205,10 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     // Second line: description in green (like original)
     let description = NavItem::ALL[app.nav_index].description();
-    let desc_line = Line::from(Span::styled(description, Style::default().fg(colors.green())));
+    let desc_line = Line::from(Span::styled(
+        description,
+        Style::default().fg(colors.green()),
+    ));
 
     let nav_text = vec![nav_line, desc_line];
     let nav_paragraph = Paragraph::new(nav_text);
@@ -596,9 +599,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                     GitStatus::Deleted => Style::default().fg(colors.red()),
                     GitStatus::Renamed => Style::default().fg(colors.cyan()),
                     GitStatus::Untracked => Style::default().fg(colors.magenta()),
-                    GitStatus::Conflict => {
-                        Style::default().fg(colors.red()).add_modifier(Modifier::BOLD)
-                    }
+                    GitStatus::Conflict => Style::default()
+                        .fg(colors.red())
+                        .add_modifier(Modifier::BOLD),
                     GitStatus::Ignored => Style::default().fg(colors.grey()),
                     GitStatus::None => style,
                 }
@@ -791,4 +794,3 @@ fn calculate_scroll_offset(selected: usize, current_offset: usize, visible_heigh
         current_offset
     }
 }
-

@@ -48,10 +48,7 @@ pub fn load_beads_ready(state: &mut BeadsState, cwd: &PathBuf) {
     state.error = None;
     state.selected_issue = 0;
 
-    let output = Command::new("bd")
-        .args(["ready"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(["ready"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -114,10 +111,7 @@ pub fn load_beads_blocked(state: &mut BeadsState, cwd: &PathBuf) {
 pub fn load_beads_stats(state: &mut BeadsState, cwd: &PathBuf) {
     state.error = None;
 
-    let output = Command::new("bd")
-        .args(["stats"])
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(["stats"]).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -203,7 +197,11 @@ pub fn execute_beads_close(issue_id: &str, cwd: &PathBuf) -> Result<String, Stri
 }
 
 /// Execute beads update status
-pub fn execute_beads_update_status(issue_id: &str, status: &str, cwd: &PathBuf) -> Result<String, String> {
+pub fn execute_beads_update_status(
+    issue_id: &str,
+    status: &str,
+    cwd: &PathBuf,
+) -> Result<String, String> {
     let output = Command::new("bd")
         .args(["update", issue_id, &format!("--status={}", status)])
         .current_dir(cwd)

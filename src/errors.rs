@@ -77,8 +77,7 @@ pub mod file {
 
 /// File attribute error messages
 pub mod attr {
-    pub const CANNOT_CHANGE_DIR_NORM_VOL: &str =
-        "You can't change DIR, NORM, or VOL attributes";
+    pub const CANNOT_CHANGE_DIR_NORM_VOL: &str = "You can't change DIR, NORM, or VOL attributes";
 }
 
 /// Path and directory error messages
