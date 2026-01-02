@@ -1,0 +1,40 @@
+[package]
+name = "rdos"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS: A retro DOS-style file manager TUI application written in Rust"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+# TUI framework
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Date/time handling
+chrono = "0.4"
+
+# File size formatting
+humansize = "2.1"
+
+# Serialization (for config)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Directory traversal
+walkdir = "2.5"
+
+# System info
+sysinfo = "0.32"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

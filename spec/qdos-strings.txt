@@ -1,0 +1,2815 @@
+GAZELLE 
+Non-System disk...
+Replace and strike any key when ready: 
+GAZELLE    (
+README  TXT 
+QDSTART EXE 
+QDCOLOR COM 
+QD2     EXE 
+QD2     HLP 
+QED     EXE 
+GAZELLE TXT 
+               
+               
+    Q - D O S   I I   V E R S I O N   2 . 0    
+               
+This version of Q-DOS II differs from previous versions in two ways:
+1)  EXTENDED DOS COMPATIBILITY
+==============================
+The  newest  versions  of  Compaq DOS (3.31 and 3.32) and IBM DOS (4.0) use new
+methods to access data  on  hard  disk  drives  which  have  a storage capacity
+greater than 32 Megabytes.   Q-DOS II  will now automatically detect whether or
+not one of these methods is being used, and then configure itself accordingly.
+2)  EXPANDED FILE AND DIRECTORY CAPACITY
+========================================
+The  number of files that Q-DOS II can display per directory has been increased
+from  700  to  800.  Also, the number of directories that Q-DOS II can maintain
+in its "Directory Map" has been increased from 200 to 550.
+NOTE:   In  addition  to  these  two  enhancements,  many  Q-DOS II  users have
+suggested  that  Q-DOS II  should be able to scan remote hard drives so that it
+can  be  used  on  Local Area Networks.   If you are interested in purchasing a
+copy of Q-DOS II Network Manager, contact Gazelle Systems today!
+                               GAZELLE  SYSTEMS
+                          42 North University Avenue
+                                  Suite #10
+                              Provo, Utah  84601
+                          toll free: (800) 233-0383
+                            in Utah: (801) 377-1288
+QED     EXE 
+QD2     HLP 
+QD2     EXE 
+QDCOLOR COM 
+QDSTART EXE 
+README  TXT 
+885180702
+Q-DOS II (C) Copyright 1988 -- All rights reserved!
+Gazelle systems
+42 No. University Ave.
+Suite 10
+1-800-233-0383  (1-801-377-1288 in Utah)
+VWRQSP.
+]X[YZ_^
+]X[YZ_^
+]X[YZ^_]
+B4C.+
+ZXP<ar
+ F1 key.
+DName     
+Extension
+Size     
+Date     
+Unsorted 
+Ascending 
+Descending
+To change the search attribute settings, press the space bar.
+To change the search specification, press the space bar.
+To change the sort method, press the space bar.
+To change the sort direction, press the space bar.
+To change the Q-DOS II log file setting, press the space bar.
+To change the first logged drive specification, press the space bar.
+To change the on-line editor path, press the space bar.
+To change the on-line help file path, press the space bar.
+For information about the search attributes, press the F1 key.
+For information about the search specification, press the F1 key.
+For information about the sort method, press the F1 key.
+For information about the sort direction, press the F1 key.
+For information about the Q-DOS II log file, press the F1 key.
+For information about the first logged drive, press the F1 key.
+For information about the on-line editor path, press the F1 key.
+For information about the on-line help file path, press the F1 key.
+QD2     .EXE
+QD2     .HLP
+QDCOLOR .COM
+QDSTART .EXE
+QED     .EXE
+README  .TXT
+GAZELLE .TXT
+Yes    
+No     
+Not Applicable
+:            
+Not Applicable
+                                        
+*** ERROR:  Invalid drive.
+                          
+                                        
+            
+*** ERROR:  Attempt to install Q-DOS II onto a floppy drive.
+The purpose of QDSTART is to install Q-DOS II and its support files
+onto a hard disk drive.  If you wish to make a back up copy of your
+original Q-DOS II diskette on another floppy diskette, we recommend
+that you use DOS to do it.  Since none of the Q-DOS II files are copy
+protected, you may use either DISKCOPY or COPY *.* to make a backup
+copy of all the files on your Q-DOS II diskette.
+*** ERROR:  Insufficient disk space.
+There is not enough disk space available on drive 
+: to install
+Q-DOS II and its support files.  You may either delete some files
+that you no longer need, or you may select a different destination
+drive.  After you have made sure that you have about 256K bytes
+of disk space available, run QDSTART again.
+*** ERROR:  Source path same as destination path.
+QDSTART will not allow the Q-DOS II files to be installed onto
+themselves.  This would corrupt the files and render them unusable.
+Please select either a different destination drive, or a directory
+which is different from the source directory.
+*** ERROR:  Unable to create destination path.
+QDSTART was not able to create the specified destination path.
+Either the root directory is full, or the path name is invalid.
+Please make sure that the destination path you selected is valid,
+and that the root directory is not full.  Then, you may execute
+QDSTART again.
+*** ERROR:  Unable to open source file 
+In order to successfully install Q-DOS II onto your system, all of
+the Q-DOS II files must be in the current directory of the current
+drive.  Please make sure that you change to the drive and directory
+where the Q-DOS II files are located before executing QDSTART.
+*** ERROR:  Unable to create destination file 
+QDSTART was unable to create the destination file.  Please make sure
+that the destination path is correct, and that there is enough disk
+space available for all of the Q-DOS II files.  Then, you may execute
+QDSTART again.
+*** ERROR:  Unable to execute QDCOLOR.COM
+Either QDCOLOR.COM is missing from the current directory, or has
+somehow become corrupted during the installation process.  Please
+check the files in your current directory and on your original
+Q-DOS II floppy diskette.  If the QDCOLOR file on the original
+diskette is not runnable, call Gazelle Systems' toll free customer
+support line at 1-800-233-0383 (in Utah call 1-801-377-1288).
+*** ERROR:  Unable to open file QD2.EXE
+QDSTART cannot read and display the current Q-DOS II configuration
+unless the QD2.EXE file is in the current directory.  Please change
+to the directory which contains the QD2.EXE file, and then execute
+QDSTART again.
+*** ERROR:  Unable to open file QD2.EXE
+QDSTART cannot update the configuration of the QD2.EXE file in the
+current directory.  Please check to see if the QD2.EXE file has been
+marked read-only.  If so, you will need to change the file attribute
+from read-only to normal, and then execute QDSTART again.
+                     S E A R C H   A T T R I B U T E S                     
+   The search attributes option allows you to specify the types of files   
+   that Q-DOS II will display.  The six file types used by DOS are normal  
+   files, directories, hidden files, system files, read-only files, and    
+   archive files.  You may select any combination of these six types.      
+                                                                           
+                        Press any key to continue...                       
+                        S O R T   D I R E C T I O N                        
+   The sort direction option allows you to specify whether Q-DOS II will   
+   display its sorted file listings in 'Ascending' or 'Descending' order.  
+   Please note that if the 'Unsorted' sort method is selected, the sort    
+   direction option is no longer applicable and will be disabled.          
+                                                                           
+                        Press any key to continue...                       
+                   O N - L I N E   E D I T O R   P A T H                   
+   The on-line editor path allows you to select the editor that will be    
+   invoked when the F9 key is pressed from the Q-DOS II main screen.       
+   QED is the default editor, but you may use any editor you wish as       
+   long as its complete DOS path is included in the path specification.    
+                                                                           
+                        Press any key to continue...                       
+                    F I R S T   L O G G E D   D R I V E                    
+   The first logged drive option allows you to specify the letter of the   
+   first drive on which Q-DOS II will create a log file.  For example, a   
+   specification of 'C:' would cause Q-DOS II to create log files on       
+   drives C:, D:, E:, etc., but not on the A: and B: floppy drives.        
+                                                                           
+                        Press any key to continue...                       
+                O N - L I N E   H E L P   F I L E   P A T H                
+   The on-line help file path option allows you to specify the directory   
+   where the Q-DOS II help file is located.  The default directory is      
+   'C:\QDOS', but if the Q-DOS II files are installed in or moved to       
+   a different directory, the help file path must be altered.              
+                                                                           
+                        Press any key to continue...                       
+                     Q - D O S   I I   L O G   F I L E                     
+   The Q-DOS II log file option allows you to specify whether or not       
+   Q-DOS II will create a log file in the root directory of each logged    
+   drive.  The QD2N.LOG files will allow Q-DOS II to operate much faster   
+   by eliminating the need to constantly rescan drives.                    
+                                                                           
+                        Press any key to continue...                       
+                           S O R T   M E T H O D                           
+   The sort method option allows you to select the method that Q-DOS II    
+   will use to sort its file listings.  Q-DOS II can be configured to      
+   sort by name, by extension, by size, or by date.  Also, an 'Unsorted'   
+   method is available which yields file listings in standard DOS order.   
+                                                                           
+                        Press any key to continue...                       
+                  S E A R C H   S P E C I F I C A T I O N                  
+   The search specification option allows you to specify which files       
+   Q-DOS II will display.  For example, the specification '*.*' causes     
+   Q-DOS II to display all files, but a '*.EXE' specification will cause   
+   Q-DOS II to only display files that have a .EXE extension.              
+                                                                           
+                        Press any key to continue...                       
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+                                                                             
+Use the left and right arrow keys to highlight the attribute setting
+you wish to change, and then press the space bar to toggle the setting
+on or off.  Press the ENTER key to save your changes, or press the
+ESC key to restore the original settings.
+Use the HOME, END, INS, DEL, backspace, and left and right arrow keys
+to edit the search specification.  Please be sure the specification is
+a valid DOS specification.  Press the enter key to save your changes,
+or press the ESC to restore the original specification.
+Press the space bar to select the sort method that Q-DOS II will use
+for its file display.  If the 'Unsorted' method is selected, the 'Sort
+Direction' option will be disabled.  Press the ENTER key to save your
+selection, or press the ESC key to restore the original sort method.
+Press the space bar to toggle the sort direction from 'Ascending' to
+'Descending' or from 'Descending' to 'Ascending'.  Press the ENTER
+key to save your selection, or press the ESC key to restore the
+original sort direction.
+Press the space bar to toggle the Q-DOS II log file option from 'Yes'
+to 'No' or from 'No' to 'Yes'.  Press the ENTER key to save your
+selection, or press the ESC key to restore the original Q-DOS II log
+file setting.
+Enter the letter of the first drive on which Q-DOS II will create a
+log file.  Please make sure that your entry is a valid DOS drive.
+Press the ENTER key to save your selection, or press the ESC key to
+restore the original drive specification.
+Use the HOME, END, INS, DEL, backspace, and left and right arrow keys
+to edit the on-line editor path.  Please make sure that the path is
+valid and that the name of the editor is complete.  Press the ENTER key
+to save your changes, or the ESC key to restore the original path.
+Use the HOME, END, INS, DEL, backspace, and left and right arrow keys
+to edit the on-line help file path.  Please make sure that the path
+is complete and is a valid DOS path.  Press the ENTER key to save
+your changes, or press the ESC key to restore the original path.
+  * * * *   I/O ERROR   * * * *  
+  Abort or Retry?                
+You are now ready to enjoy the benefits of an organized hard disk.
+In order to fully utilize Q-DOS II, we strongly recommend that you
+read the user's manual completely and carefully.  Then, experiment
+with the many powerful features that Q-DOS II has to offer.
+If you should have a question about Q-DOS II that cannot be answered
+by reading the user's manual or the on-line help screens, or if you
+would like information about any of Gazelle Systems' other products,
+please call our toll free customer support line at 1-800-233-0383
+(in Utah call 1-801-377-1288).
+Thank you for choosing the blazingly fast hard disk organizer!
+-- Gazelle Systems
+Press any key to return to DOS...
+QD2.EXE
+QD2.EXE
+The current Q-DOS II configuration has been saved.
+Press any key to continue...
+Q-DOS II Installation Subprogram
+* * * *  You may exit at any time by pressing the ESC key.  * * * *
+Q-DOS II may be installed onto any physical or logical hard disk
+drive.  Simply enter the letter of the destination drive.
+Source drive:  
+:           Destination drive:    
+*** ERROR: Invalid drive letter.  Please try again.
+                                                   
+:\QDOS
+* * * *  You may exit at any time by pressing the ESC key.  * * * *
+Below is the default path where a working copy of Q-DOS II and its
+support files will be created.  If you wish to modify the path, you
+may do so by using the HOME, END, INS, DEL, backspace, and arrow
+keys.  To accept the default path, or when you have finished
+editing the path, press the ENTER key.
+*** WARNING:  Destination directory already exists.
+Continue? (Y/N)
+Installing from drive 
+: to drive 
+     Source path: 
+Destination path: 
+Installing this file ===>
+                         
+(File installed)
+Q-DOS II file installation completed.
+* * * *  You may exit at any time by pressing the ESC key.  * * * *
+Q-DOS II may be set up to run in either black and white or color,
+the default color configuration being black and white.
+Would you like Q-DOS II to run in color? (Y/N)
+* * * *  You may exit at any time by pressing the ESC key.  * * * *
+The program QDCOLOR.COM will automatically be executed next, and
+it will allow you to select the colors that Q-DOS II will use for
+its display screens.  Should you later decide that you would like
+to change the colors, you may do so at any time by simply running
+the QDCOLOR program.
+When you press a key, a screen will be displayed which is almost
+identical to the main screen of Q-DOS II.  In the lower right
+corner of the screen you will see a color selection box, and the
+color selection keys will be flashing.  Pressing any one of the
+color selection keys will change the color of some part of the
+main screen such as the cursor bar color, background color, etc.
+After you have adjusted all of the colors to your taste, press
+the ENTER key to save your selections.
+QDCOLOR.COM
+Q-DOS II Configuration Subprogram
+NORM   DIR    HID    SYS    R/O    ARC
+Search Attributes ========>
+Search Specification =====>
+Sort Method ==============>
+Sort Direction ===========>
+Q-DOS II Log File ========>
+First Logged Drive =======>
+On-Line Editor Path ======>
+On-Line Help File Path ===>
+To save the current configuration and exit, press the ENTER key.
+To exit without saving the current configuration, press the ESC key.
+      Q-DOS II Startup Menu      
+QDSTART will allow you to install Q-DOS II onto your hard disk drive,
+and to configure Q-DOS II to perform best with your particular file
+management needs.  You may select either option at any time.
+ Install Q-DOS II
+Configure Q-DOS II
+   Exit to DOS
+To make your selection, press the up and down arrow keys to highlight
+the appropriate option, and then press the ENTER key.
+To exit to DOS, select the exit option, or press the ESC key.
+Press any key to continue...
+not enough memory
+that you
+read the user's manual completely and carefully.  Then, experiment
+with the many powerful features that Q-DOS II has to offer.
+If you should have a question about Q-DOS II that cannot be anry.  If you want a
+different destination directory or drive, you simply press "D." Q-DOS
+II then displays the Directory Map, which actually places you in Step
+1 of the COPY sequence.  From this point, copying proceeds exactly as
+described above.
+     COPYING DIRECTORIES
+     
+Q-DOS II allows you to copy all or selected directories from one disk
+to another.  You can use this command in conjunction with the F7 -
+SET SEARCH SPECS command to copy all files that need to be backed up
+885180702
+Q-DOS II (C) Copyright 1988 -- All rights reserved!
+Gazelle Systems
+42 No. University Ave.
+Suite 10
+Provo, Utah  84601
+1-800-233-0383  (1-801-377-1288 in Utah)
+Directory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Change current directory, make or remove directory, see directory tree          
+   PATH   >> C:\UTIL\Q-DOS_II                                                   
+ Count          Total Size    
+  File Name   
+    Size     
+   Date   
+  Time  
+         
+ Files   
+    241,482
+QD2     .EXE 
+      76,288 
+ 04-05-88 
+        
+         
+QD2     .HLP 
+      97,998 
+ 04-05-88 
+        
+ Directories            
+ QDCOLOR .COM         7,119   04-05-88          
+         
+ QDSTART .EXE 
+      37,376 
+ 04-05-88 
+        
+ Tagged  
+    174,286
+ QED     .EXE 
+      20,480 
+ 04-05-88 
+        
+         
+ M - Standard monochrome         DIRECTION:     
+ F1- Help       F2- Status    
+ C - Standard color                             
+ F3- Chg Drive  F4- Prev Dir  
+ 1 - Adjust cursor bar color                    
+ F5- Chg Dir    F6- DOS Cmd   
+ 2 - Adjust line color                          
+ F7- Srch Spec  F8- Sort      
+ 3 - Adjust command description color           
+ F9- Edit      F10- Quit      
+ 4 - Adjust heading color                       
+   SPACE BAR- Tag file        
+ 5 - Adjust commands/data color                 
+   ESC- Abort command         
+ 6 - Adjust background color                    
+  Q-DOS II  --  Version 2.0   
+ Press letter key to adjust.   Direction:  
+     (C) Copyright 1988       
+ Press F1 to read & display current colors.     
+GAZELLE SYSTEMS - Provo, Utah 
+ Press ENTER to save colors or ESC to quit.     
+00000000033333333333333333333333333333333333333333333333333333333333333333333333444444444444444444444444444444444444444444444444444444444444444444444444444444441111111111111111111111111111111111111111111111111111111111111111111111111111111133333333333330000000000000000000000000000000000000000000000000000000000000000000111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222221222222222222221222222222222212222222222122222222111111122222222211111111111112211111111111111111111111111111111111111111111111111133331222222222133333333333122133333333333333133333333333331333333333313333333311111112222222221111111111111221333333333333331333333333333313333333333133333333113333122222222222222222222222210000000000000000000000000000000000000000000000001111111222222222111111111111122133333333333333133333333333331333333333313333333311333312222222221333333333331221333333333333331333333333333313333333333133333333111111122222222211111111111112299999999999999999999999999999999999999999999999999111111111111111111111111111111999999999999999999999999999999999999999999999999993333333333333333333333333333339999999999999999999999999999999999999999999999999933333333333333333333333333333399999999999999999999999999999999999999999999999999333333333333333333333333333333999999999999999999999999999999999999999999999999993333333333333333333333333333339999999999999999999999999999999999999999999999999933333333333333333333333333333399999999999999999999999999999999999999999999999999333333333333333333333333333333999999999999999999999999999999999999999999999999993333333333333333333333333333339999999999999999999999999999999999999999999999999911111111111111111111111111111199999999999999999999999999999999999999999999999999222222222222222222222222222222999999999999999999999999999999999999999999999999992222222222222222222222222222229999999999999999999999999999999999999999999999999922222222222222222222222222222299999999999999999999999999999999999999999999999999QD2.EXE
+The Q-DOS II program, QD2.EXE is not in the current directory.
+Change to the directory containing the QD2.EXE program,
+and then execute the QDCOLOR program again.
+The QD2.EXE file in this directory is marked read-only.
+The colors cannot be modified.  Turn-off the read-only attribute,
+and then execute the QDCOLOR program again.
+Unable to read/write attributes from/to QD2.EXE file.
+885180702
+Q-DOS II (C) Copyright 1988 -- All rights reserved!
+Gazelle Systems
+42 No. University Ave.
+Suite 10
+Provo, Utah  84601
+1-800-233-0383  (1-801-377-1288 in Utah)
+X[YZ^_]
+Pj;60
+F$ <
+6Nj;D
+LA;66At
+LA;66At
+;66A}
+LA;66A|
+NLVLVL
+R_SfSmStS{S
+S_SfSmStS{S
+S_SfSmStS{S
+S_SfSmStS{S
+TgTOT|TuT
+8U^UiUiUiUiUiUiUiUJU
+Pj;60
+rGsWs
+$ < u0
+$ < u#
+yJy3y
+ZXP<ar
+Retag
+Highlighted
+Tagged
+Directory
+Highlighted
+Tagged
+Highlighted
+Tagged
+Highlighted
+Tagged
+Highlighted
+Tagged
+Dir listing
+Highlighted
+Tagged
+Display
+CONFIG
+CC:\QDOS\QED.EXE
+C:\QDOS\QD2.HLP
+Directory
+Erase
+Rename
+Space
+Attribute
+Print
+Clear All
+Invert
+Several
+Retag
+Highlighted
+Tagged
+Directory
+Highlighted
+Tagged
+Highlighted
+Tagged
+Highlighted
+Tagged
+Highlighted
+Tagged
+Dir listing
+Highlighted
+Tagged
+Display
+CONFIG
+CC:\QDOS\QED.EXE
+C:\QDOS\QD2.HLP
+$%&21
+,xyz{|}~
+Invalid drive.
+GAZELLE
+You must use either DOS version 2.xx or 3.xx to run Q-DOS
+No drives available.  Unable to run Q-DOS.
+There is not enough memory to run this program.
+No Files In Directory
+That command won't work when there are no files
+WRITE-PROTECT ERROR
+DRIVE IS NOT READY 
+GENERAL DISK ERROR 
+  --  PRESS ANY KEY  
+F3 - Change Disk Drive
+Enter letter of new disk drive: 
+F10 - Quit Q-DOS II
+Press F10 again to quit, or RETURN for options
+Press ESC to return to Q-DOS II
+F10 - Quit Q-DOS II
+Select current directory by pressing O for Original
+RETURN or C for Current:
+Press ESC to return to Q-DOS
+(O)riginal:
+(C)urrent:
+F7 - Set Search Specification
+Enter search specification:
+Search Attrib
+F8 - Sort Files
+Use the left and right arrow keys to change the sort
+direction, otherwise select the search spec below.
+Ascending
+Descending
+Enter sort spec:
+(N)ame, (E)xt, (S)ize, (D)ate, (U)nsorted 
+<DIRECTORY>
+Path (or file) not available
+   Size     
+   Date   
+  Time  
+No  YES n/c 
+Enter letter of disk drive: 
+Directory
+Make Directory
+Enter name of new directory: 
+There is already a directory or file by that name
+Insufficient disk space
+Too many directories -- press any key
+Remove Directory
+The root directory can not be removed.
+Remove Directory
+(Check for hidden files in the directory.)
+The directory is not empty.
+Q-DOS II Directory Map
+Path >>
+Copying from:
+Moving from:
+Print from:
+Attribute
+Tagged Files
+CHANGE ATTRIBUTES
+Change File Attributes
+CHG ATTRIB
+CHG ATTRIB
+Press RETURN to change attributes, ESC to stop
+You can't change DIR, NORM, or VOL attributes
+(M)ake directory  (S)can disk  (L)og on to disk  (R)emove directory
+Use arrow keys to move cursor, RETURN to select, or ESC to quit
+Scan Drive
+Scan Drive
+Log On
+PgUp - Previous page   PgDn - Next page   (G)eneral help   (I)ndex
+Press the letter to the left of the subject for HELP
+Q-DOS II HELP  --     Press ESC to Quit        Page:
+QDOS\QD2.HLP
+Q-DOS II Help
+Can't find QD2.HLP -- press letter of drive
+(Or, press ESC to quit)
+to search for this file: 
+Change attributes for: 
+Move cursor with arrows; press SPACE BAR to change
+Press RETURN when done, ESC to quit
+:\QDOS.LOG
+QDOS II Initialization
+Scanning directory map
+\(ROOT)
+Searching:
+Too many directories
+:\QDOS.LOG
+The destination is the same as the source.
+To: 
+Press RETURN to start, D for directory, ESC to quit
+Move Files
+Copy Files
+You must select a different directory.
+Cannot open sourcefile; copy terminated. Press any key to continue. 
+ exists on drive 
+ will not be copied  
+Destination file of same name is R/O
+Cannot copy any more files -- directory is full
+Disk 
+ IS FULL -- INSERT NEW DISK and (C)ontinue or (S)kip file
+ -- do you want to overwrite it?  (Y/N) 
+ files:
+Copy Files
+You can't copy directories
+Copy Files
+Copy 
+ Files
+Enter letter of drive to copy to: 
+(T)ag all subdirs  (U)ntag all subdirs  RETURN when finished or ESC to quit
+Press  'S' to scan or 'L' to logon another drive, or press ESC to quit
+Copying
+Overwrite existing files of the same name on drive 
+?  (Y/N)  
+Copying
+Erase
+Erase Files
+You can't erase directories -- use the
+(R)emove command on the directory map.
+Erase Files
+Erasing
+Erasing
+Press ALT-E to start erasing the file(s) listed, or ESC to stop 
+Type 'EXIT' to return to Q-DOS.
+Press ESC to return to Q-DOS without rescanning the   
+current directory, any other key to return and rescan.
+Error Executing
+Not enough memory
+Find Files
+You must change to a drive first
+Find File
+Pause when a match is found?  (Y/N) 
+Find File -- Search for:
+Finished with FIND -- press any key to continue
+No matching files found.
+Move Files
+You can't move directories
+Move Files
+Press ESC to quit
+Moving
+Rename
+Rename Files
+Renaming
+Renaming
+(Type the new name for the file, or press ESC to stop)
+Space On Disk  
+Enter drive letter, or press ESC
+Check space on drive: 
+Total space: 
+Total used: 
+Total available: 
+Press any key to continue
+Tag Several
+Disk has been changed -- press any key to go to main menu
+ is marked READ-ONLY -- cannot erase it
+Press any key to PAUSE display, or ESC to quit
+Press any key to START display, or ESC to quit
+Options: (C)ontinue, (J)ump to directory, (V)iew file, (ALT-E)rase, ESC to quit
+Press CTRL-R to recall the last find pattern
+Enter a file name, or a 'wildcard' specification
+using the global '*' and/or '?' characters
+Enter the file name to 
+Disk has been changed -- press any key to go to main menu
+ exists in destination directory -- cannot move it
+NORMDIR HID SYS R/O ARC 
+Press any key to continue
+Reading Directory
+Not enough space to read in entire directory
+NameExt SizeDateNone
+There are no tagged files in this directory
+ this file  ===>
+Press ESC to stop 
+ Files: Use arrow to highlight destination directory; then, press RETURN
+Use SPACE BAR to tag or untag highlighted directory. TAGGED SIZE: 
+Rename the file  
+Can't rename the file -- 
+it is marked 'read-only'
+only DOS 3.xx allows this
+there is another one of the same name
+ From: 
+File erased
+Error - unable to erase
+Change current directory, make or remove directory, see directory tree
+Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file
+View the contents of any file on the screen (in "ASCII" or "HEX")
+Copy one or several files to another disk or directory
+Move one or several files from this directory to another directory
+Search all directories on the disk to find specified file(s)
+Erase one or several files in this directory
+Rename one or several files in this directory
+Show the total, used, and free space on any disk
+Display/change file attributes
+Print files, the directory map, or the current directory listing
+Tag all files in this directory
+Clear all tags from all files in this directory
+"Flip" file tags (change all tagged to untagged, untagged to tagged)
+Tag all files matching the 'wildcard' specification you enter
+Retag the files, marked with a #, from the previous Copy or Rename command
+Copy the highlighted file to another disk or directory
+Copy all the tagged files
+Copy one or more directories to another disk
+Move the highlighted file to another directory
+Move all the tagged files
+Erase the highlighted file from the disk
+Erase all the tagged files
+Rename the highlighted file
+Rename all the tagged files
+Print the highlighted file
+Print the tagged files
+Print the complete directory map
+Print the file listing displayed on the main screen
+Change attributes of the highlighted file
+Change attributes of the tagged files
+Display file attributes
+0123456789ABCDEF
+View Files
+You cannot view a directory
+Viewing:
+Press ESC to exit
+(F)ilter:
+Commands:  PgUp  PgDn  Home  End  1..9 (9 is fastest)  
+  (H)ex  (N)ormal
+View Files
+Cannot open the highlighted file
+Print
+Print Files
+You can't print a directory
+Print Files
+Print
+Printing
+Press RETURN to start printing or ESC to stop
+ - Error reading file. RET to skip or ESC to abort
+Press RETURN to continue or ESC to Quit
+Printer Error
+Printer busy or out of paper
+Printer time out
+Printer I/O error
+Printer out of paper
+Press RETURN to continue or ESC to quit
+Print Directory Listing
+No entries in current directory listing
+Press RETURN or ESC to continue
+Directory listing of 
+<DIRECTORY>
+Print Directory Map
+No directory map to print
+Use the Directory command to scan a drive
+Press RETURN or ESC to continue
+Directory map of drive  
+:\QDOS.LOG
+Prev Cmd 
+File NameFile Ext Fname.ExtGo To DOSCOMSPECDirectory  Tag  View  Copy  Move  Find  Erase  Rename  Space  Attribute  Print  Change current directory, make or remove directory, see directory tree          
+   PATH   >>                                                                    
+ Count          Total Size    
+  File Name   
+    Size     
+   Date   
+  Time  
+        
+ Files  
+           
+              
+             
+          
+        
+        
+              
+             
+          
+        
+ Directories            
+              
+             
+          
+        
+        
+              
+             
+          
+        
+ Tagged 
+           
+              
+             
+          
+        
+        
+              
+             
+          
+        
+              
+             
+          
+        
+ F1- Help       F2- Status    
+              
+             
+          
+        
+ F3- Chg Drive  F4- Prev Dir  
+              
+             
+          
+        
+ F5- Chg Dir    F6- DOS Cmd   
+              
+             
+          
+        
+ F7- Srch Spec  F8- Sort      
+              
+             
+          
+        
+ F9- Edit      F10- Quit      
+              
+             
+          
+        
+   SPACE BAR- Tag file        
+              
+             
+          
+        
+   ESC- Abort Command         
+              
+             
+          
+        
+              
+             
+          
+        
+  Q-DOS II  --  Version 2.0   
+              
+             
+          
+        
+     (C) Copyright 1988       
+              
+             
+          
+        
+GAZELLE SYSTEMS - Provo, Utah 
+33333333333333333333333333333333333333333333333333333333333333333333333333333333444444444444444444444444444444444444444444444444444444444444444444444444444444441111111111111111111111111111111111111111111111111111111111111111111111111111111133333333333330000000000000000000000000000000000000000000000000000000000000000000111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222221222222222222221222222222222212222222222122222222111111122222222111111111111122211111111111111111111111111111111111111111111111111133331222222221333333333331222133333333333333133333333333331333333333313333333311111112222222211111111111112221333333333333331333333333333313333333333133333333113333122222222222222222222222213333333333333313333333333333133333333331333333331111111222222221111111111111222133333333333333133333333333331333333333313333333311333312222222213333333333312221333333333333331333333333333313333333333133333333111111122222222111111111111122213333333333333313333333333333133333333331333333331111111111111111111111111111112133333333333333133333333333331333333333313333333313333333333333333333333333333331333333333333331333333333333313333333333133333333133333333333333333333333333333313333333333333313333333333333133333333331333333331333333333333333333333333333333133333333333333133333333333331333333333313333333313333333333333333333333333333331333333333333331333333333333313333333333133333333133333333333333333333333333333313333333333333313333333333333133333333331333333331333333333333333333333333333333133333333333333133333333333331333333333313333333313333333333333333333333333333331333333333333331333333333333313333333333133333333111111111111111111111111111111213333333333333313333333333333133333333331333333331222222222222222222222222222222133333333333333133333333333331333333333313333333312222222222222222222222222222221333333333333331333333333333313333333333133333333122222222222222222222222222222211111111111111111111111111111111111111111111111111
+            
+           
+            
+                              
+             
+           
+            
+           
+                                                                              
+         Files Selected for Display        
+   Current Startup Drive   
+                                           
+                           
+                                                                              
+                        
+     Q-DOS II     
+                        
+             (C) Copyright 1988 by Gazelle Systems -- Provo, Utah             
+                                                                              
+       
+          
+       
+     Sort Sequence     
+        Drives Available        
+          
+       
+                       
+                                
+          
+       
+          
+ Caps Lock 
+ Num Lock 
+ Scroll Lock 
+           Ram Memory            
+           
+          
+             
+  Installed:     K  Free:     K  
+                              System Status Screen                                                  (press any key to return to main screen)                                                                                                    11111111111111111111111111111111111111111111111111111111111111111111111111111111122222222222211111111111111111111111111111111111111111111111111111112222222222211222222222222111120000000000000000000000000022211112200000000002111122222222222112222222222221111111111111111111111111111111111111111111111111111111222222222221122222222222222222222222222222222222222222222222222222222222222222222222222222211211111111111111111111111111111111111111111111111111111111111111111111111111112112122222222222222222222222222222222222222222221111222222222222222222222222222121121000000000000220000200002000020000200002000011112222222222000222222222222221211211111111111111111111111111111111111111111111111111111111111111111111111111112112222222222222222222222222222222222222222222222222222222222222222222222222222221122222222222222222222222222222222222222222222222222222222222222222222222222222211222222222222222222222222222222222222222222222222222222222222222222222222222222112222222222222222222222222222222222222222222222222222222222222222222222222222221122222221111111111111111111111111111111111111111111111111111111111111222222222211222222212222222222222222222222211112222222222222222222222222222222212222222222112222222122222200000000000222222111122200000000000000000000000000222122222222221122222221111111111111111111111111111111111111111111111111111111111111222222222211222111111111111111111111111111111111111111111111111111111111111111111111111222112221222222222221222222222212222222222222122222222222222222222222222222222212221122212222000222212220002222122222000222221220000000000000000000000000000022122211222111111111111111111111111111111111111111111111111111111111111111111111111222111111111111111111111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
+not enough memory
+111111
+            
+           
+            
+                    
+885180702
+Q-DOS II (C) Copyright 1988 -- All rights reserved!
+Gazelle Systems
+42 No. University Ave.
+Suite 10
+Provo, Utah  84601
+1-800-233-0383  (1-801-377-1288 in Utah)
+XXXX1
+XXXX1
+                Q-DOS II  --  Index to Online Help
+                
+    I - Introduction to Q-DOS II    F1 - Help
+    A - Attribute                   F2 - Status Screen
+    C - Copy                        F3 - Change Drive
+    D - Directory                   F4 - Previous Directory
+    E - Erase                       F5 - Change Directory
+    F - Find                        F6 - DOS Command
+    M - Move                        F7 - Set Search Specifications
+    P - Print                       F8 - Sort Files
+    R - Rename                      F9 - Edit
+    S - Space                      F10 - Quit
+    T - Tag                        
+    V - View
+    1 - APPENDIX A -- Valid File Names in DOS
+    2 - APPENDIX B -- Organizing a Hard Disk
+    3 - APPENDIX C -- Error Messages
+    4 - APPENDIX D -- New Features in Q-DOS II
+    5 - APPENDIX E -- Q-EDIT (The Standard Editor)
+           
+           
+     INTRODUCTION TO Q-DOS II     
+           
+Q-DOS II lets you easily manage DOS directories and files.  You can
+create directories with a few keystrokes and see them displayed on a
+"directory map." You can find "lost" files located anywhere on the
+disk and you can also edit files in any directory.
+Q-DOS II lets you mark files and move, copy, rename, print, or erase
+them without ever typing file names.  You can load and execute
+programs or any DOS commands.  You can hide files so no one but you
+can find them, or you can protect files against accidental erasure. 
+Q-DOS II does all of this, and more.
+If you are new to computers, Q-DOS II will help you understand your
+computer.  If you are an experienced PC user, Q-DOS II will let you
+perform certain DOS functions up to 10 times faster than DOS itself. 
+Q-DOS II is an invaluable tool for organizing your hard disk.
+     HOW TO SELECT A Q-DOS II COMMAND
+     
+As you enter Q-DOS II, you will see the Main Screen with the main
+commands listed on the top line.  One of them will be "highlighted,"
+making it appear more brightly lit than the others.
+As you move the Command Cursor (the highlighted bar that moves over
+the commands) with the left and right arrow keys, the line
+immediately below gives a brief summary of the highlighted command.
+You may select a command by highlighting it with the Command Cursor
+and pressing the RETURN key, or by pressing the first letter of the
+command.
+Several of the main Q-DOS II commands have options that appear on the
+top line when you select the command.  These options are selected in
+exactly the same way.
+     HOW TO HIGHLIGHT FILES AND DIRECTORIES
+     
+The body of the Main Screen lists files and directories, one of which
+will be highlighted.  This highlighting bar, called the "File
+Cursor," moves one line at a time when you press the Up and Down
+arrows.  PgUp and PgDn move the File Cursor one page at a time, while
+Home and End key move it to the top or bottom of the list.
+Holding down the ALT key, while at the same time pressing a letter
+key (A - Z) or a number key (0 - 9), will move the File Cursor to the
+next file whose name starts with the specified letter or number.
+The same is true when selecting directories to display from the Q-DOS
+II directory map -- it will cause the cursor to highlight a directory
+beginning with that letter or number.  If no directory starting with
+that letter or number exists, the cursor will not move.  (See the
+DIRECTORY section of this help file for more information.)
+In addition, when you are looking at the file listing, the '+' and
+`-' keys move the cursor to the next or previous directory,
+respectively.
+     HOW TO TAG FILES
+     
+Six Q-DOS II commands -- COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and
+MOVE -- can operate on several files at once.  You identify multiple
+files for the same operation by tagging them.  The "tag" is a
+triangle-shaped pointer that appears in the file list immediately to
+the left of the file name.  Directory entries cannot be tagged.
+You may tag or untag files by highlighting the file you wish to tag,
+and pressing the SPACE BAR; or, you may use the TAG command.  The TAG
+command lets you (a) tag all files in a directory at once, (b) remove
+all tags, (c) reverse tags, (d) tag files by name, using the DOS
+wildcard characters ("*" and "?" -- see APPENDIX A, or (e) RETAG
+previously tagged files to repeat commands.
+     THE Q-DOS II FUNCTION KEYS
+     
+On the left side of the main screen are special function keys.  They
+are: F1 - Help, F2 - Status Screen, F3 - Change Drive, F4 - Previous
+Directory, F5 - Change Directory, F6 - DOS Command Line, F7 - Set
+Search Specifications, F8 - Sort Files, F9 - Edit, and F10 - Quit. 
+This HELP file describes the operations of each key.
+You may find on occasion that a program you are running has taken
+over the F-keys for some other purpose.  If that happens, you may
+still execute the special Q-DOS II functions by holding down either
+the ALT, SHIFT, or CTRL key and then pressing the desired function
+     THE ESC KEY
+     
+The Escape (ESC) key returns you to the Main Screen.  When pressed in
+the middle of a command, it will cancel the command and restore you
+to a position where you can begin again.  This is particularly useful
+if you make a mistake.
+     FILE SIZE AND FILE COUNT BOXES
+     
+The upper-left part of the Main Screen shows 5 boxes.  They are (1)
+the File Count Box, which shows the number of files in the displayed
+directory; (2) the File Size Box, which shows the total size of those
+files; (3) the Directory Count Box, which shows the number of
+subdirectories in the displayed directory; (4) the Tagged File Box,
+which shows the number of tagged files in the directory, and (5) the
+Tagged Size Box, which shows the total size of the tagged files.
+           
+           
+           ATTRIBUTE              
+           
+Purpose:   The ATTRIBUTE command allows you to display and/or
+   change file attributes.
+To use:    To display the file attributes, select ATTRIBUTE
+    DISPLAY.  To change the attributes of a file,
+position the file cursor so that it highlights the file; to change
+the attributes of several files, tag all the files whose attributes
+you wish to modify.  Then, select the ATTRIBUTE command.
+There are six possible file attributes: NORM, DIR, HID, SYS, R/O, and
+ARC.  A file may have more than one attribute at a time; the
+following is a description of the file attributes:
+     NORM (Normal)
+     
+Means the file is not a Directory.  Program and data files are
+Normal.  Normal files may also have the SYS, HID, R/O, and ARC
+attributes.
+     DIR (Directory)
+     
+Means the file is a directory or subdirectory.  Q-DOS II will let you
+make directories Hidden, if you wish.
+     HID (Hidden)
+     
+Means the file is not normally shown in directory file listings.  Use
+care with this attribute.  Several software companies use it as part
+of copy-protection schemes.  If you unhide a Hidden file used in such
+a scheme, the program may detect it and "crash" permanently.
+     SYS (System)
+     
+Means the file is used to help boot your computer.  In some DOS
+versions, assigning this attribute to a file makes the file invisible
+to all DOS commands.
+     R/O (Read-Only)
+     
+Means the file cannot be erased or modified.  Read-Only files can be
+copied, however.  You can safely assign the Read-Only attribute to
+most program files (COM and EXE).  However, data files that are
+modified by programs should not be Read-Only.  This could prevent the
+programs from properly working with them and could cause the programs
+to crash.  If you make the file "QD2.EXE" Read-Only, you will not be
+able to modify the screen colors with QDCOLOR.COM, and you won't be 
+able to configure it with QDSTART.EXE.
+     ARC (Archive)
+     
+Means the file needs to be backed up.  DOS sets this attribute
+automatically each time a file is changed; the next backup by the DOS
+backup command (or by BACK-IT, also from Gazelle Systems), turns it
+off again.  Under certain situations described under the COPY
+command, Q-DOS II will also turn off the ARC attribute.  When you
+modify the ARC attribute, you either request a backup for that file
+or cancel it.
+     USING THE ATTRIBUTE COMMAND
+     
+Select this command in the usual fashion: i.e., highlight the
+ATTRIBUTE command at the top of the screen and press RETURN, or press
+the letter "A".  Then, select DISPLAY to show the attributes of all
+files, or select HIGHLIGHTED or TAGGED to change the attributes of
+either the highlighted or the tagged files.
+If you select DISPLAY, the Main Screen will then show the file
+attributes for all files in the directory.  The attributes appear in
+the boxes that formerly displayed size, date, and time.  Q-DOS II
+will continue to display attributes until you press ESC from the Main
+Screen or from within the ATTRIBUTE command.
+To actually change the attributes of files, use the cursor keys to
+highlight the file whose attributes you wish to change, or tag
+several files if you wish to change the attributes of more than one
+file.  Then, select either ATTRIBUTE HIGHLIGHTED or TAGGED.
+The possible attributes will appear in a row in the middle of the
+screen.  Use the right and left arrows to move the cursor from
+attribute to attribute across the row.  The SPACE BAR acts as a
+toggle switch, allowing you to set the mode for the attribute to ON
+(sets the attribute on), OFF (sets the attribute off), or N/C (the
+attribute will not be changed -- this option is available only when 
+modifying attributes of tagged files).
+[NOTE: Normally, you should not change the ARC attribute files, since
+backup programs sometimes use this setting to determine which files
+to backup.]
+Press RETURN when you have selected the proper combination of
+attributes; or, press ESC to cancel the ATTRIBUTE mode and return you
+to the Main Screen with size, date, and time once again displayed.
+Hidden files do not ordinarily appear in a directory's file list. 
+However, when you return to the Main Screen after setting a file's
+HID attribute, the file will still appear until you re-enter the
+directory through the DIRECTORY command or the F3 - CHANGE DISK
+command, or by resetting the F7 - SET SEARCH SPECIFICATION.
+Use caution when changing the attributes of files.
+           
+           
+              COPY                
+           
+Purpose:   The COPY command copies individual files from the
+   displayed directory to any other directory on any
+drive; or, it can copy one or more directories to another disk,
+replicating the complete directory structure of the source drive on
+the destination drive.
+To use:    To copy one file, position the file cursor so that it
+    highlights the file; to copy several files, tag all
+the files that you wish to COPY.  Then, select the COPY command.  If
+you wish to copy complete directories to another disk, select the
+COPY command.  Then, choose either HIGHLIGHTED, TAGGED, or DIRECTORY.
+If you want to do a DIRECTORY copy, skip the following section and go
+to COPYING DIRECTORIES below.
+     COPYING HIGHLIGHTED OR TAGGED FILE(S)
+     
+Q-DOS II asks you to indicate the destination drive.  Copying to the
+same drive, and copying to another drive, follow slightly different
+sequences of steps.
+      COPYING TO THE SAME DRIVE
+      
+Step 1.  Q-DOS II will immediately display the Directory Map of the
+drive.  You have three options: (a) you may press ESC to quit and
+return to the Main Screen; (b) you may press "S" to scan another
+disk; or (c) you may use the arrow keys to place the Directory Cursor
+over the destination directory and then press RETURN to continue the
+COPY process.
+Step 2.  If you press RETURN, you will see a list of the files to be
+copied, as well as the names of the source and the destination
+directories.  You again have three options at this point: (a) you may
+return to the Main Screen by pressing ESC; (b) you may return to the
+Directory Map by pressing "D" (and repeat Step 1); or (c) you may
+continue the COPY process by pressing RETURN.
+Step 3.  If you press RETURN to continue the COPY process, you are
+asked this question: "Overwrite existing files of the same name?
+(Y/N)" If you answer "Yes," copying proceeds without interruption,
+and any file of the same name will be overwritten.
+If you answer "No," Q-DOS II looks for a file of the same name in the
+destination directory before copying each file.  Then, if a
+same-named file is found, Q-DOS II pauses, indicates that a file of
+the same name has been found, and asks you if you want to overwrite
+it.  If you answer "Yes," copying proceeds.  If you answer "No," the
+file is not copied and copying proceeds with the next file.
+NOTE: Step 3 is an important and valuable check.  Since DOS allows
+you to use the same file name in different directories, you may not
+always know whether a file of the same name exists in the destination
+directory.  In such cases, you will want Q-DOS II to check for a
+same-named file before proceeding.  DOS, by itself, simply overwrites
+without warning.
+      COPYING TO A DIFFERENT DRIVE
+      
+When you copy to a different drive, Q-DOS II assumes that you will
+copy to the highlighted directory on the directory map for that
+drive.  It therefore skips the Directory Map and begins with step 2,
+which displays the list of files to be copied, along with the source
+drive and the presumed destination directory.  If you want a
+different destination directory or drive, you simply press "D." Q-DOS
+II then displays the Directory Map, which actually places you in Step
+1 of the COPY sequence.  From this point, copying proceeds exactly as
+described above.
+     COPYING DIRECTORIES
+     
+Q-DOS II allows you to copy all or selected directories from one disk
+to another.  You can use this command in conjunction with the F7 -
+SET SEARCH SPECS command to copy all files that need to be backed up. 
+(See BACKING UP FILES below.) After you select the DIRECTORY option,
+you must specify the drive to copy the files to.  You must specify a
+drive other than the source; otherwise, Q-DOS II will tell you the
+destination drive is invalid.
+At this point, Q-DOS II displays the directory structure of the
+source drive.  You must then tag the directories you wish to copy. 
+You can tag individual directories with the SPACE BAR, or you can tag
+or untag a given directory and all of its sub- directories at the
+same time by pressing "T" to tag or "U" to untag the directories. 
+(To quickly tag all the directories, move the cursor to the root
+directory and press "T".)
+As you tag or untag directories, Q-DOS II displays the total size of
+the selected files in the tagged directories.
+When you have selected the directories you wish to copy, press
+RETURN.  Q-DOS II will then ask if you wish to automatically
+overwrite files in the destination directories that have the same
+name as the files to be copied.  This step is exactly the same as
+"Step 3" in the section COPYING TO THE SAME DRIVE above.
+After you answer the overwrite question, Q-DOS II will copy the files
+from each of the tagged directories, automatically replicating the
+directory structure on the destination disk, if necessary.  You can
+press ESC at any time to stop the copy process.
+If you press ESC before Q-DOS II is finished, the directories that
+have not yet been completely copied will still be tagged, and Q-DOS
+II will display the contents of the directory that was being copied,
+with the uncopied files tagged.
+     COPYING OVER "READ-ONLY" FILES
+     
+If Q-DOS II encounters a "read-only" file in the destination
+directory with the same name as the source file being copied, Q-DOS
+II will point this out to you and allow you to overwrite the
+"read-only" file if you wish, or skip to the next file.
+     COPYING TAGGED FILES
+     
+When Q-DOS II copies a tagged file, it untags the file and updates
+the tagged count and size boxes when it is finished with the COPY
+command.  The files that were copied are tagged with a small '
+' tag. 
+The TAG RETAG command will retag all these files, if you wish.  Any
+tagged files that were not copied remain tagged so that you can make
+adjustments and re-execute the COPY command if you choose.
+     BACKING UP FILES
+     
+If you select the "ARC" flag in the F7 - SET SEARCH SPECS command,
+Q-DOS II will turn off the "ARC" attribute after it copies files.  In 
+fact, you can make Q-DOS II backup only the modified files by 
+selecting only files with the ARC attribute (i.e., turn off all other 
+attributes, including NORM, before selecting COPY DIRECTORY).
+     DISK FULL ERROR
+     
+When the destination disk becomes full, Q-DOS II stops copying files
+and tells you to insert a new disk.  The file Q-DOS II was trying to
+copy at the time the disk became full was not copied.  To continue
+copying that file onto the new disk, press the "C" key.  If the file
+is too large to fit on any disk (i.e., the file is larger than your
+floppy disk), press the "S" key to tell Q-DOS II to skip the file and
+restart copying with the next file.
+Q-DOS II will only copy files that can fit completely onto the
+destination disk.
+           
+           
+            DIRECTORY             
+           
+Purpose:   The DIRECTORY command displays the structure of your
+   disk directories in a tree diagram (called the
+Directory Map), and allows you to make or remove directories, or
+display the files in any directory.
+To use:    Select the DIRECTORY command.  Q-DOS II will display
+    the structure of the current drive.
+The Directory Map consists of directories sorted alphabetically and
+connected by lines showing their hierarchical (parent-child)
+relationships.  One of them is highlighted with the Directory Cursor.
+The LEFT ARROW key moves the Directory Cursor to the parent directory
+of the currently highlighted directory (i.e., one column to the
+left), while the RIGHT, UP, and DOWN ARROWS, and the PgUp and PgDn
+keys, move the cursor in the indicated direction.  The BACKSPACE key
+backs the cursor up the directory map (it is the opposite of the
+RIGHT ARROW).  The HOME key moves the Directory Cursor directly to
+the "root" directory, while the END key moves it to the bottom-most
+directory.  Maps that are larger than a single screen will scroll up,
+down, left, or right as necessary.
+Holding down the ALT Key and pressing a letter (A - Z) will cause the
+cursor to jump to a directory beginning with the letter you pressed. 
+Repeating this ALT-Letter combination will find the next directory
+beginning with that letter, and so on.  If a letter key is pressed
+and there is no directory which begins with that letter, no cursor
+movement will occur.
+At the bottom of the screen are the directory commands.  You may
+(M)ake a new directory with the highlighted directory as its parent;
+(R)emove the highlighted directory, provided it is empty; (S)can
+another disk for its Directory Map; or (L)og onto another disk,
+without scanning it (if a log file exists).  Also, you may display
+the contents of the highlighted directory by pressing RETURN or the
+F5 function key.  Pressing ESC returns you to the Main Screen.
+Normally, Q-DOS II maintains a log file (QD2.LOG) in the root
+directory of each disk; this log file contains the directory map
+information for that disk, allowing Q-DOS II to instantly display the
+map of that disk.  Each time you MAKE or REMOVE directories, or
+select the SCAN command, Q-DOS II will update this log.  However, you
+may use the QDSTART program to disable this automatic logging, if you
+wish.
+Once you view a Directory Map that has subdirectories, Q-DOS II
+remembers it.  The DIRECTORY command will continue to show you that
+map until you ask Q-DOS II to scan another directory.
+     MAKE DIRECTORY
+     
+The MAKE Directory command lets you create directories on your disk. 
+Each new directory must be attached to a "parent" directory.  Any
+directory can be a parent.  When described in relationship to its
+parent, the new directory is called a "subdirectory." Each disk has a
+single "root directory" at the top of its hierarchy, a sort of
+"great-granddaddy" of them all.
+To make a new directory, highlight the directory you have chosen as
+parent, then press "M" and an input box will appear.  Enter a valid
+DOS file name (see APPENDIX A) and press RETURN.  DOS will create the
+new directory, and Q-DOS II will display the updated directory map.
+The new directory will appear in the column directly to the right of
+its parent, connected to the parent with a line showing the
+directory-subdirectory relationship.  If you make a mistake, you can
+immediately remove the directory by first highlighting it with the
+cursor bar and then selecting the REMOVE command.
+If DOS does not accept the new directory, it is because: (1) the name
+is already being used within the parent directory for either another
+subdirectory OR another file; (2) the disk is full, which you may
+verify from the Main Screen with the SPACE command; or (3) the name
+may contain invalid characters, which you may verify by referring to
+APPENDIX A.
+      REMOVE
+      
+The REMOVE command deletes directories from the disk.  Use the arrow
+keys to place the Directory Cursor on the directory to be removed and
+then press "R." DOS will remove the directory from the disk, and
+Q-DOS II will display the updated Directory Map.
+The root directory (the first one on the directory map), and any
+directory that contains files or subdirectories can not be removed. 
+Before removing a directory that contains files, you must first erase
+the files from that directory, and then you may remove it.
+If Q-DOS II refuses to remove a directory that (a) appears to be
+empty and (b) is not the root directory, it either has a subdirectory
+of its own or it might contain a hidden file.  To erase a hidden
+file, you must first display it.  Use the F7 - SET SEARCH
+SPECIFICATION command to turn on the "Hidden" attribute as a search
+specification so that hidden files may be seen.  Then, use the ERASE
+command to erase the files (review the F7 - SET SEARCH SPECIFICATION
+and ERASE commands for more information).
+      SCAN
+      
+The SCAN command tells Q-DOS II to scan the designated disk and then
+display its Directory Map.  Press "S" to make an input box appear. 
+Then, enter the letter of the drive that you wish to scan.  Q-DOS II
+will then quickly read and display that disk's Directory Map.
+If you make or remove directories from outside of Q-DOS II, use the
+SCAN command to make Q-DOS II update the log file; then, the next
+time you wish to log onto this disk, you can simply use the LOG
+command.  Directories that are hidden will not be displayed unless you 
+select the HID attribute with the F7 -- SET SEARCH SPECIFICATIONS 
+command.
+         (Press PgDn for next screen)
+      LOG
+      
+The LOG command tells Q-DOS II to read the log file from the
+designated disk and then display its Directory Map.  If no log file
+exists, or you have disabled disk logging with QDSTART.EXE, it will
+automatically SCAN the disk and create the log file.
+Use the LOG command to instantly view the Directory Map of your
+disks; since it simply reads the log file from that disk's root
+directory, it only takes a fraction of a second.
+      SELECT
+      
+The SELECT command tells Q-DOS II to display the files and
+subdirectories of a selected directory.  It is activated by placing
+the Directory Cursor over the directory to be displayed and then
+pressing RETURN or the F5 function key.  Q-DOS II will then display
+the files and subdirectories of that directory.  If you have used the
+F7 - SET SEARCH SPECIFICATIONS command to restrict the attributes of
+the files to be displayed, you will see only those files that match
+your criteria.
+Each time you SELECT a new directory, Q-DOS II remembers the contents
+of the directory you were just looking at.  You can return to that
+directory using the F4 - PREVIOUS DIRECTORY command.
+You may also view other directories by using the File Listing Screen. 
+If the SEARCH SPECIFICATIONS (see F7) are set to display directory
+entries, you may view the contents of a sub-directory by highlighting
+that directory entry and pressing the F5 function key (see F5).
+[NOTE: When you are looking at the files in a subdirectory, you may
+change to that directory's parent by pressing the "." (period) key;
+this is analogous to the DOS command "CD ..", which tells DOS to go
+to the parent directory.
+           
+           
+              ERASE               
+           
+Purpose:   The ERASE command deletes files from the displayed
+   directory. 
+To use:    Highlight a file, or tag one or more files, that you
+    wish to ERASE.  Then select the ERASE command.  If
+there are tagged files, Q-DOS II will present two options at the top
+of the screen: HIGHLIGHTED or TAGGED.  Choose the appropriate option. 
+If there are no tagged files, Q-DOS II defaults to HIGHLIGHTED and
+goes directly to the next screen.
+Q-DOS II then lists the files to be erased.  To continue, press ALT-E
+(this helps protect you from accidentally erasing valuable
+information).  Then, Q-DOS II deletes file names from the list as
+they are erased from the disk.  If you press ESC before the ERASE
+process is complete, Q-DOS II will finish erasing the file it is
+working on before returning to the Main Screen.
+If Q-DOS II encounters a Read-Only file during the ERASE sequence, it
+will tell you that the file cannot be erased and will skip that file;
+then, it will continue the ERASE sequence through any files remaining
+in the list.  (See the ATTRIBUTE command for information on changing
+file attributes.)
+When the ERASE process is complete, Q-DOS II will display the updated
+directory file list (without the erased files), and the file size and
+count boxes will be properly adjusted.
+           
+           
+              FIND                
+           
+Purpose:   The FIND command searches every directory on the
+   current disk and finds files based on (1) the file
+name and (2) the file attributes.
+To use:    [NOTE:  The FIND command searches the disk you are
+    currently working with.  To find files on a different
+disk, use the F3 - CHANGE DISK command first.]
+Before you begin, you must decide what file(s) to search for (and,
+optionally, you can decide the file attributes that will guide the
+search).  The file name may be any valid DOS name and may include
+wildcard characters.  If you do not include an extension, Q-DOS II
+will assume you wish to use ".*" as the extension, which means any
+extension is valid.
+The wildcard characters let you FIND groups of related files.  The
+"*" in a file name means that any letter or group of letters may take
+its place, and the "?" means that any single letter may take its
+place.
+[NOTE: If you wish to search for files with specific attributes, you
+must define those file attributes with the F7 - SET SEARCH
+SPECIFICATION command before using the FIND command.  These
+attributes include NORM, DIR, SYS, HID, R/O, and ARC.  For example,
+HID is an attribute that causes a file to be hidden from view.  To
+FIND all hidden files, you should set the HID attribute to "YES," and
+all other attributes to "NO." That way, only Hidden Files that also
+match the name specification would be displayed.  For additional
+information, see the ATTRIBUTE and F7 - SET SEARCH SPECIFICATIONS
+sections.]
+Select the FIND command from the Main Screen.  Q-DOS II immediately
+displays an input box and asks you to enter the file name.  Simply
+type in the information you would like and press RETURN.  If you
+would like to repeat the last filename you entered using the FIND
+command, simply press CTRL-R (hold the CONTROL key down while
+pressing the letter "R").  This will insert the previous find command
+into the input box and allow you to edit it as you wish.
+After entering the desired file specification and pressing RETURN,
+Q-DOS II then asks you this question: "Pause when match is found?
+(Y/N)".
+                (Press PgDn for next page)
+      PAUSE WHEN MATCH IS FOUND
+      
+If you ask Q-DOS II to pause, it stops searching when it finds a file
+with matching name and attributes.  You then have four options: (1)
+(C)ontinue searching; (2) (V)iew the matched file; (3) (J)ump to the
+directory where the file resides; or (4) (ALT-E) to erase the found
+file.
+Pressing "C" causes Q-DOS II to continue searching.  Pressing "V"
+lets you view the contents of the just-found file (see the VIEW
+command).  After viewing the file, you again have the same options. 
+Pressing "J" causes Q-DOS II to display the found file's directory,
+with the found file highlighted.  Holding the "ALT" key while
+pressing the "E" key will cause the found file to be erased.  The
+screen will indicate that the file was erased and the search will
+continue.
+The FIND command gives you power far beyond DOS.  For example,
+suppose you want to run the program CHKDSK.COM, but don't know where
+it is.  Select the FIND command and enter "CHKDSK.COM" (or, you can
+simply enter "CHK*") as the file name.  Tell Q-DOS II to pause when
+it finds a match.  If CHKDSK.COM is anywhere on your disk, Q-DOS II
+will find it almost instantly, at which point you press "J".  Q-DOS
+II then displays the directory and highlights the program; it can now
+be executed.  (See F6 - DOS COMMAND.)
+     NO PAUSE WHEN A MATCH IS FOUND
+     
+If you tell Q-DOS II to not pause at each match, it will display the
+names of all matching files, scrolling them quickly on the screen. 
+Pressing any key will suspend the search until another key is
+pressed, allowing you to examine the files that were found.
+At any point in the FIND process, pressing ESC returns you to the
+Main Screen.
+           
+           
+              MOVE                
+           
+Purpose:   The MOVE command lets you move files from one
+   directory to another on the same disk.  (Moving files
+between disks is done with the COPY command.)
+To use:    Highlight or tag one or more files that you wish to
+    MOVE.  Then press "M."  If there are tagged files, 
+Q-DOS II will present two options at the top of the screen:
+HIGHLIGHTED or TAGGED.  Choose the appropriate option.  If there are
+no tagged files, Q-DOS II defaults to HIGHLIGHTED and goes directly
+to the next screen.
+Q-DOS II then displays the Directory Map of the current disk.  Use
+the arrow keys to place the Directory Cursor on the destination
+directory; then, press RETURN.
+Q-DOS II then lists the files to be moved, shows the source and
+destination directories, and gives you three options: (1) you may
+return to the Main Screen by pressing ESC; (2) you may return to the
+Directory Map by pressing "D"; or (3) you may proceed with the MOVE
+command by pressing RETURN.  If you press RETURN, you will see Q-DOS
+II remove files from the to-be-moved list and move them to their new
+location.  You can interrupt MOVE at any time by pressing ESC.
+MOVE is often preferable to COPY for these reasons: (1) there is no
+copying, and MOVE can easily rearrange the files on a disk even when
+it is full; (2) The command is very fast -- moving a 100,000-byte
+file is no slower than moving a 15-byte file.
+If Q-DOS II fails to complete a MOVE, it is generally because the
+directory already contains a file of the same name, in which case
+Q-DOS II will give you a warning message, skip the file, and continue
+with the MOVE.  Skipped files remain tagged in the Main Screen
+directory listing.
+           
+           
+             PRINT                
+           
+Purpose:   The PRINT function allows you to print the Directory
+   Map, file listing information and file contents.
+To use:    Upon selecting the PRINT command, you are given 4 
+    options.  Selecting HIGHLIGHTED or TAGGED will print the
+contents of the selected files.  Selecting FILE LISTING will cause
+Q-DOS II to print the sorted directory listing screen as displayed. 
+DIR MAP will produce a printed hard copy of the Q-DOS directory map.
+           
+           
+             RENAME               
+           
+Purpose:   The RENAME command lets you assign new names to files
+   in the displayed directory.
+To use:    Highlight a file, or tag one or more files, that you
+    wish to RENAME.  Then select the RENAME command.  If
+there are one or more tagged files, Q-DOS II will present two options
+at the top of the screen: HIGHLIGHTED or TAGGED.  Choose the
+appropriate option.  If there are no tagged files, Q-DOS II defaults
+to HIGHLIGHTED and goes directly to the next screen.
+At this point, Q-DOS II displays (1) the current name of the first
+file to be renamed, and (2) an input box for the new name.  Type the
+new name and press RETURN.  If you are renaming several tagged files,
+Q-DOS II lists them all and allows you to rename them one at a time.
+The new name can be any valid DOS file name as described in Appendix
+A.  The new name may include the DOS wildcard characters, "*" and
+"?".  For example, if you wish to change TEST.COM to LAST.COM, you
+could enter "LAST.*" for the new name.
+Another feature to make renaming a file easier is using CTRL-R. 
+Holding down the "CTRL" key while pressing "R" will display the
+selected file's name in the edit box and allow you to use the
+standard editing keys to modify it (i.e., left- and right-arrow,
+Home, End, Insert, Backspace and Delete).
+When you rename files, Q-DOS II will not re-sort the files unless you
+tell it to do so using the F8 - SORT FILES command.  Any files that
+were tagged before you renamed them will no longer be tagged.
+You may exit the RENAME command at any time by pressing ESC.
+           
+           
+             SPACE                
+           
+Purpose:   The SPACE command displays: (1) total size of the disk
+   in bytes; (2) number of bytes currently used, and (3)
+total unused disk space in bytes.
+To use:    Select the SPACE command.  Q-DOS II immediately
+    presents an input screen and asks for a drive letter. 
+Enter the letter (without pressing RETURN), confirming first that
+there is a disk in the drive.  Q-DOS II automatically looks at the
+disk in the selected drive and gives you its status.
+If you enter the letter of a non-existent drive, Q-DOS II will give
+you a brief error message.  You may confirm which drives are valid by
+selecting the STATUS command (F2) from the Main Screen.
+To return to the Main Screen, press any key.
+           
+           
+              TAG                 
+           
+Purpose:   A "tag" is a triangular pointer that appears on the Main
+   Screen directory list immediately to the left of the file
+name.  The TAG command allows you to tag or untag a group of files
+with a single command.  You can then apply the COPY, ERASE, MOVE,
+ATTRIBUTE, PRINT, or RENAME commands to all the tagged files at once.
+To use:    You can tag single files at any time by highlighting
+    them and tapping the SPACE BAR, without having to
+select the TAG command.  A tag marker will appear to the left of the
+file name, and the File Cursor will be "bumped" down to the next file
+in the list.  If the file is already tagged, it will become untagged.
+If you attempt to tag a directory entry using the SPACE BAR, Q-DOS II
+will beep, indicating that it cannot be tagged, and the File Cursor
+will move down one line.  Directories can, however, be tagged using
+the COPY DIRECTORY option.  When copying directories, tagging is
+performed from the directory map.  (See the COPY command.)
+If you wish to tag two or more files at a time, you must activate the
+TAG command.  The TAG command offers five options: (1) ALL; (2) CLEAR
+ALL; (3) INVERT; (4) SEVERAL; and (5)RETAG.  Select the desired
+option by moving the command cursor or by pressing the first letter
+of the command.
+The following is a description of each of these options:
+      ALL
+      
+The ALL command tags all of the files in the directory.
+      CLEAR ALL
+      
+The CLEAR ALL command removes tag and retag markers from all of the
+files in the directory.
+      INVERT
+      
+The INVERT command reverses the tags in the directory.  Untagged
+files become tagged, and tagged files become untagged.  This option
+is particularly useful when you want to tag all but a few of a long
+list of files.  Simply tag those few that you do not want tagged,
+then activate the INVERT command.
+      SEVERAL 
+      
+The SEVERAL command lets you specify files to be tagged by name. 
+When you execute the SEVERAL command, DOS prompts you for a valid DOS
+file name, which may include the DOS wildcard characters, "*" and
+"?." The "*" means that any letter or group of letters may occupy its
+position.  The "?" means that any single letter may occupy its
+position.
+Entering the name "*.COM," for example, tags all files whose name
+includes the extension "COM".  The name "D?T*.*" tags all files whose
+names include "D" and "T" as the first and third letters, such as
+"DATAFILE.DAT" and "DDT.EXE.  The wildcard characters make this
+command most useful for tagging groups of related files, although you
+may also use it to tag an individual file by name.  (See APPENDIX A
+in this help file for more details on DOS file names and the wildcard
+characters.)
+      RETAG 
+      
+You will notice that after a command has successfully been performed
+on a tagged file, a small "
+" dot appears to the left of the filename
+(where the triangular tag was).  This mark only indicates which files
+were tagged.  If you would like to perform another function on that
+same group of selected files, simply select the RETAG command and
+the normal "Tag" markers will appear.  If you would like to clear the
+display of the dot, select the CLEAR command and the dots will
+disappear.
+           
+           
+             VIEW                 
+           
+Purpose:   The VIEW command displays the contents of a high-
+   lighted file in a NORMAL (or ASCII) mode, similar to
+the TYPE command in DOS, or in a programmer-style HEX DUMP.
+To use:    Place the File Cursor on the selected file using the
+    arrow keys and select the VIEW command.  The file is 
+displayed in the last-used display mode, or in NORMAL mode if using
+VIEW for the first time.  Every character in the file is shown (if
+the Filter if OFF).
+The highlighted arrow on the bottom of the screen shows you the
+current scrolling direction.  You select continuous scrolling by
+pressing any number key from 1 through 9; "1" is the slowest, and "9"
+is the fastest speed.  Pressing any other key stops the scrolling. 
+Adjusting the scrolling speed is as simple as pressing a different
+number key.
+The UP and DOWN ARROW keys scroll one line at a time, and PgUp and
+PgDn scroll a screen at a time.  Pressing the HOME key jumps to the
+start of the file, and the END key jumps to the end.  All of these
+keys will change the default scrolling direction indicated by the
+arrow on the bottom of the screen.  You may return to the Main Screen
+at any time by pressing the ESC key.
+When scrolling backwards in the NORMAL mode, Q-DOS II can't properly
+format large paragraphs until it finds their beginning.  Once it
+finds the beginning, it reformats the entire paragraph.
+You can switch between the HEX and NORMAL (or ASCII) display modes by
+pressing "H" for HEX or "N" for NORMAL.  (You may also use "A" for
+ASCII to select the NORMAL mode.) When switching display modes, Q-DOS
+II preserves your position in the file.
+The VIEW command includes a filter that replaces any non-ASCII
+characters with SPACE characters.  The filter is accessible from both
+the HEX and NORMAL display modes and is toggled with the letter "F"
+key while viewing a file.  Pressing "F" once will cause all
+non-printable IBM characters to be dropped out of the display. 
+Pressing "F" again will activate a special filter used to view
+WordStar(tm) text files (note the W/S in the filter box in the
+upper-right hand corner).  The last-used filter setting is remembered
+each time you select the view command.
+      NORMAL
+      
+The NORMAL display mode is equivalent to the TYPE command in DOS,
+except that (1) all of the characters in the file are displayed, and
+(2) an embedded "CTRL-G" will not cause the computer to beep.
+      HEX DUMP
+      
+The HEX DUMP display mode presents the file in three parts.  The
+left-most part gives a hexadecimal offset into the file; the middle
+section displays the characters in hexadecimal (base 16) notation. 
+The right-hand section displays the same characters in ASCII
+notation.  To understand the difference, use the VIEW command to
+compare the way .COM or .EXE files are represented in the two modes.
+           
+           
+          F1  --  HELP            
+           
+Purpose:   This command causes Q-DOS II to display part of the
+   help file.
+To use:    Press the F1 key.  Q-DOS II will then display help
+    for the command you were using.  Use PgUp and PgDn to 
+see the complete help information.  Press the "I" key to go to the
+main help index, or press the "G" key to get general information on
+getting started with Q-DOS II.
+When you have finished with HELP, press the ESC to return to the
+point you left when you pressed the F1 key.
+           
+           
+      F2  --  STATUS SCREEN       
+           
+Purpose:   This command causes Q-DOS II to display several items
+   of information that you can not normally see.
+To use:    The status screen displays seven items of information:
+    (1) date and time; (2) files selected for display; 
+(3) startup drive; (4) sort sequence; (5) drives available; (6)
+special key status; and (7) memory status.
+     DATE AND TIME
+     
+The date and time are entered when you turn your computer on, and may
+be changed using normal DOS commands.
+     FILES SELECTED FOR DISPLAY 
+     
+"Files Selected For Display" describes the files Q-DOS II will find
+each time it reads a disk or directory.  It has two parts.  The
+left-most field shows the file name definition; the right-most fields
+show the file attributes definition.  The file name is defined
+initially as "*.*," which causes Q-DOS II to display all files
+without regard to file name or extension.
+The file attribute definition is represented as a row of six
+highlighted bars.  The names of selected attributes appear within
+their corresponding bars.  Bars representing unselected attributes
+are blank.
+When Q-DOS II reads disk directories, it will ignore files whose
+names and attributes do not match the current search specifi- cations
+as they appear on the STATUS screen.  You may change the
+specifications using the F7 - SET SEARCH SPECIFICATION command.
+     STARTUP DRIVE
+     
+The "Startup Drive" is the default drive that was in use when Q-DOS
+II was started.
+     SORT SEQUENCE
+     
+The "Sort Sequence" shows the order in which file names will be
+sorted when Q-DOS II reads a disk or directory.  There are four
+choices: (1) by NAME, (2) by EXTension, (3) by SIZE, (4) by DATE or,
+(5) Unsorted.  You select the sort sequence using the F8 - SORT FILES
+command.
+     DRIVES AVAILABLE
+     
+"Drives Available" shows your disk drives currently available to DOS
+(ranging from A through Z).
+     SPECIAL KEY STATUS
+     
+The boxes on the bottom left show the status of three keys: (1) CAPS
+LOCK, (2) NUM LOCK, and (3) SCROLL LOCK.  The keys are described as
+either OFF or ON, and you can see the status change as you press the
+keys.
+     MEMORY STATUS
+     
+"Memory Status" shows (1) the amount of memory installed in your
+computer, and (2) the amount remaining for other programs that you
+might execute from within Q-DOS II.  [NOTE: If your computer has more
+than 640K of internal RAM installed, the numbers in this box will not
+be accurate.]
+           
+           
+      F3  --  CHANGE DRIVE        
+           
+Purpose:   The CHANGE DRIVE command causes Q-DOS II to read the
+   current directory of the disk you specify.
+To use:    Press the F3 - CHANGE DRIVE key.  Then, enter the
+    letter of the drive you wish to change to.  The CHANGE
+DRIVE command "logs on" the new disk, displaying its current 
+directory, when you switch disks in a drive; however, it does not
+make Q-DOS II change to that disk's directory map.
+Each time you change to a new drive, Q-DOS II remembers the contents
+of the last directory you were using.  You can switch back to it with
+the F4 - PREVIOUS DIRECTORY command.
+           
+           
+    F4  --  PREVIOUS DIRECTORY    
+           
+Purpose:   The PREVIOUS DIRECTORY command allows you to switch
+   instantly between two directories  --  Q-DOS II always
+remembers the contents of two directories.
+To use:    To use this command, select the first directory you
+    wish to look at with the F3 - CHANGE DRIVE command or
+with the DIRECTORY SELECT command.  Then, select the second directory
+by the same method.  This process makes both directories available to
+you, and you can instantly switch between them by pressing F4.  With
+this command you could, for instance, very easily compare two floppy
+disks.
+Each directory window has its own file cursor, and each will remember
+all the tags on the files.  Every time you select a new directory,
+Q-DOS II "pushes" the information from the directory you were just
+looking at into the background, without deleting the file
+information.  This command lets you instantly recall it.
+           
+           
+     F5  --  CHANGE DIRECTORY     
+           
+Purpose:   The CHANGE DIRECTORY command gives you a quick way to
+   to view the contents of a subdirectory without using 
+the DIRECTORY command.
+To use:    If a directory has a subdirectory, the file listing 
+    screen will display that entry as a <DIRECTORY> in the size
+column.  To quickly examine the files in this directory, simply
+highlight the directory entry and press F5.  This will produce the
+same results as if you had used the DIRECTORY command to select the
+directory.  To help you quickly locate the sub-directory entries in
+the file listing you may press the "+" (plus) or "-" (minus) keys,
+which will cause the highlight bar to jump to each subdirectory entry
+in that directory.
+Also, you can press the "." (period) key while viewing any
+directory (other than the Root directory); this will cause Q-DOS
+II to instantly display the parent directory.
+           
+           
+       F6  --  DOS COMMAND        
+           
+Purpose:   This command allows you to access the DOS prompt line
+   so that you may enter any DOS command. This allows you
+to execute any DOS command or application.
+To use:    If you need to access the DOS command line, simply 
+    press the F6 function key. This will display a DOS 
+prompt (if using drive C, the prompt will be "C>") in the place where
+Q-DOS II normally lists the path of the current directory.
+Upon selecting the F6 command, the command line appears near the top
+of the screen and a cursor is displayed allowing you to enter the
+desired commands.  The lower left-hand side of the screen displays
+the special function keys that work with this command.  At this
+point, you may enter any command you wish (i.e.  execute a program,
+perform a CHKDSK or DIR on a disk...etc.).
+The function keys are redefined to make entering these commands
+easier.  F2 will type the highlighted file name (not including the
+extension).  F4 will type only the extension of the highlighted
+filename.  F6 will type the filename complete with its extension. 
+This allows you to run programs files and combine them with selected
+data files.
+Pressing F8 will immediately put you into DOS; if you use this
+function key, you must type "EXIT" to return to Q-DOS II.  [NOTE: The
+command actually runs another copy of COMMAND.COM on top of Q-DOS II.  
+Q-DOS II is still in memory, taking up part of RAM.  If you need all 
+or part of this RAM, you should quit Q-DOS II and then run your other 
+programs.  Then, when you are finished, type "QD2" to get back into 
+Q-DOS II.]
+For example, suppose you wanted to find a word processing document
+and use the word processor to edit it.  You could use Q-DOS II to
+quickly find the document.  After the file is highlighted, you would
+then press the F6 key.  After the DOS prompt is displayed, you would
+type the command to execute the word processor (i.e.  "WP").  Then,
+by pressing the F6 key, Q-DOS II will type the full filename for you
+(i.e.  " LETTER.TXT") so that all you need to do is press RETURN. 
+This offers you a simple way to compose whatever DOS command you need
+quickly and easily, without having to type the full filenames.  [NOTE: 
+See also the F9 - EDIT command.]
+Another example would be to have Q-DOS II find the FORMAT command. 
+After highlighting it, pressing F6 would bring up the DOS prompt,
+pressing F2 will display the first part of the filename (i.e. 
+"FORMAT "), and all you then need to do is insert the proper drive
+designation (i.e.  "A:") and press RETURN.
+The F3 key (and ctrl-R) will redisplay the last-used command.  Also,
+you may use the editing keys (INS, HOME, END, and the arrow keys).
+[NOTE: The INS keys toggles between overwrite mode (small underline
+cursor) and insert mode (larger block cursor).]
+           
+           
+ F7  --  SET SEARCH SPECIFICATION 
+           
+Purpose:   The SET SEARCH SPECIFICATION command lets you change
+   the rules Q-DOS II uses when reading and displaying
+the directories of your disks.  The STATUS screen (recalled by F2)
+shows the current settings.
+To use:    Q-DOS II normally scans the disk for Normal and
+    Directory entries, and skips Hidden or System files.  
+If you desire, you can make Q-DOS II display only files that end with
+the extension "COM," for example, or only Hidden files.  Or, you can
+expand the search rules so that Q-DOS II lists Hidden and System
+files in addition to the Normal and Directory files that it usually
+reads.
+This command proceeds in two steps.  The first defines the file name;
+the second defines the file attributes.
+      RESTRICTING FILE NAMES
+      
+Press the F7 key; Q-DOS II responds by displaying the input field for
+entering a new name definition with the current definition already
+displayed and ready for you to edit.  The new name definition must be
+a valid DOS name that may (and most likely will) include the DOS
+wildcard characters, "*" and "?".  The wildcard characters allow you
+to define a related group of file names.
+The normal default file name definition is "*.*", which causes Q-DOS
+II to read all names.  Here are other sample file name specifications
+and their meanings:
+     *.COM       Files having COM as the extension.
+     *.BAS       BASIC program files (those with BAS as the
+                 extension).
+     C*.*        Files that start with C.
+     ?D*.*       Files with D as the second letter.
+      RESTRICTING FILE ATTRIBUTES 
+      
+Pressing RETURN, with or without changing the file name definition,
+takes you to the second step of the SET SEARCH SPECIFICATION command. 
+A new screen lists the six file attributes arranged in a row from
+left to right.  The word "YES" appears beneath those that are turned
+on; "No" appears under those that are off.  If you wish to leave the
+file attribute definition as it is, press RETURN.
+If you wish to change the file attribute definition, use the right
+and left arrows to position the cursor over the attribute you wish to
+change.  To change the YES/NO status of the high- lighted attribute,
+press the SPACE BAR, which functions as an YES/NO toggle switch.
+When you have selected your new file attribute definition, press
+RETURN.  Q-DOS II will then display only those files that meet the
+new search specifications for both file name and attributes.
+The next section in this help file describes the meaning of each of
+the file attributes.  In addition, each attribute has special
+characteristics that you should know:
+     NORM
+     
+NORM tells Q-DOS II to display all Normal files, in addition to any
+others selected.  A normal file is one that is not a DIRectory.  NORM
+will also display R/O files and/or ARC files, whether or not those
+attributes are in the search specification.
+     DIR
+     
+DIR tells Q-DOS II to display all directory entries.
+     HID
+     
+HID tells Q-DOS II to display all Hidden files and directories,
+regardless of their other attributes.
+     SYS
+     
+SYS tells Q-DOS II to display System files.  However, even when you
+select SYS as a search specification, Q-DOS II will not display
+System files that are Hidden unless you also select HID.  Since
+System files are normally Hidden, you should make it a practice to
+select both HID and SYS as search specifications when your intention
+is to display all System files.
+     R/O
+     
+R/O tells Q-DOS II to display Read-Only files.  If NORM is already a
+search specification, selecting R/O adds nothing.  The R/O attribute
+is most useful, therefore, when you want to display nothing but
+Read-Only files.  Hidden Read-Only files will not be displayed,
+however, unless the HID attribute is also selected as a search
+specification.
+     ARC
+     
+ARC tells Q-DOS II to display files with the ARC attribute.  If NORM
+is already a search specification, selecting ARC adds nothing.  The
+ARC attribute is most useful, therefore, when you want to display
+nothing but files having the ARC attribute.  Hidden files with the
+ARC attribute will not be displayed, however, unless the HID
+attribute is also selected as a search specification.
+Press RETURN to complete the SET SEARCH SPECIFICATION process and
+display those files that match the new specifications.
+Pressing ESC before completing the process causes it to abort at that
+point.  If you enter a new file name definition before pressing ESC,
+the change will be accepted.  However, the Main Screen that appears
+will not show the change.  To see the change you must re-enter the
+Main Screen from another command.
+The SET SEARCH SPECIFICATION command also sets the rules that guide
+the attribute selection part of the FIND command.  For example, to
+list all hidden files on a disk, set the attribute definition to HID
+only.  Then execute the FIND command, searching for "*.*".
+The STATUS screen (F2) shows the new search specifications.  They
+remain in effect until they are again changed through the SET SEARCH
+SPECIFICATION command, or until you exit Q-DOS II.  You can also 
+change them permanently with the QDSTART.EXE program.
+           
+           
+      F8  --  SORT FILES          
+           
+Purpose:   This command allows you to change the way files
+   are sorted on the screen.  You may sort files by 
+NAME, EXTENSION, SIZE, or DATE, in ASCENDING or DESCENDING order.  An
+UNSORTED display is also available.
+To use:    Q-DOS II sorts files before displaying them on the
+    Main Screen. It sorts by a variable that you select
+through the SORT FILES command.  The five variables are: (1) Name,
+which is the default selection, (2) Extension, (3) Size, (4) Date,
+and (5) Unsorted.  The direction of the sort, either Ascending or
+Descending, is also selectable, except with the Unsorted option.
+To select a sort variable, press F8.  Q-DOS II will display the
+current sorting direction and the following choices: (N)ame,
+(E)xtension, (S)ize, and (D)ate.  Use the right or left arrow keys to
+change the sort direction, if desired.  Then, press the letter that
+identifies the new sort variable.
+The Main Screen will then display the files sorted in their new
+order, and the STATUS screen (F2) will list the new sort order.
+[NOTE: When you sort files, the displayed directory will be sorted
+according to your selection.  However, the second directory in memory
+(see F4 - PREVIOUS DIRECTORY) will not be re- sorted unless you
+specifically tell Q-DOS II to re-sort it.]
+     NAME
+     
+NAME sorts files and subdirectories in alphabetical order, first by
+file name, then by file extension.
+     EXT
+     
+EXT also sorts alphabetically, but by extension first, then by name. 
+EXT therefore causes files with the same extension to appear as a
+group, ordered within that group by the alphabetical order of their
+file names.
+     SIZE
+     
+SIZE lists files in order of their size.  Files of the same size are
+grouped together, then listed alphabetically by file name within that
+group.
+     DATE
+     
+DATE sorts files according to their date.  "Date" refers to the last
+date on which the file was updated.  Files of the same date are
+grouped, then listed by time.  Files with the same date and time are
+grouped, then listed alphabetically by name.
+     UNSORTED
+     
+UNSORTED displays files in the order they appear on the disk.  Some
+programs allow altering the position a file has in a directory.  This
+feature displays the files in the same order as the DOS DIR command. 
+It should be noted that Q-DOS II does NOT physically sort the files
+on the disk, but only displays them sorted (or not).
+Once you change the sort criteria, all directories you view will sort
+the files by the new variable until you leave Q-DOS II or change the
+variable through the SORT FILES command.  You can permanently chang 
+the default sort method with the QDSTART.EXE program.
+           
+           
+          F9  --  EDIT            
+           
+Purpose:   If you would like to modify files on your disk, the 
+   EDIT command makes it simple.
+To use:    Highlight the file you would like to edit and press
+    the F9 key. This will cause your editor to start editing
+the highlighted file.  To create a new file (or to start with a blank 
+screen), press the ALT-F9 key combination.
+Q-DOS II comes with its own editor (Q-Edit) which allows you to
+modify the file in either NORMAL or HEX mode.  To replace this
+program with your own editor or word processor, use the QDSTART.EXE
+program.  For more information on the operation of the Q-DOS II
+editor Q-EDIT, refer to APPENDIX E.
+           
+           
+      F10  --  QUIT Q-DOS II      
+           
+Purpose:   The QUIT Q-DOS II command returns you to DOS and
+   releases the memory occupied by Q-DOS II.
+To use:    There are 2 ways to exit Q-DOS II: pressing the 
+    F10 key or "Q" key. After selecting the QUIT command,
+a box appears giving you 3 more options.
+Q-DOS II allows you to press F10 a second time (or press "O") to exit
+Q-DOS II and reset the "Current DOS Directory" to the one Q-DOS II
+started with (the original directory).  To set the "Current DOS
+Directory" to the one displayed on the Q-DOS II screen, press "C".
+If you would like to cancel the QUIT command and return to the main
+screen, you can press the ESC key.
+Pressing RETURN will display both the "Current" and "Original"
+options.
+To understand the above options, you must understand the meaning of
+"current directory." In a general sense, "current directory" simply
+means the directory you are working in.  However, Q-DOS II operates,
+in a sense, within two current directories.
+You were in a directory within DOS when you loaded Q-DOS II.  While
+you are in Q-DOS II, DOS remembers that original directory as its
+current directory.  For purposes of this explanation, therefore, we
+shall call it "current directory/DOS." Within Q-DOS II, you move from
+directory to directory, thereby changing what Q-DOS II defines as its
+own current directory.  This current-directory-within-a-current
+directory therefore becomes "current directory/Q-DOS II."
+When you select the QUIT Q-DOS II command and choose between options
+(2) and (3), you are in essence answering this question: "Shall we
+continue to consider 'current directory/DOS' (the original current
+directory) as DOS's current directory (press 'O')? Or shall we ask
+DOS to reassign that position to 'current directory/Q-DOS II,' which
+is the one you were displaying when you selected the QUIT Q-DOS II
+command (press 'C')?."
+            
+            
+ APPENDIX A - VALID FILE NAMES IN DOS 
+            
+You must give each file a unique name within a directory.  All file
+names must follow certain DOS rules.  Those that follow the rules are
+"valid" DOS file names; all others are invalid and will not be
+accepted.  Directory names follow these same rules.
+     VALID FILE NAMES
+     
+Valid DOS file names consist of a name and an optional extension. 
+The name may consist of 1 to 8 characters; the extension may consist
+of 1 to 3 characters.  Name and extension are separated by a period
+("."); no spaces are allowed.
+The following are valid characters for DOS file names:
+     The letters "A" through "Z"
+     The digits "0" through "9"
+     12 special characters:  $ & # @ ! % " ( ) - { } _
+No other characters are valid.  The characters "/" and "\", for
+example, are used to separate directories in a directory path.  DOS
+converts lower-case letters to upper case.
+     "WILDCARD" OR "GLOBAL" FILENAME CHARACTERS
+     
+Several Q-DOS II commands (and most DOS commands) let you use the
+"wildcard" characters "*" and "?".  They are "variable" char- acters
+that let you define groups of files with a single name.
+"*" can represent no characters or a string of one or more
+characters; "?" represents a single character only.  For example, the
+wildcard QD*.* would match both "QD.EXE" and "QDCOLOR.COM".  Note
+that in the filename "QD.EXE, the "*" matches no characters, as there
+are none between the "D" and the ".".  In the case of "QDCOLOR.COM",
+however, the "*" matches a string of 5 characters.
+The position that "*" and "?" occupy in the name defines the position
+that must be occupied by the character or characters that they
+represent.  "*" must occupy the last position in the name and/or the
+extension part of the wildcard you specify.
+These are valid DOS wildcard names:
+  "*.*" represents all names with any (or no) extension.
+  "*.COM" represents all files with the COM extension.
+  "?.COM" represents all COM files with a single-character name.
+  "D?D.*" represents all files with three character names that
+      consist of "D," followed by any valid character, followed
+      by "D."  The file name may have any extension, or no
+      extension at all.
+These are invalid file names:
+   "TEST/A.EXE" ("/" is an invalid character)
+   "ABC . BAT" (contains spaces)
+You may be required to enter valid DOS file names in order to execute
+these Q-DOS II commands: MAKE DIRECTORY, TAG SEVERAL, FIND, RENAME,
+XECUTE HIGHLIGHTED, XECUTE OTHER, and F7 - SET SEARCH SPECIFICATION. 
+See each command for details.
+            
+            
+ APPENDIX B -- ORGANIZING A HARD DISK 
+            
+DOS versions beginning with DOS 2.0 organize the disk into areas
+called "directories." Directories let you group related files
+together: spreadsheets in one directory, word processing files in
+another, and so on.  This reduces clutter and confusion, since files
+for one program or purpose need not get mixed with other files. 
+Directories let you create data structures that represent the logic
+of your tasks; a good structure makes you a more efficient computer
+user.
+There is no limit to the number of directories and files you may have
+-- except within the root directory.  The root directory is generally
+limited to about 512 files (less on floppy drives).  This limitation
+alone often creates good reason for dividing your files into
+subdirectories.
+Q-DOS II takes advantage of this powerful DOS feature by letting you
+create directory "maps" or "trees." Directories are hung on the
+various branches, so to speak, according to type, user, language,
+purpose, or whatever other logic may guide you.
+The heart of Q-DOS II's power is the ease with which you can create,
+organize, and work with directories and files.  That power is most
+apparent when working with hard disks, although Q-DOS II simplifies
+floppy-disk management as well.  The DIRECTORY command lets you add
+or remove directories, and displays the directory structure of any
+disk.  The MOVE command moves files from one directory to another,
+and the COPY command lets you copy files to any directory on any
+disk.
+Don't be afraid to experiment with the DIRECTORY command and the
+other Q-DOS II features.  The more you use them, the more you'll
+discover the power of both Q-DOS II and your computer.
+           
+           
+  APPENDIX C  --  ERROR MESSAGES  
+           
+The following error messages are listed alphabetically.  Messages
+that begin with a filename are listed under the letter "F" as
+"FILENAME.EXT ...".
+CANNOT COPY ANY MORE FILES -- DIRECTORY IS FULL
+  You get this message when you are trying to copy files to the
+  root directory of a drive and that root directory is full. 
+  Under DOS, the root directory has a limit to the number of
+  files and directories it can contain; subdirectories, on the
+  other hand, have no such limit.
+  To resolve the problem, you must do one of the following:
+  remove some of the files from the root of the destination disk,
+  copy the files to a different subdirectory on the disk, or copy
+  the files to another disk.
+CANNOT OPEN SOURCEFILE
+  In the COPY command, Q-DOS II could not find the first file in
+  the "to be copied" list on the source disk.  The main reason
+  this may happen is that you removed the source diskette from
+  the floppy drive from which you were copying.  
+  Other possibilities are that you are working with two copies of
+  the same directory (see the F4 - PREVIOUS DIRECTORY command for
+  more information), and you may have RENAMEd, MOVEd, or ERASEd
+  the file from one directory window and switched to the other
+  one which still contains the entry for the file name.
+CANNOT OPEN THE HIGHLIGHTED FILE
+  In the VIEW command, if you switched disks, or if you erased,
+  renamed, or moved the file while using another copy of the
+  directory (see the F4 - PREVIOUS DIRECTORY command), Q-DOS II
+  will not be able to find the file.
+  Make sure you have a fresh copy of the directory you are
+  working with (use either the F3 - CHANGE DRIVE command, or the
+  SELECT option of the DIRECTORY command to do so).  Then, you
+  can VIEW any file listed in the directory.
+CAN'T FIND QDOS.HLP -- PRESS LETTER OF DRIVE
+  Q-DOS II cannot find QDOS.HLP, the help file; it looks for it
+  first in the directory you specified in the QDCONFIG program 
+  (C:\QDOS is the default directory),
+  then in the root directory of that drive.  It displays this
+  error message if it was unsuccessful in finding it.
+  To remedy the problem, either enter the letter of the drive
+  that has the help file on it, or insert a floppy disk with
+  the help file into drive A and tell Q-DOS II to look at
+  drive A for it.
+CAN'T RENAME THE FILE 
+  There are three reasons why DOS cannot rename a file, and the
+  reason is specified with the message.  Here are the reasons:
+  -- IT IS MARKED 'READ-ONLY'
+     The file is protected from having either its name or its
+     contents modified.  To rename it, select the ATTRIBUTE
+     command to turn off the READ-ONLY attribute.  Then, the file
+     can be renamed (or erased, also -- don't forget to reset the
+     READ-ONLY attribute once you have renamed the file).
+  -- ONLY DOS 3.XX ALLOWS THIS
+     You must use DOS 3.0 or higher to rename directories.  Also,
+     if you rename a directory, you must then re-SCAN the disk to
+     update the directory map (see the DIRECTORY command).
+  -- THERE IS ANOTHER ONE OF THE SAME NAME
+     All file names within a directory must be unique.  The name
+     you selected is already being used by another file or
+     subdirectory in this directory.
+     To solve this problem, select a different name for the one
+     you wish to rename.
+DESTINATION FILE OF SAME NAME IS R/O - OVERWRITE?
+  A Read-Only (R/O) file of the same name as the to-be-copied
+  file has been found in the destination directory.  Q-DOS II
+  informs you of this fact and prompts you whether to overwrite
+  the file in the destination directory.
+DISK HAS BEEN CHANGED
+  In the ERASE or MOVE command, Q-DOS II cannot find the copy of
+  the file to be erased or moved.
+  Make sure you have a fresh copy of the directory you are
+  working with (use either the F3 - CHANGE DRIVE command, or the
+  SELECT option of the DIRECTORY command to do so).  Then, you
+  can ERASE or MOVE any file listed in the directory.
+DISK X IS FULL -- INSERT NEW DISK AND (C)ONTINUE OR (S)KIP FILE
+  During a COPY command, the destination disk is too full to copy
+  the current file.  If the cause of the problem is that a floppy
+  diskette has become full, simply insert a new floppy and press
+  "C" to continue.
+  Occasionally, the cause of the message will be that one
+  particular file is too large to fit on the destination disk,
+  while other smaller files in the source directory will still
+  fit on the destination disk.  In this case, press the "S" key
+  to skip the large file and continue COPYing the smaller files.
+DRIVE IS NOT READY
+  Either there is not a disk in the drive or the drive door is
+  not securely closed.  In other instances, this may mean that
+  DOS does not recognize that drive.
+FILENAME.EXT EXISTS IN DESTINATION DIRECTORY -- CANNOT MOVE IT
+  In the MOVE command, you cannot move a file into a directory if
+  there is already a file of the same name inside that directory.
+  Either select another destination directory for the file, or
+  rename either the file in the source directory, or the one in
+  the destination directory.  Then, move the file.
+FILENAME.EXT EXISTS ON DRIVE X -- WILL NOT BE COPIED
+  When you have selected not to overwrite same-named files using
+  the COPY command, and a same-named file does exist in the
+  destination directory, Q-DOS II will inform you that the
+  filename already existed in the destination directory and that
+  the file of the same name in the source directory will not be
+  copied.
+FILENAME.EXT IS MARKED READ-ONLY -- CANNOT ERASE IT
+  Any file marked Read-Only can't be erased; the Read-Only
+  attribute protects the file from accidental erasures.
+  If you still wish to erase the file, select the ATTRIBUTE
+  command to eliminate the Read-Only attribute from the file, and
+  then erase it.
+FILE NOT FOUND OR NOT ENOUGH MEMORY
+  Currently, Q-DOS II cannot tell the difference between a file
+  not being found and not having enough memory to run the program. 
+  If the program file is indeed on the disk, then there is not
+  enough memory to run that program.
+  To solve this problem, exit from Q-DOS II (use the F10 - QUIT
+  command) and then run your program from the DOS prompt.
+GENERAL DISK ERROR
+  Q-DOS II interprets this error message which comes from DOS; it
+  means that DOS could not read a certain part of the disk.  The
+  usual reasons for this are: there is a bad sector on the disk,
+  or the read/write heads of the disk need to be cleaned.
+INVALID DRIVE
+  The drive letter you entered is invalid.  If you have only one
+  floppy drive, Q-DOS II will not allow that drive to be called
+  the B drive.  In some situations, the hardware configuration
+  switches don't match the actual drives installed, and Q-DOS II
+  will not know they exist.  Use the "F2 - Status Screen"
+  command to check the drives currently available to Q-DOS II.
+NO NON-NETWORK DRIVES.  UNABLE TO RUN Q-DOS II
+  This version of Q-DOS II will not operate on disks shared as
+  network devices.  If all available disks are shared devices,
+  Q-DOS II will not run.
+NOT ENOUGH SPACE TO READ IN ENTIRE DIRECTORY
+  Q-DOS II can handle 700 file names in one directory.  There 
+  can be thousands of files on the disk, however, but this 
+  does not affect Q-DOS II since it works with only two given  
+  directories at once.
+  When Q-DOS II looks at a directory with a large number of
+  files, it automatically clears the memory used by the previous 
+  directory in order to display all the files (this means the 
+  F4 command will not work while viewing this directory).
+  Generally, you should never have more than 200 files in any
+  directory; if you have more files than this, it may be wise to
+  divide the directory into a couple of subdirectories. 
+  Unfortunately, there are some occasions where certain programs
+  simply require an extra-large number of files all in one
+  directory.
+PATH (OR FILE) NOT AVAILABLE -- YOU MUST HAVE CHANGED DISKS
+  Q-DOS II can't find the file or directory "path" that it
+  thought still existed.  This happens if you remove a disk while
+  you are still working with its directory.
+THAT NAME IS INVALID -- THERE IS ALREADY A DIRECTORY BY THAT NAME
+  Try using a different name for the directory.
+THAT COMMAND WON'T WORK WHEN THERE ARE NO FILES
+  The command you selected will only work on files; use DIRECTORY
+  SELECT, F3 - CHANGE DRIVE, or F7 - SET SEARCH SPECIFICATION to
+  read a disk directory; then retry your command.
+THE DESTINATION IS THE SAME AS THE SOURCE
+  When copying or the moving files, you must specify a
+  destination directory that is different than the source
+  directory.  In the COPY DIRECTORY command, the destination and
+  source drives cannot be the same.  Q-DOS II will not allow a
+  file or directory to be copied on top of itself.
+THE DIRECTORY IS NOT EMPTY
+  Please review the REMOVE section of the DIRECTORY command for a
+  full explanation of this message.
+THE ROOT DIRECTORY CANNOT BE REMOVED
+  Please review the REMOVE section of the DIRECTORY command for a
+  full explanation of this message.
+THERE ARE NO TAGGED FILES IN THIS DIRECTORY
+  You will see this message if you try to COPY, ERASE, MOVE, or
+  RENAME the TAGGED files when no files are tagged.  You should
+  either tag the files for this command first, or you may want to
+  work with the HIGHLIGHTED file (one at a time) instead.
+  Please review the help section for the command you were using.
+THERE IS NOT ENOUGH MEMORY TO RUN THIS PROGRAM
+  You will need to exit Q-DOS II to run the program; use the F10 
+ - QUIT command to quit Q-DOS II, then run the program from the
+  DOS prompt.
+TOO MANY DIRECTORIES
+  Q-DOS II can only keep track of 200 directories and
+  subdirectories on any given disk. 
+WRITE-PROTECT ERROR
+  The disk you are trying to COPY or MOVE to, or on which you are
+  changing file attributes, has a write-protect tab.  If you are
+  certain you need to continue, remove the tab from the diskette
+  and retry the command.
+YOU CANNOT VIEW A DIRECTORY
+  Q-DOS II allows you to view the contents of files with the VIEW
+  command.  If you want to see the contents of a directory, use
+  the DIRECTORY command to see the directory map of a disk,
+  position the cursor on top of the desired directory, and press
+  RETURN.  This will display the contents of the directory.
+YOU CAN'T CHANGE DIR, NORM, OR VOL ATTRIBUTES
+  DOS does not normally allow these to be changed; imagine, for
+  example, the confusion that would be created if you changed a
+  directory into a normal file -- all the files that used to be
+  in the directory would no longer be found!  Q-DOS II does not
+  override DOS in this respect.
+YOU CAN'T COPY DIRECTORIES
+  Use the COPY DIRECTORY command to copy directories.
+YOU CAN'T ERASE DIRECTORIES
+  You must use the REMOVE option of the DIRECTORY command to
+  remove directories from your disk.
+YOU CAN'T MOVE DIRECTORIES
+  Currently, Q-DOS II cannot move directories.  You can move all
+  the files in one directory to another, however.
+YOU MUST CHANGE TO A DRIVE FIRST
+  In order for Q-DOS II to search a disk for files, it must know
+  which disk you wish to search.  To select a disk, use the
+  CHANGE DRIVE (F3) command.  Then, retry the FIND command.
+YOU MUST USE EITHER DOS VERSION 2.XX OR 3.XX TO RUN Q-DOS II
+  Q-DOS II will not work with version 1.XX of DOS.
+           
+           
+   APPENDIX D  --  NEW FEATURES   
+           
+The following is a list of features that are either new or that have
+been changed in this newest version of Q-DOS II.  For full
+information on each of these enhancements, please refer to the
+indicated sections of the help information.  [NOTE: The new Q-DOS II
+program has a much larger ".EXE" file than prior versions of Q-DOS;
+however, the total memory requirements in RAM is only about 2k
+greater!]
+CONFIGURE PROGRAM - QDSTART
+Many of the features and selections of Q-DOS II are now
+"configurable"; i.e., you can modify Q-DOS II to work just the way
+you want.  The items you can configure are: the default sort method,
+the path where the help file is located, the editor (or other
+program) to run when the F9 key is pressed, turning automatic
+disk-logging on or off (and, you can also tell Q-DOS II whether to do
+this logging on all drives, or to do it only on your hard disks), and
+the default search attribute and search specification.  Use the
+QDSTART program to modify your QD2.EXE file.
+AUTOMATIC LOGGING
+Q-DOS II will now automatically maintain a directory-log file (which
+is a copy of each disk's directory map); this file is kept in the
+root directory of each disk.  The biggest advantage this gives you is
+that Q-DOS II can now display the directory structure of any disk in
+about 1/2 second.
+This log file is created on each disk if Q-DOS II does not find it in
+the root directory; it is updated when you use Q-DOS II to make and
+remove directories, or when you select the SCAN command from the 
+directory map (the LOG command simply reads the log file if it is 
+there, but it will create it if it doesn't exist).  You can also
+force Q-DOS II to rescan the disk from the beginning, in case you
+have used other programs to modify your disk structures.  The logging
+feature can be turned on or off.  (See the DIRECTORY command.)
+THE EDITOR
+Q-DOS II can now edit any file under 61,440 bytes (60k) in length by
+simply pressing the F9 key (see APPENDIX E).
+SELECTING DIRECTORIES
+Due to many requests, we have enhanced and simplified directory
+changing.  You can now select a new directory from the file-listing
+screen; simply position the cursor key on the directory you wish to
+change to, and press F5.  To change back to the parent of the current
+directory, press the "." (period) key; this is somewhat analagous to
+the "CD .." command in DOS.
+Also, to aid you in moving the cursor to the directories, you can 
+press the "+" and "-" keys to jump immediately to the next or the 
+prior directory.
+EDIT KEYS
+Any time you are entering more than one character (when entering a 
+file name or a DOS command, for example), you can use the left- and 
+right-arrow keys to move the cursor.  In addition, HOME will place the 
+cursor at the start of the edit string (the name or command you are 
+entering), and END will place it at the end.  CTRL-BACKSPACE will
+completely clear the edit string, and (in some cases) CTRL-R will 
+recall the last-used edit string.
+Also, the INS key toggles between INSERT mode (block cursor) and 
+OVERWRITE mode (small cursor).
+PRINT
+You can now print Highlighted or Tagged files from Q-DOS II.  You can 
+also print the directory map or a list of the files in the current 
+directory (see PRINT).  Also, the editor will let you print all or
+part of a file (see APPENDIX E).
+XECUTE
+This has been replaced by the "F6 - DOS Command" key.  It provides
+more functionality, and is more complete, than the older XECUTE
+command (see F6 - DOS Command).
+In addition to the View, Continue, and Jump options, we have added an 
+Erase option (press ALT-E to erase the file).  This will essentially 
+allow you to erase all occurrences of files that match your search 
+specifications, regardless of the directories in which they exist (see 
+FIND).  Also, pressing CTRL-R will recall the last search string.
+ATTRIBUTES
+The attribute command has been enhanced.  In Q-DOS II, you must select 
+ATTRIBUTE DISPLAY to display the attributes; and, you can change 
+attributes on either the Highlighted or the Tagged files (see
+ATTRIBUTE).  Also, you can change attributes of directories to hide
+or unhide them.  (Hidden directories will only be displayed if the
+search attribute includes the HID setting -- see F7 - SET SEARCH 
+SPECIFICATIONS.)
+OTHER CHANGES
+Pressing "Q" from the main screen is the same as pressing F10.  Also,
+to quit Q-DOS II, you can still press F10 and then "C" to change to the
+current directory, or "O" to change to the original directory. 
+However, the "C" and "O" options only show up when you press RETURN
+after pressing the F10 key.
+A RETAG feature has been added to the TAG command (this will retag 
+files that were tagged and then copied or printed, or that had their 
+attributes changed).
+The ALT-letter feature that previously worked on just the file screen
+now also works on the directory map.  You can also press ALT plus a 
+number key.  (By the way, some of you never realized the ALT-letter 
+command existed -- please see the INTRODUCTION for more information.)
+A special "WordStar" (tm) filter, for files written with that word 
+processor, has been added to the VIEW command.
+Q-DOS II also remembers the last directory you were looking at on the
+directory map of each drive, rather than forcing you to start at the
+root directory.  The the first time you access the map for a
+drive, the directory map cursor starts at the current directory. 
+Also, the COPY command will now select this last-used directory to
+copy the files to, rather than selecting the current directory from
+  APPENDIX E -- Q-EDIT (EDITOR)   
+Perhaps the biggest change reflected in Q-DOS II is the addition of a 
+text editor that will let you modify ANY file, as long as it is no 
+more than 61,440 bytes (60k) long.  You can also easily create files; 
+with this editor, you will never again wonder how to modify *.BAT 
+files or CONFIG.SYS.
+This editor is super-fast, and has a special feature that allows you
+to edit files in a hex mode, if you wish.
+Q-DOS II comes with the F9 key pre-configured to run the editor, 
+located in the C:\QDOS directory.  If you do not want to use this 
+editor, or you wish to place it onto another drive or into another 
+directory, you MUST use the QDSTART program to modify QD2.EXE before
+you use it.
+How To Use Q-EDIT
+Q-EDIT does NOT need to be used with Q-DOS II; if you wish, you can 
+run it as a stand-alone editor (for writing programs or editing files) 
+by simply typing QED from the command line and pressing return.  You 
+can also specify a file name, including its drive and path, on the 
+command line.  However, Q-EDIT is most easily started from within 
+Q-DOS II by simply pressing the F9 key when the file cursor is 
+highlighting the file you wish to edit.  (To start Q-EDIT on a blank 
+screen, press ALT-F9.)
+These instructions are brief, but they will get you started using the 
+editor; and, once you are started, you can refer back to these 
+instructions as a reference manual to help you understand all the 
+capabilities of this super-fast editor.
+The Screen
+The top of the screen lists the commands available to you.  When these 
+commands are displayed, you can press the SPACE BAR to move the 
+command cursor to the right.  You can select the highlighted command 
+by pressing RETURN, or you can press the first letter of the command.
+The bottom part of the screen shows either Command, Insert or
+Overwrite, depending on the current mode.  It also shows whether you
+have selected auto-indent, and whether you are in ascii mode or hex
+mode.  The right part of the bottom line shows the cursor position, 
+line, and the column where the cursor is located.
+When you operate in Insert mode, the cursor is a large block; 
+otherwise, it is a small underline.
+              (Press PgDn for next screen)
+The Special Keys
+These are the special keys in Q-EDIT:
+    HOME:       Move cursor to start of line
+    CTRL-HOME:  Move cursor to top of file
+    END:        Move cursor to end of line
+    CTRL-END:   Move cursor to start of last line in file
+    INS:        Toggle between insert and overwrite (see display at
+                    bottom of screen)
+    DEL:        Delete char
+    BKSPACE:    Delete char to left
+    SPACEBAR:   Selects command (when in Command mode only)
+Other arrow keys perform their normal functions.
+Creating a New File
+To create a new file, you can start Q-EDIT from the command line with
+the command QED.  It comes up with a blank screen, and allows you to
+start editing.  Or, if you use Q-EDIT from within Q-DOS II, press F9. 
+If the cursor was on a file, that file will be displayed on the
+screen.  If not, you will see a blank screen.
+To stop editing a file and change to another one, press ESC until the 
+commands are displayed at the top of the screen; then, select QUIT 
+INITIALIZE.  If you then type the name of a file, Q-EDIT will attempt 
+to load it for editing.  If the file you specify does not exist (or 
+you do not specify a file, but simply press RETURN), Q-EDIT's screen 
+will be cleared and you can start editing a new file.
+When you are ready to save your file, select the QUIT command, and 
+then either BACKUP or SAVE (see below).  If you have not yet named the 
+file, Q-EDIT will ask for a file name and then save it for you.
+[NOTE:  If you try to EXIT or INITIALIZE after modifying a file, 
+Q-EDIT will warn you if you have not yet saved your changes.]
+Main Commands in Q-EDIT
+Here is a list of the main commands in Q-EDIT.
+    AGAIN
+Repeats the results of the last FIND or REPLACE command.
+    BUFFER
+Puts the designated block of text into the buffer.  Use the cursor
+keys to select the end OR the beginning of the block.  As you move
+the cursor, the top of the screen shows the number of characters that
+will be placed in the buffer and an up-arrow if you move the cursor
+to a point before the starting cursor position, or a down-arrow
+otherwise.  Press B when the block has been designated; the new
+buffer will then replace the old one.
+The in-memory buffer will hold up to 4000 characters.  If you buffer
+more than that, the buffer will automatically be written to a
+temporary disk file on the default drive/directory.  This is
+completely automatic.  (When the editor ends, this temporary file
+will be deleted.)
+    COPY
+Inserts the contents of the buffer (from either the BUFFER or the
+DELETE commands) at the current cursor position, and redisplays the
+screen.  The contents of the buffer will not change (i.e., you can do
+multiple copies by successive COPY commands).  If the contents of the 
+buffer, when inserted at the cursor position, would exceed Q-EDIT's 
+60k file size limitation, the COPY command will not work.
+    DEL
+Same operation as in BUFFER (see above), except that, when you press
+the D key, the designated block is deleted from the file and placed
+in the buffer.  (NOTE: You can simulate a MOVE command by deleting
+the block of text first, positioning the cursor to the new location,
+and selecting the COPY command next.)
+    EDIT
+Go into INSERT mode (same as pressing INS key the first time).  The 
+name of the file you are editing is displayed at the top of the 
+screen.
+    FIND
+Search for any text string.  When entering the string, if CTRL-R is
+the first keystroke, the prior search string from the last search
+will appear.  You can edit the string, using the normal function
+keys.
+Once you specify the string, pressing Y (or RETURN) to the "Ignore
+upper/lower case?" question will cause a match in the file regardless
+of case; if you press N, an exact match -- taking into account both
+upper- and lower-case -- must occur before FIND is successful.
+    HEX
+Go to hex-mode screen.  F4 will toggle the cursor from the hex side
+to the ascii side.  To insert, delete, or overwrite, first press the
+INS key.  When the cursor is on the hex side and you wish to insert or 
+overwrite data, you must enter a valid two-character hex value using 
+the digits 0 thru 9 and the letters A thru F.  When on the ascii side, 
+you may enter any character directly from the keyboard.
+When in the hex mode, the center of the bottom line displays the 
+character the cursor is on in its normal displayable form, its hex 
+value, and its ascii value.
+[NOTE:  When entering data in hex mode with the cursor on the ascii 
+side, pressing RETURN will enter a carriage return only (0D hex), and 
+not the normal carriage return/line feed combination (0D0A hex).]
+    JUMP
+Jump to a marker you have set with the TAG command, jump to a
+specific byte in the file, or to a specific line.
+    PRINT
+Works very much like the BUFFER command; when you press P, the
+designated block will go to the standard DOS printer.  Tabs are
+converted to spaces, according to your SET TABSIZE command.
+    QUIT
+Allows you to BACKUP or SAVE the file.  Select EXIT to end, or
+INITIALIZE to edit another file (to start from scratch without
+editing a file, don't enter a file name).
+BACKUP will create a same-named file with the "*.BAK extension, while 
+the SAVE option will simply overwrite the original file.
+    REPLACE
+Allows you to replace any string in the file with any other.  See
+FIND above.
+    SET
+INDENT will toggle auto-indent on and off; when on, Q-EDIT will copy
+the leading blanks and tabs from the line just above when you press
+the RETURN key.  TABSIZE sets the size of tabs (from 2 to 9).
+    TAG
+Specify a marker in the text; use JUMP command to go back to a
+marker.
+Hints and Helps With Q-EDIT
+You can enter any ascii character (when in Insert or Overwrite mode) 
+by holding down the ALT key and typing a one- to three-digit number 
+from 0 thru 255.
+Currently, Q-EDIT does not let you "include" other files into the one
+you are editing.  To transfer all or part of one file into another,
+do the following:
+  1)  Edit the file with the part to be transferred.
+  2)  Place the cursor at the beginning of the block of text to copy.
+  3)  Select the BUFFER command, and move the cursor to the end of the 
+      block of text.  Then, press "B" to place this block into the 
+      buffer.
+  4)  Quit this file, and initialize the one to receive this buffered 
+      block of text.
+  5)  Move the cursor to the destination point, and press "C" to copy 
+      the buffer into the file at the cursor position.  If there is 
+      enough room, this will successfully place the block of text 
+      where you want it.
+Q-EDIT has no line-length limit.  However, when editing binary or
+certain data files with very few line feeds, you might notice Q-EDIT
+slowing down on lines with over 10,000 characters.  In such a case,
+you may want to switch to Hex mode when you need to move the cursor,
+as it will move faster on the hex screen.  Or, use the JUMP POSITION
+command to jump to the byte you are looking for instead of scrolling
+to it.
+NOTE: In ascii mode, the very first position in the file is called
+position 1, while in hex mode that same position is shown as position 
+(or offset) 0.
+885180702
+Q-DOS II (C) Copyright 1988 -- All rights reserved!
+Gazelle Systems
+42 No. University Ave.
+Suite 10
+Provo, Utah  84601
+1-800-233-0383  (1-801-377-1288 in Utah)
+u,PQR&
+VRSWSVP
+SRWRVQ
+PWPVQ
+t*PQWV
+t!<,t
+)')E)
+SWSVP
+PSPCSQ
+SPCSQ
+PCSPKSQ
+_XY[Z
+_XY[Z
+PWPVQ
+ZXP<ar
+Again
+Buffer
+Print
+Replace
+Line #
+Position
+Backup
+Initialize
+Write
+Indent
+Tab-size
+Repeat the last 'Find' or 'Replace' command
+Mark the text to place in the copy buffer
+Copy the text from the copy buffer to the current cursor locati
+Again
+Buffer
+Print
+Replace
+Line #
+Position
+Backup
+Initialize
+Write
+Indent
+Tab-size
+Repeat the last 'Find' or 'Replace' command
+Mark the text to place in the copy buffer
+Copy the text from the copy buffer to the current cursor location
+Delete a block of characters (and place them in the copy buffer)
+Edit the file
+Find a string of characters
+Display file in Hex mode
+Jump to a marker, to a line #, or position in the file
+Print a block of characters
+Backup or Save file, Exit, or Initialize a new file
+Replace a string of characters with another
+Change the Indent or Tab-size settings
+Set a marker in the file (use Jump to instantly return to this marker)
+Jump to A marker
+Jump to B marker
+Jump to C marker
+Jump to D marker
+Jump to line number
+Jump to character position in the file
+Save file and maintain a *.BAK file
+Exit the editor
+Reset the editor and begin editing another file
+Save this file by overwriting -- don't make a *.BAK file
+Set automatic indent to Auto or Off
+Set default tab size (2 to 9 columns)
+Set the A marker
+Set the B marker
+Set the C marker
+Set the D marker
+The file name you specified is too large
+Press any key to continue
+===> 
+Enter line # to jump to:
+Enter position to jump to:
+PRINT 
+Printing...
+Printer error -- press any key
+Enter new tab size:
+File not found.
+Path not found.
+Specified drive is invalid.
+DOS error code: 00
+Press any key to continue
+File too large -- cannot edit the file
+Press any key to continue
+Pos      
+Command
+Insert
+Overwrite
+Auto Indent
+No Indent
+Ascii   FILE:
+Editing:
+(no file name)
+(Press ESC for commands)
+There is not enough memory to run this editor
+You must use either DOS version 2.xx or 3.xx to run TED
+0123456789ABCDEF
+GAZ_EDIT.TMP
+Error     ing temporary buffer -- press any key
+- Select endpoint, then press
+(    0) chars
+(Or, press ESC to quit this command)
+BUFFER
+DELETE
+Find text:
+Ignore upper/lower case?  (Y/n)
+Search string "
+" not found
+Press any key
+Ignore changes to this file?  (Y to quit)
+Quit without saving file?  (Y to quit)
+File not saved -- press any key
+An error occurred when trying to save the file.
+Do you want to try another name?  (Y/n)
+File name: 
+F4 - Switch Screen  ESC - Normal Mode
+Hex Mode Edit     
+Char:
+Insert  
+Overwrite
+Find text:
+Replace with:
+Not enough room -- press any key
+not enough memory
+               **  MORE ABOUT GAZELLE SYSTEMS  **
+As the leader in hard-disk technology, Gazelle Systems produces a
+full line of quality utilities that represent the cutting edge in
+software innovation.  Our programs make your hard disk easier,
+faster and more reliable.  All Gazelle products support unusual
+disk formats, disks with partitions larger than 32mb, and all are
+compatible with MS/PC-DOS 2.0 or higher (including the new 
+DOS 4.0).  The following is a brief description of other high-
+performance software now available from Gazelle.
+                         **  BACK-IT  **
+Back-It is a high performance hard-disk backup utility designed
+to help you protect your valuable information.  It enables you to
+backup your hard disk with maximum speed, flexibility, safety and
+ease.  
+     Speed!
+          Back-It is fast.  It can fill a 360K floppy in 17
+          seconds, and is up to 150% faster than other "high-
+          speed" backup programs when performing incremental or
+          specialized backups.  
+     Flexibility!
+          Back-It allows you to select files to be included or
+          excluded for backup, and includes a Preset feature
+          which allows you to save any number of complex or
+          simple backups.   
+     Safety!
+          Numerous safety features, including "advanced error
+          correction" and "advanced error prevention" ensure that
+          your valuable data is reliably stored. 
+     Ease!
+          Menus and submenus make Back-It easy to use and
+          understand. 
+Bernoulli Back-It is Gazelle Systems' fast, reliable backup
+utility for use with removable cartridge systems.
+                         **  OPTUNE  **
+OPTune is an extremely fast and reliable software utility that
+can dramatically improve the performance of your hard disk. It
+provides the fastest, safest, most thorough optimization
+available to ensure efficient operation of your mass-storage
+system.  
+     Complete hard-disk optimization!
+          OPTune offers the most thorough optimization available,
+          including DOS optimization, File Defragmentation, and
+          Hard-Disk Tuning, which can permanently increase your
+          hard disk's speed 20% - 400%.  
+     Speed!
+          OPTune is fast -- up to 10 times faster than any
+          competing product.
+     Safety and Reliability!
+          OPTune features unique hard-disk crash prevention
+          capabilities.  Built-in Check-Disk and Verify/Fix-Disk
+          functions test your disk to make sure that the DOS
+          structure and physical media are reliable, ensuring
+          that valuable data can be stored safely.  
+     Hard-disk Maintenance!
+          OPTune goes beyond disk optimization to offer hard-disk
+          maintenance capabilities.  Since OPTune commands can be
+          included in your AUTOEXEC.BAT file, it is easy to fully
+          optimize your disk on a regular basis.  
+          OPTune is also a valuable tool to help you maintain
+          your hard disk's physical media. Consistent use of
+          OPTune prolongs disk life and all but eliminates media
+          errors.
+Gazelle products are available through your local dealer.  You
+can also contact Gazelle Systems directly.
+                         Gazelle Systems
+              42 North University Avenue, Suite 10
+                       Provo, Utah  84601
+                 (800) 233-0383, (801) 377-1288
+                       (801) 373-6933 FAX
+                            in Utah: (801) 377-1288
+*** (C) Copyright Compaq Computer Corporation 1987 ***

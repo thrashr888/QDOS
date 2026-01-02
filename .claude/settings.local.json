@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(beads:*)",
+      "Bash(bd:*)",
+      "Skill(beads:list)",
+      "Bash(bd list:*)",
+      "Skill(beads:create)",
+      "Bash(bd create:*)",
+      "Bash(bd update:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
+      "Bash(bd show:*)",
+      "Bash(bd close:*)",
+      "Bash(bd sync:*)",
+      "Bash(cargo run:*)"
+    ]
+  }
+}
