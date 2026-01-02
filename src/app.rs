@@ -1,5 +1,9 @@
+use crate::errors;
 use crate::event::EventHandler;
-use crate::file_ops::{FileEntry, get_directory_contents, get_system_info, SystemInfo, find_files_recursive, apply_attributes};
+use crate::file_ops::{
+    apply_attributes, find_files_recursive, get_directory_contents, get_system_info, FileEntry,
+    SystemInfo,
+};
 use crate::ui;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -56,9 +60,15 @@ impl NavItem {
 
     pub fn description(&self) -> &'static str {
         match self {
-            NavItem::Directory => "Change current directory, make or remove directory, see directory tree",
-            NavItem::Tag => "Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file",
-            NavItem::View => "View the contents of any file on the screen (in \"ASCII\" or \"HEX\")",
+            NavItem::Directory => {
+                "Change current directory, make or remove directory, see directory tree"
+            }
+            NavItem::Tag => {
+                "Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file"
+            }
+            NavItem::View => {
+                "View the contents of any file on the screen (in \"ASCII\" or \"HEX\")"
+            }
             NavItem::Copy => "Copy one or several files to another disk or directory",
             NavItem::Move => "Move one or several files from this directory to another directory",
             NavItem::Find => "Search all directories on the disk to find specified file(s)",
@@ -295,11 +305,13 @@ impl DirTreeNode {
                 .filter_map(|e| e.ok())
                 .filter(|e| e.path().is_dir())
                 .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
-                .map(|e| DirTreeNode::new(
-                    e.file_name().to_string_lossy().to_string(),
-                    e.path(),
-                    self.depth + 1,
-                ))
+                .map(|e| {
+                    DirTreeNode::new(
+                        e.file_name().to_string_lossy().to_string(),
+                        e.path(),
+                        self.depth + 1,
+                    )
+                })
                 .collect();
             dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
             self.children = dirs;
@@ -313,7 +325,7 @@ pub struct DirectoryMapState {
     pub root: DirTreeNode,
     pub selected_index: usize,
     pub flat_list: Vec<(PathBuf, usize, bool, bool)>, // (path, depth, expanded, has_children)
-    pub input_mode: Option<String>, // For make directory input
+    pub input_mode: Option<String>,                   // For make directory input
     pub input_buffer: String,
     pub confirm_delete: Option<PathBuf>, // For delete confirmation
 }
@@ -327,11 +339,7 @@ impl DirectoryMapState {
             start_path.clone()
         };
 
-        let mut root = DirTreeNode::new(
-            root_path.to_string_lossy().to_string(),
-            root_path,
-            0,
-        );
+        let mut root = DirTreeNode::new(root_path.to_string_lossy().to_string(), root_path, 0);
         root.expanded = true;
         root.load_children();
 
@@ -348,7 +356,11 @@ impl DirectoryMapState {
         state.rebuild_flat_list();
 
         // Select the start path
-        if let Some(idx) = state.flat_list.iter().position(|(p, _, _, _)| p == start_path) {
+        if let Some(idx) = state
+            .flat_list
+            .iter()
+            .position(|(p, _, _, _)| p == start_path)
+        {
             state.selected_index = idx;
         }
 
@@ -384,9 +396,11 @@ impl DirectoryMapState {
             let has_children = !node.children.is_empty() || {
                 // Check if directory has subdirs
                 fs::read_dir(&node.path)
-                    .map(|entries| entries
-                        .filter_map(|e| e.ok())
-                        .any(|e| e.path().is_dir() && !e.file_name().to_string_lossy().starts_with('.')))
+                    .map(|entries| {
+                        entries.filter_map(|e| e.ok()).any(|e| {
+                            e.path().is_dir() && !e.file_name().to_string_lossy().starts_with('.')
+                        })
+                    })
                     .unwrap_or(false)
             };
             list.push((node.path.clone(), node.depth, node.expanded, has_children));
@@ -430,7 +444,9 @@ impl DirectoryMapState {
 
     /// Get currently selected path
     pub fn selected_path(&self) -> Option<PathBuf> {
-        self.flat_list.get(self.selected_index).map(|(p, _, _, _)| p.clone())
+        self.flat_list
+            .get(self.selected_index)
+            .map(|(p, _, _, _)| p.clone())
     }
 }
 
@@ -479,11 +495,6 @@ impl FindState {
             search_complete: false,
         }
     }
-
-    /// Get current match
-    pub fn current_result(&self) -> Option<&(PathBuf, String)> {
-        self.matches.get(self.current_match)
-    }
 }
 
 /// Batch rename state for renaming multiple files
@@ -506,14 +517,16 @@ impl BatchRenameState {
         let files: Vec<(PathBuf, String)> = files
             .into_iter()
             .map(|p| {
-                let name = p.file_name()
+                let name = p
+                    .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_default();
                 (p, name)
             })
             .collect();
 
-        let input = files.first()
+        let input = files
+            .first()
             .map(|(_, name)| name.clone())
             .unwrap_or_default();
 
@@ -552,14 +565,20 @@ impl BatchRenameState {
 pub enum AttrValue {
     On,
     Off,
-    NoChange,  // Only available for tagged files
+    NoChange, // Only available for tagged files
 }
 
 impl AttrValue {
     pub fn toggle(&self, for_tagged: bool) -> AttrValue {
         match self {
             AttrValue::On => AttrValue::Off,
-            AttrValue::Off => if for_tagged { AttrValue::NoChange } else { AttrValue::On },
+            AttrValue::Off => {
+                if for_tagged {
+                    AttrValue::NoChange
+                } else {
+                    AttrValue::On
+                }
+            }
             AttrValue::NoChange => AttrValue::On,
         }
     }
@@ -597,7 +616,8 @@ impl AttributeState {
     pub fn new(path: PathBuf, for_tagged: bool) -> Self {
         use std::os::unix::fs::PermissionsExt;
 
-        let name = path.file_name()
+        let name = path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.to_string_lossy().to_string());
 
@@ -605,9 +625,9 @@ impl AttributeState {
         let metadata = std::fs::metadata(&path);
         let (hidden, system, readonly, archive) = if let Ok(meta) = metadata {
             let mode = meta.permissions().mode();
-            let readonly = (mode & 0o222) == 0;  // No write permission = read-only
-            let hidden = name.starts_with('.');  // Unix hidden convention
-            // System and Archive don't have Unix equivalents
+            let readonly = (mode & 0o222) == 0; // No write permission = read-only
+            let hidden = name.starts_with('.'); // Unix hidden convention
+                                                // System and Archive don't have Unix equivalents
             (hidden, false, readonly, false)
         } else {
             (false, false, false, false)
@@ -620,10 +640,26 @@ impl AttributeState {
         } else {
             // For single file, show current values
             [
-                if hidden { AttrValue::On } else { AttrValue::Off },
-                if system { AttrValue::On } else { AttrValue::Off },
-                if readonly { AttrValue::On } else { AttrValue::Off },
-                if archive { AttrValue::On } else { AttrValue::Off },
+                if hidden {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if system {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if readonly {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
+                if archive {
+                    AttrValue::On
+                } else {
+                    AttrValue::Off
+                },
             ]
         };
 
@@ -636,12 +672,6 @@ impl AttributeState {
             selected: 0,
             display_only: false,
         }
-    }
-
-    pub fn new_display(path: PathBuf) -> Self {
-        let mut state = Self::new(path, false);
-        state.display_only = true;
-        state
     }
 
     /// Get attribute name by index
@@ -657,7 +687,9 @@ impl AttributeState {
 
     /// Toggle current attribute
     pub fn toggle_current(&mut self) {
-        if self.display_only { return; }
+        if self.display_only {
+            return;
+        }
         self.attrs[self.selected] = self.attrs[self.selected].toggle(self.for_tagged);
     }
 
@@ -720,11 +752,292 @@ impl SearchSpecState {
     }
 }
 
-/// Active modal dialog
+/// Help topic entry
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HelpTopic {
+    pub key: char,
+    pub title: String,
+    pub content: String,
+}
+
+/// Help system state
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HelpState {
+    /// All help topics
+    pub topics: Vec<HelpTopic>,
+    /// Current topic index (0 = index page)
+    pub current_topic: usize,
+    /// Scroll offset within current topic
+    pub scroll_offset: usize,
+}
+
+impl HelpState {
+    pub fn new() -> Self {
+        let topics = Self::load_topics();
+        Self {
+            topics,
+            current_topic: 0,
+            scroll_offset: 0,
+        }
+    }
+
+    fn load_topics() -> Vec<HelpTopic> {
+        // Embedded help content based on spec/help.txt
+        vec![
+            HelpTopic {
+                key: 'I',
+                title: "Introduction to Q-DOS II".to_string(),
+                content: r#"Q-DOS II lets you easily manage DOS directories and files. You can
+create directories with a few keystrokes and see them displayed on a
+"directory map." You can find "lost" files located anywhere on the
+disk and you can also edit files in any directory.
+
+Q-DOS II lets you mark files and move, copy, rename, print, or erase
+them without ever typing file names. You can load and execute
+programs or any DOS commands.
+
+HOW TO SELECT A COMMAND
+
+As you enter Q-DOS II, you will see the Main Screen with the main
+commands listed on the top line. One of them will be "highlighted."
+
+You may select a command by highlighting it with the arrow keys
+and pressing RETURN, or by pressing the first letter of the command.
+
+HOW TO TAG FILES
+
+COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and MOVE can operate on
+several files at once. You identify multiple files by tagging them.
+Press SPACE BAR to tag/untag the highlighted file.
+
+THE ESC KEY
+
+The Escape (ESC) key returns you to the Main Screen. When pressed
+in the middle of a command, it will cancel the command."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'A',
+                title: "Attribute Command".to_string(),
+                content: r#"The ATTRIBUTE command allows you to display and/or change file
+attributes. File attributes include: HID (Hidden), SYS (System),
+R/O (Read-Only), and ARC (Archive).
+
+On Unix/macOS, only the R/O (Read-Only) attribute can be modified.
+This controls whether the file has write permissions.
+
+TO USE:
+1. Highlight a file or tag multiple files
+2. Select ATTRIBUTE from the menu
+3. Use arrow keys to select an attribute
+4. Press SPACE to toggle ON/OFF/N/C
+5. Press ENTER to apply changes
+
+Note: You cannot change DIR, NORM, or VOL attributes."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'C',
+                title: "Copy Command".to_string(),
+                content: r#"The COPY command copies files from the current directory to another.
+
+TO USE:
+1. Tag files to copy (or use highlighted file)
+2. Select COPY from the menu
+3. Enter destination path (Tab for completion)
+4. Press ENTER to copy
+
+The original files remain in their current location.
+Use Tab for path auto-completion."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'D',
+                title: "Directory Command".to_string(),
+                content: r#"The DIRECTORY command lets you manage directories.
+
+DIRECTORY MAP (D key):
+Opens a tree view of all directories. You can:
+- Navigate with arrow keys
+- Expand/collapse with Enter or Right/Left arrows
+- Create new directories with M
+- Delete empty directories with D (requires confirmation)
+
+CHANGE DIRECTORY (F5):
+Enter a path to change to a different directory.
+
+PREVIOUS DIRECTORY (F4):
+Return to the previously visited directory."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'E',
+                title: "Erase Command".to_string(),
+                content: r#"The ERASE command deletes files from the current directory.
+
+TO USE:
+1. Tag files to erase (or use highlighted file)
+2. Select ERASE from the menu
+3. Confirm with Y or cancel with N
+
+WARNING: Erased files cannot be recovered!
+
+To delete directories, use the Directory Map (D key)."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'F',
+                title: "Find Command".to_string(),
+                content: r#"The FIND command searches for files matching a pattern.
+
+TO USE:
+1. Select FIND from the menu
+2. Enter a search pattern (e.g., *.txt, config.*)
+3. Choose whether to pause on each match
+
+WILDCARDS:
+* - matches any characters
+? - matches a single character
+
+When a match is found:
+- J: Jump to the file's directory
+- V: View the file contents
+- C: Continue searching"#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'M',
+                title: "Move Command".to_string(),
+                content: r#"The MOVE command moves files from the current directory to another.
+
+TO USE:
+1. Tag files to move (or use highlighted file)
+2. Select MOVE from the menu
+3. Enter destination path (Tab for completion)
+4. Press ENTER to move
+
+Unlike COPY, the original files are removed after moving."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'R',
+                title: "Rename Command".to_string(),
+                content: r#"The RENAME command changes the name of files.
+
+SINGLE FILE:
+1. Highlight the file
+2. Select RENAME from the menu
+3. Edit the filename
+4. Press ENTER to rename
+
+BATCH RENAME (tagged files):
+1. Tag multiple files
+2. Select RENAME from the menu
+3. Edit each filename, press ENTER to rename
+4. Press TAB to skip a file
+5. Press ESC when done"#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'S',
+                title: "Space Command".to_string(),
+                content: r#"The SPACE command displays disk space information.
+
+Shows:
+- Total disk space
+- Used space (and percentage)
+- Available space
+
+Press any key to close the display."#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'T',
+                title: "Tag Command".to_string(),
+                content: r#"The TAG command marks files for batch operations.
+
+TO TAG FILES:
+- Press SPACE BAR on highlighted file
+- Or select TAG from menu for options
+
+Tagged files show a marker (▶) next to their name.
+
+TAG OPTIONS:
+- Tag All: Tag all files in directory
+- Untag All: Remove all tags
+- Invert: Toggle all tags
+
+Tags are used by: COPY, MOVE, ERASE, RENAME, ATTRIBUTE"#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: 'V',
+                title: "View Command".to_string(),
+                content: r#"The VIEW command displays file contents.
+
+MODES:
+- ASCII (A): Text view with line numbers
+- HEX (H): Hexadecimal byte view
+- Raw (R): Plain text without formatting
+
+NAVIGATION:
+- Arrow keys, PgUp/PgDn: Scroll
+- Home/End: Jump to start/end
+- G: Go to specific line
+- /: Search for text
+
+FILTERS:
+- 1: Show all lines
+- 2: Non-empty lines only
+- 3: Code lines (no comments)"#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: '1',
+                title: "Function Keys".to_string(),
+                content: r#"FUNCTION KEY REFERENCE
+
+F1  - Help: Display this help system
+F2  - Status: Show system status and memory info
+F3  - Change Drive: Switch to a different drive/mount
+F4  - Previous Directory: Go back to last directory
+F5  - Change Directory: Enter path to navigate
+F6  - DOS Command: Run a shell command
+F7  - Search Spec: Set file filter pattern
+F8  - Sort: Cycle through sort modes
+F9  - Edit: Open file in editor (not implemented)
+F10 - Quit: Exit Q-DOS II"#
+                    .to_string(),
+            },
+            HelpTopic {
+                key: '2',
+                title: "Navigation Keys".to_string(),
+                content: r#"NAVIGATION REFERENCE
+
+FILE LIST:
+↑/↓     - Move selection up/down
+PgUp/Dn - Move one page
+Home    - Jump to first file
+End     - Jump to last file
+Enter   - Enter directory / Execute action
+
+MENU:
+←/→     - Move between menu items
+Enter   - Select menu item
+Letter  - Jump to command by first letter
+
+GENERAL:
+ESC     - Cancel / Close modal
+SPACE   - Tag/untag file"#
+                    .to_string(),
+            },
+        ]
+    }
+}
+
 pub enum Modal {
     None,
-    Help,
+    Help(HelpState),
     Status(SystemInfo),
     Quit,
     SearchSpec(SearchSpecState),
@@ -821,7 +1134,7 @@ impl App {
     /// Handle keyboard input
     fn handle_key(&mut self, key: KeyEvent) -> Result<()> {
         // Handle modal-specific input first
-        if self.modal != Modal::None {
+        if !matches!(self.modal, Modal::None) {
             return self.handle_modal_key(key);
         }
 
@@ -832,7 +1145,7 @@ impl App {
             }
             // Help
             KeyCode::F(1) => {
-                self.modal = Modal::Help;
+                self.modal = Modal::Help(HelpState::new());
             }
             // Status
             KeyCode::F(2) => {
@@ -841,7 +1154,8 @@ impl App {
             }
             // Change drive (not applicable on Unix, show error)
             KeyCode::F(3) => {
-                self.modal = Modal::Error("Drive selection not available on this platform".to_string());
+                self.modal =
+                    Modal::Error("Drive selection not available on this platform".to_string());
             }
             // Previous directory
             KeyCode::F(4) => {
@@ -955,63 +1269,59 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::PathInput(ref mut path) => {
-                match key.code {
-                    KeyCode::Enter => {
-                        let new_path = PathBuf::from(path.clone());
-                        self.modal = Modal::None;
-                        if let Err(e) = self.navigate_to(&new_path) {
-                            self.modal = Modal::Error(format!("Cannot navigate: {}", e));
-                        }
+            Modal::PathInput(ref mut path) => match key.code {
+                KeyCode::Enter => {
+                    let new_path = PathBuf::from(path.clone());
+                    self.modal = Modal::None;
+                    if let Err(e) = self.navigate_to(&new_path) {
+                        self.modal = Modal::Error(format!("Cannot navigate: {}", e));
                     }
-                    KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    KeyCode::Backspace => {
-                        path.pop();
-                    }
-                    KeyCode::Tab => {
-                        if let Some(completed) = Self::tab_complete(path) {
-                            *path = completed;
-                        }
-                    }
-                    KeyCode::Char(c) => {
-                        path.push(c);
-                    }
-                    _ => {}
                 }
-            }
-            Modal::CopyTo(ref mut dest) => {
-                match key.code {
-                    KeyCode::Enter => {
-                        let dest_path = PathBuf::from(dest.clone());
-                        self.modal = Modal::None;
-                        match self.copy_tagged_files(&dest_path) {
-                            Ok(count) => {
-                                self.modal = Modal::Success(format!("Copied {} file(s)", count));
-                            }
-                            Err(e) => {
-                                self.modal = Modal::Error(format!("Copy failed: {}", e));
-                            }
-                        }
-                    }
-                    KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    KeyCode::Backspace => {
-                        dest.pop();
-                    }
-                    KeyCode::Tab => {
-                        if let Some(completed) = Self::tab_complete(dest) {
-                            *dest = completed;
-                        }
-                    }
-                    KeyCode::Char(c) => {
-                        dest.push(c);
-                    }
-                    _ => {}
+                KeyCode::Esc => {
+                    self.modal = Modal::None;
                 }
-            }
+                KeyCode::Backspace => {
+                    path.pop();
+                }
+                KeyCode::Tab => {
+                    if let Some(completed) = Self::tab_complete(path) {
+                        *path = completed;
+                    }
+                }
+                KeyCode::Char(c) => {
+                    path.push(c);
+                }
+                _ => {}
+            },
+            Modal::CopyTo(ref mut dest) => match key.code {
+                KeyCode::Enter => {
+                    let dest_path = PathBuf::from(dest.clone());
+                    self.modal = Modal::None;
+                    match self.copy_tagged_files(&dest_path) {
+                        Ok(count) => {
+                            self.modal = Modal::Success(format!("Copied {} file(s)", count));
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Copy failed: {}", e));
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    self.modal = Modal::None;
+                }
+                KeyCode::Backspace => {
+                    dest.pop();
+                }
+                KeyCode::Tab => {
+                    if let Some(completed) = Self::tab_complete(dest) {
+                        *dest = completed;
+                    }
+                }
+                KeyCode::Char(c) => {
+                    dest.push(c);
+                }
+                _ => {}
+            },
             Modal::MoveTo(ref mut dest) => {
                 match key.code {
                     KeyCode::Enter => {
@@ -1045,58 +1355,54 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::EraseConfirm => {
-                match key.code {
-                    KeyCode::Char('y') | KeyCode::Char('Y') => {
-                        self.modal = Modal::None;
-                        match self.erase_tagged_files() {
-                            Ok(count) => {
-                                self.modal = Modal::Success(format!("Erased {} file(s)", count));
-                                let _ = self.refresh_files();
-                            }
-                            Err(e) => {
-                                self.modal = Modal::Error(format!("Erase failed: {}", e));
-                            }
+            Modal::EraseConfirm => match key.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    self.modal = Modal::None;
+                    match self.erase_tagged_files() {
+                        Ok(count) => {
+                            self.modal = Modal::Success(format!("Erased {} file(s)", count));
+                            let _ = self.refresh_files();
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Erase failed: {}", e));
                         }
                     }
-                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    _ => {}
                 }
-            }
-            Modal::RenameInput(ref mut new_name) => {
-                match key.code {
-                    KeyCode::Enter => {
-                        let name = new_name.clone();
-                        self.modal = Modal::None;
-                        match self.rename_selected_file(&name) {
-                            Ok(()) => {
-                                self.modal = Modal::Success("File renamed".to_string());
-                                let _ = self.refresh_files();
-                            }
-                            Err(e) => {
-                                self.modal = Modal::Error(format!("Rename failed: {}", e));
-                            }
-                        }
-                    }
-                    KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    KeyCode::Backspace => {
-                        new_name.pop();
-                    }
-                    KeyCode::Tab => {
-                        if let Some(completed) = Self::tab_complete(new_name) {
-                            *new_name = completed;
-                        }
-                    }
-                    KeyCode::Char(c) => {
-                        new_name.push(c);
-                    }
-                    _ => {}
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                    self.modal = Modal::None;
                 }
-            }
+                _ => {}
+            },
+            Modal::RenameInput(ref mut new_name) => match key.code {
+                KeyCode::Enter => {
+                    let name = new_name.clone();
+                    self.modal = Modal::None;
+                    match self.rename_selected_file(&name) {
+                        Ok(()) => {
+                            self.modal = Modal::Success("File renamed".to_string());
+                            let _ = self.refresh_files();
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Rename failed: {}", e));
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    self.modal = Modal::None;
+                }
+                KeyCode::Backspace => {
+                    new_name.pop();
+                }
+                KeyCode::Tab => {
+                    if let Some(completed) = Self::tab_complete(new_name) {
+                        *new_name = completed;
+                    }
+                }
+                KeyCode::Char(c) => {
+                    new_name.push(c);
+                }
+                _ => {}
+            },
             Modal::FileViewer(ref mut state) => {
                 // Calculate max scroll based on mode and content
                 let max_scroll = state.max_scroll(20); // Assume ~20 lines visible, will be recalculated in UI
@@ -1128,7 +1434,10 @@ impl App {
                         // Clamp scroll for new mode
                         state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
                     }
-                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('a') | KeyCode::Char('A') => {
+                    KeyCode::Char('n')
+                    | KeyCode::Char('N')
+                    | KeyCode::Char('a')
+                    | KeyCode::Char('A') => {
                         state.mode = ViewMode::Normal;
                         // Clamp scroll for new mode
                         state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
@@ -1237,11 +1546,13 @@ impl App {
                                     };
                                     state.confirm_delete = None;
                                     state.rebuild_flat_list();
-                                    state.selected_index = parent_idx.min(state.flat_list.len().saturating_sub(1));
+                                    state.selected_index =
+                                        parent_idx.min(state.flat_list.len().saturating_sub(1));
                                 }
                                 Err(e) => {
                                     state.confirm_delete = None;
-                                    self.modal = Modal::Error(format!("Cannot remove directory: {}", e));
+                                    self.modal =
+                                        Modal::Error(format!("Cannot remove directory: {}", e));
                                     return Ok(());
                                 }
                             }
@@ -1273,7 +1584,10 @@ impl App {
                                         Err(e) => {
                                             state.input_mode = None;
                                             state.input_buffer.clear();
-                                            self.modal = Modal::Error(format!("Failed to create directory: {}", e));
+                                            self.modal = Modal::Error(format!(
+                                                "Failed to create directory: {}",
+                                                e
+                                            ));
                                             return Ok(());
                                         }
                                     }
@@ -1311,7 +1625,9 @@ impl App {
                         }
                         KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
                             // Navigate to directory or expand
-                            if let Some((_, _, expanded, has_children)) = state.flat_list.get(state.selected_index) {
+                            if let Some((_, _, expanded, has_children)) =
+                                state.flat_list.get(state.selected_index)
+                            {
                                 if *has_children && !*expanded {
                                     state.toggle_expand(state.selected_index);
                                 } else if let Some(path) = state.selected_path() {
@@ -1324,12 +1640,16 @@ impl App {
                         }
                         KeyCode::Left | KeyCode::Char('h') | KeyCode::Backspace => {
                             // Collapse if expanded, otherwise go to parent
-                            if let Some((_, _, expanded, _)) = state.flat_list.get(state.selected_index) {
+                            if let Some((_, _, expanded, _)) =
+                                state.flat_list.get(state.selected_index)
+                            {
                                 if *expanded {
                                     state.toggle_expand(state.selected_index);
                                 } else if state.selected_index > 0 {
                                     // Find parent (look for item with depth - 1)
-                                    let current_depth = state.flat_list.get(state.selected_index)
+                                    let current_depth = state
+                                        .flat_list
+                                        .get(state.selected_index)
                                         .map(|(_, d, _, _)| *d)
                                         .unwrap_or(0);
                                     if current_depth > 0 {
@@ -1457,7 +1777,8 @@ impl App {
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
                                     if let Some(parent) = path.parent() {
                                         let parent = parent.to_path_buf();
-                                        let file_name = path.file_name()
+                                        let file_name = path
+                                            .file_name()
                                             .map(|n| n.to_string_lossy().to_string());
                                         self.modal = Modal::None;
                                         if let Ok(()) = self.navigate_to(&parent) {
@@ -1467,7 +1788,11 @@ impl App {
                                                     let full_name = if f.extension.is_empty() {
                                                         f.name.clone()
                                                     } else {
-                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                        format!(
+                                                            "{}.{}",
+                                                            f.name,
+                                                            f.extension.to_lowercase()
+                                                        )
                                                     };
                                                     full_name.eq_ignore_ascii_case(&name)
                                                 }) {
@@ -1482,11 +1807,14 @@ impl App {
                                 // View the file
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
                                     if let Ok(content) = std::fs::read(path) {
-                                        let file_name = path.file_name()
+                                        let file_name = path
+                                            .file_name()
                                             .map(|n| n.to_string_lossy().to_string())
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
-                                        self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                                        self.modal = Modal::FileViewer(FileViewerState::new(
+                                            file_name, file_path, content,
+                                        ));
                                     }
                                 }
                             }
@@ -1520,19 +1848,24 @@ impl App {
                                     state.current_match += 1;
                                     // Adjust scroll to keep selection visible
                                     if state.current_match >= state.scroll_offset + visible_height {
-                                        state.scroll_offset = state.current_match - visible_height + 1;
+                                        state.scroll_offset =
+                                            state.current_match - visible_height + 1;
                                     }
                                 }
                             }
                             KeyCode::PageUp => {
-                                state.current_match = state.current_match.saturating_sub(visible_height);
-                                state.scroll_offset = state.scroll_offset.saturating_sub(visible_height);
+                                state.current_match =
+                                    state.current_match.saturating_sub(visible_height);
+                                state.scroll_offset =
+                                    state.scroll_offset.saturating_sub(visible_height);
                             }
                             KeyCode::PageDown => {
                                 let max = state.matches.len().saturating_sub(1);
-                                state.current_match = (state.current_match + visible_height).min(max);
+                                state.current_match =
+                                    (state.current_match + visible_height).min(max);
                                 let max_scroll = state.matches.len().saturating_sub(visible_height);
-                                state.scroll_offset = (state.scroll_offset + visible_height).min(max_scroll);
+                                state.scroll_offset =
+                                    (state.scroll_offset + visible_height).min(max_scroll);
                             }
                             KeyCode::Home => {
                                 state.current_match = 0;
@@ -1548,7 +1881,8 @@ impl App {
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
                                     if let Some(parent) = path.parent() {
                                         let parent = parent.to_path_buf();
-                                        let file_name = path.file_name()
+                                        let file_name = path
+                                            .file_name()
                                             .map(|n| n.to_string_lossy().to_string());
                                         self.modal = Modal::None;
                                         if let Ok(()) = self.navigate_to(&parent) {
@@ -1558,7 +1892,11 @@ impl App {
                                                     let full_name = if f.extension.is_empty() {
                                                         f.name.clone()
                                                     } else {
-                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                        format!(
+                                                            "{}.{}",
+                                                            f.name,
+                                                            f.extension.to_lowercase()
+                                                        )
                                                     };
                                                     full_name.eq_ignore_ascii_case(&name)
                                                 }) {
@@ -1573,11 +1911,14 @@ impl App {
                                 // View the selected file
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
                                     if let Ok(content) = std::fs::read(path) {
-                                        let file_name = path.file_name()
+                                        let file_name = path
+                                            .file_name()
                                             .map(|n| n.to_string_lossy().to_string())
                                             .unwrap_or_else(|| "file".to_string());
                                         let file_path = path.clone();
-                                        self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                                        self.modal = Modal::FileViewer(FileViewerState::new(
+                                            file_name, file_path, content,
+                                        ));
                                     }
                                 }
                             }
@@ -1586,7 +1927,8 @@ impl App {
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
                                     if let Some(parent) = path.parent() {
                                         let parent = parent.to_path_buf();
-                                        let file_name = path.file_name()
+                                        let file_name = path
+                                            .file_name()
                                             .map(|n| n.to_string_lossy().to_string());
                                         self.modal = Modal::None;
                                         if let Ok(()) = self.navigate_to(&parent) {
@@ -1595,7 +1937,11 @@ impl App {
                                                     let full_name = if f.extension.is_empty() {
                                                         f.name.clone()
                                                     } else {
-                                                        format!("{}.{}", f.name, f.extension.to_lowercase())
+                                                        format!(
+                                                            "{}.{}",
+                                                            f.name,
+                                                            f.extension.to_lowercase()
+                                                        )
                                                     };
                                                     full_name.eq_ignore_ascii_case(&name)
                                                 }) {
@@ -1624,7 +1970,13 @@ impl App {
                         // Rename the current file
                         if let Some((path, _)) = state.current_file().cloned() {
                             let new_name = state.input.clone();
-                            if !new_name.is_empty() && new_name != path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() {
+                            if !new_name.is_empty()
+                                && new_name
+                                    != path
+                                        .file_name()
+                                        .map(|n| n.to_string_lossy().to_string())
+                                        .unwrap_or_default()
+                            {
                                 let new_path = path.parent().unwrap_or(&path).join(&new_name);
                                 match fs::rename(&path, &new_path) {
                                     Ok(()) => {
@@ -1732,7 +2084,10 @@ impl App {
                             if let Some(err) = error_msg {
                                 self.modal = Modal::Error(err);
                             } else if success_count > 0 {
-                                self.modal = Modal::Success(format!("Updated attributes for {} file(s)", success_count));
+                                self.modal = Modal::Success(format!(
+                                    "Updated attributes for {} file(s)",
+                                    success_count
+                                ));
                             }
                         }
                     }
@@ -1796,8 +2151,57 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::Help | Modal::Status(_) | Modal::Space
-            | Modal::Error(_) | Modal::Success(_) => {
+            Modal::Help(ref mut state) => {
+                match key.code {
+                    KeyCode::Esc => {
+                        if state.current_topic == 0 {
+                            // On index page, close help
+                            self.modal = Modal::None;
+                        } else {
+                            // On topic page, go back to index
+                            state.current_topic = 0;
+                            state.scroll_offset = 0;
+                        }
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        if state.scroll_offset > 0 {
+                            state.scroll_offset -= 1;
+                        }
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        state.scroll_offset += 1;
+                    }
+                    KeyCode::PageUp => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(10);
+                    }
+                    KeyCode::PageDown => {
+                        state.scroll_offset += 10;
+                    }
+                    KeyCode::Home => {
+                        state.scroll_offset = 0;
+                    }
+                    KeyCode::Char(c) => {
+                        // Check if character matches a topic key
+                        let c_upper = c.to_ascii_uppercase();
+                        for (i, topic) in state.topics.iter().enumerate() {
+                            if topic.key == c_upper {
+                                state.current_topic = i + 1;
+                                state.scroll_offset = 0;
+                                break;
+                            }
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if state.current_topic == 0 {
+                            // On index, go to first topic
+                            state.current_topic = 1;
+                            state.scroll_offset = 0;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Modal::Status(_) | Modal::Space | Modal::Error(_) | Modal::Success(_) => {
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
                         self.modal = Modal::None;
@@ -1851,9 +2255,7 @@ impl App {
     pub fn tagged_size(&self) -> u64 {
         self.tagged_files
             .iter()
-            .filter_map(|p| {
-                self.files.iter().find(|f| &f.path == p).map(|f| f.size)
-            })
+            .filter_map(|p| self.files.iter().find(|f| &f.path == p).map(|f| f.size))
             .sum()
     }
 
@@ -1924,7 +2326,7 @@ impl App {
                     let dest = self.current_path.to_string_lossy().to_string();
                     self.modal = Modal::CopyTo(dest);
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
-                    self.modal = Modal::Error("No file selected for copy.".to_string());
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
                     // Copy the highlighted file - temporarily tag it
                     let file = &self.files[self.selected_index];
@@ -1939,7 +2341,7 @@ impl App {
                     let dest = self.current_path.to_string_lossy().to_string();
                     self.modal = Modal::MoveTo(dest);
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
-                    self.modal = Modal::Error("No file selected for move.".to_string());
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
                     // Move the highlighted file - temporarily tag it
                     let file = &self.files[self.selected_index];
@@ -1953,9 +2355,9 @@ impl App {
                     // Erase tagged files
                     self.modal = Modal::EraseConfirm;
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
-                    self.modal = Modal::Error("No file selected for erase.".to_string());
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else if self.files[self.selected_index].is_dir {
-                    self.modal = Modal::Error("Use Directory Map (D) to delete directories.".to_string());
+                    self.modal = Modal::Error(errors::file::CANNOT_ERASE_DIR.to_string());
                 } else {
                     // Erase the highlighted file - temporarily tag it for the confirm dialog
                     let file = &self.files[self.selected_index];
@@ -1970,7 +2372,7 @@ impl App {
                     let state = BatchRenameState::new(files);
                     self.modal = Modal::BatchRename(state);
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
-                    self.modal = Modal::Error("No file selected for rename.".to_string());
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
                     // Single file rename
                     let current_name = self.files[self.selected_index].name.clone();
@@ -1985,9 +2387,9 @@ impl App {
             }
             NavItem::View => {
                 if self.files.is_empty() || self.files[self.selected_index].name == ".." {
-                    self.modal = Modal::Error("No file selected".to_string());
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else if self.files[self.selected_index].is_dir {
-                    self.modal = Modal::Error("You cannot view a directory".to_string());
+                    self.modal = Modal::Error(errors::file::CANNOT_VIEW_DIR.to_string());
                 } else {
                     let file = &self.files[self.selected_index];
                     match std::fs::read(&file.path) {
@@ -1998,10 +2400,13 @@ impl App {
                                 format!("{}.{}", file.name, file.extension)
                             };
                             let file_path = file.path.clone();
-                            self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                            self.modal = Modal::FileViewer(FileViewerState::new(
+                                file_name, file_path, content,
+                            ));
                         }
-                        Err(e) => {
-                            self.modal = Modal::Error(format!("Cannot open file: {}", e));
+                        Err(_e) => {
+                            self.modal =
+                                Modal::Error(errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string());
                         }
                     }
                 }
@@ -2020,7 +2425,8 @@ impl App {
                     self.modal = Modal::Attribute(state);
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     // No file selected - show display mode for current file or error
-                    self.modal = Modal::Error("No file selected for attribute display.".to_string());
+                    self.modal =
+                        Modal::Error("No file selected for attribute display.".to_string());
                 } else {
                     // Single file - show attribute editor
                     let file = &self.files[self.selected_index];
@@ -2048,7 +2454,11 @@ impl App {
 
     /// Get total size of all files
     pub fn total_size(&self) -> u64 {
-        self.files.iter().filter(|f| !f.is_dir).map(|f| f.size).sum()
+        self.files
+            .iter()
+            .filter(|f| !f.is_dir)
+            .map(|f| f.size)
+            .sum()
     }
 
     /// Tab completion for paths
@@ -2214,7 +2624,11 @@ impl App {
             anyhow::bail!("Cannot rename parent directory");
         }
 
-        let new_path = file.path.parent().unwrap_or(&self.current_path).join(new_name);
+        let new_path = file
+            .path
+            .parent()
+            .unwrap_or(&self.current_path)
+            .join(new_name);
         fs::rename(&file.path, &new_path)?;
 
         Ok(())
@@ -2251,8 +2665,8 @@ fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
 
 /// Execute a shell command and return (output lines, exit code)
 fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
-    use std::process::{Command, Stdio};
     use std::io::{BufRead, BufReader};
+    use std::process::{Command, Stdio};
 
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
 
@@ -2287,8 +2701,6 @@ fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
             let exit_code = output.status.code().unwrap_or(-1);
             (lines, exit_code)
         }
-        Err(e) => {
-            (vec![format!("Error executing command: {}", e)], -1)
-        }
+        Err(e) => (vec![format!("Error executing command: {}", e)], -1),
     }
 }

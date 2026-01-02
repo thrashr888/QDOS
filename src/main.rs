@@ -1,4 +1,5 @@
 mod app;
+mod errors;
 mod event;
 mod file_ops;
 mod ui;
@@ -15,11 +16,11 @@ use std::io;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Get starting directory from args or use current directory
-    let start_path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| std::env::current_dir()
+    let start_path = std::env::args().nth(1).unwrap_or_else(|| {
+        std::env::current_dir()
             .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| ".".to_string()));
+            .unwrap_or_else(|_| ".".to_string())
+    });
 
     // Setup terminal
     enable_raw_mode()?;
@@ -34,10 +35,7 @@ async fn main() -> Result<()> {
 
     // Restore terminal
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen
-    )?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
     if let Err(err) = res {

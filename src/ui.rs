@@ -1,4 +1,8 @@
-use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMode, ViewFilter, SortMode, DirectoryMapState, FindState, FindPhase, BatchRenameState, AttributeState, AttrValue, SearchSpecState};
+use crate::app::{
+    App, AttrValue, AttributeState, BatchRenameState, DirectoryMapState, FileViewerState,
+    FindPhase, FindState, HelpState, Modal, NavItem, SearchSpecState, ShellCommandState, SortMode,
+    ViewFilter, ViewMode,
+};
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
@@ -10,15 +14,73 @@ use ratatui::{
 };
 
 /// QDOS color scheme - exact DOS 16-color palette RGB values
-const COLOR_BG: Color = Color::Reset;                 // Terminal default (transparent)
-const COLOR_FG: Color = Color::Rgb(255, 255, 255);   // White
-const COLOR_BLUE: Color = Color::Rgb(102, 183, 179);     // DOS Blue - borders, menu items
-const COLOR_GREEN: Color = Color::Rgb(103, 204, 77);    // DOS Green - help text, descriptions
-const COLOR_RED: Color = Color::Rgb(157, 31, 20);      // DOS Red - path bar, selection bg
+const COLOR_BG: Color = Color::Reset; // Terminal default (transparent)
+const COLOR_FG: Color = Color::Rgb(255, 255, 255); // White
+const COLOR_BLUE: Color = Color::Rgb(102, 183, 179); // DOS Blue - borders, menu items
+const COLOR_GREEN: Color = Color::Rgb(103, 204, 77); // DOS Green - help text, descriptions
+const COLOR_RED: Color = Color::Rgb(157, 31, 20); // DOS Red - path bar, selection bg
 const COLOR_YELLOW: Color = Color::Rgb(232, 218, 89); // DOS Yellow - tagged items
-const COLOR_GREY: Color = Color::Rgb(128, 128, 128);   // Grey - hidden files
-const COLOR_CYAN: Color = Color::Rgb(0, 170, 170);     // Cyan - git added
-const COLOR_MAGENTA: Color = Color::Rgb(170, 0, 170);  // Magenta - git untracked
+const COLOR_GREY: Color = Color::Rgb(128, 128, 128); // Grey - hidden files
+const COLOR_CYAN: Color = Color::Rgb(0, 170, 170); // Cyan - git added
+const COLOR_MAGENTA: Color = Color::Rgb(170, 0, 170); // Magenta - git untracked
+
+/// Format file size with B, K, M, G, T, P suffixes (max 2 decimal places)
+fn format_size_short(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+    const TB: u64 = GB * 1024;
+    const PB: u64 = TB * 1024;
+
+    if bytes >= PB {
+        let val = bytes as f64 / PB as f64;
+        if val >= 100.0 {
+            format!("{:.0}P", val)
+        } else if val >= 10.0 {
+            format!("{:.1}P", val)
+        } else {
+            format!("{:.2}P", val)
+        }
+    } else if bytes >= TB {
+        let val = bytes as f64 / TB as f64;
+        if val >= 100.0 {
+            format!("{:.0}T", val)
+        } else if val >= 10.0 {
+            format!("{:.1}T", val)
+        } else {
+            format!("{:.2}T", val)
+        }
+    } else if bytes >= GB {
+        let val = bytes as f64 / GB as f64;
+        if val >= 100.0 {
+            format!("{:.0}G", val)
+        } else if val >= 10.0 {
+            format!("{:.1}G", val)
+        } else {
+            format!("{:.2}G", val)
+        }
+    } else if bytes >= MB {
+        let val = bytes as f64 / MB as f64;
+        if val >= 100.0 {
+            format!("{:.0}M", val)
+        } else if val >= 10.0 {
+            format!("{:.1}M", val)
+        } else {
+            format!("{:.2}M", val)
+        }
+    } else if bytes >= KB {
+        let val = bytes as f64 / KB as f64;
+        if val >= 100.0 {
+            format!("{:.0}K", val)
+        } else if val >= 10.0 {
+            format!("{:.1}K", val)
+        } else {
+            format!("{:.2}K", val)
+        }
+    } else {
+        format!("{}B", bytes)
+    }
+}
 
 /// Color usage:
 ///
@@ -32,7 +94,6 @@ const COLOR_MAGENTA: Color = Color::Rgb(170, 0, 170);  // Magenta - git untracke
 /// stats: headers are blue on black. data are white on black, with double line white-on-black border.
 /// keybindings: all text is white on black. single line white-on-black border above and below.
 /// copyright: all text is blue on black.
-
 
 /// Format a number with comma separators (DOS style)
 fn format_number(n: u64) -> String {
@@ -56,8 +117,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let min_height: u16 = 25;
 
     if size.width < min_width || size.height < min_height {
-        let msg = format!("Terminal too small. Need {}x{}, have {}x{}",
-            min_width, min_height, size.width, size.height);
+        let msg = format!(
+            "Terminal too small. Need {}x{}, have {}x{}",
+            min_width, min_height, size.width, size.height
+        );
         frame.render_widget(
             Paragraph::new(Span::styled(msg, Style::default().fg(COLOR_RED))),
             size,
@@ -69,10 +132,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(2),  // Navigation bar + description
-            Constraint::Length(1),  // Separator line above path
-            Constraint::Length(1),  // Path bar
-            Constraint::Min(10),    // Content area (directly after PATH)
+            Constraint::Length(2), // Navigation bar + description
+            Constraint::Length(1), // Separator line above path
+            Constraint::Length(1), // Path bar
+            Constraint::Min(10),   // Content area (directly after PATH)
         ])
         .split(size);
 
@@ -89,7 +152,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     draw_integrated_content(frame, app, main_chunks[3]);
 
     // Draw modal if active
-    if app.modal != Modal::None {
+    if !matches!(app.modal, Modal::None) {
         draw_modal(frame, app, size);
     }
 }
@@ -102,17 +165,12 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
         .enumerate()
         .flat_map(|(i, item)| {
             let style = if i == app.nav_index {
-                Style::default()
-                    .fg(COLOR_YELLOW)
-                    .bg(COLOR_RED)
+                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
             } else {
                 Style::default().fg(COLOR_FG) // White text for unselected
             };
 
-            vec![
-                Span::styled(item.as_str(), style),
-                Span::raw("  "),
-            ]
+            vec![Span::styled(item.as_str(), style), Span::raw("  ")]
         })
         .collect();
 
@@ -168,7 +226,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let left_width: u16 = 30;
 
     // Calculate dynamic size column width based on file sizes
-    let max_size_width = app.files.iter()
+    let max_size_width = app
+        .files
+        .iter()
         .filter(|f| !f.is_dir)
         .map(|f| format_number(f.size).len())
         .max()
@@ -176,7 +236,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let size_col: u16 = (max_size_width.max(4) + 2) as u16; // +2 for padding
 
     // File table column widths - name column expands to fill remaining space
-    let kind_col: u16 = 6;  // "KIND" + padding
+    let kind_col: u16 = 6; // "KIND" + padding
     let date_col: u16 = 10;
     let time_col: u16 = 9;
     // Calculate name_col to fill remaining width (area.width - left_width - kind - size - date - time - 5 separators - 1 right border)
@@ -248,41 +308,71 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         format!(" File Name{}", name_arrow)
     };
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{:<width$}", name_header, width = name_col as usize), header_style)),
+        Paragraph::new(Span::styled(
+            format!("{:<width$}", name_header, width = name_col as usize),
+            header_style,
+        )),
         Rect::new(x, y, name_col, 1),
     );
     x += name_col;
-    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled("║", border_style)),
+        Rect::new(x, y, 1, 1),
+    );
     x += 1;
     frame.render_widget(
-        Paragraph::new(Span::styled(format!(" {:<width$}", "Kind", width = kind_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(
+            format!(" {:<width$}", "Kind", width = kind_col as usize - 1),
+            header_style,
+        )),
         Rect::new(x, y, kind_col, 1),
     );
     x += kind_col;
-    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled("║", border_style)),
+        Rect::new(x, y, 1, 1),
+    );
     x += 1;
     let size_header = format!("Size{}", size_arrow);
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{:>width$} ", size_header, width = size_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(
+            format!("{:>width$} ", size_header, width = size_col as usize - 1),
+            header_style,
+        )),
         Rect::new(x, y, size_col, 1),
     );
     x += size_col;
-    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled("║", border_style)),
+        Rect::new(x, y, 1, 1),
+    );
     x += 1;
     let date_header = format!(" Date{}", date_arrow);
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{:<width$}", date_header, width = date_col as usize), header_style)),
+        Paragraph::new(Span::styled(
+            format!("{:<width$}", date_header, width = date_col as usize),
+            header_style,
+        )),
         Rect::new(x, y, date_col, 1),
     );
     x += date_col;
-    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled("║", border_style)),
+        Rect::new(x, y, 1, 1),
+    );
     x += 1;
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{:>width$} ", "Time", width = time_col as usize - 1), header_style)),
+        Paragraph::new(Span::styled(
+            format!("{:>width$} ", "Time", width = time_col as usize - 1),
+            header_style,
+        )),
         Rect::new(x, y, time_col, 1),
     );
     x += time_col;
-    frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, y, 1, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled("║", border_style)),
+        Rect::new(x, y, 1, 1),
+    );
 
     // ROW 2: Header underline with stats boxes start
     let y = area.y + 2;
@@ -314,7 +404,11 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
     // ROW 3: Files count row
     let y = area.y + 3;
-    let files_line = format!("║{:>4}║ Files  ║{:>11}║   ", file_count, format_number(total_size));
+    let files_line = format!(
+        "║{:>4}║ Files  ║{:>11}║   ",
+        file_count,
+        format_number(total_size)
+    );
     frame.render_widget(
         Paragraph::new(Span::styled(&files_line, border_style)),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -352,11 +446,17 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("║", border_style),
-            Span::styled(format!("{:>4}", tagged_count), Style::default().fg(COLOR_FG)),
+            Span::styled(
+                format!("{:>4}", tagged_count),
+                Style::default().fg(COLOR_FG),
+            ),
             Span::styled("║ ", border_style),
             Span::styled("Tagged", Style::default().fg(COLOR_FG)),
             Span::styled(" ║", border_style),
-            Span::styled(format!("{:>11}", format_number(tagged_size)), Style::default().fg(COLOR_FG)),
+            Span::styled(
+                format!("{:>11}", format_number(tagged_size)),
+                Style::default().fg(COLOR_FG),
+            ),
             Span::styled("║   ", border_style),
         ])),
         Rect::new(area.x, y, left_width - 1, 1),
@@ -423,7 +523,8 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let scroll_offset = calculate_scroll_offset(app.selected_index, app.scroll_offset, data_height);
 
     // Calculate right border x position
-    let right_border_x = file_table_x + name_col + 1 + kind_col + 1 + size_col + 1 + date_col + 1 + time_col;
+    let right_border_x =
+        file_table_x + name_col + 1 + kind_col + 1 + size_col + 1 + date_col + 1 + time_col;
 
     // Draw all content rows (files + empty rows to fill height)
     for row_idx in 0..data_height {
@@ -464,7 +565,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                     GitStatus::Deleted => Style::default().fg(COLOR_RED),
                     GitStatus::Renamed => Style::default().fg(COLOR_CYAN),
                     GitStatus::Untracked => Style::default().fg(COLOR_MAGENTA),
-                    GitStatus::Conflict => Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
+                    GitStatus::Conflict => {
+                        Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD)
+                    }
                     GitStatus::Ignored => Style::default().fg(COLOR_GREY),
                     GitStatus::None => style,
                 }
@@ -476,7 +579,11 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 ("║", border_style)
             };
 
-            let name = if file.name == ".." { "..".to_string() } else { file.name.to_uppercase() };
+            let name = if file.name == ".." {
+                "..".to_string()
+            } else {
+                file.name.to_uppercase()
+            };
             let ext = if file.is_dir && file.name != ".." {
                 String::new()
             } else if file.extension.is_empty() {
@@ -489,9 +596,13 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             let git_indicator = file.git_status.indicator();
 
             let size_str = if file.is_dir {
-                if file.name == ".." { String::new() } else { "<DIR>".to_string() }
+                if file.name == ".." {
+                    String::new()
+                } else {
+                    "<DIR>".to_string()
+                }
             } else {
-                format_number(file.size)
+                format_size_short(file.size)
             };
 
             let kind_str = file.kind.as_str();
@@ -516,55 +627,102 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 Rect::new(x, row_y, name_col, 1),
             );
             x += name_col;
-            frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled(sep_char, sep_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1;
 
             // Kind column
             frame.render_widget(
-                Paragraph::new(Span::styled(format!(" {:<width$}", kind_str, width = kind_col as usize - 1), style)),
+                Paragraph::new(Span::styled(
+                    format!(" {:<width$}", kind_str, width = kind_col as usize - 1),
+                    style,
+                )),
                 Rect::new(x, row_y, kind_col, 1),
             );
             x += kind_col;
-            frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled(sep_char, sep_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1;
 
             // Size (right-aligned with space on right)
             frame.render_widget(
-                Paragraph::new(Span::styled(format!("{:>width$} ", size_str, width = size_col as usize - 1), style)),
+                Paragraph::new(Span::styled(
+                    format!("{:>width$} ", size_str, width = size_col as usize - 1),
+                    style,
+                )),
                 Rect::new(x, row_y, size_col, 1),
             );
             x += size_col;
-            frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled(sep_char, sep_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1;
 
             // Date
             frame.render_widget(
-                Paragraph::new(Span::styled(format!(" {:<width$}", file.date_string(), width = date_col as usize - 1), style)),
+                Paragraph::new(Span::styled(
+                    format!(
+                        " {:<width$}",
+                        file.date_string(),
+                        width = date_col as usize - 1
+                    ),
+                    style,
+                )),
                 Rect::new(x, row_y, date_col, 1),
             );
             x += date_col;
-            frame.render_widget(Paragraph::new(Span::styled(sep_char, sep_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled(sep_char, sep_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1;
 
             // Time (right-aligned with space on right)
             frame.render_widget(
-                Paragraph::new(Span::styled(format!("{:>width$} ", file.time_string(), width = time_col as usize - 1), style)),
+                Paragraph::new(Span::styled(
+                    format!(
+                        "{:>width$} ",
+                        file.time_string(),
+                        width = time_col as usize - 1
+                    ),
+                    style,
+                )),
                 Rect::new(x, row_y, time_col, 1),
             );
         } else {
             // Empty row - just draw column separators
             let mut x = file_table_x + name_col;
-            frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled("║", border_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1 + kind_col;
-            frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled("║", border_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1 + size_col;
-            frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled("║", border_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
             x += 1 + date_col;
-            frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(x, row_y, 1, 1));
+            frame.render_widget(
+                Paragraph::new(Span::styled("║", border_style)),
+                Rect::new(x, row_y, 1, 1),
+            );
         }
 
         // Right border for all rows
-        frame.render_widget(Paragraph::new(Span::styled("║", border_style)), Rect::new(right_border_x, row_y, 1, 1));
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(right_border_x, row_y, 1, 1),
+        );
     }
 
     // Bottom border for file table
@@ -617,7 +775,7 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Clear, modal_area);
 
     match &app.modal {
-        Modal::Help => draw_help_modal(frame, modal_area),
+        Modal::Help(state) => draw_help_modal(frame, area, state),
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
@@ -639,38 +797,131 @@ fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-/// Draw help modal
-fn draw_help_modal(frame: &mut Frame, area: Rect) {
-    let help_block = Block::default()
-        .title(" Help ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
+/// Draw help modal with multi-page support (full-page view)
+fn draw_help_modal(frame: &mut Frame, area: Rect, state: &HelpState) {
+    // Clear the full area first
+    frame.render_widget(Clear, area);
+
+    // Split into content area and status bar
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1), Constraint::Length(1)])
+        .split(area);
+
+    let content_area = chunks[0];
+    let status_area = chunks[1];
+
+    if state.current_topic == 0 {
+        // Index page - show list of topics
+        let help_block = Block::default()
+            .title(" Help - Index ")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(COLOR_BLUE))
+            .style(Style::default().bg(COLOR_BG));
+
+        let mut lines = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                "R-DOS File Manager Help",
+                Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                "Press a key to view topic:",
+                Style::default().fg(COLOR_BLUE),
+            )),
+            Line::from(""),
+        ];
+
+        for topic in &state.topics {
+            lines.push(Line::from(vec![
+                Span::styled(
+                    format!("  {}  ", topic.key),
+                    Style::default().fg(COLOR_YELLOW).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(&topic.title, Style::default().fg(COLOR_FG)),
+            ]));
+        }
+
+        let paragraph = Paragraph::new(lines)
+            .block(help_block)
+            .wrap(Wrap { trim: true });
+
+        frame.render_widget(paragraph, content_area);
+
+        // Status bar
+        let status = Paragraph::new(Line::from(vec![
+            Span::styled(" ESC ", Style::default().fg(COLOR_BG).bg(COLOR_GREEN)),
+            Span::styled(" Close", Style::default().fg(COLOR_FG).bg(COLOR_BG)),
+        ]))
         .style(Style::default().bg(COLOR_BG));
 
-    let help_text = vec![
-        Line::from(""),
-        Line::from(Span::styled("R-DOS File Manager", Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
-        Line::from(""),
-        Line::from(Span::styled("Navigation:", Style::default().fg(COLOR_BLUE))),
-        Line::from("  ↑/↓ or j/k    - Move selection"),
-        Line::from("  ←/→ or h/l    - Navigate menu"),
-        Line::from("  Enter         - Open directory / Execute action"),
-        Line::from("  PgUp/PgDn     - Scroll page"),
-        Line::from("  Home/End      - Jump to start/end"),
-        Line::from(""),
-        Line::from(Span::styled("Actions:", Style::default().fg(COLOR_BLUE))),
-        Line::from("  Space         - Tag/untag file"),
-        Line::from("  F8            - Cycle sort mode"),
-        Line::from("  F10 or q      - Quit"),
-        Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
-    ];
+        frame.render_widget(status, status_area);
+    } else {
+        // Topic page - show topic content
+        let topic = &state.topics[state.current_topic - 1];
+        let title = format!(" Help - {} ", topic.title);
 
-    let paragraph = Paragraph::new(help_text)
-        .block(help_block)
-        .wrap(Wrap { trim: true });
+        let help_block = Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(COLOR_BLUE))
+            .style(Style::default().bg(COLOR_BG));
 
-    frame.render_widget(paragraph, area);
+        let inner_height = content_area.height.saturating_sub(2) as usize;
+        let total_lines = topic.content.lines().count();
+
+        // Parse content into lines with scroll offset
+        let content_lines: Vec<Line> = topic
+            .content
+            .lines()
+            .skip(state.scroll_offset)
+            .take(inner_height)
+            .map(|line| {
+                if line.starts_with("##") {
+                    // Section header
+                    Line::from(Span::styled(
+                        line.trim_start_matches('#').trim(),
+                        Style::default().fg(COLOR_BLUE).add_modifier(Modifier::BOLD),
+                    ))
+                } else if line.starts_with("  ") || line.starts_with("- ") {
+                    // Indented or list item
+                    Line::from(Span::styled(line, Style::default().fg(COLOR_FG)))
+                } else if line.is_empty() {
+                    Line::from("")
+                } else {
+                    Line::from(Span::styled(line, Style::default().fg(COLOR_FG)))
+                }
+            })
+            .collect();
+
+        let paragraph = Paragraph::new(content_lines)
+            .block(help_block)
+            .wrap(Wrap { trim: true });
+
+        frame.render_widget(paragraph, content_area);
+
+        // Status bar with scroll indicator
+        let can_scroll = total_lines > inner_height;
+        let mut status_spans = vec![
+            Span::styled(" ESC ", Style::default().fg(COLOR_BG).bg(COLOR_GREEN)),
+            Span::styled(" Back  ", Style::default().fg(COLOR_FG).bg(COLOR_BG)),
+            Span::styled(" ↑↓ ", Style::default().fg(COLOR_BG).bg(COLOR_CYAN)),
+            Span::styled(" Scroll", Style::default().fg(COLOR_FG).bg(COLOR_BG)),
+        ];
+
+        if can_scroll {
+            let max_scroll = total_lines.saturating_sub(inner_height);
+            status_spans.push(Span::styled(
+                format!("  [{}/{}]", state.scroll_offset + 1, max_scroll + 1),
+                Style::default().fg(COLOR_CYAN).bg(COLOR_BG),
+            ));
+        }
+
+        let status = Paragraph::new(Line::from(status_spans)).style(Style::default().bg(COLOR_BG));
+
+        frame.render_widget(status, status_area);
+    }
 }
 
 /// Draw status modal
@@ -716,7 +967,10 @@ fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::Syst
             Span::styled(format_size(info.used_swap, DECIMAL), value_style),
         ]),
         Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Press any key to close",
+            Style::default().fg(COLOR_GREEN),
+        )),
     ];
 
     let paragraph = Paragraph::new(status_text)
@@ -740,37 +994,61 @@ fn draw_quit_modal(frame: &mut Frame, area: Rect) {
     // Build the modal line by line with double-line box characters
     // Line 0: Top border
     let top = format!("╔{}╗", "═".repeat(width as usize - 2));
-    frame.render_widget(Paragraph::new(Span::styled(&top, style)), Rect::new(quit_area.x, quit_area.y, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, style)),
+        Rect::new(quit_area.x, quit_area.y, width, 1),
+    );
 
     // Line 1: Title row
     let title = "F10 - Quit Q-DOS II";
     let title_line = format!("║{:^w$}║", title, w = width as usize - 2);
-    frame.render_widget(Paragraph::new(Span::styled(&title_line, style)), Rect::new(quit_area.x, quit_area.y + 1, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&title_line, style)),
+        Rect::new(quit_area.x, quit_area.y + 1, width, 1),
+    );
 
     // Line 2: Separator (double line)
     let sep = format!("╠{}╣", "═".repeat(width as usize - 2));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, style)), Rect::new(quit_area.x, quit_area.y + 2, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, style)),
+        Rect::new(quit_area.x, quit_area.y + 2, width, 1),
+    );
 
     // Line 3: Empty row
     let empty = format!("║{:w$}║", "", w = width as usize - 2);
-    frame.render_widget(Paragraph::new(Span::styled(&empty, style)), Rect::new(quit_area.x, quit_area.y + 3, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&empty, style)),
+        Rect::new(quit_area.x, quit_area.y + 3, width, 1),
+    );
 
     // Line 4: First message
     let msg1 = "Press F10 again to quit, or RETURN for options";
     let msg1_line = format!("║{:^w$}║", msg1, w = width as usize - 2);
-    frame.render_widget(Paragraph::new(Span::styled(&msg1_line, style)), Rect::new(quit_area.x, quit_area.y + 4, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&msg1_line, style)),
+        Rect::new(quit_area.x, quit_area.y + 4, width, 1),
+    );
 
     // Line 5: Empty row
-    frame.render_widget(Paragraph::new(Span::styled(&empty, style)), Rect::new(quit_area.x, quit_area.y + 5, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&empty, style)),
+        Rect::new(quit_area.x, quit_area.y + 5, width, 1),
+    );
 
     // Line 6: Second message
     let msg2 = "Press ESC to return to Q-DOS II";
     let msg2_line = format!("║{:^w$}║", msg2, w = width as usize - 2);
-    frame.render_widget(Paragraph::new(Span::styled(&msg2_line, style)), Rect::new(quit_area.x, quit_area.y + 6, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&msg2_line, style)),
+        Rect::new(quit_area.x, quit_area.y + 6, width, 1),
+    );
 
     // Line 7: Bottom border
     let bottom = format!("╚{}╝", "═".repeat(width as usize - 2));
-    frame.render_widget(Paragraph::new(Span::styled(&bottom, style)), Rect::new(quit_area.x, quit_area.y + 7, width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, style)),
+        Rect::new(quit_area.x, quit_area.y + 7, width, 1),
+    );
 }
 
 /// Draw search specification modal
@@ -798,7 +1076,10 @@ fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &SearchSpecState
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
             Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
-            Span::styled(&state.pattern, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+            Span::styled(
+                &state.pattern,
+                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
+            ),
             Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
         ]));
         lines.push(Line::from(""));
@@ -868,15 +1149,24 @@ fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &SearchSpecState
 
 /// Draw disk space modal
 fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
+    // Get disk name from current path (use first component or root)
+    let disk_name = app
+        .current_path
+        .components()
+        .next()
+        .map(|c| c.as_os_str().to_string_lossy().to_string())
+        .unwrap_or_else(|| "/".to_string());
+
+    let title = format!(" Space On Disk {} ", disk_name);
     let space_block = Block::default()
-        .title(" Disk Space ")
+        .title(title)
         .borders(Borders::ALL)
         .border_style(Style::default().fg(COLOR_BLUE))
         .style(Style::default().bg(COLOR_BG));
 
     let (available, total) = get_disk_space(&app.current_path).unwrap_or((0, 0));
     let used = total.saturating_sub(available);
-    let percent = if total > 0 {
+    let used_percent = if total > 0 {
         (used as f64 / total as f64 * 100.0) as u64
     } else {
         0
@@ -885,27 +1175,37 @@ fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
     let space_text = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("Total: ", Style::default().fg(COLOR_GREEN)),
-            Span::styled(format_size(total, DECIMAL), Style::default().fg(COLOR_FG)),
-        ]),
-        Line::from(vec![
-            Span::styled("Used: ", Style::default().fg(COLOR_GREEN)),
+            Span::styled("   Total space:  ", Style::default().fg(COLOR_YELLOW)),
             Span::styled(
-                format!("{} ({}%)", format_size(used, DECIMAL), percent),
-                Style::default().fg(COLOR_FG),
+                format!("{:>10}", format_size_short(total)),
+                Style::default().fg(COLOR_CYAN),
             ),
         ]),
         Line::from(vec![
-            Span::styled("Available: ", Style::default().fg(COLOR_GREEN)),
-            Span::styled(format_size(available, DECIMAL), Style::default().fg(COLOR_BLUE)),
+            Span::styled("    Total used:  ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled(
+                format!("{:>10} ({}%)", format_size_short(used), used_percent),
+                Style::default().fg(COLOR_CYAN),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled("Total available: ", Style::default().fg(COLOR_YELLOW)),
+            Span::styled(
+                format!("{:>10}", format_size_short(available)),
+                Style::default().fg(COLOR_CYAN),
+            ),
         ]),
         Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Press any key to continue",
+            Style::default().fg(COLOR_GREEN),
+        )),
     ];
 
     let paragraph = Paragraph::new(space_text)
         .block(space_block)
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: true })
+        .alignment(ratatui::layout::Alignment::Center);
 
     frame.render_widget(paragraph, area);
 }
@@ -923,7 +1223,10 @@ fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str) {
         Line::from(""),
         Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
         Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Press any key to close",
+            Style::default().fg(COLOR_GREEN),
+        )),
     ];
 
     let paragraph = Paragraph::new(error_text)
@@ -944,9 +1247,15 @@ fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
 
     let input_text = vec![
         Line::from(""),
-        Line::from(Span::styled("Enter path (Tab to complete):", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Enter path (Tab to complete):",
+            Style::default().fg(COLOR_GREEN),
+        )),
         Line::from(""),
-        Line::from(Span::styled(format!("{}_", path), Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(
+            format!("{}_", path),
+            Style::default().fg(COLOR_FG),
+        )),
         Line::from(""),
         Line::from(vec![
             Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
@@ -978,7 +1287,10 @@ fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str) {
         Line::from(""),
         Line::from(Span::styled(message, Style::default().fg(COLOR_FG))),
         Line::from(""),
-        Line::from(Span::styled("Press any key to close", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Press any key to close",
+            Style::default().fg(COLOR_GREEN),
+        )),
     ];
 
     let paragraph = Paragraph::new(success_text)
@@ -1004,9 +1316,15 @@ fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
             Style::default().fg(COLOR_YELLOW),
         )),
         Line::from(""),
-        Line::from(Span::styled("Destination (Tab to complete):", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Destination (Tab to complete):",
+            Style::default().fg(COLOR_GREEN),
+        )),
         Line::from(""),
-        Line::from(Span::styled(format!("{}_", dest), Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(
+            format!("{}_", dest),
+            Style::default().fg(COLOR_FG),
+        )),
         Line::from(""),
         Line::from(vec![
             Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
@@ -1041,9 +1359,15 @@ fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
             Style::default().fg(COLOR_YELLOW),
         )),
         Line::from(""),
-        Line::from(Span::styled("Destination (Tab to complete):", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Destination (Tab to complete):",
+            Style::default().fg(COLOR_GREEN),
+        )),
         Line::from(""),
-        Line::from(Span::styled(format!("{}_", dest), Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(
+            format!("{}_", dest),
+            Style::default().fg(COLOR_FG),
+        )),
         Line::from(""),
         Line::from(vec![
             Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
@@ -1109,9 +1433,15 @@ fn draw_rename_modal(frame: &mut Frame, area: Rect, name: &str) {
 
     let rename_text = vec![
         Line::from(""),
-        Line::from(Span::styled("Enter new name:", Style::default().fg(COLOR_GREEN))),
+        Line::from(Span::styled(
+            "Enter new name:",
+            Style::default().fg(COLOR_GREEN),
+        )),
         Line::from(""),
-        Line::from(Span::styled(format!("{}_", name), Style::default().fg(COLOR_FG))),
+        Line::from(Span::styled(
+            format!("{}_", name),
+            Style::default().fg(COLOR_FG),
+        )),
         Line::from(""),
         Line::from(vec![
             Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
@@ -1137,11 +1467,11 @@ fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewerState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title bar with file name and mode
-            Constraint::Length(1),  // Separator
-            Constraint::Min(5),     // Content area
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Status/help line
+            Constraint::Length(1), // Title bar with file name and mode
+            Constraint::Length(1), // Separator
+            Constraint::Min(5),    // Content area
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Status/help line
         ])
         .split(area);
 
@@ -1157,9 +1487,17 @@ fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewerState) {
         ViewFilter::Ascii => " [Filter: ASCII]",
         ViewFilter::WordStar => " [Filter: W/S]",
     };
-    let title = format!(" VIEW: {}  Mode: {}{}", state.file_name.to_uppercase(), mode_str, filter_str);
+    let title = format!(
+        " VIEW: {}  Mode: {}{}",
+        state.file_name.to_uppercase(),
+        mode_str,
+        filter_str
+    );
     frame.render_widget(
-        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        Paragraph::new(Span::styled(
+            title,
+            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+        )),
         chunks[0],
     );
 
@@ -1202,16 +1540,14 @@ fn draw_file_viewer(frame: &mut Frame, area: Rect, state: &FileViewerState) {
         Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
         Span::raw(" exit"),
     ];
-    frame.render_widget(
-        Paragraph::new(Line::from(help_spans)),
-        chunks[4],
-    );
+    frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[4]);
 }
 
 /// Draw normal/ASCII view mode
 fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height: usize) {
     // Convert content to lines based on filter
-    let lines: Vec<String> = state.content
+    let lines: Vec<String> = state
+        .content
         .split(|&b| b == b'\n')
         .map(|line| {
             line.iter()
@@ -1258,13 +1594,15 @@ fn draw_normal_view(frame: &mut Frame, area: Rect, state: &FileViewerState, heig
         .iter()
         .skip(scroll)
         .take(height)
-        .map(|line| Line::from(Span::styled(format!(" {}", line), Style::default().fg(COLOR_FG))))
+        .map(|line| {
+            Line::from(Span::styled(
+                format!(" {}", line),
+                Style::default().fg(COLOR_FG),
+            ))
+        })
         .collect();
 
-    frame.render_widget(
-        Paragraph::new(visible_lines),
-        area,
-    );
+    frame.render_widget(Paragraph::new(visible_lines), area);
 }
 
 /// Draw hex view mode
@@ -1315,23 +1653,14 @@ fn draw_hex_view(frame: &mut Frame, area: Rect, state: &FileViewerState, height:
         spans.push(Span::raw("  "));
         let ascii: String = chunk
             .iter()
-            .map(|&b| {
-                if b >= 32 && b < 127 {
-                    b as char
-                } else {
-                    '.'
-                }
-            })
+            .map(|&b| if b >= 32 && b < 127 { b as char } else { '.' })
             .collect();
         spans.push(Span::styled(ascii, Style::default().fg(COLOR_GREEN)));
 
         lines.push(Line::from(spans));
     }
 
-    frame.render_widget(
-        Paragraph::new(lines),
-        area,
-    );
+    frame.render_widget(Paragraph::new(lines), area);
 }
 
 /// Draw shell command screen (full screen)
@@ -1343,15 +1672,15 @@ fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Working directory
-            Constraint::Length(1),  // Empty
-            Constraint::Length(1),  // Input prompt
-            Constraint::Length(1),  // Separator
-            Constraint::Min(5),     // Output area
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Help line
+            Constraint::Length(1), // Title
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Working directory
+            Constraint::Length(1), // Empty
+            Constraint::Length(1), // Input prompt
+            Constraint::Length(1), // Separator
+            Constraint::Min(5),    // Output area
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Help line
         ])
         .split(area);
 
@@ -1360,7 +1689,10 @@ fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, 
     let padding = (area.width as usize).saturating_sub(title.len()) / 2;
     let title_line = format!("{:>width$}{}", "", title, width = padding);
     frame.render_widget(
-        Paragraph::new(Span::styled(title_line, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        Paragraph::new(Span::styled(
+            title_line,
+            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+        )),
         chunks[0],
     );
 
@@ -1393,7 +1725,8 @@ fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, 
 
     // Output area
     let output_height = chunks[6].height as usize;
-    let visible_lines: Vec<Line> = state.output
+    let visible_lines: Vec<Line> = state
+        .output
         .iter()
         .skip(state.scroll_offset)
         .take(output_height)
@@ -1424,10 +1757,7 @@ fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, 
         }
     }
 
-    frame.render_widget(
-        Paragraph::new(output_lines),
-        chunks[6],
-    );
+    frame.render_widget(Paragraph::new(output_lines), chunks[6]);
 
     // Separator
     frame.render_widget(
@@ -1448,10 +1778,7 @@ fn draw_shell_command(frame: &mut Frame, area: Rect, state: &ShellCommandState, 
         Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
         Span::raw(" exit"),
     ];
-    frame.render_widget(
-        Paragraph::new(Line::from(help_spans)),
-        chunks[8],
-    );
+    frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[8]);
 }
 
 /// Draw image view mode
@@ -1530,10 +1857,7 @@ fn draw_image_view(frame: &mut Frame, area: Rect, state: &FileViewerState) {
             }
             padded_lines.extend(lines);
 
-            frame.render_widget(
-                Paragraph::new(padded_lines),
-                area,
-            );
+            frame.render_widget(Paragraph::new(padded_lines), area);
         }
         Err(e) => {
             // Show error if image can't be loaded
@@ -1559,10 +1883,7 @@ fn draw_image_view(frame: &mut Frame, area: Rect, state: &FileViewerState) {
                     Style::default().fg(COLOR_BLUE),
                 )),
             ];
-            frame.render_widget(
-                Paragraph::new(error_msg),
-                area,
-            );
+            frame.render_widget(Paragraph::new(error_msg), area);
         }
     }
 }
@@ -1595,7 +1916,10 @@ fn draw_markdown_view(frame: &mut Frame, area: Rect, state: &FileViewerState, he
                 format!(" {}", &line[4..]),
                 Style::default().fg(COLOR_BLUE),
             )));
-        } else if line.starts_with("#### ") || line.starts_with("##### ") || line.starts_with("###### ") {
+        } else if line.starts_with("#### ")
+            || line.starts_with("##### ")
+            || line.starts_with("###### ")
+        {
             let header_content = line.trim_start_matches('#').trim_start();
             lines.push(Line::from(Span::styled(
                 format!(" {}", header_content),
@@ -1617,7 +1941,11 @@ fn draw_markdown_view(frame: &mut Frame, area: Rect, state: &FileViewerState, he
             )));
         }
         // Numbered lists
-        else if line.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+        else if line
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_digit())
+            .unwrap_or(false)
             && line.contains(". ")
         {
             lines.push(Line::from(Span::styled(
@@ -1681,16 +2009,9 @@ fn draw_markdown_view(frame: &mut Frame, area: Rect, state: &FileViewerState, he
     let scroll = state.scroll_offset.min(max_scroll);
 
     // Render visible lines
-    let visible_lines: Vec<Line> = lines
-        .into_iter()
-        .skip(scroll)
-        .take(height)
-        .collect();
+    let visible_lines: Vec<Line> = lines.into_iter().skip(scroll).take(height).collect();
 
-    frame.render_widget(
-        Paragraph::new(visible_lines),
-        area,
-    );
+    frame.render_widget(Paragraph::new(visible_lines), area);
 }
 
 /// Create a centered rectangle
@@ -1723,18 +2044,21 @@ fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title bar
-            Constraint::Length(1),  // Separator
-            Constraint::Min(5),     // Tree content
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Help/input line
+            Constraint::Length(1), // Title bar
+            Constraint::Length(1), // Separator
+            Constraint::Min(5),    // Tree content
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Help/input line
         ])
         .split(area);
 
     // Title bar
     let title = " DIRECTORY MAP - Tree View ";
     frame.render_widget(
-        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        Paragraph::new(Span::styled(
+            title,
+            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+        )),
         chunks[0],
     );
 
@@ -1758,19 +2082,30 @@ fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) 
 
     // Render tree lines
     let mut lines: Vec<Line> = Vec::new();
-    for (i, (path, depth, expanded, has_children)) in state.flat_list.iter().enumerate().skip(scroll_offset).take(visible_height) {
+    for (i, (path, depth, expanded, has_children)) in state
+        .flat_list
+        .iter()
+        .enumerate()
+        .skip(scroll_offset)
+        .take(visible_height)
+    {
         let is_selected = i == state.selected_index;
 
         // Build the tree line with indentation and expand/collapse indicator
         let indent = "  ".repeat(*depth);
         let indicator = if *has_children {
-            if *expanded { "▼ " } else { "▶ " }
+            if *expanded {
+                "▼ "
+            } else {
+                "▶ "
+            }
         } else {
             "  "
         };
 
         // Get the directory name (last component of path)
-        let name = path.file_name()
+        let name = path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.to_string_lossy().to_string());
 
@@ -1797,12 +2132,19 @@ fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) 
 
     // Help/input line
     let (help_text, help_style) = if let Some(ref path) = state.confirm_delete {
-        let dir_name = path.file_name()
+        let dir_name = path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.to_string_lossy().to_string());
-        (format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name), Style::default().fg(COLOR_YELLOW))
+        (
+            format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name),
+            Style::default().fg(COLOR_YELLOW),
+        )
     } else if let Some(ref mode) = state.input_mode {
-        (format!("{}: {}█", mode, state.input_buffer), Style::default().fg(COLOR_GREEN))
+        (
+            format!("{}: {}█", mode, state.input_buffer),
+            Style::default().fg(COLOR_GREEN),
+        )
     } else {
         ("↑↓ Navigate  Enter/→ Expand  ←/Backspace Collapse  M Make Dir  D Delete Dir  ESC Close".to_string(), Style::default().fg(COLOR_GREEN))
     };
@@ -1821,18 +2163,21 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Length(1),  // Separator
-            Constraint::Min(5),     // Content
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Help line
+            Constraint::Length(1), // Title
+            Constraint::Length(1), // Separator
+            Constraint::Min(5),    // Content
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Help line
         ])
         .split(area);
 
     // Title
     let title = " FIND FILES ";
     frame.render_widget(
-        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        Paragraph::new(Span::styled(
+            title,
+            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+        )),
         chunks[0],
     );
 
@@ -1849,16 +2194,28 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
         FindPhase::InputPattern => {
             let mut lines = vec![
                 Line::from(""),
-                Line::from(Span::styled("Find File -- Search for:", Style::default().fg(COLOR_GREEN))),
+                Line::from(Span::styled(
+                    "Find File -- Search for:",
+                    Style::default().fg(COLOR_GREEN),
+                )),
                 Line::from(""),
                 Line::from(vec![
                     Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
-                    Span::styled(&state.pattern, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+                    Span::styled(
+                        &state.pattern,
+                        Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
+                    ),
                     Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
                 ]),
                 Line::from(""),
-                Line::from(Span::styled("Examples: *.txt, foo*.rs, config.*", Style::default().fg(COLOR_GREY))),
-                Line::from(Span::styled("Ctrl+R to recall last pattern", Style::default().fg(COLOR_GREY))),
+                Line::from(Span::styled(
+                    "Examples: *.txt, foo*.rs, config.*",
+                    Style::default().fg(COLOR_GREY),
+                )),
+                Line::from(Span::styled(
+                    "Ctrl+R to recall last pattern",
+                    Style::default().fg(COLOR_GREY),
+                )),
             ];
             if !state.last_pattern.is_empty() {
                 lines.push(Line::from(Span::styled(
@@ -1876,17 +2233,29 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
                     Style::default().fg(COLOR_GREEN),
                 )),
                 Line::from(""),
-                Line::from(Span::styled("Pause when a match is found?  (Y/N)", Style::default().fg(COLOR_FG))),
+                Line::from(Span::styled(
+                    "Pause when a match is found?  (Y/N)",
+                    Style::default().fg(COLOR_FG),
+                )),
                 Line::from(""),
-                Line::from(Span::styled("Y = Stop at each match (can Jump/View/Continue)", Style::default().fg(COLOR_GREY))),
-                Line::from(Span::styled("N = Show all matches at once", Style::default().fg(COLOR_GREY))),
+                Line::from(Span::styled(
+                    "Y = Stop at each match (can Jump/View/Continue)",
+                    Style::default().fg(COLOR_GREY),
+                )),
+                Line::from(Span::styled(
+                    "N = Show all matches at once",
+                    Style::default().fg(COLOR_GREY),
+                )),
             ];
             frame.render_widget(Paragraph::new(lines), content_area);
         }
         FindPhase::Searching => {
             let lines = vec![
                 Line::from(""),
-                Line::from(Span::styled("Searching...", Style::default().fg(COLOR_YELLOW))),
+                Line::from(Span::styled(
+                    "Searching...",
+                    Style::default().fg(COLOR_YELLOW),
+                )),
                 Line::from(""),
                 Line::from(Span::styled(
                     format!("Pattern: {}", state.pattern),
@@ -1900,11 +2269,18 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
                 let lines = vec![
                     Line::from(""),
                     Line::from(Span::styled(
-                        format!("Match {} of {}", state.current_match + 1, state.matches.len()),
+                        format!(
+                            "Match {} of {}",
+                            state.current_match + 1,
+                            state.matches.len()
+                        ),
                         Style::default().fg(COLOR_GREEN),
                     )),
                     Line::from(""),
-                    Line::from(Span::styled(display.clone(), Style::default().fg(COLOR_YELLOW))),
+                    Line::from(Span::styled(
+                        display.clone(),
+                        Style::default().fg(COLOR_YELLOW),
+                    )),
                     Line::from(""),
                     Line::from(Span::styled(
                         format!("Path: {}", path.display()),
@@ -1918,17 +2294,29 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
             let visible_height = content_area.height as usize;
             let mut lines: Vec<Line> = vec![
                 Line::from(Span::styled(
-                    format!("Found {} matches for '{}':", state.matches.len(), state.pattern),
+                    format!(
+                        "Found {} matches for '{}':",
+                        state.matches.len(),
+                        state.pattern
+                    ),
                     Style::default().fg(COLOR_GREEN),
                 )),
                 Line::from(""),
             ];
 
-            for (i, (path, _)) in state.matches.iter().enumerate().skip(state.scroll_offset).take(visible_height.saturating_sub(2)) {
-                let name = path.file_name()
+            for (i, (path, _)) in state
+                .matches
+                .iter()
+                .enumerate()
+                .skip(state.scroll_offset)
+                .take(visible_height.saturating_sub(2))
+            {
+                let name = path
+                    .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| path.to_string_lossy().to_string());
-                let parent = path.parent()
+                let parent = path
+                    .parent()
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_default();
                 let line_text = format!("{:4}. {} - {}", i + 1, name, parent);
@@ -1952,7 +2340,10 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
                 )),
                 Line::from(""),
                 if state.search_complete && state.matches.is_empty() {
-                    Line::from(Span::styled("No matching files found.", Style::default().fg(COLOR_YELLOW)))
+                    Line::from(Span::styled(
+                        "No matching files found.",
+                        Style::default().fg(COLOR_YELLOW),
+                    ))
                 } else {
                     Line::from(Span::styled(
                         format!("Finished with FIND -- {} files found", state.matches.len()),
@@ -1960,7 +2351,10 @@ fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState) {
                     ))
                 },
                 Line::from(""),
-                Line::from(Span::styled("Press any key to continue", Style::default().fg(COLOR_GREEN))),
+                Line::from(Span::styled(
+                    "Press any key to continue",
+                    Style::default().fg(COLOR_GREEN),
+                )),
             ];
             frame.render_widget(Paragraph::new(lines), content_area);
         }
@@ -1996,18 +2390,25 @@ fn draw_batch_rename_modal(frame: &mut Frame, area: Rect, state: &BatchRenameSta
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),  // Title
-            Constraint::Length(1),  // Separator
-            Constraint::Min(5),     // Content
-            Constraint::Length(1),  // Separator
-            Constraint::Length(1),  // Help line
+            Constraint::Length(1), // Title
+            Constraint::Length(1), // Separator
+            Constraint::Min(5),    // Content
+            Constraint::Length(1), // Separator
+            Constraint::Length(1), // Help line
         ])
         .split(area);
 
     // Title
-    let title = format!(" RENAME FILES - {} of {} ", state.current_index + 1, state.files.len());
+    let title = format!(
+        " RENAME FILES - {} of {} ",
+        state.current_index + 1,
+        state.files.len()
+    );
     frame.render_widget(
-        Paragraph::new(Span::styled(title, Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD))),
+        Paragraph::new(Span::styled(
+            title,
+            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+        )),
         chunks[0],
     );
 
@@ -2024,19 +2425,31 @@ fn draw_batch_rename_modal(frame: &mut Frame, area: Rect, state: &BatchRenameSta
     if let Some((path, original_name)) = state.current_file() {
         let mut lines = vec![
             Line::from(""),
-            Line::from(Span::styled("File to be renamed:", Style::default().fg(COLOR_GREEN))),
+            Line::from(Span::styled(
+                "File to be renamed:",
+                Style::default().fg(COLOR_GREEN),
+            )),
             Line::from(""),
-            Line::from(Span::styled(original_name.clone(), Style::default().fg(COLOR_FG))),
+            Line::from(Span::styled(
+                original_name.clone(),
+                Style::default().fg(COLOR_FG),
+            )),
             Line::from(""),
             Line::from(Span::styled(
                 format!("Path: {}", path.parent().unwrap_or(path).display()),
                 Style::default().fg(COLOR_GREY),
             )),
             Line::from(""),
-            Line::from(Span::styled("Enter new name:", Style::default().fg(COLOR_GREEN))),
+            Line::from(Span::styled(
+                "Enter new name:",
+                Style::default().fg(COLOR_GREEN),
+            )),
             Line::from(""),
             Line::from(vec![
-                Span::styled(&state.input, Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
+                Span::styled(
+                    &state.input,
+                    Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
+                ),
                 Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
             ]),
         ];
@@ -2044,7 +2457,10 @@ fn draw_batch_rename_modal(frame: &mut Frame, area: Rect, state: &BatchRenameSta
         // Show error if any
         if let Some(ref error) = state.last_error {
             lines.push(Line::from(""));
-            lines.push(Line::from(Span::styled(error.clone(), Style::default().fg(COLOR_RED))));
+            lines.push(Line::from(Span::styled(
+                error.clone(),
+                Style::default().fg(COLOR_RED),
+            )));
         }
 
         // Show progress
@@ -2113,7 +2529,10 @@ fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &AttributeState) {
         if state.original[2] { "R/O" } else { "   " },
         if state.original[3] { "ARC" } else { "   " },
     );
-    lines.push(Line::from(Span::styled(orig_text, Style::default().fg(COLOR_GREY))));
+    lines.push(Line::from(Span::styled(
+        orig_text,
+        Style::default().fg(COLOR_GREY),
+    )));
     lines.push(Line::from(""));
 
     // Build attribute bars
@@ -2176,8 +2595,7 @@ fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &AttributeState) {
         ]));
     }
 
-    let paragraph = Paragraph::new(lines)
-        .wrap(Wrap { trim: true });
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, inner);
 }

@@ -28,21 +28,34 @@ impl FileKind {
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
             // Text files
-            "txt" | "md" | "markdown" | "rst" | "log" | "csv" | "json" | "yaml" | "yml" | "toml" | "xml" | "html" | "htm" | "css" => FileKind::Text,
+            "txt" | "md" | "markdown" | "rst" | "log" | "csv" | "json" | "yaml" | "yml"
+            | "toml" | "xml" | "html" | "htm" | "css" => FileKind::Text,
             // Code files
-            "rs" | "py" | "js" | "ts" | "jsx" | "tsx" | "c" | "cpp" | "h" | "hpp" | "java" | "go" | "rb" | "php" | "swift" | "kt" | "scala" | "sh" | "bash" | "zsh" | "fish" | "ps1" | "sql" | "lua" | "vim" | "el" => FileKind::Code,
+            "rs" | "py" | "js" | "ts" | "jsx" | "tsx" | "c" | "cpp" | "h" | "hpp" | "java"
+            | "go" | "rb" | "php" | "swift" | "kt" | "scala" | "sh" | "bash" | "zsh" | "fish"
+            | "ps1" | "sql" | "lua" | "vim" | "el" => FileKind::Code,
             // Image files
-            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "svg" | "ico" | "tiff" | "tif" | "psd" | "raw" | "heic" | "heif" => FileKind::Image,
+            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "svg" | "ico" | "tiff" | "tif"
+            | "psd" | "raw" | "heic" | "heif" => FileKind::Image,
             // Audio files
-            "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a" | "aiff" | "opus" => FileKind::Audio,
+            "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a" | "aiff" | "opus" => {
+                FileKind::Audio
+            }
             // Video files
-            "mp4" | "mkv" | "avi" | "mov" | "wmv" | "flv" | "webm" | "m4v" | "mpeg" | "mpg" => FileKind::Video,
+            "mp4" | "mkv" | "avi" | "mov" | "wmv" | "flv" | "webm" | "m4v" | "mpeg" | "mpg" => {
+                FileKind::Video
+            }
             // Archive files
-            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "tgz" | "tbz2" | "txz" | "zst" => FileKind::Archive,
+            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "tgz" | "tbz2" | "txz" | "zst" => {
+                FileKind::Archive
+            }
             // Document files
-            "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp" | "rtf" | "epub" => FileKind::Document,
+            "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp"
+            | "rtf" | "epub" => FileKind::Document,
             // Executable files
-            "exe" | "msi" | "app" | "dmg" | "deb" | "rpm" | "apk" | "jar" | "out" => FileKind::Executable,
+            "exe" | "msi" | "app" | "dmg" | "deb" | "rpm" | "apk" | "jar" | "out" => {
+                FileKind::Executable
+            }
             // Default to binary
             _ => FileKind::Binary,
         }
@@ -143,7 +156,11 @@ impl FileEntry {
     /// Format time for display (HH:MMp) - just "a" or "p", not "am"/"pm"
     pub fn time_string(&self) -> String {
         let time = self.modified.format("%-I:%M").to_string();
-        let suffix = if self.modified.format("%P").to_string().starts_with('a') { "a" } else { "p" };
+        let suffix = if self.modified.format("%P").to_string().starts_with('a') {
+            "a"
+        } else {
+            "p"
+        };
         format!("{}{}", time, suffix)
     }
 
@@ -279,9 +296,10 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             (file_name.clone(), String::new())
         } else {
             match file_name.rfind('.') {
-                Some(pos) if pos > 0 => {
-                    (file_name[..pos].to_string(), file_name[pos + 1..].to_string())
-                }
+                Some(pos) if pos > 0 => (
+                    file_name[..pos].to_string(),
+                    file_name[pos + 1..].to_string(),
+                ),
                 _ => (file_name.clone(), String::new()),
             }
         };
@@ -305,7 +323,10 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
 
         // Get git status for this file
         let file_path = entry.path();
-        let git_status = git_status_map.get(&file_path).copied().unwrap_or(GitStatus::None);
+        let git_status = git_status_map
+            .get(&file_path)
+            .copied()
+            .unwrap_or(GitStatus::None);
 
         entries.push(FileEntry {
             name,
@@ -464,7 +485,8 @@ fn match_wildcard(s: &str, pattern: &str) -> bool {
                     }
                     c => {
                         // Exact character match
-                        s[0].to_ascii_lowercase() == c.to_ascii_lowercase() && helper(&s[1..], &p[1..])
+                        s[0].to_ascii_lowercase() == c.to_ascii_lowercase()
+                            && helper(&s[1..], &p[1..])
                     }
                 }
             }
@@ -499,7 +521,8 @@ fn find_files_recursive_impl(dir: &PathBuf, pattern: &str, results: &mut Vec<(Pa
             } else {
                 // Check if file matches pattern
                 if match_pattern(&name, pattern) {
-                    let display = format!("{} - {}", name, path.parent().unwrap_or(&path).display());
+                    let display =
+                        format!("{} - {}", name, path.parent().unwrap_or(&path).display());
                     results.push((path, display));
                 }
             }
