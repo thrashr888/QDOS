@@ -2,7 +2,7 @@ use crate::event::EventHandler;
 use crate::file_ops::{FileEntry, get_directory_contents, get_system_info, SystemInfo};
 use crate::ui;
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, MouseButton};
 use ratatui::prelude::*;
 use std::fs;
 use std::path::PathBuf;
@@ -117,6 +117,120 @@ impl SortMode {
     }
 }
 
+/// File viewer display mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ViewMode {
+    #[default]
+    Normal,
+    Hex,
+    Image,
+    Markdown,
+}
+
+/// File viewer filter mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ViewFilter {
+    #[default]
+    Off,
+    Ascii,
+    WordStar,
+}
+
+impl ViewFilter {
+    pub fn next(&self) -> ViewFilter {
+        match self {
+            ViewFilter::Off => ViewFilter::Ascii,
+            ViewFilter::Ascii => ViewFilter::WordStar,
+            ViewFilter::WordStar => ViewFilter::Off,
+        }
+    }
+}
+
+/// File viewer state
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileViewerState {
+    /// File name being viewed
+    pub file_name: String,
+    /// Full file path (for loading images)
+    pub file_path: PathBuf,
+    /// File contents as bytes
+    pub content: Vec<u8>,
+    /// Current display mode
+    pub mode: ViewMode,
+    /// Current filter mode
+    pub filter: ViewFilter,
+    /// Current scroll offset (line number for Normal, byte offset for Hex)
+    pub scroll_offset: usize,
+    /// Whether cursor is on hex side (true) or ascii side (false) in hex mode
+    pub hex_side: bool,
+}
+
+impl FileViewerState {
+    pub fn new(file_name: String, file_path: PathBuf, content: Vec<u8>) -> Self {
+        let mode = Self::detect_mode(&file_name);
+        Self {
+            file_name,
+            file_path,
+            content,
+            mode,
+            filter: ViewFilter::Off,
+            scroll_offset: 0,
+            hex_side: true,
+        }
+    }
+
+    /// Calculate max scroll offset based on mode and visible height
+    pub fn max_scroll(&self, visible_height: usize) -> usize {
+        match self.mode {
+            ViewMode::Normal | ViewMode::Markdown => {
+                // Count lines in content
+                let line_count = self.content.split(|&b| b == b'\n').count();
+                line_count.saturating_sub(visible_height)
+            }
+            ViewMode::Hex => {
+                // 16 bytes per line
+                let bytes_per_line = 16;
+                let total_lines = (self.content.len() + bytes_per_line - 1) / bytes_per_line;
+                total_lines.saturating_sub(visible_height)
+            }
+            ViewMode::Image => {
+                // No scrolling for images (could add panning later)
+                0
+            }
+        }
+    }
+
+    /// Detect the best view mode based on file extension
+    pub fn detect_mode(file_name: &str) -> ViewMode {
+        let lower = file_name.to_lowercase();
+        if lower.ends_with(".md") || lower.ends_with(".markdown") {
+            ViewMode::Markdown
+        } else if lower.ends_with(".png")
+            || lower.ends_with(".jpg")
+            || lower.ends_with(".jpeg")
+            || lower.ends_with(".gif")
+            || lower.ends_with(".bmp")
+            || lower.ends_with(".webp")
+            || lower.ends_with(".ico")
+        {
+            ViewMode::Image
+        } else {
+            ViewMode::Normal
+        }
+    }
+
+    /// Scroll by delta, clamping to valid range
+    #[allow(dead_code)]
+    pub fn scroll(&mut self, delta: isize, visible_height: usize) {
+        let max = self.max_scroll(visible_height);
+        if delta < 0 {
+            self.scroll_offset = self.scroll_offset.saturating_sub((-delta) as usize);
+        } else {
+            self.scroll_offset = (self.scroll_offset + delta as usize).min(max);
+        }
+    }
+}
+
 /// Shell command state
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellCommandState {
@@ -167,6 +281,7 @@ pub enum Modal {
     EraseConfirm,
     RenameInput(String),
     ShellCommand(ShellCommandState),
+    FileViewer(FileViewerState),
 }
 
 /// Application state
@@ -227,6 +342,7 @@ impl App {
             if let Some(event) = event_handler.next().await? {
                 match event {
                     crate::event::Event::Key(key) => self.handle_key(key)?,
+                    crate::event::Event::Mouse(mouse) => self.handle_mouse(mouse)?,
                     crate::event::Event::Tick => {}
                     crate::event::Event::Resize(_, _) => {}
                 }
@@ -502,6 +618,63 @@ impl App {
                     _ => {}
                 }
             }
+            Modal::FileViewer(ref mut state) => {
+                // Calculate max scroll based on mode and content
+                let max_scroll = state.max_scroll(20); // Assume ~20 lines visible, will be recalculated in UI
+
+                match key.code {
+                    KeyCode::Esc => {
+                        self.modal = Modal::None;
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(1);
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        state.scroll_offset = (state.scroll_offset + 1).min(max_scroll);
+                    }
+                    KeyCode::PageUp => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(20);
+                    }
+                    KeyCode::PageDown => {
+                        state.scroll_offset = (state.scroll_offset + 20).min(max_scroll);
+                    }
+                    KeyCode::Home => {
+                        state.scroll_offset = 0;
+                    }
+                    KeyCode::End => {
+                        state.scroll_offset = max_scroll;
+                    }
+                    KeyCode::Char('h') | KeyCode::Char('H') => {
+                        state.mode = ViewMode::Hex;
+                        // Clamp scroll for new mode
+                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('a') | KeyCode::Char('A') => {
+                        state.mode = ViewMode::Normal;
+                        // Clamp scroll for new mode
+                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
+                    }
+                    KeyCode::Char('i') | KeyCode::Char('I') => {
+                        state.mode = ViewMode::Image;
+                        state.scroll_offset = 0;
+                    }
+                    KeyCode::Char('m') | KeyCode::Char('M') => {
+                        state.mode = ViewMode::Markdown;
+                        // Clamp scroll for new mode
+                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
+                    }
+                    KeyCode::Char('f') | KeyCode::Char('F') => {
+                        state.filter = state.filter.next();
+                    }
+                    KeyCode::F(4) => {
+                        // Toggle hex/ascii side in hex mode
+                        if state.mode == ViewMode::Hex {
+                            state.hex_side = !state.hex_side;
+                        }
+                    }
+                    _ => {}
+                }
+            }
             Modal::ShellCommand(ref mut state) => {
                 match key.code {
                     KeyCode::Esc => {
@@ -581,6 +754,78 @@ impl App {
             Modal::None => {}
         }
 
+        Ok(())
+    }
+
+    /// Handle mouse input
+    fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<()> {
+        match mouse.kind {
+            MouseEventKind::ScrollUp => {
+                match &mut self.modal {
+                    Modal::FileViewer(ref mut state) => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(3);
+                    }
+                    Modal::ShellCommand(ref mut state) => {
+                        state.scroll_offset = state.scroll_offset.saturating_sub(3);
+                    }
+                    Modal::None => {
+                        // Scroll file list
+                        self.move_selection(-3);
+                    }
+                    _ => {}
+                }
+            }
+            MouseEventKind::ScrollDown => {
+                match &mut self.modal {
+                    Modal::FileViewer(ref mut state) => {
+                        let max_scroll = state.max_scroll(20);
+                        state.scroll_offset = (state.scroll_offset + 3).min(max_scroll);
+                    }
+                    Modal::ShellCommand(ref mut state) => {
+                        let max_scroll = state.output.len().saturating_sub(10);
+                        state.scroll_offset = (state.scroll_offset + 3).min(max_scroll);
+                    }
+                    Modal::None => {
+                        // Scroll file list
+                        self.move_selection(3);
+                    }
+                    _ => {}
+                }
+            }
+            MouseEventKind::Down(MouseButton::Left) => {
+                // For now, just handle clicks in the main file list
+                if self.modal == Modal::None {
+                    // File list starts at row 3 (after nav, desc, separator, path)
+                    // and column 30 (after stats panel)
+                    let row = mouse.row;
+                    let col = mouse.column;
+
+                    // Check if click is in file list area (approximate)
+                    if col >= 30 && row >= 3 {
+                        let file_row = (row - 3) as usize + self.scroll_offset;
+                        if file_row < self.files.len() {
+                            self.selected_index = file_row;
+                        }
+                    }
+                }
+            }
+            MouseEventKind::Down(MouseButton::Right) => {
+                // Right click could toggle tag in main view
+                if self.modal == Modal::None {
+                    let row = mouse.row;
+                    let col = mouse.column;
+
+                    if col >= 30 && row >= 3 {
+                        let file_row = (row - 3) as usize + self.scroll_offset;
+                        if file_row < self.files.len() {
+                            self.selected_index = file_row;
+                            self.toggle_tag();
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
         Ok(())
     }
 
@@ -727,7 +972,30 @@ impl App {
                     self.modal = Modal::RenameInput(full_name);
                 }
             }
-            NavItem::View | NavItem::Find | NavItem::Attribute | NavItem::Print => {
+            NavItem::View => {
+                if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    self.modal = Modal::Error("No file selected".to_string());
+                } else if self.files[self.selected_index].is_dir {
+                    self.modal = Modal::Error("You cannot view a directory".to_string());
+                } else {
+                    let file = &self.files[self.selected_index];
+                    match std::fs::read(&file.path) {
+                        Ok(content) => {
+                            let file_name = if file.extension.is_empty() {
+                                file.name.clone()
+                            } else {
+                                format!("{}.{}", file.name, file.extension)
+                            };
+                            let file_path = file.path.clone();
+                            self.modal = Modal::FileViewer(FileViewerState::new(file_name, file_path, content));
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Cannot open file: {}", e));
+                        }
+                    }
+                }
+            }
+            NavItem::Find | NavItem::Attribute | NavItem::Print => {
                 self.modal = Modal::Error(format!("{} not yet implemented", nav_item.as_str()));
             }
         }

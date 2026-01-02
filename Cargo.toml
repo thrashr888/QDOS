@@ -34,6 +34,13 @@ walkdir = "2.5"
 # System info
 sysinfo = "0.32"
 
+# Image viewing in terminal
+ratatui-image = "3.0"
+image = "0.25"
+
+# Markdown rendering
+termimad = "0.30"
+
 [profile.release]
 lto = true
 codegen-units = 1
