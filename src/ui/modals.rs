@@ -51,10 +51,29 @@ pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect 
 
 
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
-    // Quit modal handles its own area - no Clear needed (overlays directly)
-    if matches!(app.modal, Modal::Quit) {
-        draw_quit_modal(frame, area, app);
-        return;
+    // Modals that handle their own area/clearing (overlay directly like quit modal)
+    match &app.modal {
+        Modal::Quit => {
+            draw_quit_modal(frame, area, app);
+            return;
+        }
+        Modal::Space => {
+            draw_space_modal(frame, area, app);
+            return;
+        }
+        Modal::Error(msg) => {
+            draw_error_modal(frame, area, msg, app);
+            return;
+        }
+        Modal::Success(msg) => {
+            draw_success_modal(frame, area, msg, app);
+            return;
+        }
+        Modal::Progress(state) => {
+            draw_progress_modal(frame, area, state);
+            return;
+        }
+        _ => {}
     }
 
     let modal_area = centered_rect(60, 50, area);
@@ -67,9 +86,9 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Status(info) => draw_status_modal(frame, modal_area, info),
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
-        Modal::Space => draw_space_modal(frame, area, app),
-        Modal::Error(msg) => draw_error_modal(frame, area, msg, app),
-        Modal::Success(msg) => draw_success_modal(frame, area, msg, app),
+        Modal::Space => {} // Handled above
+        Modal::Error(_) => {} // Handled above
+        Modal::Success(_) => {} // Handled above
         Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
         Modal::CopyTo(dest) => draw_copy_modal(frame, modal_area, dest, app),
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
@@ -81,7 +100,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
         Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
-        Modal::Progress(state) => draw_progress_modal(frame, area, state),
+        Modal::Progress(_) => {} // Handled above
         Modal::ColorTheme(state) => draw_color_theme_modal(frame, modal_area, state, app),
         Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::None => {}
@@ -522,6 +541,7 @@ pub(super) fn draw_qdos_modal_colored(
 }
 
 /// Draw Q-DOS II style modal with header separator and dynamic height (themed version)
+/// Uses fixed sizes and preserves individual span colors in content.
 /// Layout:
 /// ╔════════════════════════════════╗
 /// ║            Title               ║
@@ -534,9 +554,11 @@ pub(super) fn draw_qdos_modal_themed(
     title: &str,
     content: Vec<Line>,
     border_color: Color,
-    _app: &App,
+    app: &App,
 ) {
-    // Fixed modal size for consistency
+    let colors = app.colors();
+
+    // Fixed modal size
     let modal_width: u16 = 50;
     let content_lines = content.len() as u16;
     let modal_height = content_lines + 4; // top + title + separator + bottom
@@ -546,56 +568,61 @@ pub(super) fn draw_qdos_modal_themed(
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
     let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
 
-    // Clear the modal area first (fills with terminal default background)
+    // Clear only the exact modal area
     frame.render_widget(Clear, modal_area);
 
     let width = modal_area.width as usize;
-    let inner_width = width.saturating_sub(2);
-    let border_style = Style::default().fg(border_color).bg(COLOR_BG);
-    let content_bg = Style::default().bg(COLOR_BG);
+    let inner_w = width.saturating_sub(2);
+
+    // Border style uses the border_color for fg, with theme background
+    let border_style = Style::default().fg(border_color).bg(colors.bg());
+    // Style for padding/empty space
+    let pad_style = Style::default().fg(colors.fg()).bg(colors.bg());
 
     // Top border: ╔═══╗
-    let top = format!("╔{}╗", "═".repeat(inner_width));
+    let top = format!("╔{}╗", "═".repeat(inner_w));
     frame.render_widget(
         Paragraph::new(Span::styled(&top, border_style)),
         Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
     );
 
     // Title row: ║ Title ║
-    let title_padded = format!("║{:^inner_width$}║", title);
+    let title_padded = format!("{:^width$}", title, width = inner_w);
+    let title_line = format!("║{}║", title_padded);
     frame.render_widget(
-        Paragraph::new(Span::styled(&title_padded, border_style)),
+        Paragraph::new(Span::styled(&title_line, border_style)),
         Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
     );
 
     // Header separator: ╠═══╣
-    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    let sep = format!("╠{}╣", "═".repeat(inner_w));
     frame.render_widget(
         Paragraph::new(Span::styled(&sep, border_style)),
         Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
     );
 
-    // Content area
+    // Content area - preserve individual span colors
     for (i, line) in content.iter().enumerate() {
         let row_y = modal_area.y + 3 + i as u16;
 
-        // Calculate content text length for centering
-        let content_len: usize = line.spans.iter().map(|s| s.content.len()).sum();
-        let padding = inner_width.saturating_sub(content_len);
+        // Calculate padding for centering
+        let content_width = line.width();
+        let padding = inner_w.saturating_sub(content_width);
         let left_pad = padding / 2;
         let right_pad = padding - left_pad;
 
-        // Build row with borders - use border_color for borders, content colors for text
-        let mut row_spans: Vec<Span> = vec![Span::styled("║", border_style)];
-        row_spans.push(Span::styled(" ".repeat(left_pad), content_bg));
+        // Build row: ║ [padding] [content spans] [padding] ║
+        let mut row_spans: Vec<Span> = Vec::with_capacity(line.spans.len() + 4);
+        row_spans.push(Span::styled("║", border_style));
+        row_spans.push(Span::styled(" ".repeat(left_pad), pad_style));
 
+        // Add content spans with background applied
         for span in line.spans.iter() {
-            // Apply background to span while keeping its foreground color
-            let span_style = span.style.bg(COLOR_BG);
+            let span_style = span.style.bg(colors.bg());
             row_spans.push(Span::styled(span.content.clone(), span_style));
         }
 
-        row_spans.push(Span::styled(" ".repeat(right_pad), content_bg));
+        row_spans.push(Span::styled(" ".repeat(right_pad), pad_style));
         row_spans.push(Span::styled("║", border_style));
 
         frame.render_widget(
@@ -605,7 +632,7 @@ pub(super) fn draw_qdos_modal_themed(
     }
 
     // Bottom border: ╚═══╝
-    let bottom = format!("╚{}╝", "═".repeat(inner_width));
+    let bottom = format!("╚{}╝", "═".repeat(inner_w));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
         Rect::new(modal_area.x, modal_area.y + modal_height - 1, modal_area.width, 1),
@@ -660,7 +687,7 @@ pub(super) fn draw_space_modal(frame: &mut Frame, area: Rect, app: &App) {
         )),
     ];
 
-    draw_qdos_modal_themed(frame, area, &title, content, colors.blue(), app);
+    draw_qdos_modal_themed(frame, area, &title, content, colors.fg(), app);
 }
 
 /// Draw error modal
@@ -676,7 +703,7 @@ pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app
         )),
     ];
 
-    draw_qdos_modal_themed(frame, area, "Error", content, colors.red(), app);
+    draw_qdos_modal_themed(frame, area, "Error", content, colors.fg(), app);
 }
 
 /// Draw path input modal
@@ -730,7 +757,7 @@ pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str, a
         )),
     ];
 
-    draw_qdos_modal_themed(frame, area, "Success", content, colors.green(), app);
+    draw_qdos_modal_themed(frame, area, "Success", content, colors.fg(), app);
 }
 
 /// Draw progress modal for file operations
