@@ -2,7 +2,7 @@ use crate::app::{App, Modal, NavItem, ShellCommandState, FileViewerState, ViewMo
 use crate::file_ops::{get_disk_space, GitStatus};
 use humansize::{format_size, DECIMAL};
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
@@ -687,12 +687,12 @@ fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::Syst
     frame.render_widget(paragraph, area);
 }
 
-/// Draw quit confirmation modal
+/// Draw quit confirmation modal (Q-DOS II style)
 fn draw_quit_modal(frame: &mut Frame, area: Rect) {
-    let quit_area = centered_rect(40, 20, area);
+    let quit_area = centered_rect(55, 25, area);
 
     let quit_block = Block::default()
-        .title(" Quit ")
+        .title(" F10 - Quit Q-DOS II ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(COLOR_RED))
         .style(Style::default().bg(COLOR_BG));
@@ -700,20 +700,29 @@ fn draw_quit_modal(frame: &mut Frame, area: Rect) {
     let quit_text = vec![
         Line::from(""),
         Line::from(Span::styled(
-            "Are you sure you want to quit?",
+            "Press F10 again to quit, or RETURN for options",
             Style::default().fg(COLOR_FG),
         )),
         Line::from(""),
+        Line::from(Span::styled(
+            "Press ESC to return to Q-DOS II",
+            Style::default().fg(COLOR_FG),
+        )),
+        Line::from(""),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("[Y]", Style::default().fg(COLOR_BLUE)),
-            Span::raw("es  "),
-            Span::styled("[N]", Style::default().fg(COLOR_BLUE)),
-            Span::raw("o"),
+            Span::styled("F10", Style::default().fg(COLOR_BLUE)),
+            Span::raw("/"),
+            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" Quit   "),
+            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
+            Span::raw(" Cancel"),
         ]),
     ];
 
     let paragraph = Paragraph::new(quit_text)
         .block(quit_block)
+        .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
 
     frame.render_widget(Clear, quit_area);

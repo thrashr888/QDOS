@@ -451,9 +451,9 @@ impl App {
             KeyCode::Esc => {
                 // Do nothing in main view
             }
-            // Ctrl+C to quit
+            // Ctrl+C opens quit confirmation (same as F10)
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.should_quit = true;
+                self.modal = Modal::Quit;
             }
             _ => {}
         }
@@ -466,10 +466,26 @@ impl App {
         match &mut self.modal {
             Modal::Quit => {
                 match key.code {
-                    KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
+                    // F10 again or Ctrl+C again quits immediately
+                    KeyCode::F(10) => {
                         self.should_quit = true;
                     }
-                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        self.should_quit = true;
+                    }
+                    // RETURN for options (for now, just quit)
+                    KeyCode::Enter => {
+                        self.should_quit = true;
+                    }
+                    // ESC returns to Q-DOS II
+                    KeyCode::Esc => {
+                        self.modal = Modal::None;
+                    }
+                    // Y/N still work for convenience
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        self.should_quit = true;
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') => {
                         self.modal = Modal::None;
                     }
                     _ => {}
