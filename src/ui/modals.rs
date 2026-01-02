@@ -534,10 +534,8 @@ pub(super) fn draw_qdos_modal_themed(
     title: &str,
     content: Vec<Line>,
     border_color: Color,
-    app: &App,
+    _app: &App,
 ) {
-    let colors = app.colors();
-
     // Fixed modal size for consistency
     let modal_width: u16 = 50;
     let content_lines = content.len() as u16;
@@ -548,34 +546,30 @@ pub(super) fn draw_qdos_modal_themed(
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
     let modal_area = Rect::new(x, y, modal_width.min(area.width), modal_height.min(area.height));
 
-    // Clear the modal area
+    // Clear the modal area first (fills with terminal default background)
     frame.render_widget(Clear, modal_area);
 
     let width = modal_area.width as usize;
-    let border_style = Style::default().fg(border_color).bg(colors.bg());
-    let content_style = Style::default().fg(colors.fg()).bg(colors.bg());
-
-    // Fill entire modal area with background first
-    let bg_block = ratatui::widgets::Block::default().style(Style::default().bg(colors.bg()));
-    frame.render_widget(bg_block, modal_area);
+    let inner_width = width.saturating_sub(2);
+    let border_style = Style::default().fg(border_color).bg(COLOR_BG);
+    let content_bg = Style::default().bg(COLOR_BG);
 
     // Top border: ╔═══╗
-    let top = format!("╔{}╗", "═".repeat(width.saturating_sub(2)));
+    let top = format!("╔{}╗", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&top, border_style)),
         Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
     );
 
     // Title row: ║ Title ║
-    let title_padded = format!("{:^width$}", title, width = width.saturating_sub(2));
-    let title_line = format!("║{}║", title_padded);
+    let title_padded = format!("║{:^inner_width$}║", title);
     frame.render_widget(
-        Paragraph::new(Span::styled(&title_line, border_style)),
+        Paragraph::new(Span::styled(&title_padded, border_style)),
         Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
     );
 
     // Header separator: ╠═══╣
-    let sep = format!("╠{}╣", "═".repeat(width.saturating_sub(2)));
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&sep, border_style)),
         Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
@@ -584,40 +578,37 @@ pub(super) fn draw_qdos_modal_themed(
     // Content area
     for (i, line) in content.iter().enumerate() {
         let row_y = modal_area.y + 3 + i as u16;
-        // Render full row with borders
-        let left_border = Span::styled("║", border_style);
-        let right_border = Span::styled("║", border_style);
 
-        // Build the complete row
-        let mut row_spans = vec![left_border];
-        for span in line.spans.iter() {
-            row_spans.push(span.clone());
-        }
-        // Pad content to fill width
-        let content_width = line.width();
-        let padding = width.saturating_sub(2).saturating_sub(content_width);
+        // Calculate content text length for centering
+        let content_len: usize = line.spans.iter().map(|s| s.content.len()).sum();
+        let padding = inner_width.saturating_sub(content_len);
         let left_pad = padding / 2;
         let right_pad = padding - left_pad;
-        row_spans.insert(1, Span::styled(" ".repeat(left_pad), content_style));
-        row_spans.push(Span::styled(" ".repeat(right_pad), content_style));
-        row_spans.push(right_border);
+
+        // Build row with borders - use border_color for borders, content colors for text
+        let mut row_spans: Vec<Span> = vec![Span::styled("║", border_style)];
+        row_spans.push(Span::styled(" ".repeat(left_pad), content_bg));
+
+        for span in line.spans.iter() {
+            // Apply background to span while keeping its foreground color
+            let span_style = span.style.bg(COLOR_BG);
+            row_spans.push(Span::styled(span.content.clone(), span_style));
+        }
+
+        row_spans.push(Span::styled(" ".repeat(right_pad), content_bg));
+        row_spans.push(Span::styled("║", border_style));
 
         frame.render_widget(
-            Paragraph::new(Line::from(row_spans)).style(content_style),
+            Paragraph::new(Line::from(row_spans)),
             Rect::new(modal_area.x, row_y, modal_area.width, 1),
         );
     }
 
     // Bottom border: ╚═══╝
-    let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
+    let bottom = format!("╚{}╝", "═".repeat(inner_width));
     frame.render_widget(
         Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(
-            modal_area.x,
-            modal_area.y + modal_area.height - 1,
-            modal_area.width,
-            1,
-        ),
+        Rect::new(modal_area.x, modal_area.y + modal_height - 1, modal_area.width, 1),
     );
 }
 
