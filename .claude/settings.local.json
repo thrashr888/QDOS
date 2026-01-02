@@ -13,7 +13,8 @@
       "Bash(bd show:*)",
       "Bash(bd close:*)",
       "Bash(bd sync:*)",
-      "Bash(cargo run:*)"
+      "Bash(cargo run:*)",
+      "Bash(wc:*)"
     ]
   }
 }

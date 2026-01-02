@@ -1627,6 +1627,7 @@ impl App {
     }
 
     /// Copy tagged files to destination directory
+    #[allow(dead_code)] // For future batch operations
     fn copy_tagged_files(&mut self, dest: &PathBuf) -> Result<usize> {
         if self.tagged_files.is_empty() {
             anyhow::bail!("No files tagged");
@@ -1660,6 +1661,7 @@ impl App {
     }
 
     /// Move tagged files to destination directory
+    #[allow(dead_code)] // For future batch operations
     fn move_tagged_files(&mut self, dest: &PathBuf) -> Result<usize> {
         if self.tagged_files.is_empty() {
             anyhow::bail!("No files tagged");
@@ -1689,6 +1691,7 @@ impl App {
     }
 
     /// Erase (delete) tagged files
+    #[allow(dead_code)] // For future batch operations
     fn erase_tagged_files(&mut self) -> Result<usize> {
         if self.tagged_files.is_empty() {
             anyhow::bail!("No files tagged");
@@ -1743,6 +1746,7 @@ impl App {
 }
 
 /// Recursively copy a directory
+#[allow(dead_code)] // Used by copy_tagged_files
 fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
     fs::create_dir_all(dest)?;
     for entry in fs::read_dir(src)? {

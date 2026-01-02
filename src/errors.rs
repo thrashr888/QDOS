@@ -2,6 +2,8 @@
 //!
 //! Error messages matching the original Q-DOS II application.
 
+#![allow(dead_code)] // These messages are placeholders for future use
+
 /// Disk-related error messages
 pub mod disk {
     pub const GENERAL_DISK_ERROR: &str = "GENERAL DISK ERROR";
