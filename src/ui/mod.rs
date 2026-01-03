@@ -402,10 +402,13 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         Rect::new(x, y, time_col, 1),
     );
     x += time_col;
-    frame.render_widget(
-        Paragraph::new(Span::styled("║", border_style)),
-        Rect::new(x, y, 1, 1),
-    );
+    // Right border for header row (only if within bounds)
+    if x < area.x + area.width {
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(x, y, 1, 1),
+        );
+    }
 
     // ROW 2: Header underline with stats boxes start
     let y = area.y + 2;
@@ -805,34 +808,46 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 Rect::new(x, row_y, time_col, 1),
             );
         } else {
-            // Empty row - just draw column separators
+            // Empty row - just draw column separators (with bounds checks)
+            let max_x = area.x + area.width;
             let mut x = file_table_x + name_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled("║", border_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled("║", border_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1 + kind_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled("║", border_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled("║", border_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1 + size_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled("║", border_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled("║", border_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1 + date_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled("║", border_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled("║", border_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
         }
 
-        // Right border for all rows
-        frame.render_widget(
-            Paragraph::new(Span::styled("║", border_style)),
-            Rect::new(right_border_x, row_y, 1, 1),
-        );
+        // Right border for all rows (only if within bounds)
+        let max_x = area.x + area.width;
+        if right_border_x < max_x {
+            frame.render_widget(
+                Paragraph::new(Span::styled("║", border_style)),
+                Rect::new(right_border_x, row_y, 1, 1),
+            );
+        }
     }
 
     // Bottom border for file table
