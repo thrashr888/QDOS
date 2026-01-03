@@ -542,7 +542,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let blue_style = Style::default().fg(colors.blue());
     let y = area.y + 18;
     frame.render_widget(
-        Paragraph::new(Span::styled(" R-DOS — Version 0.1.0       ", blue_style)),
+        Paragraph::new(Span::styled(format!(" R-DOS — Version {}       ", env!("CARGO_PKG_VERSION")), blue_style)),
         Rect::new(area.x, y, left_width - 1, 1),
     );
     let y = area.y + 19;
