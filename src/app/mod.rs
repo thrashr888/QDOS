@@ -2513,7 +2513,7 @@ impl App {
                                     BeadsMenuItem::Kanban => {
                                         // Load all issues for kanban board
                                         state.view = BeadsView::Kanban;
-                                        beads_ops::load_beads_list(state, &path, None);
+                                        beads_ops::load_beads_list(state, &path, Some("all"));
                                         state.kanban_column = 0;
                                         state.kanban_row = 0;
                                     }
@@ -2791,9 +2791,14 @@ impl App {
                                                 Ok(msg) => {
                                                     // Refresh the list
                                                     match current_view {
-                                                        BeadsView::List | BeadsView::Kanban | BeadsView::Dependencies => {
+                                                        BeadsView::List | BeadsView::Dependencies => {
                                                             beads_ops::load_beads_list(
                                                                 state, &path, None,
+                                                            )
+                                                        }
+                                                        BeadsView::Kanban => {
+                                                            beads_ops::load_beads_list(
+                                                                state, &path, Some("all"),
                                                             )
                                                         }
                                                         BeadsView::Ready => {
@@ -3489,7 +3494,7 @@ impl App {
                                 }
                                 KeyCode::Char('r') | KeyCode::Char('R') => {
                                     let path = self.current_path.clone();
-                                    beads_ops::load_beads_list(state, &path, None);
+                                    beads_ops::load_beads_list(state, &path, Some("all"));
                                     state.kanban_row = 0;
                                 }
                                 _ => {}

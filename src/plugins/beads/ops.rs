@@ -100,13 +100,20 @@ fn load_comments(issue_id: &str, cwd: &PathBuf) -> Vec<BeadsComment> {
 }
 
 /// Load beads issues list
-pub fn load_beads_list(state: &mut BeadsState, cwd: &PathBuf, _status_filter: Option<&str>) {
+pub fn load_beads_list(state: &mut BeadsState, cwd: &PathBuf, status_filter: Option<&str>) {
     state.issues.clear();
     state.error = None;
     state.selected_issue = 0;
 
+    let status_arg = match status_filter {
+        Some("all") => "--status=all",
+        Some("in_progress") => "--status=in_progress",
+        Some("closed") => "--status=closed",
+        _ => "--status=open",
+    };
+
     let output = Command::new("bd")
-        .args(["list", "--status=open", "--json"])
+        .args(["list", status_arg, "--json"])
         .current_dir(cwd)
         .output();
 
