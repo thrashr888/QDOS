@@ -345,65 +345,83 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             format!("{:<width$}", name_header, width = name_col as usize),
             header_style,
         )),
-        Rect::new(x, y, name_col, 1),
+        Rect::new(x, y, name_col.min(area.width.saturating_sub(x - area.x)), 1),
     );
     x += name_col;
-    frame.render_widget(
-        Paragraph::new(Span::styled("║", border_style)),
-        Rect::new(x, y, 1, 1),
-    );
+    let max_x = area.x + area.width;
+    // All header column separators with bounds checking
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(x, y, 1, 1),
+        );
+    }
     x += 1;
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            format!(" {:<width$}", "Kind", width = kind_col as usize - 1),
-            header_style,
-        )),
-        Rect::new(x, y, kind_col, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                format!(" {:<width$}", "Kind", width = kind_col as usize - 1),
+                header_style,
+            )),
+            Rect::new(x, y, kind_col.min(max_x - x), 1),
+        );
+    }
     x += kind_col;
-    frame.render_widget(
-        Paragraph::new(Span::styled("║", border_style)),
-        Rect::new(x, y, 1, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(x, y, 1, 1),
+        );
+    }
     x += 1;
     let size_header = format!("Size{}", size_arrow);
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            format!("{:>width$} ", size_header, width = size_col as usize - 1),
-            header_style,
-        )),
-        Rect::new(x, y, size_col, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                format!("{:>width$} ", size_header, width = size_col as usize - 1),
+                header_style,
+            )),
+            Rect::new(x, y, size_col.min(max_x - x), 1),
+        );
+    }
     x += size_col;
-    frame.render_widget(
-        Paragraph::new(Span::styled("║", border_style)),
-        Rect::new(x, y, 1, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(x, y, 1, 1),
+        );
+    }
     x += 1;
     let date_header = format!(" Date{}", date_arrow);
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            format!("{:<width$}", date_header, width = date_col as usize),
-            header_style,
-        )),
-        Rect::new(x, y, date_col, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                format!("{:<width$}", date_header, width = date_col as usize),
+                header_style,
+            )),
+            Rect::new(x, y, date_col.min(max_x - x), 1),
+        );
+    }
     x += date_col;
-    frame.render_widget(
-        Paragraph::new(Span::styled("║", border_style)),
-        Rect::new(x, y, 1, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled("║", border_style)),
+            Rect::new(x, y, 1, 1),
+        );
+    }
     x += 1;
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            format!("{:>width$} ", "Time", width = time_col as usize - 1),
-            header_style,
-        )),
-        Rect::new(x, y, time_col, 1),
-    );
+    if x < max_x {
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                format!("{:>width$} ", "Time", width = time_col as usize - 1),
+                header_style,
+            )),
+            Rect::new(x, y, time_col.min(max_x - x), 1),
+        );
+    }
     x += time_col;
     // Right border for header row (only if within bounds)
-    if x < area.x + area.width {
+    if x < max_x {
         frame.render_widget(
             Paragraph::new(Span::styled("║", border_style)),
             Rect::new(x, y, 1, 1),
@@ -735,78 +753,95 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 Span::styled(truncated_name, style),
                 Span::styled(git_indicator, git_style),
             ]);
+            let max_x = area.x + area.width;
             frame.render_widget(
                 Paragraph::new(name_content),
-                Rect::new(x, row_y, name_col, 1),
+                Rect::new(x, row_y, name_col.min(max_x.saturating_sub(x)), 1),
             );
             x += name_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled(sep_char, sep_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(sep_char, sep_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1;
 
             // Kind column
-            frame.render_widget(
-                Paragraph::new(Span::styled(
-                    format!(" {:<width$}", kind_str, width = kind_col as usize - 1),
-                    style,
-                )),
-                Rect::new(x, row_y, kind_col, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(
+                        format!(" {:<width$}", kind_str, width = kind_col as usize - 1),
+                        style,
+                    )),
+                    Rect::new(x, row_y, kind_col.min(max_x - x), 1),
+                );
+            }
             x += kind_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled(sep_char, sep_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(sep_char, sep_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1;
 
             // Size (right-aligned with space on right)
-            frame.render_widget(
-                Paragraph::new(Span::styled(
-                    format!("{:>width$} ", size_str, width = size_col as usize - 1),
-                    style,
-                )),
-                Rect::new(x, row_y, size_col, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(
+                        format!("{:>width$} ", size_str, width = size_col as usize - 1),
+                        style,
+                    )),
+                    Rect::new(x, row_y, size_col.min(max_x - x), 1),
+                );
+            }
             x += size_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled(sep_char, sep_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(sep_char, sep_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1;
 
             // Date
-            frame.render_widget(
-                Paragraph::new(Span::styled(
-                    format!(
-                        " {:<width$}",
-                        file.date_string(),
-                        width = date_col as usize - 1
-                    ),
-                    style,
-                )),
-                Rect::new(x, row_y, date_col, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(
+                        format!(
+                            " {:<width$}",
+                            file.date_string(),
+                            width = date_col as usize - 1
+                        ),
+                        style,
+                    )),
+                    Rect::new(x, row_y, date_col.min(max_x - x), 1),
+                );
+            }
             x += date_col;
-            frame.render_widget(
-                Paragraph::new(Span::styled(sep_char, sep_style)),
-                Rect::new(x, row_y, 1, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(sep_char, sep_style)),
+                    Rect::new(x, row_y, 1, 1),
+                );
+            }
             x += 1;
 
             // Time (right-aligned with space on right)
-            frame.render_widget(
-                Paragraph::new(Span::styled(
-                    format!(
-                        "{:>width$} ",
-                        file.time_string(),
-                        width = time_col as usize - 1
-                    ),
-                    style,
-                )),
-                Rect::new(x, row_y, time_col, 1),
-            );
+            if x < max_x {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(
+                        format!(
+                            "{:>width$} ",
+                            file.time_string(),
+                            width = time_col as usize - 1
+                        ),
+                        style,
+                    )),
+                    Rect::new(x, row_y, time_col.min(max_x - x), 1),
+                );
+            }
         } else {
             // Empty row - just draw column separators (with bounds checks)
             let max_x = area.x + area.width;
