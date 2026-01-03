@@ -476,6 +476,591 @@ impl BeadsPlugin {
         }
     }
 
+    fn handle_create_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        // Text fields: 0=title, 1=description
+        // Selector fields: 2=type, 3=priority
+        let in_text_field = state.create_field <= 1;
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up => {
+                if state.create_field > 0 {
+                    state.create_field -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down => {
+                if state.create_field < 3 {
+                    state.create_field += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Left => {
+                match state.create_field {
+                    2 => {
+                        if state.create_type > 0 {
+                            state.create_type -= 1;
+                        }
+                    }
+                    3 => {
+                        if state.create_priority > 0 {
+                            state.create_priority -= 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right => {
+                match state.create_field {
+                    2 => {
+                        if state.create_type < 2 {
+                            state.create_type += 1;
+                        }
+                    }
+                    3 => {
+                        if state.create_priority < 4 {
+                            state.create_priority += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                match state.create_field {
+                    0 => {
+                        state.create_title.pop();
+                    }
+                    1 => {
+                        state.create_description.pop();
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('k') if !in_text_field => {
+                if state.create_field > 0 {
+                    state.create_field -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('j') if !in_text_field => {
+                if state.create_field < 3 {
+                    state.create_field += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('h') if !in_text_field => {
+                match state.create_field {
+                    2 => {
+                        if state.create_type > 0 {
+                            state.create_type -= 1;
+                        }
+                    }
+                    3 => {
+                        if state.create_priority > 0 {
+                            state.create_priority -= 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('l') if !in_text_field => {
+                match state.create_field {
+                    2 => {
+                        if state.create_type < 2 {
+                            state.create_type += 1;
+                        }
+                    }
+                    3 => {
+                        if state.create_priority < 4 {
+                            state.create_priority += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                match state.create_field {
+                    0 => {
+                        state.create_title.push(c);
+                    }
+                    1 => {
+                        state.create_description.push(c);
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Tab => {
+                state.create_field = (state.create_field + 1) % 4;
+                KeyHandleResult::Handled
+            }
+            KeyCode::BackTab => {
+                if state.create_field > 0 {
+                    state.create_field -= 1;
+                } else {
+                    state.create_field = 3;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                // In description field, Enter adds newline
+                if state.create_field == 1 {
+                    state.create_description.push('\n');
+                    KeyHandleResult::Handled
+                }
+                // In title field, Enter moves to next field
+                else if state.create_field == 0 {
+                    state.create_field = 1;
+                    KeyHandleResult::Handled
+                }
+                // In type/priority fields, Enter submits the form
+                else if !state.create_title.is_empty() {
+                    let title = state.create_title.clone();
+                    let description = state.create_description.clone();
+                    let issue_type = state.create_type;
+                    let priority = state.create_priority;
+                    let parent_id = state.subtask_parent_id.clone();
+
+                    let result = if parent_id.is_empty() {
+                        ops::execute_beads_create(&title, &description, issue_type, priority, cwd)
+                            .map(|_| "Issue created".to_string())
+                    } else {
+                        ops::execute_beads_create_subtask(
+                            &parent_id,
+                            &title,
+                            &description,
+                            issue_type,
+                            priority,
+                            cwd,
+                        )
+                        .map(|id| format!("Subtask {} created", id))
+                    };
+
+                    match result {
+                        Ok(msg) => {
+                            state.create_title.clear();
+                            state.create_description.clear();
+                            state.create_field = 0;
+                            state.create_type = 0;
+                            state.create_priority = 2;
+                            state.subtask_parent_id.clear();
+                            self.close_modal();
+                            KeyHandleResult::CloseWithSuccess(msg)
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                            KeyHandleResult::Handled
+                        }
+                    }
+                } else {
+                    KeyHandleResult::Handled
+                }
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_edit_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        let in_text_field = state.edit_field == 0 || state.edit_field == 1;
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Detail;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up => {
+                if state.edit_field > 0 {
+                    state.edit_field -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down => {
+                if state.edit_field < 3 {
+                    state.edit_field += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Left => {
+                match state.edit_field {
+                    2 => {
+                        if state.edit_status > 0 {
+                            state.edit_status -= 1;
+                        }
+                    }
+                    3 => {
+                        if state.edit_priority > 0 {
+                            state.edit_priority -= 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right => {
+                match state.edit_field {
+                    2 => {
+                        if state.edit_status < 2 {
+                            state.edit_status += 1;
+                        }
+                    }
+                    3 => {
+                        if state.edit_priority < 4 {
+                            state.edit_priority += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                match state.edit_field {
+                    0 => {
+                        state.edit_title.pop();
+                    }
+                    1 => {
+                        state.edit_description.pop();
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('k') if !in_text_field => {
+                if state.edit_field > 0 {
+                    state.edit_field -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('j') if !in_text_field => {
+                if state.edit_field < 3 {
+                    state.edit_field += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                match state.edit_field {
+                    0 => {
+                        state.edit_title.push(c);
+                    }
+                    1 => {
+                        state.edit_description.push(c);
+                    }
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Tab => {
+                state.edit_field = (state.edit_field + 1) % 4;
+                KeyHandleResult::Handled
+            }
+            KeyCode::BackTab => {
+                if state.edit_field > 0 {
+                    state.edit_field -= 1;
+                } else {
+                    state.edit_field = 3;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                // In description, add newline
+                if state.edit_field == 1 {
+                    state.edit_description.push('\n');
+                    return KeyHandleResult::Handled;
+                }
+                // In title, move to next field
+                if state.edit_field == 0 {
+                    state.edit_field = 1;
+                    return KeyHandleResult::Handled;
+                }
+                // Submit update
+                let issue_id = state.edit_issue_id.clone();
+                let title = state.edit_title.clone();
+                let status = Some(state.edit_status);
+                let priority = Some(state.edit_priority);
+
+                match ops::execute_beads_update(
+                    &issue_id,
+                    Some(title.as_str()),
+                    status,
+                    priority,
+                    cwd,
+                )
+                {
+                    Ok(_) => {
+                        // Reload detail
+                        match ops::load_beads_issue_detail(&issue_id, cwd) {
+                            Ok(detail) => {
+                                state.detail_issue = Some(detail);
+                            }
+                            Err(_) => {}
+                        }
+                        state.view = BeadsView::Detail;
+                        KeyHandleResult::Handled
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                        KeyHandleResult::Handled
+                    }
+                }
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_kanban_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        // Build column lists
+        let open_issues: Vec<_> = state
+            .issues
+            .iter()
+            .filter(|i| i.status == "open")
+            .collect();
+        let in_progress_issues: Vec<_> = state
+            .issues
+            .iter()
+            .filter(|i| i.status == "in_progress")
+            .collect();
+        let closed_issues: Vec<_> = state
+            .issues
+            .iter()
+            .filter(|i| i.status == "closed")
+            .collect();
+
+        let columns = [&open_issues, &in_progress_issues, &closed_issues];
+        let current_col = &columns[state.kanban_column];
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                if state.kanban_column > 0 {
+                    state.kanban_column -= 1;
+                    // Clamp row to new column length
+                    let new_col = &columns[state.kanban_column];
+                    if state.kanban_row >= new_col.len() {
+                        state.kanban_row = new_col.len().saturating_sub(1);
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right | KeyCode::Char('l') => {
+                if state.kanban_column < 2 {
+                    state.kanban_column += 1;
+                    let new_col = &columns[state.kanban_column];
+                    if state.kanban_row >= new_col.len() {
+                        state.kanban_row = new_col.len().saturating_sub(1);
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.kanban_row > 0 {
+                    state.kanban_row -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.kanban_row + 1 < current_col.len() {
+                    state.kanban_row += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                ops::load_beads_list(state, cwd, Some("all"));
+                state.kanban_row = 0;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                // View detail of selected issue
+                if let Some(issue) = current_col.get(state.kanban_row) {
+                    let issue_id = issue.id.clone();
+                    match ops::load_beads_issue_detail(&issue_id, cwd) {
+                        Ok(detail) => {
+                            state.detail_issue = Some(detail);
+                            state.selected_subtask = 0;
+                            state.view = BeadsView::Detail;
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_dependencies_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_issue > 0 {
+                    state.selected_issue -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.selected_issue + 1 < state.issues.len() {
+                    state.selected_issue += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                if let Some(issue) = state.issues.get(state.selected_issue) {
+                    let issue_id = issue.id.clone();
+                    match ops::load_beads_issue_detail(&issue_id, cwd) {
+                        Ok(detail) => {
+                            state.detail_issue = Some(detail);
+                            state.selected_subtask = 0;
+                            state.view = BeadsView::Detail;
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_comments_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        if state.comment_input_active {
+            match key.code {
+                KeyCode::Esc => {
+                    state.comment_input_active = false;
+                    state.comment_input.clear();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter => {
+                    if !state.comment_input.is_empty() {
+                        if let Some(ref detail) = state.detail_issue {
+                            let issue_id = detail.id.clone();
+                            let comment_text = state.comment_input.clone();
+                            match ops::execute_beads_add_comment(&issue_id, &comment_text, cwd) {
+                                Ok(_) => {
+                                    state.comment_input.clear();
+                                    state.comment_input_active = false;
+                                    // Reload detail to get new comments
+                                    if let Ok(detail) = ops::load_beads_issue_detail(&issue_id, cwd)
+                                    {
+                                        state.detail_issue = Some(detail);
+                                    }
+                                }
+                                Err(e) => {
+                                    state.error = Some(e);
+                                }
+                            }
+                        }
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Backspace => {
+                    state.comment_input.pop();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char(c) => {
+                    state.comment_input.push(c);
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            }
+        } else {
+            match key.code {
+                KeyCode::Esc => {
+                    state.view = BeadsView::Detail;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if state.selected_comment > 0 {
+                        state.selected_comment -= 1;
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if let Some(ref detail) = state.detail_issue {
+                        if state.selected_comment + 1 < detail.comments.len() {
+                            state.selected_comment += 1;
+                        }
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('a') | KeyCode::Char('A') => {
+                    state.comment_input_active = true;
+                    state.comment_input.clear();
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            }
+        }
+    }
+
+    fn handle_history_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Detail;
+                state.activity_entries.clear();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_activity > 0 {
+                    state.selected_activity -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.selected_activity + 1 < state.activity_entries.len() {
+                    state.selected_activity += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
     /// Helper to get filtered issue at index
     fn get_filtered_issue_at(&self, index: usize) -> Option<&BeadsIssue> {
         let state = self.modal_state.as_ref()?;
