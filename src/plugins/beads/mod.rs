@@ -96,6 +96,405 @@ impl BeadsPlugin {
             }
         }
     }
+
+    // --- Key Handlers for each Beads view ---
+
+    fn handle_menu_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                self.close_modal();
+                KeyHandleResult::CloseModal
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.menu_selected > 0 {
+                    state.menu_selected -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                let items = BeadsMenuItem::items(state.is_beads_project);
+                if state.menu_selected < items.len() - 1 {
+                    state.menu_selected += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                let items = BeadsMenuItem::items(state.is_beads_project);
+                let item = items[state.menu_selected];
+                self.activate_menu_item(item, cwd);
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn activate_menu_item(&mut self, item: BeadsMenuItem, cwd: &PathBuf) {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return,
+        };
+
+        match item {
+            BeadsMenuItem::List => {
+                state.view = BeadsView::List;
+                ops::load_beads_list(state, cwd, None);
+            }
+            BeadsMenuItem::Ready => {
+                state.view = BeadsView::Ready;
+                ops::load_beads_ready(state, cwd);
+            }
+            BeadsMenuItem::Blocked => {
+                state.view = BeadsView::Blocked;
+                ops::load_beads_blocked(state, cwd);
+            }
+            BeadsMenuItem::Stats => {
+                state.view = BeadsView::Stats;
+                ops::load_beads_stats(state, cwd);
+            }
+            BeadsMenuItem::Create => {
+                state.view = BeadsView::Create;
+                state.create_title.clear();
+                state.create_description.clear();
+                state.create_type = 0;
+                state.create_priority = 2;
+                state.create_field = 0;
+            }
+            BeadsMenuItem::Graph => {
+                state.view = BeadsView::Dependencies;
+                ops::load_beads_list(state, cwd, None);
+                state.selected_issue = 0;
+                state.scroll_offset = 0;
+            }
+            BeadsMenuItem::Kanban => {
+                state.view = BeadsView::Kanban;
+                ops::load_beads_list(state, cwd, Some("all"));
+                state.kanban_column = 0;
+                state.kanban_row = 0;
+            }
+            BeadsMenuItem::Sync => {
+                match ops::execute_beads_sync(cwd) {
+                    Ok(msg) => {
+                        state.success_message = Some(msg);
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                    }
+                }
+            }
+            BeadsMenuItem::Human => {
+                match ops::execute_beads_human(cwd) {
+                    Ok(lines) => {
+                        state.output_lines = lines;
+                        state.scroll_offset = 0;
+                        state.view = BeadsView::Human;
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                    }
+                }
+            }
+            BeadsMenuItem::Init => {
+                match ops::execute_beads_init(cwd) {
+                    Ok(msg) => {
+                        state.success_message = Some(msg);
+                        state.is_beads_project = true;
+                        state.menu_selected = 0;
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                    }
+                }
+            }
+            BeadsMenuItem::Doctor => {
+                match ops::execute_beads_doctor(cwd) {
+                    Ok(lines) => {
+                        state.output_lines = lines;
+                        state.scroll_offset = 0;
+                        state.view = BeadsView::Doctor;
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                    }
+                }
+            }
+        }
+    }
+
+    fn handle_list_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        // Get issue ID first (immutable borrow) before mutable operations
+        let issue_id_for_detail = if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) {
+            self.get_filtered_issue_at_index().map(|id| id.to_string())
+        } else {
+            None
+        };
+
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        let current_view = state.view;
+
+        // Handle search input mode
+        if state.search_active {
+            match key.code {
+                KeyCode::Esc => {
+                    state.search_active = false;
+                    state.search_query.clear();
+                    state.selected_issue = 0;
+                }
+                KeyCode::Enter => {
+                    state.search_active = false;
+                    state.selected_issue = 0;
+                }
+                KeyCode::Backspace => {
+                    state.search_query.pop();
+                    state.selected_issue = 0;
+                }
+                KeyCode::Char(c) => {
+                    state.search_query.push(c);
+                    state.selected_issue = 0;
+                }
+                _ => {}
+            }
+            return KeyHandleResult::Handled;
+        }
+
+        // Normal mode
+        match key.code {
+            KeyCode::Esc => {
+                if !state.search_query.is_empty() {
+                    state.search_query.clear();
+                    state.selected_issue = 0;
+                } else {
+                    state.view = BeadsView::Menu;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('/') => {
+                state.search_active = true;
+                state.search_query.clear();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_issue > 0 {
+                    state.selected_issue -= 1;
+                    if state.selected_issue < state.scroll_offset {
+                        state.scroll_offset = state.selected_issue;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                let query_lower = state.search_query.to_lowercase();
+                let filtered_count = if state.search_query.is_empty() {
+                    state.issues.len()
+                } else {
+                    state
+                        .issues
+                        .iter()
+                        .filter(|i| {
+                            i.id.to_lowercase().contains(&query_lower)
+                                || i.title.to_lowercase().contains(&query_lower)
+                                || i.issue_type.to_lowercase().contains(&query_lower)
+                                || i.status.to_lowercase().contains(&query_lower)
+                        })
+                        .count()
+                };
+                if state.selected_issue + 1 < filtered_count {
+                    state.selected_issue += 1;
+                    let visible_height = 15;
+                    if state.selected_issue >= state.scroll_offset + visible_height {
+                        state.scroll_offset = state.selected_issue - visible_height + 1;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                // Refresh current view
+                match current_view {
+                    BeadsView::List => ops::load_beads_list(state, cwd, None),
+                    BeadsView::Ready => ops::load_beads_ready(state, cwd),
+                    BeadsView::Blocked => ops::load_beads_blocked(state, cwd),
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                // View issue detail
+                if let Some(issue_id) = issue_id_for_detail {
+                    match ops::load_beads_issue_detail(&issue_id, cwd) {
+                        Ok(detail) => {
+                            state.detail_issue = Some(detail);
+                            state.selected_subtask = 0;
+                            state.view = BeadsView::Detail;
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    /// Helper to get the issue ID at the currently selected index (for borrow checker)
+    fn get_filtered_issue_at_index(&self) -> Option<&str> {
+        let state = self.modal_state.as_ref()?;
+        let index = state.selected_issue;
+        if state.search_query.is_empty() {
+            state.issues.get(index).map(|i| i.id.as_str())
+        } else {
+            let query_lower = state.search_query.to_lowercase();
+            state
+                .issues
+                .iter()
+                .filter(|i| {
+                    i.id.to_lowercase().contains(&query_lower)
+                        || i.title.to_lowercase().contains(&query_lower)
+                        || i.issue_type.to_lowercase().contains(&query_lower)
+                        || i.status.to_lowercase().contains(&query_lower)
+                })
+                .nth(index)
+                .map(|i| i.id.as_str())
+        }
+    }
+
+    fn handle_stats_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Menu;
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_detail_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::List;
+                state.detail_issue = None;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_subtask > 0 {
+                    state.selected_subtask -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if let Some(ref detail) = state.detail_issue {
+                    if state.selected_subtask + 1 < detail.dependents.len() {
+                        state.selected_subtask += 1;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                // View comments - comments are already loaded in detail_issue
+                state.view = BeadsView::Comments;
+                state.selected_comment = 0;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                // Edit issue
+                if let Some(ref detail) = state.detail_issue {
+                    state.edit_issue_id = detail.id.clone();
+                    state.edit_title = detail.title.clone();
+                    state.edit_description = detail.description.clone().unwrap_or_default();
+                    state.edit_field = 0;
+                    state.edit_status = match detail.status.as_str() {
+                        "in_progress" => 1,
+                        "closed" => 2,
+                        _ => 0,
+                    };
+                    state.edit_priority = detail
+                        .priority
+                        .chars()
+                        .last()
+                        .and_then(|c| c.to_digit(10))
+                        .unwrap_or(2) as usize;
+                    state.view = BeadsView::Edit;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('h') | KeyCode::Char('H') => {
+                // View history
+                if let Some(ref detail) = state.detail_issue {
+                    let issue_id = detail.id.clone();
+                    ops::load_issue_activity(state, &issue_id, cwd);
+                    state.view = BeadsView::History;
+                    state.selected_activity = 0;
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_human_doctor_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = BeadsView::Menu;
+                state.output_lines.clear();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.scroll_offset > 0 {
+                    state.scroll_offset -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                state.scroll_offset += 1;
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    /// Helper to get filtered issue at index
+    fn get_filtered_issue_at(&self, index: usize) -> Option<&BeadsIssue> {
+        let state = self.modal_state.as_ref()?;
+        if state.search_query.is_empty() {
+            state.issues.get(index)
+        } else {
+            let query_lower = state.search_query.to_lowercase();
+            state
+                .issues
+                .iter()
+                .filter(|i| {
+                    i.id.to_lowercase().contains(&query_lower)
+                        || i.title.to_lowercase().contains(&query_lower)
+                        || i.issue_type.to_lowercase().contains(&query_lower)
+                        || i.status.to_lowercase().contains(&query_lower)
+                })
+                .nth(index)
+        }
+    }
 }
 
 impl Default for BeadsPlugin {
@@ -185,9 +584,44 @@ impl Plugin for BeadsPlugin {
         }
     }
 
-    fn handle_modal_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        // Modal handling is done by the existing BeadsState
-        KeyHandleResult::NotHandled
+    fn handle_modal_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_ref() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        // Not a beads project - any key closes
+        if !state.is_beads_project {
+            match key.code {
+                KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                    self.close_modal();
+                    return KeyHandleResult::CloseModal;
+                }
+                _ => return KeyHandleResult::Handled,
+            }
+        }
+
+        let view = state.view;
+        match view {
+            BeadsView::Menu => self.handle_menu_key(key, cwd),
+            BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
+                self.handle_list_key(key, cwd)
+            }
+            BeadsView::Stats => self.handle_stats_key(key),
+            BeadsView::Detail => self.handle_detail_key(key, cwd),
+            BeadsView::Human | BeadsView::Doctor => self.handle_human_doctor_key(key),
+            // TODO: Add remaining view handlers
+            BeadsView::Create
+            | BeadsView::Edit
+            | BeadsView::Comments
+            | BeadsView::Dependencies
+            | BeadsView::Kanban
+            | BeadsView::History
+            | BeadsView::FileIssues => {
+                // For now, return NotHandled to let app handle these
+                KeyHandleResult::NotHandled
+            }
+        }
     }
 
     fn draw_modal(&self, _frame: &mut Frame, _area: Rect) {
