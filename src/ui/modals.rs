@@ -89,7 +89,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
 
     match &app.modal {
         Modal::Help(state) => draw_help_modal(frame, area, state),
-        Modal::Status(info) => draw_status_modal(frame, modal_area, info),
+        Modal::Status(info) => draw_status_modal(frame, modal_area, info, app),
         Modal::Quit => {} // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
         Modal::Space => {}      // Handled above
@@ -249,7 +249,12 @@ pub(super) fn draw_help_modal(frame: &mut Frame, area: Rect, state: &HelpState) 
 }
 
 /// Draw status modal
-pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::SystemInfo) {
+pub(super) fn draw_status_modal(
+    frame: &mut Frame,
+    area: Rect,
+    info: &crate::file_ops::SystemInfo,
+    app: &App,
+) {
     let status_block = Block::default()
         .title(" System Status ")
         .borders(Borders::ALL)
@@ -258,8 +263,9 @@ pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::fil
 
     let label_style = Style::default().fg(COLOR_GREEN);
     let value_style = Style::default().fg(COLOR_FG);
+    let header_style = Style::default().fg(COLOR_YELLOW);
 
-    let status_text = vec![
+    let mut status_text = vec![
         Line::from(""),
         Line::from(vec![
             Span::styled("Hostname: ", label_style),
@@ -291,11 +297,23 @@ pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::fil
             Span::styled(format_size(info.used_swap, DECIMAL), value_style),
         ]),
         Line::from(""),
-        Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(COLOR_GREEN),
-        )),
+        Line::from(Span::styled("Registered Plugins:", header_style)),
     ];
+
+    // Add registered plugins
+    for (id, name, description) in app.plugin_manager.plugin_list() {
+        status_text.push(Line::from(vec![
+            Span::styled(format!("  {} ", id), label_style),
+            Span::styled(format!("({}) ", name), value_style),
+            Span::styled(format!("- {}", description), Style::default().fg(COLOR_FG).add_modifier(ratatui::style::Modifier::DIM)),
+        ]));
+    }
+
+    status_text.push(Line::from(""));
+    status_text.push(Line::from(Span::styled(
+        "Press any key to close",
+        Style::default().fg(COLOR_GREEN),
+    )));
 
     let paragraph = Paragraph::new(status_text)
         .block(status_block)
