@@ -14,6 +14,7 @@ mod config;
 mod errors;
 mod event;
 mod file_ops;
+mod plugins;
 mod ui;
 
 use anyhow::Result;
