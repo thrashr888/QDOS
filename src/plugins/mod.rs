@@ -313,6 +313,13 @@ impl PluginManager {
             plugin.draw_modal(frame, area);
         }
     }
+
+    /// Get mutable reference to BeadsPlugin for key handling delegation
+    pub fn beads_plugin_mut(&mut self) -> Option<&mut beads::BeadsPlugin> {
+        self.plugins
+            .get_mut("beads")
+            .and_then(|p| p.as_any_mut().downcast_mut::<beads::BeadsPlugin>())
+    }
 }
 
 #[cfg(test)]
