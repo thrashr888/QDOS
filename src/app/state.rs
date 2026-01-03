@@ -1352,6 +1352,32 @@ impl ColorThemeState {
     }
 }
 
+/// Clipboard item for copying
+#[derive(Debug, Clone)]
+pub struct ClipboardItem {
+    pub label: String,
+    pub value: String,
+}
+
+/// State for clipboard selection modal
+#[derive(Debug, Clone)]
+pub struct ClipboardState {
+    /// Available items to copy
+    pub items: Vec<ClipboardItem>,
+    /// Currently selected item
+    pub selected: usize,
+}
+
+impl ClipboardState {
+    pub fn new(items: Vec<ClipboardItem>) -> Self {
+        Self { items, selected: 0 }
+    }
+
+    pub fn selected_item(&self) -> Option<&ClipboardItem> {
+        self.items.get(self.selected)
+    }
+}
+
 /// QDSTART configuration fields
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QdstartField {
@@ -1513,6 +1539,8 @@ pub enum Modal {
     Qdstart(QdstartState),
     Git(GitState),
     Beads(BeadsState),
+    /// Clipboard menu for copying context items
+    Clipboard(ClipboardState),
     /// Plugin-provided modal - plugin ID stored, plugin manages its own state
     Plugin(String),
 }

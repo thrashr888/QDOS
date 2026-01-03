@@ -10,9 +10,9 @@
 #[allow(unused_imports)]
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
-    ColorTheme, ColorThemeState, DirectoryMapState, FindPhase, FindState, GitMenuItem, GitState,
-    GitView, HelpState, Modal, ProgressState, QdstartField, QdstartState, RemoteAction,
-    SearchSpecState,
+    ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase, FindState,
+    GitMenuItem, GitState, GitView, HelpState, Modal, ProgressState, QdstartField, QdstartState,
+    RemoteAction, SearchSpecState,
 };
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
@@ -111,6 +111,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::Git(state) => draw_git_modal(frame, area, state, app),
         Modal::Beads(state) => draw_beads_modal(frame, area, state, app),
+        Modal::Clipboard(state) => draw_clipboard_modal(frame, modal_area, state),
         Modal::Plugin(_plugin_id) => {
             // Delegate to the plugin manager to draw the active plugin's modal
             app.plugin_manager.draw_modal(frame, area);
@@ -317,6 +318,54 @@ pub(super) fn draw_status_modal(
 
     let paragraph = Paragraph::new(status_text)
         .block(status_block)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, area);
+}
+
+/// Draw clipboard selection modal
+fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardState) {
+    let block = Block::default()
+        .title(" Copy to Clipboard (Y) ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(COLOR_CYAN))
+        .style(Style::default().bg(COLOR_BG));
+
+    let label_style = Style::default().fg(COLOR_GREEN);
+    let value_style = Style::default().fg(COLOR_FG);
+    let selected_style = Style::default().fg(COLOR_YELLOW).add_modifier(ratatui::style::Modifier::BOLD);
+
+    let mut lines = vec![Line::from("")];
+
+    for (i, item) in state.items.iter().enumerate() {
+        let num = format!("[{}] ", i + 1);
+        let is_selected = i == state.selected;
+
+        if is_selected {
+            lines.push(Line::from(vec![
+                Span::styled(num, selected_style),
+                Span::styled(&item.label, selected_style),
+                Span::styled(": ", selected_style),
+                Span::styled(&item.value, selected_style),
+            ]));
+        } else {
+            lines.push(Line::from(vec![
+                Span::styled(num, label_style),
+                Span::styled(&item.label, label_style),
+                Span::styled(": ", value_style),
+                Span::styled(&item.value, value_style),
+            ]));
+        }
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        "Press 1-9/Enter to copy, Esc to cancel",
+        Style::default().fg(COLOR_GREEN),
+    )));
+
+    let paragraph = Paragraph::new(lines)
+        .block(block)
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);

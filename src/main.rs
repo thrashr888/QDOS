@@ -10,6 +10,7 @@
 #![allow(clippy::lines_filter_map_ok)]
 
 mod app;
+mod clipboard;
 mod config;
 mod errors;
 mod event;

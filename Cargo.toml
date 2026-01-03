@@ -48,6 +48,9 @@ termimad = "0.34.1"
 # Syntax highlighting
 syntect = "5.2"
 
+# Clipboard support
+arboard = "3.4"
+
 [profile.release]
 lto = true
 codegen-units = 1

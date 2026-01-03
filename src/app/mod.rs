@@ -6,10 +6,10 @@ use crate::plugins::git::ops as git_ops;
 
 // Re-export state types for external use (non-plugin types)
 pub use state::{
-    AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView, ColorTheme,
-    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState, HelpState, Modal,
-    NavItem, ProgressOperation, ProgressState, QdstartField, QdstartState, SearchSpecState,
-    ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
+    AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
+    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FileViewerState,
+    FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
+    QdstartState, SearchSpecState, ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -240,6 +240,10 @@ impl App {
                 } else {
                     self.modal = Modal::Error("Beads not initialized in this project".to_string());
                 }
+            }
+            // Yank (copy to clipboard) - Y key
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.open_clipboard_menu();
             }
             // Help
             KeyCode::F(1) => {
@@ -2468,6 +2472,47 @@ impl App {
                     }
                 }
             }
+            Modal::Clipboard(ref mut state) => {
+                use crate::clipboard::copy_to_clipboard;
+                match key.code {
+                    KeyCode::Esc => {
+                        self.modal = Modal::None;
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        if state.selected > 0 {
+                            state.selected -= 1;
+                        }
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if state.selected + 1 < state.items.len() {
+                            state.selected += 1;
+                        }
+                    }
+                    KeyCode::Enter | KeyCode::Char(' ') => {
+                        if let Some(item) = state.selected_item() {
+                            let value = item.value.clone();
+                            if let Err(e) = copy_to_clipboard(&value) {
+                                self.modal = Modal::Error(e);
+                            } else {
+                                self.modal = Modal::Success(format!("Copied: {}", value));
+                            }
+                        }
+                    }
+                    // Quick keys: 1-9 to select item directly
+                    KeyCode::Char(c) if c.is_ascii_digit() && c != '0' => {
+                        let idx = (c as usize) - ('1' as usize);
+                        if idx < state.items.len() {
+                            let value = state.items[idx].value.clone();
+                            if let Err(e) = copy_to_clipboard(&value) {
+                                self.modal = Modal::Error(e);
+                            } else {
+                                self.modal = Modal::Success(format!("Copied: {}", value));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
             Modal::Plugin(_plugin_id) => {
                 // Plugin modals are handled by handle_plugin_key before this function is called
                 // This is a fallback - delegate to plugin manager
@@ -3205,6 +3250,54 @@ impl App {
             }
         }
         false
+    }
+
+    /// Open clipboard menu with context-appropriate items
+    fn open_clipboard_menu(&mut self) {
+        use crate::clipboard::copy_to_clipboard;
+
+        let mut items = Vec::new();
+
+        // Current directory
+        items.push(ClipboardItem {
+            label: "Current Directory".to_string(),
+            value: self.current_path.to_string_lossy().to_string(),
+        });
+
+        // Selected file (if any)
+        if let Some(entry) = self.files.get(self.selected_index) {
+            if entry.name != ".." {
+                items.push(ClipboardItem {
+                    label: "File Path".to_string(),
+                    value: entry.path.to_string_lossy().to_string(),
+                });
+                items.push(ClipboardItem {
+                    label: "File Name".to_string(),
+                    value: entry.name.clone(),
+                });
+            }
+        }
+
+        // Git info (if in repo)
+        if self.is_git_repo() {
+            if let Some(ref git_info) = self.git_status_info {
+                items.push(ClipboardItem {
+                    label: "Git Branch".to_string(),
+                    value: git_info.branch.clone(),
+                });
+            }
+        }
+
+        // If only one item (just directory), copy immediately
+        if items.len() == 1 {
+            if let Err(e) = copy_to_clipboard(&items[0].value) {
+                self.modal = Modal::Error(e);
+            } else {
+                self.modal = Modal::Success(format!("Copied: {}", items[0].value));
+            }
+        } else {
+            self.modal = Modal::Clipboard(ClipboardState::new(items));
+        }
     }
 
     /// Refresh status bar info (beads and git)
