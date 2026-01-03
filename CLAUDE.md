@@ -52,6 +52,8 @@ src/
 - **Modal stack**: Dialogs can be nested; `ActiveModal` enum in `state.rs` defines all modal types
 - **Plugin system**: Plugins implement traits in `plugins/mod.rs`; currently Git and Beads are built-in
 - **State machine**: Navigation state, view modes, and modal states are managed through enums in `state.rs`
+- **Idiomatic Rust**: Stick to modern Rust features, best practices, and patterns.
+- **Dead code**: Allow dead code to be present in the codebase, but remove it when it's not needed. Old or unused code can live on in our git history.
 
 ## Spec & Reference Files
 
@@ -74,6 +76,7 @@ bd sync               # Sync with git
 ## Code Quality
 
 Write code that is already `cargo fmt` and `cargo clippy` compliant - don't fix formatting after the fact. Before committing, verify with:
+
 ```bash
 cargo fmt -- --check
 cargo clippy -- -D warnings
