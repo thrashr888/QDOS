@@ -2989,6 +2989,46 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     ]));
                 }
 
+                // Show recent issues if we have any
+                if !state.recent_issues.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "  Recent:",
+                        Style::default()
+                            .fg(colors.cyan())
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    for issue in state.recent_issues.iter().take(5) {
+                        let status_icon = match issue.status.as_str() {
+                            "in_progress" => "●",
+                            "open" => "○",
+                            _ => "✓",
+                        };
+                        let status_color = match issue.status.as_str() {
+                            "in_progress" => colors.yellow(),
+                            "open" => colors.blue(),
+                            _ => colors.green(),
+                        };
+                        // Truncate title to fit
+                        let max_title = content_area.width.saturating_sub(22) as usize;
+                        let title = if issue.title.len() > max_title {
+                            format!("{}…", &issue.title[..max_title.saturating_sub(1)])
+                        } else {
+                            issue.title.clone()
+                        };
+                        lines.push(Line::from(vec![
+                            Span::styled("    ", Style::default()),
+                            Span::styled(status_icon, Style::default().fg(status_color)),
+                            Span::styled(" ", Style::default()),
+                            Span::styled(
+                                format!("{:<12}", issue.id),
+                                Style::default().fg(colors.grey()),
+                            ),
+                            Span::styled(title, Style::default().fg(colors.fg())),
+                        ]));
+                    }
+                }
+
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
             BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {

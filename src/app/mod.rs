@@ -62,8 +62,10 @@ pub struct App {
     pub should_quit: bool,
     /// Search/filter specification
     pub search_spec: String,
-    /// Navigation history
+    /// Navigation history (back stack)
     pub history: Vec<PathBuf>,
+    /// Forward navigation stack
+    pub forward_history: Vec<PathBuf>,
     /// Last find pattern (for Ctrl+R recall)
     pub last_find_pattern: String,
     /// Current color theme
@@ -111,6 +113,7 @@ impl App {
             should_quit: false,
             search_spec,
             history: Vec::new(),
+            forward_history: Vec::new(),
             last_find_pattern: String::new(),
             color_theme,
             config,
@@ -244,6 +247,14 @@ impl App {
             // Yank (copy to clipboard) - Y key
             KeyCode::Char('y') | KeyCode::Char('Y') => {
                 self.open_clipboard_menu();
+            }
+            // Go back in directory history - like VS Code
+            KeyCode::Char('-') => {
+                let _ = self.go_back();
+            }
+            // Go forward in directory history - like VS Code
+            KeyCode::Char('=') | KeyCode::Char('+') => {
+                let _ = self.go_forward();
             }
             // Help
             KeyCode::F(1) => {
@@ -2754,8 +2765,9 @@ impl App {
             anyhow::bail!("Not a directory");
         }
 
-        // Save current path to history
+        // Save current path to history and clear forward stack
         self.history.push(self.current_path.clone());
+        self.forward_history.clear();
 
         // Update state
         self.current_path = canonical;
@@ -2766,6 +2778,38 @@ impl App {
         // Refresh git/beads status for new directory
         self.refresh_status_bar();
 
+        Ok(())
+    }
+
+    /// Go back in navigation history
+    fn go_back(&mut self) -> Result<()> {
+        if let Some(prev_path) = self.history.pop() {
+            // Save current to forward stack
+            self.forward_history.push(self.current_path.clone());
+
+            // Navigate to previous path
+            self.current_path = prev_path;
+            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.selected_index = 0;
+            self.scroll_offset = 0;
+            self.refresh_status_bar();
+        }
+        Ok(())
+    }
+
+    /// Go forward in navigation history
+    fn go_forward(&mut self) -> Result<()> {
+        if let Some(next_path) = self.forward_history.pop() {
+            // Save current to back stack
+            self.history.push(self.current_path.clone());
+
+            // Navigate to next path
+            self.current_path = next_path;
+            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.selected_index = 0;
+            self.scroll_offset = 0;
+            self.refresh_status_bar();
+        }
         Ok(())
     }
 

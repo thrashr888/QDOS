@@ -143,6 +143,44 @@ pub enum BeadsView {
     Doctor,
 }
 
+/// Kanban board sort mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum KanbanSort {
+    #[default]
+    PriorityAsc,
+    PriorityDesc,
+    TitleAsc,
+    TitleDesc,
+    IdAsc,
+    IdDesc,
+}
+
+impl KanbanSort {
+    /// Get display name for the sort mode
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            KanbanSort::PriorityAsc => "Priority ↑",
+            KanbanSort::PriorityDesc => "Priority ↓",
+            KanbanSort::TitleAsc => "Title A-Z",
+            KanbanSort::TitleDesc => "Title Z-A",
+            KanbanSort::IdAsc => "ID ↑",
+            KanbanSort::IdDesc => "ID ↓",
+        }
+    }
+
+    /// Cycle to next sort mode
+    pub fn next(&self) -> Self {
+        match self {
+            KanbanSort::PriorityAsc => KanbanSort::PriorityDesc,
+            KanbanSort::PriorityDesc => KanbanSort::TitleAsc,
+            KanbanSort::TitleAsc => KanbanSort::TitleDesc,
+            KanbanSort::TitleDesc => KanbanSort::IdAsc,
+            KanbanSort::IdAsc => KanbanSort::IdDesc,
+            KanbanSort::IdDesc => KanbanSort::PriorityAsc,
+        }
+    }
+}
+
 /// Beads project statistics
 #[derive(Debug, Clone, Default)]
 pub struct BeadsStats {
@@ -200,6 +238,8 @@ pub struct BeadsState {
     pub kanban_column: usize,
     /// Selected row within current kanban column
     pub kanban_row: usize,
+    /// Kanban sort mode
+    pub kanban_sort: KanbanSort,
     /// Activity/history entries for timeline view
     pub activity_entries: Vec<BeadsActivityEntry>,
     /// Selected activity entry in history view
@@ -224,6 +264,8 @@ pub struct BeadsState {
     pub edit_priority: usize,
     /// Subtask creation - parent issue ID
     pub subtask_parent_id: String,
+    /// Recent issues for quick access (in_progress and recently touched)
+    pub recent_issues: Vec<BeadsIssue>,
 }
 
 impl Default for BeadsState {
@@ -253,6 +295,7 @@ impl Default for BeadsState {
             selected_comment: 0,
             kanban_column: 0,
             kanban_row: 0,
+            kanban_sort: KanbanSort::default(),
             activity_entries: Vec::new(),
             selected_activity: 0,
             file_query_path: String::new(),
@@ -265,6 +308,7 @@ impl Default for BeadsState {
             edit_status: 0,
             edit_priority: 2,
             subtask_parent_id: String::new(),
+            recent_issues: Vec::new(),
         }
     }
 }

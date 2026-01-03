@@ -9,7 +9,7 @@ pub mod state;
 #[allow(unused_imports)]
 pub use state::{
     BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsMenuItem, BeadsState, BeadsStats,
-    BeadsSubIssue, BeadsView,
+    BeadsSubIssue, BeadsView, KanbanSort,
 };
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
@@ -51,7 +51,11 @@ impl BeadsPlugin {
     /// Open the beads modal with fresh state
     pub fn open_modal(&mut self, cwd: &PathBuf) {
         let is_beads = self.check_is_beads(cwd);
-        self.modal_state = Some(BeadsState::new(is_beads));
+        let mut state = BeadsState::new(is_beads);
+        if is_beads {
+            ops::load_recent_issues(&mut state, cwd);
+        }
+        self.modal_state = Some(state);
     }
 
     /// Close the beads modal
@@ -845,27 +849,45 @@ impl BeadsPlugin {
     }
 
     fn handle_kanban_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        use state::KanbanSort;
+
         let state = match self.modal_state.as_mut() {
             Some(s) => s,
             None => return KeyHandleResult::NotHandled,
         };
 
-        // Build column lists
-        let open_issues: Vec<_> = state
+        // Build and sort column lists
+        let sort_fn = |a: &&BeadsIssue, b: &&BeadsIssue| -> std::cmp::Ordering {
+            match state.kanban_sort {
+                KanbanSort::PriorityAsc => a.priority.cmp(&b.priority),
+                KanbanSort::PriorityDesc => b.priority.cmp(&a.priority),
+                KanbanSort::TitleAsc => a.title.to_lowercase().cmp(&b.title.to_lowercase()),
+                KanbanSort::TitleDesc => b.title.to_lowercase().cmp(&a.title.to_lowercase()),
+                KanbanSort::IdAsc => a.id.cmp(&b.id),
+                KanbanSort::IdDesc => b.id.cmp(&a.id),
+            }
+        };
+
+        let mut open_issues: Vec<_> = state
             .issues
             .iter()
             .filter(|i| i.status == "open")
             .collect();
-        let in_progress_issues: Vec<_> = state
+        open_issues.sort_by(sort_fn);
+
+        let mut in_progress_issues: Vec<_> = state
             .issues
             .iter()
             .filter(|i| i.status == "in_progress")
             .collect();
-        let closed_issues: Vec<_> = state
+        in_progress_issues.sort_by(sort_fn);
+
+        let mut closed_issues: Vec<_> = state
             .issues
             .iter()
             .filter(|i| i.status == "closed")
             .collect();
+        closed_issues.sort_by(sort_fn);
 
         let columns = [&open_issues, &in_progress_issues, &closed_issues];
         let current_col = &columns[state.kanban_column];
@@ -928,6 +950,67 @@ impl BeadsPlugin {
                         }
                     }
                 }
+                KeyHandleResult::Handled
+            }
+            // Move issue left (to previous status)
+            KeyCode::Char('<') | KeyCode::Char(',') => {
+                if let Some(issue) = current_col.get(state.kanban_row) {
+                    let issue_id = issue.id.clone();
+                    let new_status = match state.kanban_column {
+                        1 => Some(0), // in_progress -> open
+                        2 => Some(1), // closed -> in_progress
+                        _ => None,
+                    };
+                    if let Some(status_idx) = new_status {
+                        match ops::execute_beads_update(&issue_id, None, Some(status_idx), None, cwd)
+                        {
+                            Ok(_) => {
+                                // Refresh kanban and stay in same column
+                                ops::load_beads_list(state, cwd, Some("all"));
+                                state.kanban_row = 0;
+                                state.success_message =
+                                    Some(format!("Moved {} to left column", issue_id));
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Move issue right (to next status)
+            KeyCode::Char('>') | KeyCode::Char('.') => {
+                if let Some(issue) = current_col.get(state.kanban_row) {
+                    let issue_id = issue.id.clone();
+                    let new_status = match state.kanban_column {
+                        0 => Some(1), // open -> in_progress
+                        1 => Some(2), // in_progress -> closed
+                        _ => None,
+                    };
+                    if let Some(status_idx) = new_status {
+                        match ops::execute_beads_update(&issue_id, None, Some(status_idx), None, cwd)
+                        {
+                            Ok(_) => {
+                                // Refresh kanban and stay in same column
+                                ops::load_beads_list(state, cwd, Some("all"));
+                                state.kanban_row = 0;
+                                state.success_message =
+                                    Some(format!("Moved {} to right column", issue_id));
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Cycle sort mode
+            KeyCode::Char('s') | KeyCode::Char('S') => {
+                state.kanban_sort = state.kanban_sort.next();
+                state.kanban_row = 0;
+                state.success_message = Some(format!("Sort: {}", state.kanban_sort.as_str()));
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,

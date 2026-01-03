@@ -181,6 +181,45 @@ pub fn load_beads_blocked(state: &mut BeadsState, cwd: &PathBuf) {
     }
 }
 
+/// Load recent issues (in_progress first, then high priority open)
+pub fn load_recent_issues(state: &mut BeadsState, cwd: &PathBuf) {
+    state.recent_issues.clear();
+
+    // First get in_progress issues
+    let output = Command::new("bd")
+        .args(["list", "--status=in_progress", "--json"])
+        .current_dir(cwd)
+        .output();
+
+    if let Ok(output) = output {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Ok(mut issues) = parse_beads_json(&stdout) {
+            // Take up to 3 in_progress issues
+            issues.truncate(3);
+            state.recent_issues.extend(issues);
+        }
+    }
+
+    // If we have room, add ready issues
+    if state.recent_issues.len() < 5 {
+        let remaining = 5 - state.recent_issues.len();
+        let output = Command::new("bd")
+            .args(["ready", "--json"])
+            .current_dir(cwd)
+            .output();
+
+        if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if let Ok(mut issues) = parse_beads_json(&stdout) {
+                // Filter out already-included issues and take remaining
+                issues.retain(|i| !state.recent_issues.iter().any(|r| r.id == i.id));
+                issues.truncate(remaining);
+                state.recent_issues.extend(issues);
+            }
+        }
+    }
+}
+
 /// JSON structure for beads stats from bd stats --json
 #[derive(Debug, Deserialize)]
 struct BeadsStatsJson {
