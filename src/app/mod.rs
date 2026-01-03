@@ -302,6 +302,8 @@ impl App {
             KeyCode::End => {
                 if !self.files.is_empty() {
                     self.selected_index = self.files.len() - 1;
+                    // Scroll to bottom (use visible_height estimate of 17)
+                    self.scroll_offset = self.files.len().saturating_sub(17);
                 }
             }
             // Menu navigation
@@ -3693,6 +3695,19 @@ impl App {
         };
 
         self.selected_index = new_index;
+
+        // Update scroll_offset to keep selection visible
+        // Use estimated visible height of 17 (typical file list area)
+        // This will be adjusted by UI if terminal is resized
+        let visible_height = 17usize;
+        if new_index < self.scroll_offset {
+            // Cursor moved above visible area, scroll up
+            self.scroll_offset = new_index;
+        } else if new_index >= self.scroll_offset + visible_height {
+            // Cursor moved below visible area, scroll down
+            self.scroll_offset = new_index.saturating_sub(visible_height - 1);
+        }
+        // Otherwise: cursor is within visible area, don't scroll
     }
 
     /// Toggle tag on currently selected file
