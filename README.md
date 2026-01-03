@@ -2,11 +2,11 @@
 
 A retro DOS-style file manager for the terminal, written in Rust.
 
-R-DOS is inspired by the classic QDOS file manager, reimagined as a modern Terminal User Interface (TUI) using the [ratatui](https://ratatui.rs/) library. It aims for a 1:1 recreation of the original QDOS file manager, with a few modern enhancements.
+R-DOS is inspired by the classic Q-DOS file manager, reimagined as a modern Terminal User Interface (TUI) using the [ratatui](https://ratatui.rs/) library. It aims for a 1:1 recreation of the original Q-DOS file manager, with a few modern enhancements and a plugin system.
 
 ![The real Q-DOS II](./images/qdos.png)
 
-I loved Q-DOS so here it is as a terminal app. Watch it in action: [Q-DOS II Demo on YouTube](https://www.youtube.com/watch?v=82j6NpSDTWQ)
+I loved Q-DOS so here it is as a terminal app (TUI). Watch it in action: [Q-DOS II Demo on YouTube](https://www.youtube.com/watch?v=82j6NpSDTWQ)
 
 Since it's somewhat tough to find, I'm rehosting [Q-DOS II for DOSBox](http://thrashr888.s3.amazonaws.com/Q-DOS%20II%20Version%202.0%20-%205.25.7z).
 
@@ -21,11 +21,14 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 - **Sorting**: 9 different sort modes (F8 to cycle) - by name, extension, size, or date (ascending/descending)
 - **File Viewing**: View the contents of any file on the screen (in "ASCII", "HEX", "MARKDOWN", or "IMAGE")
 - **Syntax Highlighting**: Highlight the contents of any file in the viewer
-- **Git Integration**: View Git status, log, diff, and commit history
-- **Beads Integration**: View and manage Beads issues and comments
 - **Keyboard-First Interface**: All actions accessible via keyboard shortcuts
 - **Modal Dialogs**: Help (F1), Status (F2), Disk Space (Space menu), and more
 - **Cross-Platform**: Works on macOS, Linux, and Windows
+
+## Plugins
+
+- **Beads**: View and manage Beads issues and comments
+- **Git**: View Git status, log, diff, and commit history
 
 ## Installation
 
@@ -53,6 +56,7 @@ cargo build --release
 ### Pre-built Binaries
 
 Download from [GitHub Releases](https://github.com/thrashr888/QDOS/releases) for:
+
 - Linux (x86_64, aarch64)
 - macOS (Intel, Apple Silicon)
 - Windows (x86_64)
@@ -97,6 +101,8 @@ rdos /path/to/directory
 - **Find**: Search all directories on the disk to find specified file(s) (planned)
 - **Erase**: Erase one or several files from this directory
 - **Rename**: Rename one or several files in this directory
+- **Git**: View Git status, log, diff, and commit history
+- **Beads**: View and manage Beads issues and comments
 - **Space**: Show the total, used, and free space on any disk
 - **Attribute**: Change/view file attributes (planned)
 - **Print**: Print one or several files on the printer (planned)
@@ -133,6 +139,7 @@ rdos /path/to/directory
    ```
 4. GitHub Actions builds binaries and creates the release
 5. Update Homebrew tap ([homebrew-qdos](https://github.com/thrashr888/homebrew-qdos)):
+
    ```bash
    # Get new SHA256 hashes
    curl -sL https://github.com/thrashr888/QDOS/releases/download/v0.x.x/rdos-macos-aarch64 | shasum -a 256
@@ -141,9 +148,9 @@ rdos /path/to/directory
    # Update Formula/rdos.rb with new version and hashes, then push
    ```
 
-## License
+## MIT License
 
-Copyright 2026 Paul Thrasher
+Copyright 2015-2026 Paul Thrasher
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
