@@ -3214,14 +3214,14 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     Line::from(""),
                 ];
 
-                // Title field
+                // Title field (field 0)
                 let title_style = if state.create_field == 0 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
                 lines.push(Line::from(vec![
-                    Span::styled("  Title:    ", Style::default().fg(colors.green())),
+                    Span::styled("  Title:       ", Style::default().fg(colors.green())),
                     Span::styled(&state.create_title, title_style),
                     if state.create_field == 0 {
                         Span::styled("█", title_style)
@@ -3232,29 +3232,52 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 lines.push(Line::from(""));
 
-                // Type field
-                let type_style = if state.create_field == 1 {
+                // Description field (field 1)
+                let desc_style = if state.create_field == 1 {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                let desc_display = if state.create_description.is_empty() && state.create_field != 1 {
+                    "(optional)".to_string()
+                } else {
+                    state.create_description.clone()
+                };
+                lines.push(Line::from(vec![
+                    Span::styled("  Description: ", Style::default().fg(colors.green())),
+                    Span::styled(&desc_display, desc_style),
+                    if state.create_field == 1 {
+                        Span::styled("█", desc_style)
+                    } else {
+                        Span::styled("", Style::default())
+                    },
+                ]));
+
+                lines.push(Line::from(""));
+
+                // Type field (field 2)
+                let type_style = if state.create_field == 2 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
                 let type_value = format!("< {} >", issue_types[state.create_type]);
                 lines.push(Line::from(vec![
-                    Span::styled("  Type:     ", Style::default().fg(colors.green())),
+                    Span::styled("  Type:        ", Style::default().fg(colors.green())),
                     Span::styled(type_value, type_style),
                 ]));
 
                 lines.push(Line::from(""));
 
-                // Priority field
-                let priority_style = if state.create_field == 2 {
+                // Priority field (field 3)
+                let priority_style = if state.create_field == 3 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
                 let priority_value = format!("< {} >", priorities[state.create_priority]);
                 lines.push(Line::from(vec![
-                    Span::styled("  Priority: ", Style::default().fg(colors.green())),
+                    Span::styled("  Priority:    ", Style::default().fg(colors.green())),
                     Span::styled(priority_value, priority_style),
                 ]));
 

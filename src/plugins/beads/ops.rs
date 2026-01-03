@@ -223,6 +223,7 @@ pub fn load_beads_stats(state: &mut BeadsState, cwd: &PathBuf) {
 /// Execute beads create
 pub fn execute_beads_create(
     title: &str,
+    description: &str,
     issue_type_idx: usize,
     priority: usize,
     cwd: &PathBuf,
@@ -230,16 +231,23 @@ pub fn execute_beads_create(
     let issue_types = ["task", "bug", "feature"];
     let issue_type = issue_types[issue_type_idx];
 
+    let mut args = vec![
+        "create".to_string(),
+        "--title".to_string(),
+        title.to_string(),
+        "--type".to_string(),
+        issue_type.to_string(),
+        "--priority".to_string(),
+        priority.to_string(),
+    ];
+
+    if !description.is_empty() {
+        args.push("--description".to_string());
+        args.push(description.to_string());
+    }
+
     let output = Command::new("bd")
-        .args([
-            "create",
-            "--title",
-            title,
-            "--type",
-            issue_type,
-            "--priority",
-            &priority.to_string(),
-        ])
+        .args(&args)
         .current_dir(cwd)
         .output();
 
@@ -740,6 +748,7 @@ pub fn execute_beads_update(
 pub fn execute_beads_create_subtask(
     parent_id: &str,
     title: &str,
+    description: &str,
     issue_type_idx: usize,
     priority: usize,
     cwd: &PathBuf,
@@ -747,17 +756,24 @@ pub fn execute_beads_create_subtask(
     let issue_types = ["task", "bug", "feature"];
     let issue_type = issue_types[issue_type_idx];
 
+    let mut args = vec![
+        "create".to_string(),
+        "--title".to_string(),
+        title.to_string(),
+        "--type".to_string(),
+        issue_type.to_string(),
+        "--priority".to_string(),
+        priority.to_string(),
+    ];
+
+    if !description.is_empty() {
+        args.push("--description".to_string());
+        args.push(description.to_string());
+    }
+
     // First create the issue
     let output = Command::new("bd")
-        .args([
-            "create",
-            "--title",
-            title,
-            "--type",
-            issue_type,
-            "--priority",
-            &priority.to_string(),
-        ])
+        .args(&args)
         .current_dir(cwd)
         .output();
 

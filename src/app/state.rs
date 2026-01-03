@@ -1641,6 +1641,7 @@ pub struct BeadsState {
     pub stats: BeadsStats,
     /// Create form state
     pub create_title: String,
+    pub create_description: String,
     pub create_type: usize,
     pub create_priority: usize,
     pub create_field: usize,
@@ -1714,6 +1715,7 @@ impl Default for BeadsState {
             scroll_offset: 0,
             stats: BeadsStats::default(),
             create_title: String::new(),
+            create_description: String::new(),
             create_type: 0,
             create_priority: 2,
             create_field: 0,

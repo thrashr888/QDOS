@@ -2821,8 +2821,9 @@ impl App {
                             _ => {}
                         },
                         BeadsView::Create => {
-                            // When in title field (field 0), prioritize text input
-                            let in_title_field = state.create_field == 0;
+                            // Text fields: 0=title, 1=description
+                            // Selector fields: 2=type, 3=priority
+                            let in_text_field = state.create_field <= 1;
 
                             match key.code {
                                 KeyCode::Esc => {
@@ -2834,17 +2835,17 @@ impl App {
                                     }
                                 }
                                 KeyCode::Down => {
-                                    if state.create_field < 2 {
+                                    if state.create_field < 3 {
                                         state.create_field += 1;
                                     }
                                 }
                                 KeyCode::Left => match state.create_field {
-                                    1 => {
+                                    2 => {
                                         if state.create_type > 0 {
                                             state.create_type -= 1;
                                         }
                                     }
-                                    2 => {
+                                    3 => {
                                         if state.create_priority > 0 {
                                             state.create_priority -= 1;
                                         }
@@ -2852,67 +2853,76 @@ impl App {
                                     _ => {}
                                 },
                                 KeyCode::Right => match state.create_field {
-                                    1 => {
+                                    2 => {
                                         if state.create_type < 2 {
                                             state.create_type += 1;
                                         }
                                     }
-                                    2 => {
+                                    3 => {
                                         if state.create_priority < 4 {
                                             state.create_priority += 1;
                                         }
                                     }
                                     _ => {}
                                 },
-                                KeyCode::Backspace => {
-                                    if in_title_field {
+                                KeyCode::Backspace => match state.create_field {
+                                    0 => {
                                         state.create_title.pop();
                                     }
-                                }
-                                KeyCode::Char('k') if !in_title_field => {
+                                    1 => {
+                                        state.create_description.pop();
+                                    }
+                                    _ => {}
+                                },
+                                KeyCode::Char('k') if !in_text_field => {
                                     if state.create_field > 0 {
                                         state.create_field -= 1;
                                     }
                                 }
-                                KeyCode::Char('j') if !in_title_field => {
-                                    if state.create_field < 2 {
+                                KeyCode::Char('j') if !in_text_field => {
+                                    if state.create_field < 3 {
                                         state.create_field += 1;
                                     }
                                 }
-                                KeyCode::Char('h') if !in_title_field => match state.create_field {
-                                    1 => {
+                                KeyCode::Char('h') if !in_text_field => match state.create_field {
+                                    2 => {
                                         if state.create_type > 0 {
                                             state.create_type -= 1;
                                         }
                                     }
-                                    2 => {
+                                    3 => {
                                         if state.create_priority > 0 {
                                             state.create_priority -= 1;
                                         }
                                     }
                                     _ => {}
                                 },
-                                KeyCode::Char('l') if !in_title_field => match state.create_field {
-                                    1 => {
+                                KeyCode::Char('l') if !in_text_field => match state.create_field {
+                                    2 => {
                                         if state.create_type < 2 {
                                             state.create_type += 1;
                                         }
                                     }
-                                    2 => {
+                                    3 => {
                                         if state.create_priority < 4 {
                                             state.create_priority += 1;
                                         }
                                     }
                                     _ => {}
                                 },
-                                KeyCode::Char(c) => {
-                                    if in_title_field {
+                                KeyCode::Char(c) => match state.create_field {
+                                    0 => {
                                         state.create_title.push(c);
                                     }
+                                    1 => {
+                                        state.create_description.push(c);
+                                    }
+                                    _ => {}
                                 }
                                 KeyCode::Enter => {
                                     if !state.create_title.is_empty() {
                                         let title = state.create_title.clone();
+                                        let description = state.create_description.clone();
                                         let issue_type = state.create_type;
                                         let priority = state.create_priority;
                                         let path = self.current_path.clone();
@@ -2921,11 +2931,12 @@ impl App {
                                         if parent_id.is_empty() {
                                             // Create regular issue
                                             match beads_ops::execute_beads_create(
-                                                &title, issue_type, priority, &path,
+                                                &title, &description, issue_type, priority, &path,
                                             ) {
                                                 Ok(_) => {
                                                     // Reset form and return to menu
                                                     state.create_title.clear();
+                                                    state.create_description.clear();
                                                     state.create_field = 0;
                                                     state.create_type = 0;
                                                     state.create_priority = 2;
@@ -2940,11 +2951,12 @@ impl App {
                                         } else {
                                             // Create subtask under parent
                                             match beads_ops::execute_beads_create_subtask(
-                                                &parent_id, &title, issue_type, priority, &path,
+                                                &parent_id, &title, &description, issue_type, priority, &path,
                                             ) {
                                                 Ok(new_id) => {
                                                     // Reset form and return to menu
                                                     state.create_title.clear();
+                                                    state.create_description.clear();
                                                     state.create_field = 0;
                                                     state.create_type = 0;
                                                     state.create_priority = 2;

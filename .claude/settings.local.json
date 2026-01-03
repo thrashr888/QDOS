@@ -30,7 +30,8 @@
       "Bash(wc:*)",
       "Skill(beads:*)",
       "Skill(beads:create)",
-      "Skill(beads:list)"
+      "Skill(beads:list)",
+      "Bash(cargo update:*)"
     ]
   }
 }
