@@ -5,6 +5,7 @@
 use crate::app::{ColorTheme, SortMode};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -17,6 +18,8 @@ pub struct Config {
     pub display: DisplayConfig,
     #[serde(default)]
     pub editor: EditorConfig,
+    #[serde(default)]
+    pub plugins: PluginsConfig,
 }
 
 /// General settings
@@ -72,6 +75,83 @@ pub struct EditorConfig {
     /// Default editor command (uses $EDITOR if not set)
     #[serde(default)]
     pub command: Option<String>,
+}
+
+/// Plugin settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginsConfig {
+    /// List of explicitly enabled plugin IDs
+    /// If empty, all available plugins are enabled by default
+    #[serde(default)]
+    pub enabled: Vec<String>,
+    /// List of explicitly disabled plugin IDs
+    /// Takes precedence over enabled list
+    #[serde(default)]
+    pub disabled: Vec<String>,
+    /// Plugin-specific settings as key-value pairs
+    /// Keys are plugin IDs, values are plugin-specific config tables
+    #[serde(default)]
+    pub settings: HashMap<String, PluginSettings>,
+}
+
+impl Default for PluginsConfig {
+    #[allow(clippy::derivable_impls)]
+    fn default() -> Self {
+        // Empty enabled list means all plugins are enabled by default
+        Self {
+            enabled: vec![],
+            disabled: vec![],
+            settings: HashMap::new(),
+        }
+    }
+}
+
+/// Plugin-specific settings container
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PluginSettings {
+    /// Whether the plugin is enabled (overrides global enabled/disabled lists)
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    /// Plugin-specific key-value settings
+    #[serde(flatten)]
+    pub options: HashMap<String, toml::Value>,
+}
+
+impl PluginsConfig {
+    /// Check if a plugin is enabled based on the configuration
+    pub fn is_plugin_enabled(&self, plugin_id: &str) -> bool {
+        // Check explicit disabled list first (takes precedence)
+        if self.disabled.contains(&plugin_id.to_string()) {
+            return false;
+        }
+
+        // Check plugin-specific settings
+        if let Some(settings) = self.settings.get(plugin_id) {
+            if let Some(enabled) = settings.enabled {
+                return enabled;
+            }
+        }
+
+        // If enabled list is empty, all plugins are enabled by default
+        if self.enabled.is_empty() {
+            return true;
+        }
+
+        // Check if in enabled list
+        self.enabled.contains(&plugin_id.to_string())
+    }
+
+    /// Get plugin-specific settings
+    #[allow(dead_code)]
+    pub fn get_plugin_settings(&self, plugin_id: &str) -> Option<&PluginSettings> {
+        self.settings.get(plugin_id)
+    }
+
+    /// Get a specific option value for a plugin
+    #[allow(dead_code)]
+    pub fn get_plugin_option(&self, plugin_id: &str, key: &str) -> Option<&toml::Value> {
+        self.settings.get(plugin_id)?.options.get(key)
+    }
 }
 
 /// Sort method for config serialization
@@ -348,5 +428,92 @@ mod tests {
         let toml_str = toml::to_string_pretty(&config).unwrap();
         assert!(toml_str.contains("[general]"));
         assert!(toml_str.contains("[display]"));
+    }
+
+    #[test]
+    fn test_plugin_config_default() {
+        let config = PluginsConfig::default();
+        // All plugins enabled by default when lists are empty
+        assert!(config.is_plugin_enabled("git"));
+        assert!(config.is_plugin_enabled("beads"));
+        assert!(config.is_plugin_enabled("any_plugin"));
+    }
+
+    #[test]
+    fn test_plugin_config_disabled_list() {
+        let config = PluginsConfig {
+            enabled: vec![],
+            disabled: vec!["git".to_string()],
+            settings: HashMap::new(),
+        };
+        assert!(!config.is_plugin_enabled("git"));
+        assert!(config.is_plugin_enabled("beads"));
+    }
+
+    #[test]
+    fn test_plugin_config_enabled_list() {
+        let config = PluginsConfig {
+            enabled: vec!["git".to_string()],
+            disabled: vec![],
+            settings: HashMap::new(),
+        };
+        assert!(config.is_plugin_enabled("git"));
+        assert!(!config.is_plugin_enabled("beads"));
+    }
+
+    #[test]
+    fn test_plugin_config_disabled_takes_precedence() {
+        let config = PluginsConfig {
+            enabled: vec!["git".to_string()],
+            disabled: vec!["git".to_string()],
+            settings: HashMap::new(),
+        };
+        // Disabled takes precedence
+        assert!(!config.is_plugin_enabled("git"));
+    }
+
+    #[test]
+    fn test_plugin_specific_enabled_override() {
+        let mut settings = HashMap::new();
+        settings.insert(
+            "git".to_string(),
+            PluginSettings {
+                enabled: Some(false),
+                options: HashMap::new(),
+            },
+        );
+        let config = PluginsConfig {
+            enabled: vec![],
+            disabled: vec![],
+            settings,
+        };
+        // Plugin-specific enabled=false overrides default
+        assert!(!config.is_plugin_enabled("git"));
+    }
+
+    #[test]
+    fn test_plugin_config_toml_parsing() {
+        let toml_str = r#"
+            [plugins]
+            disabled = ["experimental"]
+
+            [plugins.settings.git]
+            enabled = true
+            show_branch = true
+
+            [plugins.settings.beads]
+            auto_sync = false
+        "#;
+
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert!(config.plugins.is_plugin_enabled("git"));
+        assert!(!config.plugins.is_plugin_enabled("experimental"));
+
+        let git_settings = config.plugins.get_plugin_settings("git").unwrap();
+        assert_eq!(git_settings.enabled, Some(true));
+        assert_eq!(
+            git_settings.options.get("show_branch"),
+            Some(&toml::Value::Boolean(true))
+        );
     }
 }

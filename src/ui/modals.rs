@@ -111,6 +111,10 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::Git(state) => draw_git_modal(frame, area, state, app),
         Modal::Beads(state) => draw_beads_modal(frame, area, state, app),
+        Modal::Plugin(_plugin_id) => {
+            // Delegate to the plugin manager to draw the active plugin's modal
+            app.plugin_manager.draw_modal(frame, area);
+        }
         Modal::None => {}
     }
 }

@@ -12,6 +12,7 @@
 // Allow dead code until plugins are integrated
 #![allow(dead_code)]
 
+use crate::config::PluginsConfig;
 use crossterm::event::KeyEvent;
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -134,6 +135,8 @@ pub struct PluginManager {
     plugin_order: Vec<String>,
     /// Currently active plugin modal (if any)
     active_modal: Option<String>,
+    /// Plugin configuration
+    config: PluginsConfig,
 }
 
 impl Default for PluginManager {
@@ -149,17 +152,53 @@ impl PluginManager {
             plugins: HashMap::new(),
             plugin_order: Vec::new(),
             active_modal: None,
+            config: PluginsConfig::default(),
         }
     }
 
-    /// Register a plugin
+    /// Create a new plugin manager with config
+    pub fn with_config(config: PluginsConfig) -> Self {
+        Self {
+            plugins: HashMap::new(),
+            plugin_order: Vec::new(),
+            active_modal: None,
+            config,
+        }
+    }
+
+    /// Update the plugin configuration
+    pub fn set_config(&mut self, config: PluginsConfig) {
+        self.config = config;
+    }
+
+    /// Get the current plugin configuration
+    pub fn config(&self) -> &PluginsConfig {
+        &self.config
+    }
+
+    /// Check if a plugin is enabled by config
+    pub fn is_plugin_enabled(&self, id: &str) -> bool {
+        self.config.is_plugin_enabled(id)
+    }
+
+    /// Register a plugin (respects config enabled status)
     pub fn register(&mut self, plugin: Box<dyn Plugin>) {
+        let id = plugin.id().to_string();
+        // Only register if enabled in config
+        if self.config.is_plugin_enabled(&id) {
+            self.plugin_order.push(id.clone());
+            self.plugins.insert(id, plugin);
+        }
+    }
+
+    /// Register a plugin unconditionally (ignores config)
+    pub fn register_always(&mut self, plugin: Box<dyn Plugin>) {
         let id = plugin.id().to_string();
         self.plugin_order.push(id.clone());
         self.plugins.insert(id, plugin);
     }
 
-    /// Initialize all plugins
+    /// Initialize all enabled plugins
     pub fn init_all(&mut self, cwd: &PathBuf) -> Result<(), String> {
         for plugin in self.plugins.values_mut() {
             plugin.init(cwd)?;
@@ -341,5 +380,38 @@ mod tests {
         let menu_items = manager.menu_plugins();
         assert_eq!(menu_items.len(), 1);
         assert_eq!(menu_items[0].1.name, "Test");
+    }
+
+    #[test]
+    fn test_plugin_manager_with_config() {
+        // Create a config that disables the "test" plugin
+        let config = PluginsConfig {
+            enabled: vec![],
+            disabled: vec!["test".to_string()],
+            settings: HashMap::new(),
+        };
+
+        let mut manager = PluginManager::with_config(config);
+        manager.register(Box::new(TestPlugin::new("test")));
+
+        // Plugin should not be registered because it's disabled
+        assert!(manager.get("test").is_none());
+    }
+
+    #[test]
+    fn test_plugin_manager_register_always() {
+        // Create a config that disables the "test" plugin
+        let config = PluginsConfig {
+            enabled: vec![],
+            disabled: vec!["test".to_string()],
+            settings: HashMap::new(),
+        };
+
+        let mut manager = PluginManager::with_config(config);
+        // register_always ignores config
+        manager.register_always(Box::new(TestPlugin::new("test")));
+
+        // Plugin should be registered because we used register_always
+        assert!(manager.get("test").is_some());
     }
 }

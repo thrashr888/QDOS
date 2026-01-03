@@ -19,6 +19,7 @@ use crate::event::EventHandler;
 use crate::file_ops::{
     apply_attributes, find_files_recursive, get_directory_contents, get_system_info, FileEntry,
 };
+use crate::plugins::{KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo};
 use crate::ui;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -62,6 +63,8 @@ pub struct App {
     pub beads_status_info: Option<beads_ops::BeadsStatusInfo>,
     /// Git status bar info - None if not in git repo
     pub git_status_info: Option<git_ops::GitStatusInfo>,
+    /// Plugin manager for extensibility
+    pub plugin_manager: PluginManager,
 }
 
 impl App {
@@ -74,6 +77,9 @@ impl App {
         let color_theme: ColorTheme = config.display.theme.clone().into();
         let search_spec = config.general.search_spec.clone();
         let show_hidden = config.general.show_hidden;
+
+        // Initialize plugin manager with config
+        let plugin_manager = PluginManager::with_config(config.plugins.clone());
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -96,6 +102,7 @@ impl App {
             show_hidden,
             beads_status_info: None,
             git_status_info: None,
+            plugin_manager,
         };
 
         // Load status bar info
@@ -183,6 +190,11 @@ impl App {
         // Handle modal-specific input
         if !matches!(self.modal, Modal::None) {
             return self.handle_modal_key(key);
+        }
+
+        // Let plugins handle keys first
+        if self.handle_plugin_key(key) {
+            return Ok(());
         }
 
         match key.code {
@@ -3548,6 +3560,16 @@ impl App {
                     }
                 }
             }
+            Modal::Plugin(_plugin_id) => {
+                // Plugin modals are handled by handle_plugin_key before this function is called
+                // This is a fallback - delegate to plugin manager
+                let result = self
+                    .plugin_manager
+                    .handle_modal_key(key, &self.current_path);
+                if result == KeyHandleResult::CloseModal {
+                    self.modal = Modal::None;
+                }
+            }
             Modal::None => {}
         }
 
@@ -4277,6 +4299,61 @@ impl App {
         } else {
             self.git_status_info = None;
         }
+    }
+
+    /// Get menu items from all registered plugins
+    #[allow(dead_code)] // Will be used by UI in future
+    pub fn get_plugin_menu_items(&self) -> Vec<PluginMenuItem> {
+        self.plugin_manager
+            .menu_plugins()
+            .into_iter()
+            .map(|(_, item)| item)
+            .collect()
+    }
+
+    /// Let plugins handle a key event first
+    /// Returns true if a plugin handled the key
+    pub fn handle_plugin_key(&mut self, key: KeyEvent) -> bool {
+        // Check if a plugin modal is active
+        if self.plugin_manager.has_active_modal() {
+            let result = self
+                .plugin_manager
+                .handle_modal_key(key, &self.current_path);
+            if result == KeyHandleResult::CloseModal {
+                self.modal = Modal::None;
+            }
+            return result != KeyHandleResult::NotHandled;
+        }
+
+        // Let plugins try to handle global keys
+        let result = self
+            .plugin_manager
+            .handle_global_key(key, &self.current_path);
+        match result {
+            KeyHandleResult::NotHandled => false,
+            KeyHandleResult::Handled => true,
+            KeyHandleResult::OpenModal => {
+                // Plugin opened its modal - set the Modal::Plugin variant
+                if let Some(plugin) = self.plugin_manager.active_modal() {
+                    self.modal = Modal::Plugin(plugin.id().to_string());
+                }
+                true
+            }
+            KeyHandleResult::CloseModal => {
+                self.modal = Modal::None;
+                true
+            }
+        }
+    }
+
+    /// Get status bar info from all active plugins
+    #[allow(dead_code)] // Will be used by UI when plugins are implemented
+    pub fn get_plugin_status_info(&self) -> Vec<(String, PluginStatusInfo)> {
+        self.plugin_manager
+            .status_plugins(&self.current_path)
+            .into_iter()
+            .map(|(plugin, info)| (plugin.id().to_string(), info))
+            .collect()
     }
 }
 

@@ -1863,7 +1863,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::Graph => "Graph",
             BeadsMenuItem::Kanban => "Kanban",
             BeadsMenuItem::Sync => "Sync",
-            BeadsMenuItem::Human => "Human",
+            BeadsMenuItem::Human => "Help/Commands",
             BeadsMenuItem::Init => "Init",
             BeadsMenuItem::Doctor => "Doctor",
         }
@@ -2110,4 +2110,6 @@ pub enum Modal {
     Qdstart(QdstartState),
     Git(GitState),
     Beads(BeadsState),
+    /// Plugin-provided modal - plugin ID stored, plugin manages its own state
+    Plugin(String),
 }
