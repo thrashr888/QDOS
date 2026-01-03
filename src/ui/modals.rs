@@ -3232,26 +3232,52 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 lines.push(Line::from(""));
 
-                // Description field (field 1)
+                // Description field (field 1) - supports multi-line
                 let desc_style = if state.create_field == 1 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
-                let desc_display = if state.create_description.is_empty() && state.create_field != 1 {
-                    "(optional)".to_string()
+                let desc_lines: Vec<&str> = state.create_description.split('\n').collect();
+                if desc_lines.is_empty() || (desc_lines.len() == 1 && desc_lines[0].is_empty()) {
+                    // Empty description
+                    let placeholder = if state.create_field == 1 { "" } else { "(optional)" };
+                    lines.push(Line::from(vec![
+                        Span::styled("  Description: ", Style::default().fg(colors.green())),
+                        Span::styled(placeholder, desc_style),
+                        if state.create_field == 1 {
+                            Span::styled("█", desc_style)
+                        } else {
+                            Span::styled("", Style::default())
+                        },
+                    ]));
                 } else {
-                    state.create_description.clone()
-                };
-                lines.push(Line::from(vec![
-                    Span::styled("  Description: ", Style::default().fg(colors.green())),
-                    Span::styled(&desc_display, desc_style),
-                    if state.create_field == 1 {
-                        Span::styled("█", desc_style)
-                    } else {
-                        Span::styled("", Style::default())
-                    },
-                ]));
+                    // Multi-line description
+                    for (i, line) in desc_lines.iter().enumerate() {
+                        let is_last = i == desc_lines.len() - 1;
+                        if i == 0 {
+                            lines.push(Line::from(vec![
+                                Span::styled("  Description: ", Style::default().fg(colors.green())),
+                                Span::styled(*line, desc_style),
+                                if state.create_field == 1 && is_last {
+                                    Span::styled("█", desc_style)
+                                } else {
+                                    Span::styled("", Style::default())
+                                },
+                            ]));
+                        } else {
+                            lines.push(Line::from(vec![
+                                Span::styled("               ", Style::default()), // Indent to align
+                                Span::styled(*line, desc_style),
+                                if state.create_field == 1 && is_last {
+                                    Span::styled("█", desc_style)
+                                } else {
+                                    Span::styled("", Style::default())
+                                },
+                            ]));
+                        }
+                    }
+                }
 
                 lines.push(Line::from(""));
 
@@ -3280,6 +3306,12 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     Span::styled("  Priority:    ", Style::default().fg(colors.green())),
                     Span::styled(priority_value, priority_style),
                 ]));
+
+                lines.push(Line::from(""));
+                lines.push(Line::from(Span::styled(
+                    "  Tab: next field | ↑↓/←→: change value | Enter: submit",
+                    Style::default().fg(colors.cyan()),
+                )));
 
                 if let Some(ref err) = state.error {
                     lines.push(Line::from(""));

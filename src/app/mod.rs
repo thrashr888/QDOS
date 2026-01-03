@@ -2936,8 +2936,29 @@ impl App {
                                     }
                                     _ => {}
                                 }
+                                KeyCode::Tab => {
+                                    // Navigate to next field (wrap around)
+                                    state.create_field = (state.create_field + 1) % 4;
+                                }
+                                KeyCode::BackTab => {
+                                    // Navigate to previous field (wrap around)
+                                    if state.create_field > 0 {
+                                        state.create_field -= 1;
+                                    } else {
+                                        state.create_field = 3;
+                                    }
+                                }
                                 KeyCode::Enter => {
-                                    if !state.create_title.is_empty() {
+                                    // In description field, Enter adds newline
+                                    if state.create_field == 1 {
+                                        state.create_description.push('\n');
+                                    }
+                                    // In title field, Enter moves to next field
+                                    else if state.create_field == 0 {
+                                        state.create_field = 1;
+                                    }
+                                    // In type/priority fields, Enter submits the form
+                                    else if !state.create_title.is_empty() {
                                         let title = state.create_title.clone();
                                         let description = state.create_description.clone();
                                         let issue_type = state.create_type;
