@@ -4,20 +4,25 @@ mod state;
 use crate::plugins::beads::ops as beads_ops;
 use crate::plugins::git::ops as git_ops;
 
-// Re-export state types for external use
+// Re-export state types for external use (non-plugin types)
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView, ColorTheme,
-    ColorThemeState, ConflictResolution, DirectoryMapState, FileViewerState, FindPhase, FindState,
-    GitMenuItem, GitState, GitView, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
-    QdstartField, QdstartState, RemoteAction, SearchSpecState, ShellCommandState, SortMode,
-    SubmoduleStatus, ThemeColors, ViewFilter, ViewMode,
+    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState,
+    HelpState, Modal, NavItem, ProgressOperation, ProgressState,
+    QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode,
+    ThemeColors, ViewFilter, ViewMode,
 };
-// Re-export types used by git plugin ops
-pub use state::{
-    BlameLine, ConflictFile, ConflictSection, FileHistoryEntry, GitBranch, GitConfigEntry,
-    GitFileStatus, GitLogEntry, GitRemote, GitStashEntry, GitSubmodule, GitTag,
+
+// Re-export Git types from the git plugin (now self-contained)
+// These are used by ui/modals.rs and other modules
+#[allow(unused_imports)]
+pub use crate::plugins::git::{
+    BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitMenuItem, GitRemote, GitStashEntry, GitState,
+    GitSubmodule, GitTag, GitView, RemoteAction, SubmoduleStatus,
 };
-// Re-export types used by beads plugin ops
+
+// Re-export types used by beads plugin ops (will move to beads plugin later)
 pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsSubIssue};
 
 use crate::config::Config;
@@ -1635,12 +1640,12 @@ impl App {
                                         state.commit_input_mode = true;
                                     }
                                     GitMenuItem::Push => {
-                                        state.remote_action = state::RemoteAction::Push;
+                                        state.remote_action = RemoteAction::Push;
                                         git_ops::load_remotes(state, &path);
                                         state.view = GitView::Remote;
                                     }
                                     GitMenuItem::Pull => {
-                                        state.remote_action = state::RemoteAction::Pull;
+                                        state.remote_action = RemoteAction::Pull;
                                         git_ops::load_remotes(state, &path);
                                         state.view = GitView::Remote;
                                     }
@@ -1690,13 +1695,13 @@ impl App {
                                 state.commit_input_mode = true;
                             }
                             KeyCode::Char('p') | KeyCode::Char('P') => {
-                                state.remote_action = state::RemoteAction::Push;
+                                state.remote_action = RemoteAction::Push;
                                 let path = self.current_path.clone();
                                 git_ops::load_remotes(state, &path);
                                 state.view = GitView::Remote;
                             }
                             KeyCode::Char('u') | KeyCode::Char('U') => {
-                                state.remote_action = state::RemoteAction::Pull;
+                                state.remote_action = RemoteAction::Pull;
                                 let path = self.current_path.clone();
                                 git_ops::load_remotes(state, &path);
                                 state.view = GitView::Remote;
@@ -2178,10 +2183,10 @@ impl App {
                                         state.remotes[state.selected_remote].name.clone();
                                     let path = self.current_path.clone();
                                     let result = match state.remote_action {
-                                        state::RemoteAction::Push => {
+                                        RemoteAction::Push => {
                                             git_ops::execute_git_push_to(&remote_name, &path)
                                         }
-                                        state::RemoteAction::Pull => {
+                                        RemoteAction::Pull => {
                                             git_ops::execute_git_pull_from(&remote_name, &path)
                                         }
                                     };

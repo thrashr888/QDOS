@@ -3,6 +3,14 @@
 //! Provides Git integration as a plugin with self-contained operations.
 
 pub mod ops;
+pub mod state;
+
+// Re-export state types for external use
+pub use state::{
+    BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitMenuItem, GitRemote, GitStashEntry, GitState,
+    GitSubmodule, GitTag, GitView, RemoteAction, SubmoduleStatus,
+};
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
 use crossterm::event::{KeyCode, KeyEvent};
