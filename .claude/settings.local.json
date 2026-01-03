@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(./target/debug/rdos:*)",
       "Bash(bd close:*)",
       "Bash(bd create:*)",
       "Bash(bd list:*)",
@@ -9,6 +10,7 @@
       "Bash(bd update:*)",
       "Bash(bd:*)",
       "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
       "Bash(cargo clippy:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo run:*)",
@@ -22,14 +24,13 @@
       "Bash(git status:*)",
       "Bash(grep:*)",
       "Bash(head:*)",
+      "Bash(rdos --help:*)",
+      "Bash(shasum:*)",
       "Bash(tail:*)",
       "Bash(wc:*)",
       "Skill(beads:*)",
       "Skill(beads:create)",
-      "Skill(beads:list)",
-      "Bash(shasum:*)",
-      "Bash(rdos --help:*)",
-      "Bash(./target/debug/rdos:*)"
+      "Skill(beads:list)"
     ]
   }
 }
