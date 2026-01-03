@@ -3888,6 +3888,9 @@ impl App {
         self.selected_index = 0;
         self.scroll_offset = 0;
 
+        // Refresh git/beads status for new directory
+        self.refresh_status_bar();
+
         Ok(())
     }
 
