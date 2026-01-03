@@ -555,70 +555,76 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     );
 
     // ROWS 20-21: Git and Beads status indicators (only when applicable)
+    // NOTE: These rows are only rendered if they fit within the area bounds
     let green_style = Style::default().fg(colors.green());
     let cyan_style = Style::default().fg(colors.cyan());
     let status_width = (left_width as usize).saturating_sub(1);
+    let max_y = area.y + area.height; // Maximum valid y (exclusive)
 
-    // Row 20: Git status (only if in git repo)
+    // Row 20: Git status (only if in git repo and row fits)
     // Format: " ↑0↓5 +3 !2 branch-name..."
     if let Some(ref info) = app.git_status_info {
         let y = area.y + 20;
-        // Build compact status: ↑ahead↓behind +staged !modified branch
-        let mut parts = Vec::new();
-        if info.ahead > 0 || info.behind > 0 {
-            parts.push(format!("↑{}↓{}", info.ahead, info.behind));
+        if y < max_y {
+            // Build compact status: ↑ahead↓behind +staged !modified branch
+            let mut parts = Vec::new();
+            if info.ahead > 0 || info.behind > 0 {
+                parts.push(format!("↑{}↓{}", info.ahead, info.behind));
+            }
+            if info.staged > 0 {
+                parts.push(format!("+{}", info.staged));
+            }
+            if info.modified > 0 {
+                parts.push(format!("!{}", info.modified));
+            }
+            let status_prefix = if parts.is_empty() {
+                String::new()
+            } else {
+                format!("{} ", parts.join(" "))
+            };
+            // Calculate remaining space for branch name
+            let prefix_len = status_prefix.len() + 1; // +1 for leading space
+            let branch_space = status_width.saturating_sub(prefix_len);
+            let branch_display = if info.branch.len() > branch_space {
+                format!("{}…", &info.branch[..branch_space.saturating_sub(1)])
+            } else {
+                info.branch.clone()
+            };
+            let git_status = format!(" {}{}", status_prefix, branch_display);
+            let padded = format!("{:<width$}", git_status, width = status_width);
+            frame.render_widget(
+                Paragraph::new(Span::styled(padded, cyan_style)),
+                Rect::new(area.x, y, left_width - 1, 1),
+            );
         }
-        if info.staged > 0 {
-            parts.push(format!("+{}", info.staged));
-        }
-        if info.modified > 0 {
-            parts.push(format!("!{}", info.modified));
-        }
-        let status_prefix = if parts.is_empty() {
-            String::new()
-        } else {
-            format!("{} ", parts.join(" "))
-        };
-        // Calculate remaining space for branch name
-        let prefix_len = status_prefix.len() + 1; // +1 for leading space
-        let branch_space = status_width.saturating_sub(prefix_len);
-        let branch_display = if info.branch.len() > branch_space {
-            format!("{}…", &info.branch[..branch_space.saturating_sub(1)])
-        } else {
-            info.branch.clone()
-        };
-        let git_status = format!(" {}{}", status_prefix, branch_display);
-        let padded = format!("{:<width$}", git_status, width = status_width);
-        frame.render_widget(
-            Paragraph::new(Span::styled(padded, cyan_style)),
-            Rect::new(area.x, y, left_width - 1, 1),
-        );
     }
 
-    // Row 21: Beads status (only if in beads project)
+    // Row 21: Beads status (only if in beads project and row fits)
     // Format: " bd: ○19 ●3 ✓12" (open, in-progress, ready)
     if let Some(ref info) = app.beads_status_info {
         let y = area.y + 21;
-        let mut parts = Vec::new();
-        if info.open > 0 {
-            parts.push(format!("○{}", info.open));
+        if y < max_y {
+            let mut parts = Vec::new();
+            if info.open > 0 {
+                parts.push(format!("○{}", info.open));
+            }
+            if info.in_progress > 0 {
+                parts.push(format!("●{}", info.in_progress));
+            }
+            if info.ready > 0 {
+                parts.push(format!("✓{}", info.ready));
+            }
+            let status = if parts.is_empty() {
+                " bd: ✓".to_string() // All clear
+            } else {
+                format!(" bd: {}", parts.join(" "))
+            };
+            let padded = format!("{:<width$}", status, width = status_width);
+            frame.render_widget(
+                Paragraph::new(Span::styled(padded, green_style)),
+                Rect::new(area.x, y, left_width - 1, 1),
+            );
         }
-        if info.in_progress > 0 {
-            parts.push(format!("●{}", info.in_progress));
-        }
-        if info.ready > 0 {
-            parts.push(format!("✓{}", info.ready));
-        }
-        let status = if parts.is_empty() {
-            " bd: ✓".to_string() // All clear
-        } else {
-            format!(" bd: {}", parts.join(" "))
-        };
-        let padded = format!("{:<width$}", status, width = status_width);
-        frame.render_widget(
-            Paragraph::new(Span::styled(padded, green_style)),
-            Rect::new(area.x, y, left_width - 1, 1),
-        );
     }
 
     // Calculate file table dimensions
