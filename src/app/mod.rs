@@ -2924,6 +2924,12 @@ impl App {
                                                 &title, issue_type, priority, &path,
                                             ) {
                                                 Ok(_) => {
+                                                    // Reset form and return to menu
+                                                    state.create_title.clear();
+                                                    state.create_field = 0;
+                                                    state.create_type = 0;
+                                                    state.create_priority = 2;
+                                                    state.view = BeadsView::Menu;
                                                     self.modal =
                                                         Modal::Success("Issue created".to_string());
                                                 }
@@ -2937,7 +2943,13 @@ impl App {
                                                 &parent_id, &title, issue_type, priority, &path,
                                             ) {
                                                 Ok(new_id) => {
+                                                    // Reset form and return to menu
+                                                    state.create_title.clear();
+                                                    state.create_field = 0;
+                                                    state.create_type = 0;
+                                                    state.create_priority = 2;
                                                     state.subtask_parent_id.clear();
+                                                    state.view = BeadsView::Menu;
                                                     self.modal = Modal::Success(format!(
                                                         "Subtask {} created",
                                                         new_id
