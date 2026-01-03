@@ -29,6 +29,14 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 
 ## Installation
 
+### Homebrew (macOS)
+
+```bash
+brew install thrashr888/qdos/rdos
+```
+
+### From Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/thrashr888/QDOS.git
@@ -41,6 +49,13 @@ cargo run
 cargo build --release
 ./target/release/rdos
 ```
+
+### Pre-built Binaries
+
+Download from [GitHub Releases](https://github.com/thrashr888/QDOS/releases) for:
+- Linux (x86_64, aarch64)
+- macOS (Intel, Apple Silicon)
+- Windows (x86_64)
 
 ## Usage
 
@@ -106,6 +121,25 @@ rdos /path/to/directory
 - [sysinfo](https://crates.io/crates/sysinfo) - System information
 - [anyhow](https://crates.io/crates/anyhow) - Error handling
 - [walkdir](https://crates.io/crates/walkdir) - Directory traversal
+
+## Releasing
+
+1. Update version in `Cargo.toml`
+2. Commit and push changes
+3. Create and push a tag:
+   ```bash
+   git tag -a v0.x.x -m "v0.x.x - Release notes"
+   git push origin v0.x.x
+   ```
+4. GitHub Actions builds binaries and creates the release
+5. Update Homebrew tap ([homebrew-qdos](https://github.com/thrashr888/homebrew-qdos)):
+   ```bash
+   # Get new SHA256 hashes
+   curl -sL https://github.com/thrashr888/QDOS/releases/download/v0.x.x/rdos-macos-aarch64 | shasum -a 256
+   curl -sL https://github.com/thrashr888/QDOS/releases/download/v0.x.x/rdos-macos-x86_64 | shasum -a 256
+
+   # Update Formula/rdos.rb with new version and hashes, then push
+   ```
 
 ## License
 
