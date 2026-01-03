@@ -9,8 +9,14 @@
 //! - Add CLI arguments
 //! - Provide help content
 
-// Allow dead code until plugins are integrated
+// Allow dead code until plugins are fully integrated
 #![allow(dead_code)]
+
+pub mod beads;
+pub mod git;
+
+pub use beads::BeadsPlugin;
+pub use git::GitPlugin;
 
 use crate::config::PluginsConfig;
 use crossterm::event::KeyEvent;

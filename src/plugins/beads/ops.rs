@@ -3,7 +3,7 @@
 //! Provides helper functions for Beads issue tracker integration in Q-DOS II.
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
-use super::state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue};
+use crate::app::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::process::Command;

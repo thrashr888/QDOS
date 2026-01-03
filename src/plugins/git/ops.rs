@@ -3,7 +3,7 @@
 //! Provides helper functions for Git integration in Q-DOS II.
 //! These are standalone functions to avoid borrow checker issues in the main app.
 
-use super::state::{
+use crate::app::{
     BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
     GitConfigEntry, GitFileStatus, GitLogEntry, GitRemote, GitStashEntry, GitState, GitSubmodule,
     GitTag, SubmoduleStatus,

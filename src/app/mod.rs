@@ -1,6 +1,8 @@
-mod beads_ops;
-mod git_ops;
 mod state;
+
+// Re-export plugin ops for backwards compatibility within this module
+use crate::plugins::beads::ops as beads_ops;
+use crate::plugins::git::ops as git_ops;
 
 // Re-export state types for external use
 pub use state::{
@@ -10,8 +12,13 @@ pub use state::{
     QdstartField, QdstartState, RemoteAction, SearchSpecState, ShellCommandState, SortMode,
     SubmoduleStatus, ThemeColors, ViewFilter, ViewMode,
 };
-// Internal types used by git_ops and beads_ops modules:
-// BeadsIssue, BeadsStats, GitFileStatus, GitLogEntry
+// Re-export types used by git plugin ops
+pub use state::{
+    BlameLine, ConflictFile, ConflictSection, FileHistoryEntry, GitBranch, GitConfigEntry,
+    GitFileStatus, GitLogEntry, GitRemote, GitStashEntry, GitSubmodule, GitTag,
+};
+// Re-export types used by beads plugin ops
+pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsSubIssue};
 
 use crate::config::Config;
 use crate::errors;
@@ -19,7 +26,9 @@ use crate::event::EventHandler;
 use crate::file_ops::{
     apply_attributes, find_files_recursive, get_directory_contents, get_system_info, FileEntry,
 };
-use crate::plugins::{KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo};
+use crate::plugins::{
+    BeadsPlugin, GitPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo,
+};
 use crate::ui;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -78,8 +87,10 @@ impl App {
         let search_spec = config.general.search_spec.clone();
         let show_hidden = config.general.show_hidden;
 
-        // Initialize plugin manager with config
-        let plugin_manager = PluginManager::with_config(config.plugins.clone());
+        // Initialize plugin manager with config and register built-in plugins
+        let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
+        plugin_manager.register(Box::new(GitPlugin::new()));
+        plugin_manager.register(Box::new(BeadsPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
