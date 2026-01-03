@@ -7,10 +7,9 @@ use crate::plugins::git::ops as git_ops;
 // Re-export state types for external use (non-plugin types)
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView, ColorTheme,
-    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState,
-    HelpState, Modal, NavItem, ProgressOperation, ProgressState,
-    QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode,
-    ThemeColors, ViewFilter, ViewMode,
+    ColorThemeState, DirectoryMapState, FileViewerState, FindPhase, FindState, HelpState, Modal,
+    NavItem, ProgressOperation, ProgressState, QdstartField, QdstartState, SearchSpecState,
+    ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -2650,8 +2649,12 @@ impl App {
                                             state.selected_issue += 1;
                                             // Update scroll to keep selection visible (visible_height estimate: 15)
                                             let visible_height = 15;
-                                            if state.selected_issue >= state.scroll_offset + visible_height {
-                                                state.scroll_offset = state.selected_issue.saturating_sub(visible_height - 1);
+                                            if state.selected_issue
+                                                >= state.scroll_offset + visible_height
+                                            {
+                                                state.scroll_offset = state
+                                                    .selected_issue
+                                                    .saturating_sub(visible_height - 1);
                                             }
                                         }
                                     }
@@ -2791,14 +2794,17 @@ impl App {
                                                 Ok(msg) => {
                                                     // Refresh the list
                                                     match current_view {
-                                                        BeadsView::List | BeadsView::Dependencies => {
+                                                        BeadsView::List
+                                                        | BeadsView::Dependencies => {
                                                             beads_ops::load_beads_list(
                                                                 state, &path, None,
                                                             )
                                                         }
                                                         BeadsView::Kanban => {
                                                             beads_ops::load_beads_list(
-                                                                state, &path, Some("all"),
+                                                                state,
+                                                                &path,
+                                                                Some("all"),
                                                             )
                                                         }
                                                         BeadsView::Ready => {
@@ -2935,7 +2941,7 @@ impl App {
                                         state.create_description.push(c);
                                     }
                                     _ => {}
-                                }
+                                },
                                 KeyCode::Tab => {
                                     // Navigate to next field (wrap around)
                                     state.create_field = (state.create_field + 1) % 4;
@@ -2969,7 +2975,11 @@ impl App {
                                         if parent_id.is_empty() {
                                             // Create regular issue
                                             match beads_ops::execute_beads_create(
-                                                &title, &description, issue_type, priority, &path,
+                                                &title,
+                                                &description,
+                                                issue_type,
+                                                priority,
+                                                &path,
                                             ) {
                                                 Ok(_) => {
                                                     // Reset form and return to menu
@@ -2989,7 +2999,12 @@ impl App {
                                         } else {
                                             // Create subtask under parent
                                             match beads_ops::execute_beads_create_subtask(
-                                                &parent_id, &title, &description, issue_type, priority, &path,
+                                                &parent_id,
+                                                &title,
+                                                &description,
+                                                issue_type,
+                                                priority,
+                                                &path,
                                             ) {
                                                 Ok(new_id) => {
                                                     // Reset form and return to menu

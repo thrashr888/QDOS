@@ -3241,7 +3241,11 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 let desc_lines: Vec<&str> = state.create_description.split('\n').collect();
                 if desc_lines.is_empty() || (desc_lines.len() == 1 && desc_lines[0].is_empty()) {
                     // Empty description
-                    let placeholder = if state.create_field == 1 { "" } else { "(optional)" };
+                    let placeholder = if state.create_field == 1 {
+                        ""
+                    } else {
+                        "(optional)"
+                    };
                     lines.push(Line::from(vec![
                         Span::styled("  Description: ", Style::default().fg(colors.green())),
                         Span::styled(placeholder, desc_style),
@@ -3257,7 +3261,10 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         let is_last = i == desc_lines.len() - 1;
                         if i == 0 {
                             lines.push(Line::from(vec![
-                                Span::styled("  Description: ", Style::default().fg(colors.green())),
+                                Span::styled(
+                                    "  Description: ",
+                                    Style::default().fg(colors.green()),
+                                ),
                                 Span::styled(*line, desc_style),
                                 if state.create_field == 1 && is_last {
                                     Span::styled("█", desc_style)

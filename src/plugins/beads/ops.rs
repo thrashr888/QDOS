@@ -253,10 +253,7 @@ pub fn execute_beads_create(
         args.push(description.to_string());
     }
 
-    let output = Command::new("bd")
-        .args(&args)
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(&args).current_dir(cwd).output();
 
     match output {
         Ok(output) => {
@@ -779,10 +776,7 @@ pub fn execute_beads_create_subtask(
     }
 
     // First create the issue
-    let output = Command::new("bd")
-        .args(&args)
-        .current_dir(cwd)
-        .output();
+    let output = Command::new("bd").args(&args).current_dir(cwd).output();
 
     match output {
         Ok(output) => {

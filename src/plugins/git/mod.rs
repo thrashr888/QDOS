@@ -646,9 +646,10 @@ impl GitPlugin {
                                     state.selected_stash = state.stashes.len().saturating_sub(1);
                                 }
                                 self.close_modal();
-                                return KeyHandleResult::CloseWithSuccess(
-                                    format!("Applied stash@{{{}}}", idx),
-                                );
+                                return KeyHandleResult::CloseWithSuccess(format!(
+                                    "Applied stash@{{{}}}",
+                                    idx
+                                ));
                             }
                             Err(e) => {
                                 state.error = Some(e);
