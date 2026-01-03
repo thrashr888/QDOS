@@ -3582,9 +3582,7 @@ impl App {
                 let result = self
                     .plugin_manager
                     .handle_modal_key(key, &self.current_path);
-                if result == KeyHandleResult::CloseModal {
-                    self.modal = Modal::None;
-                }
+                self.handle_plugin_result(result);
             }
             Modal::None => {}
         }
@@ -4335,16 +4333,18 @@ impl App {
             let result = self
                 .plugin_manager
                 .handle_modal_key(key, &self.current_path);
-            if result == KeyHandleResult::CloseModal {
-                self.modal = Modal::None;
-            }
-            return result != KeyHandleResult::NotHandled;
+            return self.handle_plugin_result(result);
         }
 
         // Let plugins try to handle global keys
         let result = self
             .plugin_manager
             .handle_global_key(key, &self.current_path);
+        self.handle_plugin_result(result)
+    }
+
+    /// Handle a KeyHandleResult from a plugin, updating app state accordingly
+    fn handle_plugin_result(&mut self, result: KeyHandleResult) -> bool {
         match result {
             KeyHandleResult::NotHandled => false,
             KeyHandleResult::Handled => true,
@@ -4356,7 +4356,22 @@ impl App {
                 true
             }
             KeyHandleResult::CloseModal => {
+                self.plugin_manager.set_active_modal(None);
                 self.modal = Modal::None;
+                true
+            }
+            KeyHandleResult::CloseWithSuccess(msg) => {
+                self.plugin_manager.set_active_modal(None);
+                self.modal = Modal::Success(msg);
+                true
+            }
+            KeyHandleResult::CloseWithError(msg) => {
+                self.plugin_manager.set_active_modal(None);
+                self.modal = Modal::Error(msg);
+                true
+            }
+            KeyHandleResult::RefreshFiles => {
+                let _ = self.refresh_files();
                 true
             }
         }

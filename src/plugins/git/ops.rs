@@ -1297,6 +1297,52 @@ pub fn mark_conflict_resolved(file_path: &str, cwd: &PathBuf) -> Result<String, 
     }
 }
 
+/// Resolve conflict by keeping our version (current branch)
+pub fn resolve_conflict_ours(file_path: &str, cwd: &PathBuf) -> Result<String, String> {
+    // Checkout our version
+    let output = Command::new("git")
+        .args(["checkout", "--ours", file_path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                // Stage the file
+                mark_conflict_resolved(file_path, cwd)?;
+                Ok(format!("Resolved {} using ours", file_path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to checkout ours: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Resolve conflict by accepting their version (incoming changes)
+pub fn resolve_conflict_theirs(file_path: &str, cwd: &PathBuf) -> Result<String, String> {
+    // Checkout their version
+    let output = Command::new("git")
+        .args(["checkout", "--theirs", file_path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                // Stage the file
+                mark_conflict_resolved(file_path, cwd)?;
+                Ok(format!("Resolved {} using theirs", file_path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to checkout theirs: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
 /// Abort the current merge
 pub fn abort_merge(cwd: &PathBuf) -> Result<String, String> {
     let output = Command::new("git")

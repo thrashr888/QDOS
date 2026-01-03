@@ -76,6 +76,12 @@ pub enum KeyHandleResult {
     OpenModal,
     /// Key was handled, close current modal
     CloseModal,
+    /// Key was handled, close modal and show success message
+    CloseWithSuccess(String),
+    /// Key was handled, close modal and show error message
+    CloseWithError(String),
+    /// Key was handled, request file list refresh
+    RefreshFiles,
 }
 
 /// The core Plugin trait that all plugins must implement
