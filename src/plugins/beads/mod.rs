@@ -3,6 +3,14 @@
 //! Provides Beads issue tracker integration as a plugin with self-contained operations.
 
 pub mod ops;
+pub mod state;
+
+// Re-export state types for external use
+#[allow(unused_imports)]
+pub use state::{
+    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsMenuItem, BeadsState, BeadsStats,
+    BeadsSubIssue, BeadsView,
+};
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -24,6 +32,8 @@ pub struct BeadsPlugin {
     in_progress_count: u32,
     /// Number of ready issues (no blockers)
     ready_count: u32,
+    /// Modal state when beads modal is open (plugin owns this state)
+    pub modal_state: Option<BeadsState>,
 }
 
 impl BeadsPlugin {
@@ -34,7 +44,24 @@ impl BeadsPlugin {
             open_count: 0,
             in_progress_count: 0,
             ready_count: 0,
+            modal_state: None,
         }
+    }
+
+    /// Open the beads modal with fresh state
+    pub fn open_modal(&mut self, cwd: &PathBuf) {
+        let is_beads = self.check_is_beads(cwd);
+        self.modal_state = Some(BeadsState::new(is_beads));
+    }
+
+    /// Close the beads modal
+    pub fn close_modal(&mut self) {
+        self.modal_state = None;
+    }
+
+    /// Get mutable reference to modal state
+    pub fn modal_state_mut(&mut self) -> Option<&mut BeadsState> {
+        self.modal_state.as_mut()
     }
 
     /// Check if a directory has beads initialized
@@ -90,7 +117,7 @@ impl Plugin for BeadsPlugin {
         PluginCapabilities {
             has_menu: true,
             has_keys: true,
-            has_modal: false, // Uses existing Modal::Beads for now
+            has_modal: true, // Plugin owns modal state
             has_status: true,
             has_cli: false,
             has_help: true,
@@ -147,12 +174,12 @@ impl Plugin for BeadsPlugin {
         Some(PluginStatusInfo { text, active: true })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        // The 'B' key is handled by the main app for now
+    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('b') | KeyCode::Char('B') => {
-                // For now, let the main app handle this
-                KeyHandleResult::NotHandled
+                // Open beads modal with plugin-owned state
+                self.open_modal(cwd);
+                KeyHandleResult::OpenModal
             }
             _ => KeyHandleResult::NotHandled,
         }
