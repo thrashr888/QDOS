@@ -2782,7 +2782,7 @@ impl App {
                                                 Ok(msg) => {
                                                     // Refresh the list
                                                     match current_view {
-                                                        BeadsView::List => {
+                                                        BeadsView::List | BeadsView::Kanban | BeadsView::Dependencies => {
                                                             beads_ops::load_beads_list(
                                                                 state, &path, None,
                                                             )
@@ -2801,6 +2801,7 @@ impl App {
                                                     }
                                                     state.error = Some(msg);
                                                     state.selected_issue = 0;
+                                                    state.kanban_row = 0;
                                                 }
                                                 Err(e) => {
                                                     state.error = Some(e);
