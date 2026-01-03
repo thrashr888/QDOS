@@ -27,23 +27,23 @@ humansize = "2.1"
 # Serialization (for config)
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
+toml = "0.9.8"
 
 # Config directory
-dirs = "5.0"
+dirs = "6.0"
 
 # Directory traversal
 walkdir = "2.5"
 
 # System info
-sysinfo = "0.32"
+sysinfo = "0.37"
 
 # Image viewing in terminal
 ratatui-image = "3.0"
 image = "0.25"
 
 # Markdown rendering
-termimad = "0.30"
+termimad = "0.34.1"
 
 # Syntax highlighting
 syntect = "5.2"
