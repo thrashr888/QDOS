@@ -2617,6 +2617,10 @@ impl App {
                                     KeyCode::Up | KeyCode::Char('k') => {
                                         if state.selected_issue > 0 {
                                             state.selected_issue -= 1;
+                                            // Update scroll to keep selection visible (visible_height estimate: 15)
+                                            if state.selected_issue < state.scroll_offset {
+                                                state.scroll_offset = state.selected_issue;
+                                            }
                                         }
                                     }
                                     KeyCode::Down | KeyCode::Char('j') => {
@@ -2644,6 +2648,11 @@ impl App {
                                         };
                                         if state.selected_issue + 1 < filtered_count {
                                             state.selected_issue += 1;
+                                            // Update scroll to keep selection visible (visible_height estimate: 15)
+                                            let visible_height = 15;
+                                            if state.selected_issue >= state.scroll_offset + visible_height {
+                                                state.scroll_offset = state.selected_issue.saturating_sub(visible_height - 1);
+                                            }
                                         }
                                     }
                                     KeyCode::Enter => {

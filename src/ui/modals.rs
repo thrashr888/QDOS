@@ -4191,26 +4191,34 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                 lines.push(Line::from(header_spans));
                 lines.push(Line::from(""));
 
-                // Render rows
+                // Render rows with scroll support
                 let max_items = open_issues
                     .len()
                     .max(in_progress_issues.len())
                     .max(closed_issues.len());
 
-                for row in 0..visible_height.min(max_items) {
+                // Calculate scroll offset to keep kanban_row visible
+                let scroll_offset = if state.kanban_row >= visible_height {
+                    state.kanban_row.saturating_sub(visible_height - 1)
+                } else {
+                    0
+                };
+
+                for display_row in 0..visible_height.min(max_items.saturating_sub(scroll_offset)) {
+                    let actual_row = scroll_offset + display_row;
                     let mut row_spans = vec![];
 
                     for (col_idx, (_, issues, color)) in columns.iter().enumerate() {
                         let is_selected_cell =
-                            col_idx == state.kanban_column && row == state.kanban_row;
+                            col_idx == state.kanban_column && actual_row == state.kanban_row;
                         let bg = if is_selected_cell {
                             colors.red()
                         } else {
                             Color::Reset
                         };
 
-                        if row < issues.len() {
-                            let issue = &issues[row];
+                        if actual_row < issues.len() {
+                            let issue = &issues[actual_row];
                             let type_symbol = match issue.issue_type.as_str() {
                                 "epic" => "⊞",
                                 "bug" => "●",
