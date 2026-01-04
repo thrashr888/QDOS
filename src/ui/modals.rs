@@ -120,6 +120,24 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
             draw_progress_modal(frame, area, state);
             return;
         }
+        Modal::CopyTo(dest) => {
+            // Copy modal uses fixed size - handles its own clearing via ModalFrame
+            let copy_area = centered_fixed(50, 12, area);
+            draw_copy_modal(frame, copy_area, dest, app);
+            return;
+        }
+        Modal::MoveTo(dest) => {
+            // Move modal uses fixed size - handles its own clearing via ModalFrame
+            let move_area = centered_fixed(50, 12, area);
+            draw_move_modal(frame, move_area, dest, app);
+            return;
+        }
+        Modal::EraseConfirm => {
+            // Erase modal uses fixed size - handles its own clearing via ModalFrame
+            let erase_area = centered_fixed(50, 10, area);
+            draw_erase_modal(frame, erase_area, app);
+            return;
+        }
         _ => {}
     }
 
@@ -131,27 +149,15 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     match &app.modal {
         Modal::Help(state) => draw_help_modal(frame, area, state),
         Modal::Status(info) => draw_status_modal(frame, modal_area, info, app),
-        Modal::Quit => {} // Handled above
+        Modal::Quit => {}       // Handled above
         Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
         Modal::Space => {}      // Handled above
         Modal::Error(_) => {}   // Handled above
         Modal::Success(_) => {} // Handled above
+        Modal::CopyTo(_) => {}  // Handled above
+        Modal::MoveTo(_) => {}  // Handled above
+        Modal::EraseConfirm => {} // Handled above
         Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
-        Modal::CopyTo(dest) => {
-            // Copy modal needs exactly 12 rows - use fixed size to avoid clearing extra area
-            let copy_area = centered_fixed(50, 12, area);
-            draw_copy_modal(frame, copy_area, dest, app);
-        }
-        Modal::MoveTo(dest) => {
-            // Move modal needs exactly 12 rows - use fixed size to avoid clearing extra area
-            let move_area = centered_fixed(50, 12, area);
-            draw_move_modal(frame, move_area, dest, app);
-        }
-        Modal::EraseConfirm => {
-            // Erase modal needs exactly 10 rows - use fixed size to avoid clearing extra area
-            let erase_area = centered_fixed(50, 10, area);
-            draw_erase_modal(frame, erase_area, app);
-        }
         Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
         Modal::FileViewer(_) => {
             // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
@@ -950,7 +956,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     );
 
     // Help row
-    modal.render_help(frame, vec![("Tab", "complete"), ("Enter", "copy"), ("Esc", "cancel")]);
+    modal.render_help(
+        frame,
+        vec![("Tab", "complete"), ("Enter", "copy"), ("Esc", "cancel")],
+    );
 }
 
 /// Draw move modal using ModalFrame for consistent styling
@@ -992,18 +1001,20 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     );
 
     // Help row
-    modal.render_help(frame, vec![("Tab", "complete"), ("Enter", "move"), ("Esc", "cancel")]);
+    modal.render_help(
+        frame,
+        vec![("Tab", "complete"), ("Enter", "move"), ("Esc", "cancel")],
+    );
 }
 
 /// Draw erase confirmation modal using ModalFrame for consistent styling
 pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
-    let modal = ModalFrame::new(area, " ERASE FILES ")
-        .title_style(
-            Style::default()
-                .fg(COLOR_RED)
-                .bg(COLOR_BG)
-                .add_modifier(Modifier::BOLD),
-        );
+    let modal = ModalFrame::new(area, " ERASE FILES ").title_style(
+        Style::default()
+            .fg(COLOR_RED)
+            .bg(COLOR_BG)
+            .add_modifier(Modifier::BOLD),
+    );
     modal.render_frame(frame);
 
     // Row 0: Delete count
