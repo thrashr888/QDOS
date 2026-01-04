@@ -35,11 +35,9 @@ src/
 ├── ui/
 │   ├── mod.rs        # Main layout rendering (menu bar, file table, stats panel)
 │   ├── modals.rs     # Modal dialog rendering (copy, move, erase, rename, find, etc.)
+│   ├── components/   # Reusable UI component library
 │   └── viewer.rs     # File viewer with ASCII/HEX/Markdown/Image modes
-├── plugins/
-│   ├── mod.rs        # Plugin trait and manager
-│   ├── git/          # Git integration (status, log, diff, commit, push, pull)
-│   └── beads/        # Beads issue tracker integration
+├── plugins/          # Plugin modules (git, beads, proc, qedit, etc.)
 ├── config.rs         # TOML configuration (~/.config/rdos/config.toml)
 ├── file_ops.rs       # File system operations and utilities
 ├── errors.rs         # Q-DOS style error messages
@@ -50,10 +48,11 @@ src/
 
 - **Event-driven TUI**: Main loop in `app/mod.rs` handles keyboard events, dispatches to appropriate handlers based on current state
 - **Modal stack**: Dialogs can be nested; `ActiveModal` enum in `state.rs` defines all modal types
-- **Plugin system**: Plugins implement traits in `plugins/mod.rs`; currently Git and Beads are built-in
+- **Plugin system**: Plugins implement traits in `plugins/mod.rs`; see `spec/PLUGIN.md` for complete guide
+- **Component library**: Reusable UI components in `src/ui/components/` for consistent rendering
 - **State machine**: Navigation state, view modes, and modal states are managed through enums in `state.rs`
-- **Idiomatic Rust**: Stick to modern Rust features, best practices, and patterns.
-- **Dead code**: Allow dead code to be present in the codebase, but remove it when it's not needed. Old or unused code can live on in our git history.
+- **Idiomatic Rust**: Stick to modern Rust features, best practices, and patterns
+- **Dead code**: Allow dead code to be present in the codebase, but remove it when it's not needed
 
 ## Spec & Reference Files
 
@@ -92,74 +91,97 @@ Before ending a session:
 1. File issues for remaining work
 2. Verify quality gates pass (`cargo fmt --check`, `cargo clippy`, `cargo test`)
 3. Update issue status - close finished work
-4. Commit changes
+4. One commit per beads issue
 5. NEVER `bd sync` or `git push` and NEVER ask to do so
+6. Only close a release epic after the release is published
+
+## UI Component Library
+
+All modal and plugin UI should use components from `src/ui/components/`. See the module documentation for full API.
+
+### Available Components
+
+```rust
+use crate::ui::components::{
+    ModalFrame,       // Double-line border modal with title and help
+    FullScreenView,   // Full-screen layout with separators
+    MessageModal,     // Error/success/info/warning modals
+    ProgressBar,      // Q-DOS style progress (bar/arrow/spinner)
+    ScrollableList,   // Selection, scrolling, highlighting
+    Table,            // Column specs, headers, alignment
+    InputField,       // Text input with cursor
+    ConfirmDialog,    // Y/N confirmation prompts
+};
+use crate::ui::components::colors; // Status color helpers
+```
+
+### Theme Colors
+
+Use `ThemeColors` from `app.colors()` - never hardcode colors:
+
+```rust
+fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
+    colors.fg()      // White - primary text, borders
+    colors.bg()      // Terminal default - backgrounds
+    colors.blue()    // DOS Blue - headers, menu items
+    colors.green()   // DOS Green - help text, key hints
+    colors.red()     // DOS Red - selection background, errors
+    colors.yellow()  // DOS Yellow - selected text, titles
+    colors.grey()    // Grey - hidden files, disabled items
+    colors.cyan()    // Cyan - git added files
+}
+```
+
+### Example: Plugin Modal with Components
+
+```rust
+use crate::ui::components::{ModalFrame, ScrollableList};
+
+fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
+    // Use ModalFrame for consistent double-line borders
+    let modal = ModalFrame::themed(area, " My Plugin ", colors);
+    modal.render_frame(frame);
+
+    // Use ScrollableList for item selection
+    let list = ScrollableList::new(&self.items, self.selected, visible_height);
+    list.render(frame, modal.content_area(), colors, |item, selected, style| {
+        vec![Span::styled(&item.name, style)]
+    });
+
+    // Use built-in help rendering
+    modal.render_help(frame, vec![("Enter", "select"), ("Esc", "close")]);
+}
+```
 
 ## Plugin Architecture
 
-Plugins are self-contained modules in `src/plugins/` that extend QDOS functionality. **See `spec/PLUGIN.md` for the complete plugin development guide**, including UI/UX conventions, file structure, and best practices. Reference `git/` and `beads/` for existing implementations.
+**See `spec/PLUGIN.md` for the complete plugin development guide**, including:
+- File structure (mod.rs, state.rs, ops.rs, modal.rs)
+- Plugin trait implementation
+- Key handling patterns
+- UI/UX conventions
+- Testing requirements
 
-### Plugin Directory Structure
-
-```
-src/plugins/myplugin/
-├── mod.rs       # Plugin struct, Plugin trait impl, key handlers
-├── state.rs     # State types (views, menu items, data structs)
-└── ops.rs       # Operations (CLI commands, data parsing, actions)
-```
-
-### Plugin Trait Implementation
+### Quick Reference
 
 ```rust
-pub struct MyPlugin {
-    initialized: bool,
-    pub modal_state: Option<MyState>,  // Plugin owns its modal state
-}
-
 impl Plugin for MyPlugin {
     fn id(&self) -> &str { "myplugin" }
     fn name(&self) -> &str { "My Plugin" }
 
-    fn capabilities(&self) -> PluginCapabilities {
-        PluginCapabilities {
-            has_menu: true,   // Provides menu item
-            has_keys: true,   // Handles keyboard shortcuts
-            has_modal: true,  // Has modal UI
-            has_status: true, // Provides status bar content
-            has_cli: false,   // Provides CLI arguments
-            has_help: true,   // Provides help content
-        }
-    }
-
     fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
-        // Handle key when modal is NOT open
-        // Return OpenModal to open plugin's modal
+        // Return OpenModal, Handled, or NotHandled
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
-        // Handle key when modal IS open
-        // Return CloseModal to close
+        // Return CloseModal, CloseWithSuccess(msg), CloseWithError(msg), or Handled
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
-        // Draw plugin's modal UI
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
+        // Use ModalFrame or FullScreenView from component library
     }
 }
 ```
-
-### Key Patterns
-
-1. **State Ownership**: Plugins own their modal state via `modal_state: Option<State>`
-2. **State Re-export**: Re-export state types in `mod.rs` for external use
-3. **Ops Module**: Separate operations (CLI calls, parsing) from UI logic
-4. **Key Results**: Use `KeyHandleResult` enum for key handling outcomes:
-   - `NotHandled` - Let app handle the key
-   - `Handled` - Key processed, no further action
-   - `OpenModal` - Open plugin's modal
-   - `CloseModal` - Close plugin's modal
-   - `CloseWithSuccess(msg)` / `CloseWithError(msg)` - Close with message
-
-### Registration
 
 Register plugins in `App::new()`:
 
@@ -167,82 +189,9 @@ Register plugins in `App::new()`:
 plugin_manager.register(Box::new(MyPlugin::new()));
 ```
 
-## UI Style Guide
-
-All UI elements should follow the Q-DOS II aesthetic consistently. See `spec/SPEC.md` for detailed specifications.
-
-### Color Palette
-
-Use the theme colors defined in `src/ui/mod.rs`:
-
-```rust
-COLOR_BG     // Terminal default (transparent) - backgrounds
-COLOR_FG     // White - primary text, borders
-COLOR_BLUE   // DOS Blue (102, 183, 179) - headers, menu items, copyright
-COLOR_GREEN  // DOS Green (103, 204, 77) - help text, descriptions, key hints
-COLOR_RED    // DOS Red (157, 31, 20) - selection background, errors
-COLOR_YELLOW // DOS Yellow (232, 218, 89) - selected text, tagged items, titles
-COLOR_GREY   // Grey (128, 128, 128) - hidden files, disabled items
-COLOR_CYAN   // Cyan (0, 170, 170) - git added files
-```
-
-### Box Drawing Characters
-
-Always use double-line borders for modal dialogs:
-
-```
-╔═══════════════════════════════════════╗  <- Top border
-║        Modal Title                    ║  <- Title row
-╠═══════════════════════════════════════╣  <- Separator
-║  Content goes here                    ║  <- Content rows
-╚═══════════════════════════════════════╝  <- Bottom border
-```
-
-- Use `╔ ═ ╗ ║ ╚ ╝ ╠ ╣ ╦ ╩ ╬` for double-line box drawing
-- Use `─ │ ┌ ┐ └ ┘ ├ ┤` for single-line separators only
-
-### Selection Highlighting
-
-- **Selected items**: Yellow text on red background (`COLOR_YELLOW` fg, `COLOR_RED` bg)
-- **Highlighted values**: Use semantic colors (red for high CPU, green for low disk usage)
-
-### Plugin Modal Rendering
-
-Plugin modals should draw their own borders and backgrounds:
-
-```rust
-// Import theme colors
-use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
-
-fn draw_modal(&self, frame: &mut Frame, area: Rect) {
-    // Cover entire screen
-    let modal_area = Rect::new(0, 0, area.width, area.height);
-    frame.render_widget(Clear, modal_area);
-
-    // Use theme colors
-    let bg = COLOR_BG;
-    let fg = Color::White;
-    let border_style = Style::default().fg(fg).bg(bg);
-
-    // Draw double-line border manually
-    let inner_width = modal_area.width.saturating_sub(2) as usize;
-    let top_border = format!("╔{}╗", "═".repeat(inner_width));
-    // ... render each row with ║ borders ...
-    let bottom_border = format!("╚{}╝", "═".repeat(inner_width));
-}
-```
-
-### Footer/Help Text
-
-Show keybindings in the footer with green keys and white descriptions:
-
-```rust
-Span::styled("Tab", Style::default().fg(COLOR_GREEN).bg(bg)),
-Span::styled(" view  ", Style::default().fg(fg).bg(bg)),
-```
-
 ## Releasing
 
+0. Batch issues and epics into release epics
 1. Run quality checks: `cargo fmt --check && cargo clippy && cargo test`
 2. Update version in `Cargo.toml` (remove `-dev` suffix)
 3. Commit, tag (`git tag -a v0.x.x -m "Release notes"`), and push tag

@@ -7,6 +7,7 @@
 //! - [`ModalFrame`] - Double-line border modal with title and help row
 //! - [`FullScreenView`] - Full-screen layout with title, separators, content, footer
 //! - [`MessageModal`] - Simple message modal (error, success, info, warning)
+//! - [`ProgressBar`] - Q-DOS style progress indicator (bar, arrow, spinner)
 //! - [`ScrollableList`] - Scrollable list with selection highlighting
 //! - [`ListState`] - State management for list navigation
 //! - [`Table`] - Column-based table with alignment
@@ -74,6 +75,8 @@ mod screen;
 #[allow(dead_code)]
 mod message;
 #[allow(dead_code)]
+mod progress;
+#[allow(dead_code)]
 mod table;
 
 #[allow(unused_imports)]
@@ -85,6 +88,8 @@ pub use input::InputField;
 #[allow(unused_imports)]
 pub use list::{truncate_with_ellipsis, ListState, ScrollableList};
 pub use modal::ModalFrame;
+#[allow(unused_imports)]
+pub use progress::{ProgressBar, ProgressStyle};
 #[allow(unused_imports)]
 pub use screen::FullScreenView;
 #[allow(unused_imports)]
