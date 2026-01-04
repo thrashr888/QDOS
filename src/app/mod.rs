@@ -35,6 +35,7 @@ use crate::plugins::{
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
+use crate::z::ZDatabase;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use crossterm::execute;
@@ -108,6 +109,8 @@ pub struct App {
     /// Terminal background luma (0.0 = black, 1.0 = white)
     /// Used for light/dark mode detection
     pub terminal_luma: Option<f32>,
+    /// Z database for directory jumping
+    pub z_db: ZDatabase,
 }
 
 impl App {
@@ -142,6 +145,9 @@ impl App {
         let files = get_directory_contents(&current_path, sort_mode)?;
         let watcher = DirWatcher::new(&current_path).ok();
 
+        // Load z database for directory jumping
+        let z_db = ZDatabase::load();
+
         let mut app = Self {
             current_path,
             files,
@@ -166,6 +172,7 @@ impl App {
             last_refresh: std::time::Instant::now(),
             dir_watcher: watcher,
             terminal_luma: None,
+            z_db,
         };
 
         // Detect terminal light/dark mode using OSC 10/11 query
@@ -623,7 +630,23 @@ impl App {
             }
             Modal::PathInput(ref mut path) => match key.code {
                 KeyCode::Enter => {
-                    let new_path = PathBuf::from(path.clone());
+                    // First try z match if it looks like a query (short text without slashes)
+                    let input = path.clone();
+                    let is_z_query = !input.contains('/') && !input.contains('\\') && input.len() < 50;
+
+                    if is_z_query {
+                        if let Some(entry) = self.z_db.best_match(&input) {
+                            let z_path = entry.path.clone();
+                            self.modal = Modal::None;
+                            if let Err(e) = self.navigate_to(&z_path) {
+                                self.modal = Modal::Error(format!("Cannot navigate: {}", e));
+                            }
+                            return Ok(());
+                        }
+                    }
+
+                    // Fall back to literal path navigation
+                    let new_path = PathBuf::from(input);
                     self.modal = Modal::None;
                     if let Err(e) = self.navigate_to(&new_path) {
                         self.modal = Modal::Error(format!("Cannot navigate: {}", e));
@@ -636,6 +659,18 @@ impl App {
                     path.pop();
                 }
                 KeyCode::Tab => {
+                    // Try z completion first for short queries without path separators
+                    let is_z_query =
+                        !path.contains('/') && !path.contains('\\') && path.len() < 50;
+
+                    if is_z_query {
+                        if let Some(entry) = self.z_db.best_match(path) {
+                            *path = entry.path.to_string_lossy().to_string();
+                            return Ok(());
+                        }
+                    }
+
+                    // Fall back to filesystem completion
                     if let Some(completed) = Self::tab_complete(path) {
                         *path = completed;
                     }

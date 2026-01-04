@@ -18,6 +18,7 @@ mod file_ops;
 mod plugins;
 mod ui;
 mod watcher;
+mod z;
 
 use anyhow::Result;
 use app::App;

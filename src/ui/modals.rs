@@ -306,13 +306,21 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
         .no_footer_separator();
     modal.render_frame(frame);
 
+    // Build instruction text with z status
+    let z_count = app.z_db.len();
+    let instruction = if z_count > 0 {
+        format!("Enter path or query ({} z dirs, Tab to complete):", z_count)
+    } else {
+        "Enter path (Tab to complete):".to_string()
+    };
+
     // Content rows
     modal.render_row(frame, 0, vec![]); // Empty row
     modal.render_row(
         frame,
         1,
         vec![Span::styled(
-            "Enter path (Tab to complete):",
+            instruction,
             Style::default().fg(colors.green()).bg(colors.bg()),
         )],
     );
@@ -327,11 +335,17 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
     );
     modal.render_row(frame, 4, vec![]); // Empty row
 
-    // Help line
-    modal.render_help(
-        frame,
-        vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")],
-    );
+    // Help line - mention z if available
+    let help = if z_count > 0 {
+        vec![
+            ("Tab", "z/complete"),
+            ("Enter", "confirm"),
+            ("Esc", "cancel"),
+        ]
+    } else {
+        vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")]
+    };
+    modal.render_help(frame, help);
 }
 
 /// Draw success modal
