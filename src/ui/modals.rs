@@ -102,7 +102,8 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
             crate::plugins::fileops::modal::draw_erase_modal(frame, modal_area, app);
         }
         Modal::PathInput(path) => {
-            let modal_area = centered_fixed(50, 10, area);
+            // Taller modal to show z suggestions
+            let modal_area = centered_fixed(55, 16, area);
             draw_path_input_modal(frame, modal_area, path, app);
         }
         Modal::RenameInput(name) => {
@@ -295,7 +296,7 @@ pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app
     draw_qdos_modal_themed(frame, area, "Error", content, colors.fg(), app);
 }
 
-/// Draw path input modal
+/// Draw path input modal with z suggestions
 pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, app: &App) {
     let colors = app.colors();
     use crate::ui::components::ModalFrame;
@@ -306,12 +307,36 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
         .no_footer_separator();
     modal.render_frame(frame);
 
-    // Build instruction text with z status
+    // Build instruction text
     let z_count = app.z_db.len();
     let instruction = if z_count > 0 {
-        format!("Enter path or query ({} z dirs, Tab to complete):", z_count)
+        "Enter path or type to search z directories:".to_string()
     } else {
         "Enter path (Tab to complete):".to_string()
+    };
+
+    // Get z suggestions based on current input
+    let suggestions: Vec<String> = if z_count > 0 {
+        if path.is_empty() {
+            // Show top directories when empty
+            app.z_db
+                .top_dirs(5)
+                .iter()
+                .map(|e| e.path.to_string_lossy().to_string())
+                .collect()
+        } else if !path.contains('/') && !path.contains('\\') {
+            // Search z database for matching dirs
+            app.z_db
+                .search(path)
+                .iter()
+                .take(5)
+                .map(|e| e.path.to_string_lossy().to_string())
+                .collect()
+        } else {
+            Vec::new() // Don't show suggestions for paths
+        }
+    } else {
+        Vec::new()
     };
 
     // Content rows
@@ -333,13 +358,41 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
             Style::default().fg(colors.fg()).bg(colors.bg()),
         )],
     );
-    modal.render_row(frame, 4, vec![]); // Empty row
+    modal.render_row(frame, 4, vec![]); // Spacer
 
-    // Help line - mention z if available
+    // Show z suggestions
+    if !suggestions.is_empty() {
+        modal.render_row(
+            frame,
+            5,
+            vec![Span::styled(
+                "Suggestions:",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+        for (i, suggestion) in suggestions.iter().enumerate() {
+            // Truncate long paths to fit
+            let display = if suggestion.len() > 44 {
+                format!("...{}", &suggestion[suggestion.len() - 41..])
+            } else {
+                suggestion.clone()
+            };
+            modal.render_row(
+                frame,
+                (6 + i) as u16,
+                vec![Span::styled(
+                    format!("  {}", display),
+                    Style::default().fg(colors.blue()).bg(colors.bg()),
+                )],
+            );
+        }
+    }
+
+    // Help line
     let help = if z_count > 0 {
         vec![
-            ("Tab", "z/complete"),
-            ("Enter", "confirm"),
+            ("Tab", "complete"),
+            ("Enter", "go"),
             ("Esc", "cancel"),
         ]
     } else {

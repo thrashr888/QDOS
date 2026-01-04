@@ -151,6 +151,18 @@ impl ZDatabase {
     pub fn top_matches(&self, query: &str, n: usize) -> Vec<&ZEntry> {
         self.search(query).into_iter().take(n).collect()
     }
+
+    /// Get top N directories by frecency (for suggestions when input is empty)
+    pub fn top_dirs(&self, n: usize) -> Vec<&ZEntry> {
+        let now = Self::now();
+        let mut entries: Vec<&ZEntry> = self.entries.iter().collect();
+        entries.sort_by(|a, b| {
+            b.frecency(now)
+                .partial_cmp(&a.frecency(now))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        entries.into_iter().take(n).collect()
+    }
 }
 
 #[cfg(test)]

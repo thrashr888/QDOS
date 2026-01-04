@@ -435,10 +435,9 @@ impl App {
             KeyCode::F(4) => {
                 self.go_to_parent()?;
             }
-            // Change directory
+            // Change directory - start with empty input for z jumper style
             KeyCode::F(5) => {
-                let path = self.current_path.to_string_lossy().to_string();
-                self.modal = Modal::PathInput(path);
+                self.modal = Modal::PathInput(String::new());
             }
             // Shell Command - handled by ShellPlugin via plugin system
             // Search spec - handled by SearchSpecPlugin via plugin system
@@ -447,9 +446,9 @@ impl App {
             KeyCode::F(8) => {
                 self.cycle_sort_mode()?;
             }
-            // Edit - open in default editor
+            // Edit - open in Q-EDIT (built-in editor)
             KeyCode::F(9) => {
-                self.edit_selected_file()?;
+                self.edit_in_qedit()?;
             }
             // Navigation
             KeyCode::Up | KeyCode::Char('k') => {
@@ -508,8 +507,10 @@ impl App {
                 // Directory - same as Enter on a directory
                 self.execute_action()?;
             }
-            KeyCode::Char('t') | KeyCode::Char('T') => {
-                // Tag - toggle tag on selected file
+            KeyCode::Char('t') | KeyCode::Char('T')
+                if !key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                // Tag - toggle tag on selected file (Ctrl+T is theme, handled by plugin)
                 self.toggle_tag();
             }
             KeyCode::Char('v') | KeyCode::Char('V') => {
@@ -2096,7 +2097,44 @@ impl App {
         }
     }
 
-    /// Open the selected file in the default editor
+    /// Open the selected file in Q-EDIT (built-in editor)
+    fn edit_in_qedit(&mut self) -> Result<()> {
+        if self.files.is_empty() {
+            self.modal = Modal::Error("No file selected".to_string());
+            return Ok(());
+        }
+
+        let file = &self.files[self.selected_index];
+        if file.name == ".." {
+            self.modal = Modal::Error("Cannot edit parent directory".to_string());
+            return Ok(());
+        }
+
+        if file.is_dir {
+            self.modal = Modal::Error("Cannot edit a directory".to_string());
+            return Ok(());
+        }
+
+        let file_path = file.path.clone();
+        if let Some(plugin) = self.plugin_manager.qedit_plugin_mut() {
+            match plugin.open(Some(file_path)) {
+                Ok(()) => {
+                    self.plugin_manager.set_active_modal(Some("qedit"));
+                    self.modal = Modal::Plugin("qedit".to_string());
+                }
+                Err(e) => {
+                    self.modal = Modal::Error(format!("Failed to open file: {}", e));
+                }
+            }
+        } else {
+            self.modal = Modal::Error("Q-EDIT plugin not available".to_string());
+        }
+
+        Ok(())
+    }
+
+    /// Open the selected file in the default editor (external)
+    #[allow(dead_code)]
     fn edit_selected_file(&mut self) -> Result<()> {
         if self.files.is_empty() {
             self.modal = Modal::Error("No file selected".to_string());

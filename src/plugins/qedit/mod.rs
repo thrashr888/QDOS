@@ -133,15 +133,12 @@ impl Plugin for QEditPlugin {
 
     fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         match key.code {
-            KeyCode::F(9) if !key.modifiers.contains(KeyModifiers::ALT) => {
-                // F9 opens editor (file must be provided externally)
-                KeyHandleResult::OpenModal
-            }
             KeyCode::F(9) if key.modifiers.contains(KeyModifiers::ALT) => {
                 // Alt-F9 opens blank editor
                 self.modal_state = Some(QEditState::new());
                 KeyHandleResult::OpenModal
             }
+            // F9 without Alt is handled by app to pass the selected file
             _ => KeyHandleResult::NotHandled,
         }
     }
