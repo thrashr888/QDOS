@@ -8,7 +8,7 @@ use crate::plugins::git::ops as git_ops;
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsState, BeadsView, ClipboardItem,
     ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, Modal, NavItem,
-    ProgressOperation, ProgressState, SortMode, ThemeColors,
+    ProgressOperation, ProgressState, SearchMode, SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -791,13 +791,42 @@ impl App {
                 _ => {}
             },
             Modal::Find(ref mut state) => {
+                use crate::app::SearchMode;
                 match state.phase {
+                    FindPhase::SelectMode => {
+                        match key.code {
+                            KeyCode::Enter | KeyCode::Char('1') => {
+                                // Use current mode (default: ByName)
+                                state.phase = FindPhase::InputPattern;
+                            }
+                            KeyCode::Char('2') if state.rg_available => {
+                                // Switch to content search
+                                state.search_mode = SearchMode::ByContent;
+                                state.phase = FindPhase::InputPattern;
+                            }
+                            KeyCode::Tab => {
+                                // Toggle between modes (if rg available)
+                                if state.rg_available {
+                                    state.search_mode = state.search_mode.toggle();
+                                }
+                            }
+                            KeyCode::Esc => {
+                                self.modal = Modal::None;
+                            }
+                            _ => {}
+                        }
+                    }
                     FindPhase::InputPattern => {
                         match key.code {
                             KeyCode::Enter => {
                                 if state.pattern.is_empty() {
-                                    // Use *.* if no pattern entered
-                                    state.pattern = "*.*".to_string();
+                                    // Use *.* if no pattern entered (for name search)
+                                    if state.search_mode == SearchMode::ByName {
+                                        state.pattern = "*.*".to_string();
+                                    } else {
+                                        // For content search, require a pattern
+                                        return Ok(());
+                                    }
                                 }
                                 // Move to ask pause phase
                                 state.phase = FindPhase::AskPause;
@@ -825,7 +854,13 @@ impl App {
                                 // Start searching
                                 state.phase = FindPhase::Searching;
                                 let root = self.current_path.clone();
-                                state.matches = find_files_recursive(&root, &state.pattern);
+
+                                // Use appropriate search function based on mode
+                                state.matches = match state.search_mode {
+                                    SearchMode::ByName => find_files_recursive(&root, &state.pattern),
+                                    SearchMode::ByContent => crate::rg::search_content(&root, &state.pattern),
+                                };
+
                                 self.last_find_pattern = state.pattern.clone();
                                 state.search_complete = true;
 
@@ -841,7 +876,13 @@ impl App {
                                 // Start searching
                                 state.phase = FindPhase::Searching;
                                 let root = self.current_path.clone();
-                                state.matches = find_files_recursive(&root, &state.pattern);
+
+                                // Use appropriate search function based on mode
+                                state.matches = match state.search_mode {
+                                    SearchMode::ByName => find_files_recursive(&root, &state.pattern),
+                                    SearchMode::ByContent => crate::rg::search_content(&root, &state.pattern),
+                                };
+
                                 self.last_find_pattern = state.pattern.clone();
                                 state.search_complete = true;
 

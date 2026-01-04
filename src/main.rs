@@ -16,6 +16,7 @@ mod errors;
 mod event;
 mod file_ops;
 mod plugins;
+mod rg;
 mod ui;
 mod watcher;
 mod z;

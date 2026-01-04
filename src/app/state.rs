@@ -144,12 +144,42 @@ impl SortMode {
 /// Find command phases
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FindPhase {
+    SelectMode,
     InputPattern,
     AskPause,
     Searching,
     ShowResult,
     ShowAllResults,
     NoResults,
+}
+
+/// Search mode for Find command
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SearchMode {
+    /// Search by filename with glob patterns (original behavior)
+    #[default]
+    ByName,
+    /// Search by file content using ripgrep
+    ByContent,
+}
+
+impl SearchMode {
+    /// Get display name for this mode
+    #[allow(dead_code)]
+    pub fn name(&self) -> &str {
+        match self {
+            SearchMode::ByName => "Filename",
+            SearchMode::ByContent => "Content (rg)",
+        }
+    }
+
+    /// Toggle to the other mode
+    pub fn toggle(&self) -> Self {
+        match self {
+            SearchMode::ByName => SearchMode::ByContent,
+            SearchMode::ByContent => SearchMode::ByName,
+        }
+    }
 }
 
 /// Find file search state
@@ -163,6 +193,8 @@ pub struct FindState {
     pub scroll_offset: usize,
     pub last_pattern: String,
     pub search_complete: bool,
+    pub search_mode: SearchMode,
+    pub rg_available: bool,
 }
 
 impl FindState {
@@ -170,12 +202,14 @@ impl FindState {
         Self {
             pattern: String::new(),
             pause_on_match: true,
-            phase: FindPhase::InputPattern,
+            phase: FindPhase::SelectMode,
             matches: Vec::new(),
             current_match: 0,
             scroll_offset: 0,
             last_pattern,
             search_complete: false,
+            search_mode: SearchMode::ByName,
+            rg_available: crate::rg::is_available(),
         }
     }
 }

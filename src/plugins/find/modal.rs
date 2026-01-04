@@ -1,6 +1,6 @@
 //! Find modal drawing function
 
-use crate::app::{App, FindPhase, FindState};
+use crate::app::{App, FindPhase, FindState, SearchMode};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -50,13 +50,79 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
     // Content area based on phase
     let content_area = chunks[2];
     match state.phase {
-        FindPhase::InputPattern => {
+        FindPhase::SelectMode => {
+            let rg_status = if state.rg_available {
+                "✓ ripgrep available"
+            } else {
+                "✗ ripgrep not found"
+            };
+
             let mut lines = vec![
                 Line::from(""),
                 Line::from(Span::styled(
-                    "Find File -- Search for:",
+                    "Select search mode:",
                     Style::default().fg(colors.green()),
                 )),
+                Line::from(""),
+            ];
+
+            // Option 1: By filename (default)
+            let name_style = if state.search_mode == SearchMode::ByName {
+                Style::default().fg(colors.yellow()).bg(colors.red())
+            } else {
+                Style::default().fg(colors.fg())
+            };
+            lines.push(Line::from(Span::styled(
+                "  1. Search by filename (glob patterns)",
+                name_style,
+            )));
+
+            // Option 2: By content (requires rg)
+            if state.rg_available {
+                let content_style = if state.search_mode == SearchMode::ByContent {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg())
+                };
+                lines.push(Line::from(Span::styled(
+                    "  2. Search by content (ripgrep)",
+                    content_style,
+                )));
+            } else {
+                lines.push(Line::from(Span::styled(
+                    "  2. Search by content (requires ripgrep)",
+                    Style::default().fg(colors.grey()),
+                )));
+            }
+
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                rg_status,
+                Style::default().fg(if state.rg_available {
+                    colors.green()
+                } else {
+                    colors.grey()
+                }),
+            )));
+
+            frame.render_widget(Paragraph::new(lines), content_area);
+        }
+        FindPhase::InputPattern => {
+            // Show different prompts based on search mode
+            let (mode_label, examples) = match state.search_mode {
+                SearchMode::ByName => (
+                    "Find File (by name):",
+                    "Examples: *.txt, foo*.rs, config.*",
+                ),
+                SearchMode::ByContent => (
+                    "Find File (by content - ripgrep):",
+                    "Examples: TODO, fn main, error",
+                ),
+            };
+
+            let mut lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(mode_label, Style::default().fg(colors.green()))),
                 Line::from(""),
                 Line::from(vec![
                     Span::styled("Pattern: ", Style::default().fg(colors.fg())),
@@ -67,10 +133,7 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
                     Span::styled("█", Style::default().fg(colors.yellow()).bg(colors.red())),
                 ]),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "Examples: *.txt, foo*.rs, config.*",
-                    Style::default().fg(colors.grey()),
-                )),
+                Line::from(Span::styled(examples, Style::default().fg(colors.grey()))),
                 Line::from(Span::styled(
                     "Ctrl+R to recall last pattern",
                     Style::default().fg(colors.grey()),
@@ -227,6 +290,7 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
 
     // Help line based on phase
     let help_text = match state.phase {
+        FindPhase::SelectMode => "1/2 or Tab to select, Enter to continue, ESC cancel",
         FindPhase::InputPattern => "Enter pattern, Ctrl+R recall, ESC cancel",
         FindPhase::AskPause => "Y pause on match, N show all, ESC cancel",
         FindPhase::Searching => "Searching...",
