@@ -168,7 +168,12 @@ plugin_manager.register(Box::new(MyPlugin::new()));
 
 ## Releasing
 
-1. Update version in `Cargo.toml`
-2. Commit, tag (`git tag -a v0.x.x -m "Release notes"`), and push tag
-3. GitHub Actions builds multi-platform binaries and creates release
-4. Update homebrew tap at `../homebrew-qdos` with new version and SHA256 hashes
+1. Run quality checks: `cargo fmt --check && cargo clippy && cargo test`
+2. Update version in `Cargo.toml` (remove `-dev` suffix)
+3. Commit, tag (`git tag -a v0.x.x -m "Release notes"`), and push tag
+4. GitHub Actions builds multi-platform binaries and creates release
+5. Update homebrew tap at `../homebrew-qdos` with new version and SHA256 hashes:
+   ```bash
+   curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.X.X/rdos-macos-aarch64 | shasum -a 256
+   curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.X.X/rdos-macos-x86_64 | shasum -a 256
+   ```
