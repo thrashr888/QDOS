@@ -30,8 +30,8 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     BeadsPlugin, DirMapPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager,
-    PluginMenuItem, PluginStatusInfo, PrintPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin,
-    ThemePlugin,
+    PluginMenuItem, PluginStatusInfo, PrintPlugin, QdconfigPlugin, SearchSpecPlugin, SpacePlugin,
+    StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -104,6 +104,7 @@ impl App {
         plugin_manager.register(Box::new(ThemePlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
+        plugin_manager.register(Box::new(QdconfigPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -197,11 +198,8 @@ impl App {
         // Color theme shortcut (Ctrl+T) - handled by ThemePlugin via plugin system
         // Ctrl+T is intercepted by handle_plugin_key() before reaching here
 
-        // QDSTART configuration shortcut (Ctrl+S)
-        if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
-            self.modal = Modal::Qdstart(self.create_qdstart_state());
-            return Ok(());
-        }
+        // QDSTART configuration shortcut (Ctrl+S) - handled by QdconfigPlugin via plugin system
+        // Ctrl+S is intercepted by handle_plugin_key() before reaching here
 
         // Refresh shortcut (Ctrl+R)
         if key.code == KeyCode::Char('r') && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -2524,6 +2522,7 @@ impl App {
                 // Plugin modals are handled by handle_plugin_key before this function is called
                 // This is a fallback - delegate to plugin manager
                 let is_theme = plugin_id == "theme";
+                let is_qdconfig = plugin_id == "qdconfig";
                 let result = self
                     .plugin_manager
                     .handle_modal_key(key, &self.current_path);
@@ -2532,6 +2531,15 @@ impl App {
                 if is_theme && result == KeyHandleResult::Handled {
                     if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
                         if let Some(theme) = theme_plugin.selected_theme() {
+                            self.color_theme = theme;
+                        }
+                    }
+                }
+
+                // Live preview for qdconfig plugin - update theme as user cycles through themes
+                if is_qdconfig && result == KeyHandleResult::Handled {
+                    if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
+                        if let Some(theme) = qdconfig_plugin.preview_theme() {
                             self.color_theme = theme;
                         }
                     }
@@ -3435,6 +3443,23 @@ impl App {
                         }
                     }
 
+                    // Sync current settings to QdconfigPlugin when it opens
+                    if plugin_id == "qdconfig" {
+                        if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
+                            // Re-open with correct settings (since it was opened with defaults)
+                            qdconfig_plugin.open_modal(
+                                self.search_spec.clone(),
+                                self.sort_mode,
+                                self.show_hidden,
+                                self.config.general.confirm_delete,
+                                self.config.editor.command.clone(),
+                                self.color_theme,
+                                self.config.general.mouse_support,
+                                self.config.display.uppercase_names,
+                            );
+                        }
+                    }
+
                     self.modal = Modal::Plugin(plugin_id);
                 }
                 true
@@ -3469,6 +3494,40 @@ impl App {
                         }
                     }
                     self.modal = Modal::None;
+                } else if msg == "qdconfig:saved" {
+                    // Handle configuration save
+                    if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
+                        if let Some(state) = qdconfig_plugin.take_result() {
+                            // Apply settings to app state
+                            self.search_spec = state.search_spec.clone();
+                            self.show_hidden = state.show_hidden;
+                            self.color_theme = state.theme();
+                            self.sort_mode = state.sort_mode();
+
+                            // Update config
+                            self.config.general.search_spec = state.search_spec.clone();
+                            self.config.general.show_hidden = state.show_hidden;
+                            self.config.general.confirm_delete = state.confirm_delete;
+                            self.config.general.mouse_support = state.mouse_support;
+                            self.config.display.uppercase_names = state.uppercase_names;
+                            self.config.display.theme = state.theme().into();
+                            self.config.editor.command = state.editor.clone();
+                            self.config.from_sort_mode(self.sort_mode);
+
+                            // Save config to disk
+                            if let Err(e) = self.save_config() {
+                                self.modal =
+                                    Modal::Error(format!("Failed to save config: {}", e));
+                                return true;
+                            }
+
+                            let _ = self.refresh_files();
+                            self.modal =
+                                Modal::Success("Configuration saved successfully".to_string());
+                        }
+                    } else {
+                        self.modal = Modal::None;
+                    }
                 } else {
                     self.modal = Modal::Success(msg);
                 }

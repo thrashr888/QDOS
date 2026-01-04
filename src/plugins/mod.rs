@@ -17,6 +17,7 @@ pub mod dirmap;
 pub mod git;
 pub mod help;
 pub mod print;
+pub mod qdconfig;
 pub mod searchspec;
 pub mod space;
 pub mod status;
@@ -27,6 +28,7 @@ pub use dirmap::DirMapPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use print::PrintPlugin;
+pub use qdconfig::QdconfigPlugin;
 pub use searchspec::SearchSpecPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
@@ -368,6 +370,13 @@ impl PluginManager {
         self.plugins
             .get_mut("searchspec")
             .and_then(|p| p.as_any_mut().downcast_mut::<searchspec::SearchSpecPlugin>())
+    }
+
+    /// Get mutable reference to QdconfigPlugin
+    pub fn qdconfig_plugin_mut(&mut self) -> Option<&mut qdconfig::QdconfigPlugin> {
+        self.plugins
+            .get_mut("qdconfig")
+            .and_then(|p| p.as_any_mut().downcast_mut::<qdconfig::QdconfigPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
