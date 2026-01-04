@@ -3,7 +3,7 @@
 //! This module contains all file viewer drawing functions including:
 //! - Normal/ASCII view with syntax highlighting
 //! - Hex view
-//! - Image view
+//! - Image view (with Kitty/Sixel/iTerm2 protocol detection)
 //! - Markdown view
 //! - Shell command view
 
@@ -15,7 +15,10 @@ use ratatui::{
     widgets::{Clear, Paragraph},
     Frame,
 };
-use std::sync::OnceLock;
+use ratatui_image::picker::Picker;
+use ratatui_image::protocol::StatefulProtocol;
+use ratatui_image::StatefulImage;
+use std::sync::{Mutex, OnceLock};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
@@ -25,6 +28,31 @@ use super::{COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED};
 // Lazy-loaded syntax highlighting resources
 static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
 static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
+
+// Lazy-loaded image picker (detects Kitty/Sixel/iTerm2 protocols)
+static IMAGE_PICKER: OnceLock<Mutex<Picker>> = OnceLock::new();
+
+/// Get or initialize the image picker with terminal protocol detection
+fn get_image_picker() -> &'static Mutex<Picker> {
+    IMAGE_PICKER.get_or_init(|| {
+        // Try to detect terminal capabilities, fall back to halfblocks
+        let picker = Picker::from_query_stdio()
+            .unwrap_or_else(|_| Picker::from_fontsize((8, 16))); // Default font size fallback
+        Mutex::new(picker)
+    })
+}
+
+/// Get or create image protocol for the given file
+fn get_or_create_image_protocol(_file_path: &str, content: &[u8]) -> Option<StatefulProtocol> {
+    // Create protocol for the image (recreated each render for simplicity)
+    // Future optimization: cache protocols by file path
+    if let Ok(dyn_img) = image::load_from_memory(content) {
+        if let Ok(mut picker) = get_image_picker().lock() {
+            return Some(picker.new_resize_protocol(dyn_img));
+        }
+    }
+    None
+}
 
 fn get_syntax_set() -> &'static SyntaxSet {
     SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines)
@@ -484,110 +512,37 @@ pub(super) fn draw_shell_command(
     frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[8]);
 }
 
-/// Draw image view mode
+/// Draw image view mode using ratatui-image with protocol detection
+/// Supports Kitty graphics, Sixel, iTerm2, and falls back to Unicode halfblocks
 fn draw_image_view(frame: &mut Frame, area: Rect, state: &FileViewerState) {
-    // Try to load and display the image
-    match image::load_from_memory(&state.content) {
-        Ok(img) => {
-            // Get the image dimensions
-            let img_width = img.width();
-            let img_height = img.height();
-
-            // Calculate the aspect ratio and fit to area
-            // Terminal characters are typically 2:1 height:width ratio
-            let term_aspect = (area.width as f64) / (area.height as f64 * 2.0);
-            let img_aspect = img_width as f64 / img_height as f64;
-
-            let (display_width, display_height) = if img_aspect > term_aspect {
-                // Image is wider than area
-                let w = area.width as u32;
-                let h = ((w as f64 / img_aspect) / 2.0).max(1.0) as u32;
-                (w, h.min(area.height as u32))
-            } else {
-                // Image is taller than area
-                let h = area.height as u32;
-                let w = (h as f64 * img_aspect * 2.0).max(1.0) as u32;
-                (w.min(area.width as u32), h)
-            };
-
-            // Center the image in the area
-            let x_offset = (area.width.saturating_sub(display_width as u16)) / 2;
-            let y_offset = (area.height.saturating_sub(display_height as u16)) / 2;
-
-            // Convert image to RGBA and resize
-            let rgba_img = img.to_rgba8();
-            let resized = image::imageops::resize(
-                &rgba_img,
-                display_width,
-                display_height,
-                image::imageops::FilterType::Triangle,
-            );
-
-            // Render as half-block characters (upper half, lower half)
-            // Each character cell represents 2 vertical pixels
-            let mut lines: Vec<Line> = Vec::new();
-
-            for y in (0..display_height).step_by(2) {
-                let mut spans: Vec<Span> = Vec::new();
-
-                // Add left padding
-                if x_offset > 0 {
-                    spans.push(Span::raw(" ".repeat(x_offset as usize)));
-                }
-
-                for x in 0..display_width {
-                    let top_pixel = resized.get_pixel(x, y);
-                    let bottom_pixel = if y + 1 < display_height {
-                        resized.get_pixel(x, y + 1)
-                    } else {
-                        top_pixel
-                    };
-
-                    // Use half-block character with top color as foreground, bottom as background
-                    let fg = Color::Rgb(top_pixel[0], top_pixel[1], top_pixel[2]);
-                    let bg = Color::Rgb(bottom_pixel[0], bottom_pixel[1], bottom_pixel[2]);
-
-                    spans.push(Span::styled("\u{2580}", Style::default().fg(fg).bg(bg)));
-                }
-
-                lines.push(Line::from(spans));
-            }
-
-            // Add top padding
-            let mut padded_lines: Vec<Line> = Vec::new();
-            for _ in 0..y_offset {
-                padded_lines.push(Line::from(""));
-            }
-            padded_lines.extend(lines);
-
-            frame.render_widget(Paragraph::new(padded_lines), area);
-        }
-        Err(e) => {
-            // Show error if image can't be loaded
-            let error_msg = vec![
-                Line::from(""),
-                Line::from(Span::styled(
-                    " Cannot display image",
-                    Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
-                )),
-                Line::from(""),
-                Line::from(Span::styled(
-                    format!(" Error: {}", e),
-                    Style::default().fg(COLOR_FG),
-                )),
-                Line::from(""),
-                Line::from(Span::styled(
-                    format!(" File: {}", state.file_path.display()),
-                    Style::default().fg(COLOR_GREEN),
-                )),
-                Line::from(""),
-                Line::from(Span::styled(
-                    " Press N for normal view or H for hex view",
-                    Style::default().fg(COLOR_BLUE),
-                )),
-            ];
-            frame.render_widget(Paragraph::new(error_msg), area);
-        }
+    // Try to get or create the image protocol
+    if let Some(mut protocol) = get_or_create_image_protocol(
+        &state.file_path.to_string_lossy(),
+        &state.content,
+    ) {
+        // Use StatefulImage widget for rendering
+        let image_widget = StatefulImage::new(None);
+        frame.render_stateful_widget(image_widget, area, &mut protocol);
+    } else {
+        // Show error if image can't be loaded
+        let error_msg = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                " Cannot display image",
+                Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                format!(" File: {}", state.file_path.display()),
+                Style::default().fg(COLOR_GREEN),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                " Press N for normal view or H for hex view",
+                Style::default().fg(COLOR_BLUE),
+            )),
+        ];
+        frame.render_widget(Paragraph::new(error_msg), area);
     }
 }
 
