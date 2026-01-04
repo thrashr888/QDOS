@@ -4,23 +4,15 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::app::{ColorTheme, SortMode};
+use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
-
-// Colors (DOS-style)
-const COLOR_BG: Color = Color::Black;
-const COLOR_FG: Color = Color::White;
-const COLOR_BLUE: Color = Color::Rgb(0x55, 0x55, 0xFF);
-const COLOR_GREEN: Color = Color::Rgb(0x55, 0xFF, 0x55);
-const COLOR_YELLOW: Color = Color::Rgb(0xFF, 0xFF, 0x55);
-const COLOR_RED: Color = Color::Rgb(0xFF, 0x55, 0x55);
-const COLOR_GREY: Color = Color::Rgb(0x80, 0x80, 0x80);
 
 /// Configuration fields
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

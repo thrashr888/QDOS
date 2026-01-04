@@ -3,23 +3,15 @@
 //! Provides search specification (F7) functionality as a self-contained plugin.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::style::Style;
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
-
-// Colors
-const COLOR_BG: Color = Color::Black;
-const COLOR_FG: Color = Color::White;
-const COLOR_BLUE: Color = Color::Rgb(0x55, 0x55, 0xFF);
-const COLOR_GREEN: Color = Color::Rgb(0x55, 0xFF, 0x55);
-const COLOR_YELLOW: Color = Color::Rgb(0xFF, 0xFF, 0x55);
-const COLOR_RED: Color = Color::Rgb(0xFF, 0x55, 0x55);
-const COLOR_GREY: Color = Color::Rgb(0x80, 0x80, 0x80);
 
 /// Search specification state
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -236,65 +228,71 @@ impl Plugin for SearchSpecPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
-
         let title = if state.phase == 0 {
             " Set Search Specification "
         } else {
             " Search Attributes "
         };
 
-        let block = Block::default()
-            .title(title)
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(COLOR_BLUE))
-            .style(Style::default().bg(COLOR_BG));
+        let modal = ModalFrame::new(modal_area, title);
+        modal.render_frame(frame);
 
-        let mut lines = vec![Line::from("")];
+        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+        let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+        let input_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_RED);
+        let hint_style = Style::default().fg(COLOR_GREY).bg(COLOR_BG);
 
         if state.phase == 0 {
             // Phase 0: Pattern input
-            lines.push(Line::from(Span::styled(
-                "Enter file search specification:",
-                Style::default().fg(COLOR_GREEN),
-            )));
-            lines.push(Line::from(""));
-            lines.push(Line::from(vec![
-                Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
-                Span::styled(
-                    &state.pattern,
-                    Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
-                ),
-                Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
-            ]));
-            lines.push(Line::from(""));
-            lines.push(Line::from(Span::styled(
-                "Examples: *.*  *.txt  *.rs  config.*",
-                Style::default().fg(COLOR_GREY),
-            )));
-            lines.push(Line::from(""));
-            lines.push(Line::from(vec![
-                Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" next  "),
-                Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" cancel"),
-            ]));
+            modal.render_row(
+                frame,
+                0,
+                vec![Span::styled("Enter file search specification:", label_style)],
+            );
+            modal.render_row(frame, 1, vec![]);
+            modal.render_row(
+                frame,
+                2,
+                vec![
+                    Span::styled("Pattern: ", label_style),
+                    Span::styled(&state.pattern, input_style),
+                    Span::styled("█", input_style),
+                ],
+            );
+            modal.render_row(frame, 3, vec![]);
+            modal.render_row(
+                frame,
+                4,
+                vec![Span::styled(
+                    "Examples: *.*  *.txt  *.rs  config.*",
+                    hint_style,
+                )],
+            );
+
+            modal.render_help(frame, vec![("Enter", "next"), ("ESC", "cancel")]);
         } else {
             // Phase 1: Attribute selection
-            lines.push(Line::from(vec![
-                Span::styled("Pattern: ", Style::default().fg(COLOR_GREEN)),
-                Span::styled(&state.pattern, Style::default().fg(COLOR_FG)),
-            ]));
-            lines.push(Line::from(""));
-            lines.push(Line::from(Span::styled(
-                "Select which file types to display:",
-                Style::default().fg(COLOR_GREEN),
-            )));
-            lines.push(Line::from(""));
+            modal.render_row(
+                frame,
+                0,
+                vec![
+                    Span::styled("Pattern: ", label_style),
+                    Span::styled(&state.pattern, value_style),
+                ],
+            );
+            modal.render_row(frame, 1, vec![]);
+            modal.render_row(
+                frame,
+                2,
+                vec![Span::styled(
+                    "Select which file types to display:",
+                    label_style,
+                )],
+            );
+            modal.render_row(frame, 3, vec![]);
 
             // Build attribute bar
-            let mut attr_spans: Vec<Span> = vec![Span::raw("  ")];
+            let mut attr_spans: Vec<Span> = Vec::new();
             for i in 0..6 {
                 let name = SearchSpecState::attr_name(i);
                 let is_on = state.attrs[i];
@@ -303,31 +301,27 @@ impl Plugin for SearchSpecPlugin {
                 let style = if is_selected {
                     Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
                 } else if is_on {
-                    Style::default().fg(COLOR_GREEN)
+                    Style::default().fg(COLOR_GREEN).bg(COLOR_BG)
                 } else {
-                    Style::default().fg(COLOR_GREY)
+                    Style::default().fg(COLOR_GREY).bg(COLOR_BG)
                 };
 
                 let indicator = if is_on { " ✓ " } else { "   " };
                 attr_spans.push(Span::styled(format!("[{}{}]", name, indicator), style));
-                attr_spans.push(Span::raw(" "));
+                attr_spans.push(Span::styled(" ", Style::default().bg(COLOR_BG)));
             }
-            lines.push(Line::from(attr_spans));
-            lines.push(Line::from(""));
-            lines.push(Line::from(vec![
-                Span::styled("←→", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" select  "),
-                Span::styled("SPACE", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" toggle  "),
-                Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" apply  "),
-                Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-                Span::raw(" back"),
-            ]));
-        }
+            modal.render_row(frame, 4, attr_spans);
 
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
-        frame.render_widget(paragraph, modal_area);
+            modal.render_help(
+                frame,
+                vec![
+                    ("←→", "select"),
+                    ("SPACE", "toggle"),
+                    ("Enter", "apply"),
+                    ("ESC", "back"),
+                ],
+            );
+        }
     }
 
     fn help_content(&self) -> Vec<String> {

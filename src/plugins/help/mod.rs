@@ -7,11 +7,12 @@ mod state;
 pub use state::HelpState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_CYAN, COLOR_FG, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::style::{Modifier, Style};
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -239,14 +240,6 @@ impl Plugin for HelpPlugin {
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect) {
-        // Colors
-        let bg = Color::Black;
-        let blue = Color::Rgb(0x55, 0x55, 0xFF);
-        let yellow = Color::Rgb(0xFF, 0xFF, 0x55);
-        let cyan = Color::Rgb(0x55, 0xFF, 0xFF);
-        let green = Color::Rgb(0x55, 0xFF, 0x55);
-        let white = Color::White;
-
         // Calculate centered modal area (80% width, 80% height)
         let popup_width = ((area.width as f32) * 0.8) as u16;
         let popup_height = ((area.height as f32) * 0.8) as u16;
@@ -254,15 +247,12 @@ impl Plugin for HelpPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
-
         if self.state.current_topic == 0 {
             // Index page
-            self.draw_index(frame, modal_area, bg, blue, yellow, cyan, green);
+            self.draw_index(frame, modal_area);
         } else {
             // Topic page
-            self.draw_topic(frame, modal_area, bg, blue, yellow, white, green);
+            self.draw_topic(frame, modal_area);
         }
     }
 
@@ -276,112 +266,73 @@ impl Plugin for HelpPlugin {
 }
 
 impl HelpPlugin {
-    fn draw_index(
-        &self,
-        frame: &mut Frame,
-        area: Rect,
-        bg: Color,
-        blue: Color,
-        yellow: Color,
-        cyan: Color,
-        green: Color,
-    ) {
-        let block = Block::default()
-            .title(" R-DOS Help ")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(blue))
-            .style(Style::default().bg(bg));
+    fn draw_index(&self, frame: &mut Frame, area: Rect) {
+        let modal = ModalFrame::new(area, " R-DOS Help ").no_footer_separator();
+        modal.render_frame(frame);
 
-        let mut lines = vec![
-            Line::from(""),
-            Line::from(Span::styled(
-                "Select a topic by pressing its key:",
-                Style::default().fg(yellow),
-            )),
-            Line::from(""),
-        ];
+        let label_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
+        let key_style = Style::default()
+            .fg(COLOR_CYAN)
+            .bg(COLOR_BG)
+            .add_modifier(Modifier::BOLD);
+        let title_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
 
-        for topic in &self.state.topics {
-            lines.push(Line::from(vec![
-                Span::styled(
-                    format!("  {} ", topic.key),
-                    Style::default().fg(cyan).add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(&topic.title, Style::default().fg(Color::White)),
-            ]));
+        modal.render_row(
+            frame,
+            0,
+            vec![Span::styled("Select a topic by pressing its key:", label_style)],
+        );
+        modal.render_row(frame, 1, vec![]);
+
+        for (i, topic) in self.state.topics.iter().enumerate() {
+            modal.render_row(
+                frame,
+                2 + i as u16,
+                vec![
+                    Span::styled(format!("  {} ", topic.key), key_style),
+                    Span::styled(&topic.title, title_style),
+                ],
+            );
         }
 
-        lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled(
-            "Press ESC to close help",
-            Style::default().fg(green),
-        )));
-
-        let paragraph = Paragraph::new(lines)
-            .block(block)
-            .wrap(Wrap { trim: false });
-        frame.render_widget(paragraph, area);
+        modal.render_help(frame, vec![("ESC", "close help")]);
     }
 
-    fn draw_topic(
-        &self,
-        frame: &mut Frame,
-        area: Rect,
-        bg: Color,
-        blue: Color,
-        yellow: Color,
-        white: Color,
-        green: Color,
-    ) {
+    fn draw_topic(&self, frame: &mut Frame, area: Rect) {
         let topic_idx = self.state.current_topic - 1;
         let topic = &self.state.topics[topic_idx];
 
         let title = format!(" {} ", topic.title);
-        let block = Block::default()
-            .title(title)
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(blue))
-            .style(Style::default().bg(bg));
+        let modal = ModalFrame::new(area, &title).no_footer_separator();
+        modal.render_frame(frame);
+
+        let content_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
 
         // Get content lines
         let content_lines: Vec<&str> = topic.content.lines().collect();
-        let visible_height = (area.height as usize).saturating_sub(4);
+        let visible_height = (area.height as usize).saturating_sub(6); // Account for border, title, separator, help
         let start = self.state.scroll_offset;
         let end = (start + visible_height).min(content_lines.len());
 
-        let mut lines: Vec<Line> = content_lines[start..end]
-            .iter()
-            .map(|line| Line::from(Span::styled(*line, Style::default().fg(white))))
-            .collect();
-
-        // Add navigation hint
-        if lines.len() < visible_height {
-            for _ in lines.len()..visible_height.saturating_sub(2) {
-                lines.push(Line::from(""));
-            }
+        for (i, line) in content_lines[start..end].iter().enumerate() {
+            modal.render_row(frame, i as u16, vec![Span::styled(*line, content_style)]);
         }
 
         // Show scroll indicator if needed
         let total_lines = content_lines.len();
         let scroll_info = if total_lines > visible_height {
-            format!(" [Line {}-{} of {}] ", start + 1, end, total_lines)
+            format!(" [Line {}-{} of {}]", start + 1, end, total_lines)
         } else {
             String::new()
         };
 
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("ESC/Enter: Back to index", Style::default().fg(green)),
-            Span::styled(
-                format!("  Up/Down: Scroll{}", scroll_info),
-                Style::default().fg(yellow),
-            ),
-        ]));
-
-        let paragraph = Paragraph::new(lines)
-            .block(block)
-            .wrap(Wrap { trim: false });
-        frame.render_widget(paragraph, area);
+        modal.render_help(
+            frame,
+            vec![
+                ("ESC/Enter", "back to index"),
+                ("Up/Down", &format!("scroll{}", scroll_info)),
+            ],
+        );
     }
 }
 

@@ -3,12 +3,13 @@
 //! Provides system status display (F2 functionality) as a self-contained plugin.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::style::{Modifier, Style};
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -170,85 +171,102 @@ impl Plugin for StatusPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
+        let modal = ModalFrame::new(modal_area, " System Status ")
+            .no_footer_separator();
+        modal.render_frame(frame);
 
-        // Colors
-        let bg = Color::Black;
-        let fg = Color::White;
-        let blue = Color::Rgb(0x55, 0x55, 0xFF);
-        let green = Color::Rgb(0x55, 0xFF, 0x55);
-        let yellow = Color::Rgb(0xFF, 0xFF, 0x55);
-
-        let status_block = Block::default()
-            .title(" System Status ")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(blue))
-            .style(Style::default().bg(bg));
-
-        let label_style = Style::default().fg(green);
-        let value_style = Style::default().fg(fg);
-        let header_style = Style::default().fg(yellow);
+        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+        let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+        let header_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
+        let dim_style = Style::default()
+            .fg(COLOR_FG)
+            .bg(COLOR_BG)
+            .add_modifier(Modifier::DIM);
 
         let info = &self.state.info;
-        let mut status_text = vec![
-            Line::from(""),
-            Line::from(vec![
+
+        // Render system info rows
+        modal.render_row(
+            frame,
+            0,
+            vec![
                 Span::styled("Hostname: ", label_style),
                 Span::styled(&info.hostname, value_style),
-            ]),
-            Line::from(vec![
+            ],
+        );
+        modal.render_row(
+            frame,
+            1,
+            vec![
                 Span::styled("OS: ", label_style),
-                Span::styled(format!("{} {}", info.os_name, info.os_version), value_style),
-            ]),
-            Line::from(vec![
+                Span::styled(
+                    format!("{} {}", info.os_name, info.os_version),
+                    value_style,
+                ),
+            ],
+        );
+        modal.render_row(
+            frame,
+            2,
+            vec![
                 Span::styled("CPUs: ", label_style),
                 Span::styled(format!("{}", info.cpu_count), value_style),
-            ]),
-            Line::from(""),
-            Line::from(vec![
+            ],
+        );
+        modal.render_row(frame, 3, vec![]);
+        modal.render_row(
+            frame,
+            4,
+            vec![
                 Span::styled("Total Memory: ", label_style),
                 Span::styled(format_size(info.total_memory, DECIMAL), value_style),
-            ]),
-            Line::from(vec![
+            ],
+        );
+        modal.render_row(
+            frame,
+            5,
+            vec![
                 Span::styled("Used Memory: ", label_style),
                 Span::styled(format_size(info.used_memory, DECIMAL), value_style),
-            ]),
-            Line::from(vec![
+            ],
+        );
+        modal.render_row(
+            frame,
+            6,
+            vec![
                 Span::styled("Total Swap: ", label_style),
                 Span::styled(format_size(info.total_swap, DECIMAL), value_style),
-            ]),
-            Line::from(vec![
+            ],
+        );
+        modal.render_row(
+            frame,
+            7,
+            vec![
                 Span::styled("Used Swap: ", label_style),
                 Span::styled(format_size(info.used_swap, DECIMAL), value_style),
-            ]),
-            Line::from(""),
-            Line::from(Span::styled("Registered Plugins:", header_style)),
-        ];
+            ],
+        );
+        modal.render_row(frame, 8, vec![]);
+        modal.render_row(
+            frame,
+            9,
+            vec![Span::styled("Registered Plugins:", header_style)],
+        );
 
         // Add registered plugins
-        for (id, name, description) in &self.state.plugins {
-            status_text.push(Line::from(vec![
-                Span::styled(format!("  {} ", id), label_style),
-                Span::styled(format!("({}) ", name), value_style),
-                Span::styled(
-                    format!("- {}", description),
-                    Style::default().fg(fg).add_modifier(Modifier::DIM),
-                ),
-            ]));
+        for (i, (id, name, description)) in self.state.plugins.iter().enumerate() {
+            modal.render_row(
+                frame,
+                10 + i as u16,
+                vec![
+                    Span::styled(format!("  {} ", id), label_style),
+                    Span::styled(format!("({}) ", name), value_style),
+                    Span::styled(format!("- {}", description), dim_style),
+                ],
+            );
         }
 
-        status_text.push(Line::from(""));
-        status_text.push(Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(green),
-        )));
-
-        let paragraph = Paragraph::new(status_text)
-            .block(status_block)
-            .wrap(Wrap { trim: true });
-
-        frame.render_widget(paragraph, modal_area);
+        modal.render_help(frame, vec![("Any key", "close")]);
     }
 
     fn help_content(&self) -> Vec<String> {

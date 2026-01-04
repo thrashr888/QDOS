@@ -7,21 +7,16 @@ mod state;
 pub use state::DirMapState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::{COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
 use std::any::Any;
 use std::fs;
 use std::path::PathBuf;
-
-// Colors
-const COLOR_FG: Color = Color::White;
-const COLOR_YELLOW: Color = Color::Yellow;
-const COLOR_RED: Color = Color::Red;
-const COLOR_GREEN: Color = Color::Green;
 
 /// Directory Map plugin for tree navigation
 pub struct DirMapPlugin {

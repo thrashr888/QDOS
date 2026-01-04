@@ -4,21 +4,14 @@
 //! The actual file operations are executed by the app; this plugin manages the UI.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::style::{Modifier, Style};
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
-
-// Colors (DOS-style)
-const COLOR_BG: Color = Color::Black;
-const COLOR_FG: Color = Color::White;
-const COLOR_BLUE: Color = Color::Rgb(0x55, 0x55, 0xFF);
-const COLOR_GREEN: Color = Color::Rgb(0x55, 0xFF, 0x55);
-const COLOR_YELLOW: Color = Color::Rgb(0xFF, 0xFF, 0x55);
-const COLOR_RED: Color = Color::Rgb(0xFF, 0x55, 0x55);
 
 /// File operation type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,18 +268,18 @@ impl Plugin for FileOpsPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
-
         let title = format!(" {} ", state.operation.name());
+        let modal = ModalFrame::new(modal_area, &title)
+            .no_title_separator()
+            .no_footer_separator();
+        modal.render_frame(frame);
 
-        let block = Block::default()
-            .title(title)
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(COLOR_BLUE))
-            .style(Style::default().bg(COLOR_BG));
-
-        let mut lines = vec![Line::from("")];
+        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+        let input_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_RED);
+        let warning_style = Style::default()
+            .fg(COLOR_RED)
+            .bg(COLOR_BG)
+            .add_modifier(Modifier::BOLD);
 
         match state.operation {
             FileOperation::Erase => {
@@ -298,22 +291,22 @@ impl Plugin for FileOpsPlugin {
                     format!("{} files", count)
                 };
 
-                lines.push(Line::from(Span::styled(
-                    format!("Erase {}?", file_text),
-                    Style::default().fg(COLOR_YELLOW),
-                )));
-                lines.push(Line::from(""));
-                lines.push(Line::from(Span::styled(
-                    "This action cannot be undone!",
-                    Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
-                )));
-                lines.push(Line::from(""));
-                lines.push(Line::from(vec![
-                    Span::styled("Y", Style::default().fg(COLOR_GREEN)),
-                    Span::raw("/"),
-                    Span::styled("N", Style::default().fg(COLOR_GREEN)),
-                    Span::raw(" to confirm or cancel"),
-                ]));
+                modal.render_row(
+                    frame,
+                    1,
+                    vec![Span::styled(
+                        format!("Erase {}?", file_text),
+                        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+                    )],
+                );
+                modal.render_row(frame, 2, vec![]);
+                modal.render_row(
+                    frame,
+                    3,
+                    vec![Span::styled("This action cannot be undone!", warning_style)],
+                );
+
+                modal.render_help(frame, vec![("Y/N", "confirm or cancel")]);
             }
             _ => {
                 // Copy/Move/Rename with input
@@ -324,33 +317,30 @@ impl Plugin for FileOpsPlugin {
                     format!("{} files", count)
                 };
 
-                lines.push(Line::from(Span::styled(
-                    format!("{} {}", state.operation.verb(), source_text),
-                    Style::default().fg(COLOR_GREEN),
-                )));
-                lines.push(Line::from(""));
-                lines.push(Line::from(vec![
-                    Span::styled(
-                        format!("{} ", state.operation.prompt()),
-                        Style::default().fg(COLOR_BLUE),
-                    ),
-                    Span::styled(
-                        format!("{}█", state.input),
-                        Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
-                    ),
-                ]));
-                lines.push(Line::from(""));
-                lines.push(Line::from(vec![
-                    Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-                    Span::raw(" confirm  "),
-                    Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-                    Span::raw(" cancel"),
-                ]));
+                modal.render_row(
+                    frame,
+                    1,
+                    vec![Span::styled(
+                        format!("{} {}", state.operation.verb(), source_text),
+                        label_style,
+                    )],
+                );
+                modal.render_row(frame, 2, vec![]);
+                modal.render_row(
+                    frame,
+                    3,
+                    vec![
+                        Span::styled(
+                            format!("{} ", state.operation.prompt()),
+                            label_style,
+                        ),
+                        Span::styled(format!("{}█", state.input), input_style),
+                    ],
+                );
+
+                modal.render_help(frame, vec![("Enter", "confirm"), ("ESC", "cancel")]);
             }
         }
-
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
-        frame.render_widget(paragraph, modal_area);
     }
 
     fn help_content(&self) -> Vec<String> {

@@ -3,12 +3,13 @@
 //! Provides disk space display functionality as a self-contained plugin.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_CYAN, COLOR_GREEN, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::style::Style;
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -167,13 +168,6 @@ impl Plugin for SpacePlugin {
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect) {
-        // Colors
-        let bg = Color::Black;
-        let blue = Color::Rgb(0x55, 0x55, 0xFF);
-        let yellow = Color::Rgb(0xFF, 0xFF, 0x55);
-        let cyan = Color::Rgb(0x55, 0xFF, 0xFF);
-        let green = Color::Rgb(0x55, 0xFF, 0x55);
-
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
         let popup_height = 12.min(area.height.saturating_sub(4));
@@ -181,15 +175,9 @@ impl Plugin for SpacePlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
-
         let title = format!(" Space On Disk {} ", self.state.disk_name);
-        let space_block = Block::default()
-            .title(title)
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(blue))
-            .style(Style::default().bg(bg));
+        let modal = ModalFrame::new(modal_area, &title).no_footer_separator();
+        modal.render_frame(frame);
 
         let used = self.state.total.saturating_sub(self.state.available);
         let used_percent = if self.state.total > 0 {
@@ -198,43 +186,49 @@ impl Plugin for SpacePlugin {
             0.0
         };
 
-        let content = vec![
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("Total space:      ", Style::default().fg(yellow)),
-                Span::styled(
-                    Self::format_size_short(self.state.total),
-                    Style::default().fg(cyan),
-                ),
-            ]),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("Total used:       ", Style::default().fg(yellow)),
+        let label_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
+        let value_style = Style::default().fg(COLOR_CYAN).bg(COLOR_BG);
+
+        // Content rows
+        modal.render_row(frame, 0, vec![]); // Empty row
+        modal.render_row(
+            frame,
+            1,
+            vec![
+                Span::styled("Total space:      ", label_style),
+                Span::styled(Self::format_size_short(self.state.total), value_style),
+            ],
+        );
+        modal.render_row(frame, 2, vec![]); // Empty row
+        modal.render_row(
+            frame,
+            3,
+            vec![
+                Span::styled("Total used:       ", label_style),
                 Span::styled(
                     format!("{} ({:.1}%)", Self::format_size_short(used), used_percent),
-                    Style::default().fg(cyan),
+                    value_style,
                 ),
-            ]),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("Total available:  ", Style::default().fg(yellow)),
-                Span::styled(
-                    Self::format_size_short(self.state.available),
-                    Style::default().fg(cyan),
-                ),
-            ]),
-            Line::from(""),
-            Line::from(Span::styled(
+            ],
+        );
+        modal.render_row(frame, 4, vec![]); // Empty row
+        modal.render_row(
+            frame,
+            5,
+            vec![
+                Span::styled("Total available:  ", label_style),
+                Span::styled(Self::format_size_short(self.state.available), value_style),
+            ],
+        );
+        modal.render_row(frame, 6, vec![]); // Empty row
+        modal.render_row(
+            frame,
+            7,
+            vec![Span::styled(
                 "Press any key to continue",
-                Style::default().fg(green),
-            )),
-        ];
-
-        let paragraph = Paragraph::new(content)
-            .block(space_block)
-            .wrap(Wrap { trim: true });
-
-        frame.render_widget(paragraph, modal_area);
+                Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+            )],
+        );
     }
 
     fn help_content(&self) -> Vec<String> {

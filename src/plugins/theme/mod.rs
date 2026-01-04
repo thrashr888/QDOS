@@ -4,11 +4,11 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::app::{ColorTheme, ColorThemeState, ThemeColors};
+use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -196,57 +196,55 @@ impl Plugin for ThemePlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
+        // Use ModalFrame with theme-aware border (fg color for white borders per SPEC)
+        let modal = ModalFrame::new(modal_area, " Color Theme ")
+            .border_style(Style::default().fg(colors.fg()).bg(colors.bg()))
+            .content_style(Style::default().fg(colors.fg()).bg(colors.bg()));
+        modal.render_frame(frame);
 
-        let block = Block::default()
-            .title(" Color Theme ")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(colors.blue()))
-            .style(Style::default().bg(colors.bg()));
+        let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
 
-        let mut lines = vec![
-            Line::from(""),
-            Line::from(Span::styled(
-                "Select a theme:",
-                Style::default().fg(colors.yellow()),
-            )),
-            Line::from(""),
-        ];
+        modal.render_row(
+            frame,
+            0,
+            vec![Span::styled("Select a theme:", label_style)],
+        );
+        modal.render_row(frame, 1, vec![]);
 
         for (i, theme) in ColorTheme::ALL.iter().enumerate() {
             let marker = if i == state.selected { "> " } else { "  " };
             let style = if i == state.selected {
                 Style::default()
                     .fg(colors.yellow())
+                    .bg(colors.bg())
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(colors.fg())
+                Style::default().fg(colors.fg()).bg(colors.bg())
             };
+            let desc_style = Style::default()
+                .fg(colors.grey())
+                .bg(colors.bg())
+                .add_modifier(Modifier::DIM);
 
-            lines.push(Line::from(vec![
-                Span::styled(marker, style),
-                Span::styled(format!("{}. ", i + 1), Style::default().fg(colors.cyan())),
-                Span::styled(theme.name(), style),
-                Span::styled(
-                    format!(" - {}", theme.description()),
-                    Style::default()
-                        .fg(colors.grey())
-                        .add_modifier(Modifier::DIM),
-                ),
-            ]));
+            modal.render_row(
+                frame,
+                2 + i as u16,
+                vec![
+                    Span::styled(marker, style),
+                    Span::styled(
+                        format!("{}. ", i + 1),
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    ),
+                    Span::styled(theme.name(), style),
+                    Span::styled(format!(" - {}", theme.description()), desc_style),
+                ],
+            );
         }
 
-        lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled(
-            "Enter: Apply  Esc: Cancel  1-5: Select",
-            Style::default().fg(colors.green()),
-        )));
-
-        let paragraph = Paragraph::new(lines)
-            .block(block)
-            .wrap(Wrap { trim: false });
-        frame.render_widget(paragraph, modal_area);
+        modal.render_help(
+            frame,
+            vec![("Enter", "apply"), ("Esc", "cancel"), ("1-5", "select")],
+        );
     }
 
     fn help_content(&self) -> Vec<String> {
