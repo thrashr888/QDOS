@@ -54,6 +54,9 @@ arboard = "3.4"
 # File system notifications
 notify = "8.0"
 
+# Terminal light/dark mode detection
+terminal-light = "1.8"
+
 [profile.release]
 lto = true
 codegen-units = 1

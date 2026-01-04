@@ -33,7 +33,9 @@
       "Skill(beads:list)",
       "Bash(cargo update:*)",
       "Bash(gh release view:*)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "Bash(cargo search:*)",
+      "Bash(cargo doc:*)"
     ]
   }
 }

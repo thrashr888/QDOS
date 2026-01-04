@@ -1192,7 +1192,17 @@ impl ColorTheme {
         }
     }
 
-    /// Get the RGB color values for this theme
+    /// Get the RGB color values for this theme, optionally adjusted for terminal luma
+    /// If luma > 0.6, the terminal is considered "light" and colors are adjusted
+    pub fn colors_for_luma(&self, luma: Option<f32>) -> ThemeColors {
+        let base_colors = self.colors();
+        match luma {
+            Some(l) if l > 0.6 => base_colors.for_light_terminal(),
+            _ => base_colors,
+        }
+    }
+
+    /// Get the RGB color values for this theme (assumes dark terminal)
     pub fn colors(&self) -> ThemeColors {
         match self {
             ColorTheme::Default => ThemeColors {
@@ -1325,6 +1335,34 @@ impl ThemeColors {
     pub fn magenta(&self) -> ratatui::style::Color {
         let (r, g, b) = self.magenta;
         ratatui::style::Color::Rgb(r, g, b)
+    }
+
+    /// Adapt colors for a light terminal background
+    /// Darkens colors that would be hard to read on light backgrounds
+    pub fn for_light_terminal(&self) -> ThemeColors {
+        ThemeColors {
+            // Use light background, dark foreground
+            background: (240, 240, 240),
+            foreground: (30, 30, 30),
+            // Darken accent colors for visibility on light backgrounds
+            blue: Self::darken(self.blue, 0.4),
+            green: Self::darken(self.green, 0.5),
+            red: self.red, // Red is typically already visible
+            yellow: Self::darken(self.yellow, 0.3),
+            grey: (100, 100, 100),
+            cyan: Self::darken(self.cyan, 0.4),
+            magenta: Self::darken(self.magenta, 0.3),
+        }
+    }
+
+    /// Darken an RGB color by a factor (0.0 = no change, 1.0 = black)
+    fn darken(color: (u8, u8, u8), factor: f32) -> (u8, u8, u8) {
+        let f = 1.0 - factor.clamp(0.0, 1.0);
+        (
+            (color.0 as f32 * f) as u8,
+            (color.1 as f32 * f) as u8,
+            (color.2 as f32 * f) as u8,
+        )
     }
 }
 

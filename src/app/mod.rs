@@ -106,6 +106,9 @@ pub struct App {
     pub last_refresh: std::time::Instant,
     /// Directory watcher for event-based file updates
     pub dir_watcher: Option<DirWatcher>,
+    /// Terminal background luma (0.0 = black, 1.0 = white)
+    /// Used for light/dark mode detection
+    pub terminal_luma: Option<f32>,
 }
 
 impl App {
@@ -161,12 +164,28 @@ impl App {
             plugin_manager,
             last_refresh: std::time::Instant::now(),
             dir_watcher: watcher,
+            terminal_luma: None,
         };
+
+        // Detect terminal light/dark mode using OSC 10/11 query
+        // This must be done before entering raw mode in main.rs
+        app.terminal_luma = terminal_light::luma().ok();
 
         // Load status bar info
         app.refresh_status_bar();
 
         Ok(app)
+    }
+
+    /// Check if the terminal has a light background (luma > 0.6)
+    #[allow(dead_code)]
+    pub fn is_light_terminal(&self) -> bool {
+        self.terminal_luma.map_or(false, |l| l > 0.6)
+    }
+
+    /// Get theme colors adjusted for the terminal's light/dark mode
+    pub fn theme_colors(&self) -> ThemeColors {
+        self.color_theme.colors_for_luma(self.terminal_luma)
     }
 
     /// Save current settings to config file
@@ -3333,9 +3352,9 @@ impl App {
         self.files.iter().filter(|f| !f.is_dir).count()
     }
 
-    /// Get the current theme colors
+    /// Get the current theme colors (adjusted for terminal light/dark mode)
     pub fn colors(&self) -> ThemeColors {
-        self.color_theme.colors()
+        self.theme_colors()
     }
 
     /// Get total size of all files
