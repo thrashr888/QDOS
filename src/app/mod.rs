@@ -42,8 +42,23 @@ use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use crossterm::execute;
 use ratatui::prelude::*;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::PathBuf;
+
+/// Set terminal taskbar progress indicator (OSC 9;4)
+/// Supported by: Windows Terminal, Kitty, Foot, GNOME Terminal, ConsoleZ
+fn set_terminal_progress(percent: u8) {
+    // OSC 9;4;1;<percent> ST - Set progress indicator
+    let _ = write!(io::stdout(), "\x1b]9;4;1;{}\x07", percent.min(100));
+    let _ = io::stdout().flush();
+}
+
+/// Clear terminal taskbar progress indicator
+fn clear_terminal_progress() {
+    // OSC 9;4;0 ST - Remove progress indicator
+    let _ = write!(io::stdout(), "\x1b]9;4;0\x07");
+    let _ = io::stdout().flush();
+}
 
 /// Application state
 pub struct App {
@@ -2935,8 +2950,19 @@ impl App {
                 }
             }
 
+            // Update terminal taskbar progress (OSC 9;4)
+            let percent = if state.files.is_empty() {
+                100
+            } else {
+                ((state.current_index as f64 / state.files.len() as f64) * 100.0) as u8
+            };
+            set_terminal_progress(percent);
+
             // Check if done
             if state.is_done() {
+                // Clear terminal progress indicator
+                clear_terminal_progress();
+
                 let completed = state.completed;
                 let failed = state.failed;
                 let op_name = match state.operation {
