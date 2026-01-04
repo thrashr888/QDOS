@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::time::Duration;
 
 /// Terminal events
@@ -8,6 +8,8 @@ use std::time::Duration;
 pub enum Event {
     /// Key press event
     Key(KeyEvent),
+    /// Mouse event (click, scroll, move)
+    Mouse(MouseEvent),
     /// Terminal tick (for animations/updates)
     Tick,
     /// Terminal resize
@@ -40,6 +42,9 @@ impl EventHandler {
                 }
                 CrosstermEvent::Resize(width, height) => {
                     return Ok(Some(Event::Resize(width, height)));
+                }
+                CrosstermEvent::Mouse(mouse) => {
+                    return Ok(Some(Event::Mouse(mouse)));
                 }
                 _ => {}
             }

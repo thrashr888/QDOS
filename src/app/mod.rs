@@ -37,7 +37,7 @@ use crate::plugins::{
 use crate::ui;
 use crate::watcher::DirWatcher;
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use crossterm::execute;
 use ratatui::prelude::*;
@@ -220,6 +220,12 @@ impl App {
                             self.last_refresh = std::time::Instant::now();
                         }
                     }
+                    crate::event::Event::Mouse(mouse) => {
+                        // Only handle mouse events if enabled in config
+                        if self.config.general.mouse_support {
+                            self.handle_mouse(mouse)?;
+                        }
+                    }
                     crate::event::Event::Resize(_, _) => {}
                     crate::event::Event::DirChanged => {
                         // Handled by watcher.has_changes() in Tick
@@ -229,6 +235,59 @@ impl App {
 
             if self.should_quit {
                 break;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Handle mouse input
+    fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<()> {
+        // Layout constants (must match ui/mod.rs layout)
+        // Nav bar: 2 lines, Separator: 1 line, Path bar: 1 line
+        const CONTENT_START_Y: u16 = 4;
+        // Stats panel on right takes ~20 chars, status bar at bottom takes 1 line
+
+        match mouse.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                // Only handle clicks in file list area when no modal is open
+                if matches!(self.modal, Modal::None) && mouse.row >= CONTENT_START_Y {
+                    // Calculate which file was clicked
+                    // row - CONTENT_START_Y gives the line in the content area
+                    let clicked_line = (mouse.row - CONTENT_START_Y) as usize;
+
+                    // Account for scroll offset
+                    let clicked_index = self.scroll_offset + clicked_line;
+
+                    // Only select if valid index
+                    if clicked_index < self.files.len() {
+                        self.selected_index = clicked_index;
+                    }
+                }
+            }
+            MouseEventKind::ScrollUp => {
+                // Scroll up in file list
+                if matches!(self.modal, Modal::None) {
+                    if self.selected_index > 0 {
+                        self.selected_index -= 1;
+                        // Adjust scroll if needed
+                        if self.selected_index < self.scroll_offset {
+                            self.scroll_offset = self.selected_index;
+                        }
+                    }
+                }
+            }
+            MouseEventKind::ScrollDown => {
+                // Scroll down in file list
+                if matches!(self.modal, Modal::None) {
+                    if self.selected_index + 1 < self.files.len() {
+                        self.selected_index += 1;
+                        // Note: scroll adjustment happens in UI render
+                    }
+                }
+            }
+            _ => {
+                // Ignore other mouse events (moves, releases, etc.)
             }
         }
 
