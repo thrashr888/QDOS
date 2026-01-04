@@ -365,55 +365,55 @@ pub(super) fn draw_status_modal(
 
 /// Draw clipboard selection modal
 fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardState) {
-    let block = Block::default()
-        .title(" Copy to Clipboard (Y) ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_CYAN))
-        .style(Style::default().bg(COLOR_BG));
+    use crate::ui::components::ModalFrame;
 
-    let label_style = Style::default().fg(COLOR_GREEN);
-    let value_style = Style::default().fg(COLOR_FG);
+    let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+    let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let selected_style = Style::default()
         .fg(COLOR_YELLOW)
+        .bg(COLOR_BG)
         .add_modifier(ratatui::style::Modifier::BOLD);
 
-    let mut lines = vec![Line::from("")];
+    // Use ModalFrame for consistent double-line border styling
+    let modal = ModalFrame::new(area, " Copy to Clipboard (Y) ")
+        .no_title_separator()
+        .no_footer_separator();
+    modal.render_frame(frame);
 
+    // Empty row at top
+    modal.render_row(frame, 0, vec![]);
+
+    // Render clipboard items
     for (i, item) in state.items.iter().enumerate() {
         let num = format!("[{}] ", i + 1);
         let is_selected = i == state.selected;
 
-        if is_selected {
-            lines.push(Line::from(vec![
+        let row_spans = if is_selected {
+            vec![
                 Span::styled(num, selected_style),
                 Span::styled(&item.label, selected_style),
                 Span::styled(": ", selected_style),
                 Span::styled(&item.value, selected_style),
-            ]));
+            ]
         } else {
-            lines.push(Line::from(vec![
+            vec![
                 Span::styled(num, label_style),
                 Span::styled(&item.label, label_style),
                 Span::styled(": ", value_style),
                 Span::styled(&item.value, value_style),
-            ]));
-        }
+            ]
+        };
+
+        modal.render_row(frame, (i + 1) as u16, row_spans);
     }
 
-    lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "Press 1-9/Enter to copy, Esc to cancel",
-        Style::default().fg(COLOR_GREEN),
-    )));
-
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
+    // Help line
+    modal.render_help(frame, vec![("1-9/Enter", "copy"), ("Esc", "cancel")]);
 }
 
 /// Draw quit confirmation modal (Q-DOS II style with double-line box)
-pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
-    let colors = app.colors();
+pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
+    use crate::ui::components::ModalFrame;
 
     // Modal is 60 chars wide, 8 lines tall (matching spec/ui.md)
     let width: u16 = 60;
@@ -422,67 +422,29 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
     let y = area.y + (area.height.saturating_sub(height)) / 2;
     let quit_area = Rect::new(x, y, width.min(area.width), height.min(area.height));
 
-    let style = Style::default().fg(colors.fg()).bg(colors.bg());
+    // Use ModalFrame for consistent styling
+    let modal = ModalFrame::new(quit_area, " F10 - Quit Q-DOS II ")
+        .no_footer_separator();
+    modal.render_frame(frame);
 
-    // Build the modal line by line with double-line box characters
-    let inner_width = (width as usize).saturating_sub(2);
-
-    // Line 0: Top border
-    let top = format!("╔{}╗", "═".repeat(inner_width));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&top, style)),
-        Rect::new(quit_area.x, quit_area.y, quit_area.width, 1),
+    // Content rows (centered text)
+    modal.render_row(frame, 0, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        1,
+        vec![Span::styled(
+            "Press F10 again to quit, or RETURN for options",
+            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+        )],
     );
-
-    // Line 1: Title row
-    let title = "F10 - Quit Q-DOS II";
-    let title_line = format!("║{:^w$}║", title, w = inner_width);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&title_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 1, quit_area.width, 1),
-    );
-
-    // Line 2: Separator (double line)
-    let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&sep, style)),
-        Rect::new(quit_area.x, quit_area.y + 2, quit_area.width, 1),
-    );
-
-    // Line 3: Empty row
-    let empty = format!("║{:w$}║", "", w = inner_width);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&empty, style)),
-        Rect::new(quit_area.x, quit_area.y + 3, quit_area.width, 1),
-    );
-
-    // Line 4: First message
-    let msg1 = "Press F10 again to quit, or RETURN for options";
-    let msg1_line = format!("║{:^w$}║", msg1, w = inner_width);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&msg1_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 4, quit_area.width, 1),
-    );
-
-    // Line 5: Empty row
-    frame.render_widget(
-        Paragraph::new(Span::styled(&empty, style)),
-        Rect::new(quit_area.x, quit_area.y + 5, quit_area.width, 1),
-    );
-
-    // Line 6: Second message
-    let msg2 = "Press ESC to return to Q-DOS II";
-    let msg2_line = format!("║{:^w$}║", msg2, w = inner_width);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&msg2_line, style)),
-        Rect::new(quit_area.x, quit_area.y + 6, quit_area.width, 1),
-    );
-
-    // Line 7: Bottom border
-    let bottom = format!("╚{}╝", "═".repeat(inner_width));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&bottom, style)),
-        Rect::new(quit_area.x, quit_area.y + 7, quit_area.width, 1),
+    modal.render_row(frame, 2, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        3,
+        vec![Span::styled(
+            "Press ESC to return to Q-DOS II",
+            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+        )],
     );
 }
 
@@ -591,10 +553,12 @@ pub(super) fn draw_qdos_modal_colored(
     content: Vec<Line>,
     _border_color: Color,
 ) {
+    use crate::ui::components::ModalFrame;
+
     // Fixed modal size for consistency
     let modal_width: u16 = 50;
     let content_lines = content.len() as u16;
-    let modal_height = content_lines + 4;
+    let modal_height = content_lines + 4; // +4 for top border, title, separator, bottom border
 
     let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
     let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
@@ -605,65 +569,17 @@ pub(super) fn draw_qdos_modal_colored(
         modal_height.min(area.height),
     );
 
-    frame.render_widget(Clear, modal_area);
+    // Use ModalFrame for consistent styling
+    let modal = ModalFrame::new(modal_area, &format!(" {} ", title))
+        .no_footer_separator();
+    modal.render_frame(frame);
 
-    let width = modal_area.width as usize;
-    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-    let content_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-
-    let bg_block = ratatui::widgets::Block::default().style(Style::default().bg(COLOR_BG));
-    frame.render_widget(bg_block, modal_area);
-
-    let top = format!("╔{}╗", "═".repeat(width.saturating_sub(2)));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&top, border_style)),
-        Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
-    );
-
-    let title_padded = format!("{:^width$}", title, width = width.saturating_sub(2));
-    let title_line = format!("║{}║", title_padded);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&title_line, border_style)),
-        Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
-    );
-
-    let sep = format!("╠{}╣", "═".repeat(width.saturating_sub(2)));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&sep, border_style)),
-        Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
-    );
-
+    // Render content lines (centered)
     for (i, line) in content.iter().enumerate() {
-        let row_y = modal_area.y + 3 + i as u16;
-        let left_border = Span::styled("║", border_style);
-        let right_border = Span::styled("║", border_style);
-
-        let mut row_spans = vec![left_border];
-        for span in line.spans.iter() {
-            row_spans.push(span.clone());
-        }
-        let content_width = line.width();
-        let padding = width.saturating_sub(2).saturating_sub(content_width);
-        let left_pad = padding / 2;
-        let right_pad = padding.saturating_sub(left_pad);
-        row_spans.insert(1, Span::styled(" ".repeat(left_pad), content_style));
-        row_spans.push(Span::styled(" ".repeat(right_pad), content_style));
-        row_spans.push(right_border);
-
-        frame.render_widget(
-            Paragraph::new(Line::from(row_spans)).style(content_style),
-            Rect::new(modal_area.x, row_y, modal_area.width, 1),
-        );
+        // Convert Line to Vec<Span> for render_row
+        let spans: Vec<Span> = line.spans.iter().cloned().collect();
+        modal.render_row(frame, i as u16, spans);
     }
-
-    let bottom = format!("╚{}╝", "═".repeat(width.saturating_sub(2)));
-    let bottom_y = modal_area
-        .y
-        .saturating_add(modal_area.height.saturating_sub(1));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(modal_area.x, bottom_y, modal_area.width, 1),
-    );
 }
 
 /// Draw Q-DOS II style modal with header separator and dynamic height (themed version)
@@ -855,40 +771,37 @@ pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app
 
 /// Draw path input modal
 pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
-    // Use the modal area directly (already centered by draw_modal)
-    let input_block = Block::default()
-        .title(" Change Directory ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
+    use crate::ui::components::ModalFrame;
 
-    let input_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
+    // Use ModalFrame for consistent double-line border styling
+    let modal = ModalFrame::new(area, " Change Directory ")
+        .no_title_separator()
+        .no_footer_separator();
+    modal.render_frame(frame);
+
+    // Content rows
+    modal.render_row(frame, 0, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        1,
+        vec![Span::styled(
             "Enter path (Tab to complete):",
-            Style::default().fg(COLOR_GREEN),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
+            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+        )],
+    );
+    modal.render_row(frame, 2, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        3,
+        vec![Span::styled(
             format!("{}_", path),
-            Style::default().fg(COLOR_FG),
-        )),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" complete, "),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" confirm, "),
-            Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" cancel"),
-        ]),
-    ];
+            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+        )],
+    );
+    modal.render_row(frame, 4, vec![]); // Empty row
 
-    let paragraph = Paragraph::new(input_text)
-        .block(input_block)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
+    // Help line
+    modal.render_help(frame, vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")]);
 }
 
 /// Draw success modal
