@@ -31,7 +31,8 @@
       "Skill(beads:*)",
       "Skill(beads:create)",
       "Skill(beads:list)",
-      "Bash(cargo update:*)"
+      "Bash(cargo update:*)",
+      "Bash(gh release view:*)"
     ]
   }
 }
