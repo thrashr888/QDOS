@@ -27,11 +27,10 @@ pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsSubIssue};
 use crate::config::Config;
 use crate::errors;
 use crate::event::EventHandler;
-use crate::file_ops::{
-    apply_attributes, find_files_recursive, get_directory_contents, get_system_info, FileEntry,
-};
+use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     BeadsPlugin, GitPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo,
+    SpacePlugin, StatusPlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -97,6 +96,8 @@ impl App {
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
+        plugin_manager.register(Box::new(StatusPlugin::new()));
+        plugin_manager.register(Box::new(SpacePlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -260,11 +261,8 @@ impl App {
             KeyCode::F(1) => {
                 self.modal = Modal::Help(HelpState::new());
             }
-            // Status
-            KeyCode::F(2) => {
-                let info = get_system_info()?;
-                self.modal = Modal::Status(info);
-            }
+            // Status - handled by StatusPlugin via plugin system
+            // F2 key is intercepted by handle_plugin_key() before reaching here
             // Change drive (not applicable on Unix, show error)
             KeyCode::F(3) => {
                 self.modal =
@@ -3397,7 +3395,17 @@ impl App {
             KeyHandleResult::OpenModal => {
                 // Plugin opened its modal - set the Modal::Plugin variant
                 if let Some(plugin) = self.plugin_manager.active_modal() {
-                    self.modal = Modal::Plugin(plugin.id().to_string());
+                    let plugin_id = plugin.id().to_string();
+
+                    // Pass plugin list to StatusPlugin when it opens
+                    if plugin_id == "status" {
+                        let plugin_list = self.plugin_manager.plugin_list();
+                        if let Some(status_plugin) = self.plugin_manager.status_plugin_mut() {
+                            status_plugin.set_plugins(plugin_list);
+                        }
+                    }
+
+                    self.modal = Modal::Plugin(plugin_id);
                 }
                 true
             }

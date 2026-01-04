@@ -14,9 +14,13 @@
 
 pub mod beads;
 pub mod git;
+pub mod space;
+pub mod status;
 
 pub use beads::BeadsPlugin;
 pub use git::GitPlugin;
+pub use space::SpacePlugin;
+pub use status::StatusPlugin;
 
 use crate::config::PluginsConfig;
 use crossterm::event::KeyEvent;
@@ -319,6 +323,13 @@ impl PluginManager {
         self.plugins
             .get_mut("beads")
             .and_then(|p| p.as_any_mut().downcast_mut::<beads::BeadsPlugin>())
+    }
+
+    /// Get mutable reference to StatusPlugin
+    pub fn status_plugin_mut(&mut self) -> Option<&mut status::StatusPlugin> {
+        self.plugins
+            .get_mut("status")
+            .and_then(|p| p.as_any_mut().downcast_mut::<status::StatusPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
