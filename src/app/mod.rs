@@ -30,7 +30,8 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     BeadsPlugin, DirMapPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager,
-    PluginMenuItem, PluginStatusInfo, PrintPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    PluginMenuItem, PluginStatusInfo, PrintPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin,
+    ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -102,6 +103,7 @@ impl App {
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(ThemePlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
+        plugin_manager.register(Box::new(SearchSpecPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -280,11 +282,8 @@ impl App {
             KeyCode::F(6) => {
                 self.modal = Modal::ShellCommand(ShellCommandState::default());
             }
-            // Search spec
-            KeyCode::F(7) => {
-                let state = SearchSpecState::new(&self.search_spec);
-                self.modal = Modal::SearchSpec(state);
-            }
+            // Search spec - handled by SearchSpecPlugin via plugin system
+            // F7 key is intercepted by handle_plugin_key() before reaching here
             // Sort
             KeyCode::F(8) => {
                 self.cycle_sort_mode()?;
@@ -3426,6 +3425,16 @@ impl App {
                         }
                     }
 
+                    // Sync current search_spec to SearchSpecPlugin when it opens
+                    if plugin_id == "searchspec" {
+                        if let Some(searchspec_plugin) =
+                            self.plugin_manager.searchspec_plugin_mut()
+                        {
+                            // Re-open with correct search spec (since it was opened with default)
+                            searchspec_plugin.open_modal(&self.search_spec);
+                        }
+                    }
+
                     self.modal = Modal::Plugin(plugin_id);
                 }
                 true
@@ -3448,6 +3457,15 @@ impl App {
                     if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
                         if let Some(path) = dirmap_plugin.take_navigate_path() {
                             let _ = self.navigate_to(&path);
+                        }
+                    }
+                    self.modal = Modal::None;
+                } else if msg == "searchspec:applied" {
+                    // Handle search spec update
+                    if let Some(searchspec_plugin) = self.plugin_manager.searchspec_plugin_mut() {
+                        if let Some(pattern) = searchspec_plugin.take_result() {
+                            self.search_spec = pattern;
+                            let _ = self.refresh_files();
                         }
                     }
                     self.modal = Modal::None;

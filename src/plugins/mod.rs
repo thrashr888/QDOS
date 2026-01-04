@@ -17,6 +17,7 @@ pub mod dirmap;
 pub mod git;
 pub mod help;
 pub mod print;
+pub mod searchspec;
 pub mod space;
 pub mod status;
 pub mod theme;
@@ -26,6 +27,7 @@ pub use dirmap::DirMapPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use print::PrintPlugin;
+pub use searchspec::SearchSpecPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
 pub use theme::ThemePlugin;
@@ -359,6 +361,13 @@ impl PluginManager {
         self.plugins
             .get_mut("dirmap")
             .and_then(|p| p.as_any_mut().downcast_mut::<dirmap::DirMapPlugin>())
+    }
+
+    /// Get mutable reference to SearchSpecPlugin
+    pub fn searchspec_plugin_mut(&mut self) -> Option<&mut searchspec::SearchSpecPlugin> {
+        self.plugins
+            .get_mut("searchspec")
+            .and_then(|p| p.as_any_mut().downcast_mut::<searchspec::SearchSpecPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
