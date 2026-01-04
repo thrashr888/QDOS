@@ -1,3 +1,4 @@
+pub mod components;
 mod modals;
 mod viewer;
 

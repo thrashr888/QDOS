@@ -3,11 +3,12 @@
 //! Provides file printing functionality as a self-contained plugin.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
+use crate::ui::components::ModalFrame;
+use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::widgets::Clear;
+use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -169,61 +170,52 @@ impl Plugin for PrintPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
-
-        let buf = frame.buffer_mut();
-        let style_border = Style::default().fg(COLOR_BLUE).bg(COLOR_BG);
-        let style_title = Style::default().fg(COLOR_YELLOW).bg(COLOR_BLUE);
-        let style_bg = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-        let w = popup_width as usize;
-
-        // Draw double-line border box
-        // Top border
-        let top = format!("╔{}╗", "═".repeat(w.saturating_sub(2)));
-        buf.set_string(popup_x, popup_y, &top, style_border);
-
-        // Title (centered on top border)
-        let title = " Print File ";
-        let title_x = popup_x + (popup_width.saturating_sub(title.len() as u16)) / 2;
-        buf.set_string(title_x, popup_y, title, style_title);
-
-        // Middle rows with side borders
-        for row in 1..(popup_height - 1) {
-            let y = popup_y + row;
-            buf.set_string(popup_x, y, "║", style_border);
-            let fill = " ".repeat(w.saturating_sub(2));
-            buf.set_string(popup_x + 1, y, &fill, style_bg);
-            buf.set_string(popup_x + popup_width - 1, y, "║", style_border);
-        }
-
-        // Bottom border
-        let bottom = format!("╚{}╝", "═".repeat(w.saturating_sub(2)));
-        buf.set_string(popup_x, popup_y + popup_height - 1, &bottom, style_border);
+        // Use ModalFrame for consistent styling
+        let modal = ModalFrame::new(modal_area, " PRINT FILE ")
+            .no_title_separator()
+            .no_footer_separator();
+        modal.render_frame(frame);
 
         // Content
         if let Some(ref error) = self.state.error {
             // Error message
-            let error_style = Style::default().fg(COLOR_RED).bg(COLOR_BG);
-            let error_x = popup_x + 2;
-            buf.set_string(error_x, popup_y + 2, error, error_style);
+            modal.render_row(
+                frame,
+                1,
+                vec![Span::styled(
+                    error.clone(),
+                    Style::default().fg(COLOR_RED).bg(COLOR_BG),
+                )],
+            );
 
             // Press any key message
-            let help = "Press any key to close";
-            let help_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-            buf.set_string(error_x, popup_y + 4, help, help_style);
+            modal.render_row(
+                frame,
+                3,
+                vec![Span::styled(
+                    "Press any key to close",
+                    Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+                )],
+            );
         } else {
             // Print file prompt
-            let label_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
-            let file_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-            let content_x = popup_x + 2;
-            buf.set_string(content_x, popup_y + 2, "Print file: ", label_style);
-            buf.set_string(content_x + 12, popup_y + 2, &self.state.file_name, file_style);
+            modal.render_row(
+                frame,
+                1,
+                vec![
+                    Span::styled(
+                        "Print file: ",
+                        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+                    ),
+                    Span::styled(
+                        self.state.file_name.clone(),
+                        Style::default().fg(COLOR_FG).bg(COLOR_BG),
+                    ),
+                ],
+            );
 
             // Help line
-            let help = "Y/Enter: Print  N/Esc: Cancel";
-            let help_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-            buf.set_string(content_x, popup_y + 4, help, help_style);
+            modal.render_help(frame, vec![("Y/Enter", "print"), ("N/Esc", "cancel")]);
         }
     }
 
