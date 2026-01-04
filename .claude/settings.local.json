@@ -6,7 +6,6 @@
       "Bash(bd create:*)",
       "Bash(bd list:*)",
       "Bash(bd show:*)",
-      "Bash(bd sync:*)",
       "Bash(bd update:*)",
       "Bash(bd:*)",
       "Bash(cargo build:*)",
