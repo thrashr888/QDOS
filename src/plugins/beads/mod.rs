@@ -176,6 +176,10 @@ impl BeadsPlugin {
                 state.view = BeadsView::Blocked;
                 ops::load_beads_blocked(state, cwd);
             }
+            BeadsMenuItem::Epics => {
+                state.view = BeadsView::Epics;
+                ops::load_beads_epics(state, cwd);
+            }
             BeadsMenuItem::Stats => {
                 state.view = BeadsView::Stats;
                 ops::load_beads_stats(state, cwd);
@@ -337,6 +341,7 @@ impl BeadsPlugin {
                     BeadsView::List => ops::load_beads_list(state, cwd, None),
                     BeadsView::Ready => ops::load_beads_ready(state, cwd),
                     BeadsView::Blocked => ops::load_beads_blocked(state, cwd),
+                    BeadsView::Epics => ops::load_beads_epics(state, cwd),
                     _ => {}
                 }
                 KeyHandleResult::Handled
@@ -1289,7 +1294,7 @@ impl Plugin for BeadsPlugin {
         let view = state.view;
         match view {
             BeadsView::Menu => self.handle_menu_key(key, cwd),
-            BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
+            BeadsView::List | BeadsView::Ready | BeadsView::Blocked | BeadsView::Epics => {
                 self.handle_list_key(key, cwd)
             }
             BeadsView::Stats => self.handle_stats_key(key),

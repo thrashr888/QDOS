@@ -12,6 +12,8 @@ pub enum Event {
     Tick,
     /// Terminal resize
     Resize(u16, u16),
+    /// Directory content changed (file created, modified, deleted)
+    DirChanged,
 }
 
 /// Event handler for terminal events

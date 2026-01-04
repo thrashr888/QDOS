@@ -18,6 +18,7 @@ pub mod fileops;
 pub mod git;
 pub mod help;
 pub mod print;
+pub mod proc;
 pub mod qdconfig;
 pub mod searchspec;
 pub mod space;
@@ -30,6 +31,7 @@ pub use fileops::FileOpsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use print::PrintPlugin;
+pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use searchspec::SearchSpecPlugin;
 pub use space::SpacePlugin;
@@ -141,6 +143,9 @@ pub trait Plugin: Send + Sync {
     fn handle_modal_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         KeyHandleResult::NotHandled
     }
+
+    /// Handle tick event for animations/auto-refresh (called every 100ms when modal is open)
+    fn tick(&mut self) {}
 
     /// Draw the plugin's modal
     fn draw_modal(&self, _frame: &mut Frame, _area: Rect) {}
@@ -329,6 +334,15 @@ impl PluginManager {
     pub fn draw_modal(&self, frame: &mut Frame, area: Rect) {
         if let Some(plugin) = self.active_modal() {
             plugin.draw_modal(frame, area);
+        }
+    }
+
+    /// Call tick on active modal plugin (for auto-refresh etc.)
+    pub fn tick_active_modal(&mut self) {
+        if let Some(ref id) = self.active_modal.clone() {
+            if let Some(plugin) = self.plugins.get_mut(id) {
+                plugin.tick();
+            }
         }
     }
 

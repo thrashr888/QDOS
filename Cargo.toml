@@ -51,6 +51,9 @@ syntect = "5.2"
 # Clipboard support
 arboard = "3.4"
 
+# File system notifications
+notify = "8.0"
+
 [profile.release]
 lto = true
 codegen-units = 1

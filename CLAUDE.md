@@ -166,6 +166,80 @@ Register plugins in `App::new()`:
 plugin_manager.register(Box::new(MyPlugin::new()));
 ```
 
+## UI Style Guide
+
+All UI elements should follow the Q-DOS II aesthetic consistently. See `spec/SPEC.md` for detailed specifications.
+
+### Color Palette
+
+Use the theme colors defined in `src/ui/mod.rs`:
+
+```rust
+COLOR_BG     // Terminal default (transparent) - backgrounds
+COLOR_FG     // White - primary text, borders
+COLOR_BLUE   // DOS Blue (102, 183, 179) - headers, menu items, copyright
+COLOR_GREEN  // DOS Green (103, 204, 77) - help text, descriptions, key hints
+COLOR_RED    // DOS Red (157, 31, 20) - selection background, errors
+COLOR_YELLOW // DOS Yellow (232, 218, 89) - selected text, tagged items, titles
+COLOR_GREY   // Grey (128, 128, 128) - hidden files, disabled items
+COLOR_CYAN   // Cyan (0, 170, 170) - git added files
+```
+
+### Box Drawing Characters
+
+Always use double-line borders for modal dialogs:
+
+```
+╔═══════════════════════════════════════╗  <- Top border
+║        Modal Title                    ║  <- Title row
+╠═══════════════════════════════════════╣  <- Separator
+║  Content goes here                    ║  <- Content rows
+╚═══════════════════════════════════════╝  <- Bottom border
+```
+
+- Use `╔ ═ ╗ ║ ╚ ╝ ╠ ╣ ╦ ╩ ╬` for double-line box drawing
+- Use `─ │ ┌ ┐ └ ┘ ├ ┤` for single-line separators only
+
+### Selection Highlighting
+
+- **Selected items**: Yellow text on red background (`COLOR_YELLOW` fg, `COLOR_RED` bg)
+- **Highlighted values**: Use semantic colors (red for high CPU, green for low disk usage)
+
+### Plugin Modal Rendering
+
+Plugin modals should draw their own borders and backgrounds:
+
+```rust
+// Import theme colors
+use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
+
+fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    // Cover entire screen
+    let modal_area = Rect::new(0, 0, area.width, area.height);
+    frame.render_widget(Clear, modal_area);
+
+    // Use theme colors
+    let bg = COLOR_BG;
+    let fg = Color::White;
+    let border_style = Style::default().fg(fg).bg(bg);
+
+    // Draw double-line border manually
+    let inner_width = modal_area.width.saturating_sub(2) as usize;
+    let top_border = format!("╔{}╗", "═".repeat(inner_width));
+    // ... render each row with ║ borders ...
+    let bottom_border = format!("╚{}╝", "═".repeat(inner_width));
+}
+```
+
+### Footer/Help Text
+
+Show keybindings in the footer with green keys and white descriptions:
+
+```rust
+Span::styled("Tab", Style::default().fg(COLOR_GREEN).bg(bg)),
+Span::styled(" view  ", Style::default().fg(fg).bg(bg)),
+```
+
 ## Releasing
 
 1. Run quality checks: `cargo fmt --check && cargo clippy && cargo test`

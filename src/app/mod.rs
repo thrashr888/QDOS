@@ -31,10 +31,11 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
-    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, QdconfigPlugin,
-    SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
+    QdconfigPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
+use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
@@ -85,6 +86,8 @@ pub struct App {
     pub plugin_manager: PluginManager,
     /// Last time the file list was refreshed (for auto-refresh)
     pub last_refresh: std::time::Instant,
+    /// Directory watcher for event-based file updates
+    pub dir_watcher: Option<DirWatcher>,
 }
 
 impl App {
@@ -108,12 +111,14 @@ impl App {
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(ThemePlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
+        plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
+        let watcher = DirWatcher::new(&current_path).ok();
 
         let mut app = Self {
             current_path,
@@ -137,6 +142,7 @@ impl App {
             git_status_info: None,
             plugin_manager,
             last_refresh: std::time::Instant::now(),
+            dir_watcher: watcher,
         };
 
         // Load status bar info
@@ -174,17 +180,43 @@ impl App {
                             self.process_next_progress_file();
                         }
 
-                        // Auto-refresh file list when interval elapsed and no modal active
+                        // Tick active plugin modal for auto-refresh (e.g., Proc plugin)
+                        if self.plugin_manager.has_active_modal() {
+                            self.plugin_manager.tick_active_modal();
+                        }
+
+                        // Check for directory changes from watcher (event-based refresh)
+                        let watcher_changed = self
+                            .dir_watcher
+                            .as_ref()
+                            .map(|w| w.has_changes())
+                            .unwrap_or(false);
+
+                        if watcher_changed && matches!(self.modal, Modal::None) {
+                            let _ = self.refresh_files();
+                            self.last_refresh = std::time::Instant::now();
+                        }
+
+                        // Auto-refresh for plugin status updates (fallback when watcher unavailable)
                         let refresh_interval = self.config.general.auto_refresh_interval;
                         if refresh_interval > 0
                             && matches!(self.modal, Modal::None)
                             && self.last_refresh.elapsed().as_secs() >= refresh_interval
                         {
-                            let _ = self.refresh_files();
+                            // Only refresh status bar, not files (watcher handles files)
+                            if self.dir_watcher.is_some() {
+                                self.refresh_status_bar();
+                            } else {
+                                // No watcher, do full refresh
+                                let _ = self.refresh_files();
+                            }
                             self.last_refresh = std::time::Instant::now();
                         }
                     }
                     crate::event::Event::Resize(_, _) => {}
+                    crate::event::Event::DirChanged => {
+                        // Handled by watcher.has_changes() in Tick
+                    }
                 }
             }
 
@@ -359,6 +391,79 @@ impl App {
             // Ctrl+C opens quit confirmation (same as F10)
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.modal = Modal::Quit;
+            }
+            // Main menu letter shortcuts (first letter of each item)
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                // Directory - same as Enter on a directory
+                self.execute_action()?;
+            }
+            KeyCode::Char('t') | KeyCode::Char('T') => {
+                // Tag - toggle tag on selected file
+                self.toggle_tag();
+            }
+            KeyCode::Char('v') | KeyCode::Char('V') => {
+                // View - view selected file
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::View)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                // Copy - select nav item and execute
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Copy)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('m') | KeyCode::Char('M') => {
+                // Move
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Move)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('f') | KeyCode::Char('F') => {
+                // Find
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Find)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                // Erase
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Erase)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                // Rename
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Rename)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('a') | KeyCode::Char('A') => {
+                // Attribute
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Attribute)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => {
+                // Print
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Print)
+                    .unwrap_or(0);
+                self.execute_action()?;
             }
             _ => {}
         }
@@ -2815,10 +2920,15 @@ impl App {
         self.forward_history.clear();
 
         // Update state
-        self.current_path = canonical;
+        self.current_path = canonical.clone();
         self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
         self.selected_index = 0;
         self.scroll_offset = 0;
+
+        // Update directory watcher
+        if let Some(ref mut watcher) = self.dir_watcher {
+            let _ = watcher.watch_path(&canonical);
+        }
 
         // Refresh git/beads status for new directory
         self.refresh_status_bar();
@@ -2833,10 +2943,16 @@ impl App {
             self.forward_history.push(self.current_path.clone());
 
             // Navigate to previous path
-            self.current_path = prev_path;
+            self.current_path = prev_path.clone();
             self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
             self.selected_index = 0;
             self.scroll_offset = 0;
+
+            // Update directory watcher
+            if let Some(ref mut watcher) = self.dir_watcher {
+                let _ = watcher.watch_path(&prev_path);
+            }
+
             self.refresh_status_bar();
         }
         Ok(())
@@ -2849,10 +2965,16 @@ impl App {
             self.history.push(self.current_path.clone());
 
             // Navigate to next path
-            self.current_path = next_path;
+            self.current_path = next_path.clone();
             self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
             self.selected_index = 0;
             self.scroll_offset = 0;
+
+            // Update directory watcher
+            if let Some(ref mut watcher) = self.dir_watcher {
+                let _ = watcher.watch_path(&next_path);
+            }
+
             self.refresh_status_bar();
         }
         Ok(())

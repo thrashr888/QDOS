@@ -181,6 +181,31 @@ pub fn load_beads_blocked(state: &mut BeadsState, cwd: &PathBuf) {
     }
 }
 
+/// Load all epics with their progress info
+pub fn load_beads_epics(state: &mut BeadsState, cwd: &PathBuf) {
+    state.issues.clear();
+    state.error = None;
+    state.selected_issue = 0;
+
+    let output = Command::new("bd")
+        .args(["list", "--type=epic", "--status=all", "--json"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            match parse_beads_json(&stdout) {
+                Ok(issues) => state.issues = issues,
+                Err(e) => state.error = Some(e),
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to load epics: {}", e));
+        }
+    }
+}
+
 /// Load recent issues (in_progress first, then high priority open)
 pub fn load_recent_issues(state: &mut BeadsState, cwd: &PathBuf) {
     state.recent_issues.clear();

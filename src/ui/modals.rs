@@ -51,6 +51,41 @@ pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect 
         .split(popup_layout[1])[1]
 }
 
+/// Wrap text lines to fit within a maximum width
+/// Simple word-wrapping that preserves span styles
+fn wrap_lines(lines: Vec<Line>, max_width: usize) -> Vec<Line> {
+    let mut result = Vec::new();
+
+    for line in lines {
+        let line_width = line.width();
+        if line_width <= max_width {
+            result.push(line);
+        } else {
+            // For simple text lines (single span or plain text), word wrap
+            let text: String = line.spans.iter().map(|s| s.content.as_ref()).collect();
+            let style = line.spans.first().map(|s| s.style).unwrap_or_default();
+
+            let mut current_line = String::new();
+            for word in text.split_whitespace() {
+                if current_line.is_empty() {
+                    current_line = word.to_string();
+                } else if current_line.len() + 1 + word.len() <= max_width {
+                    current_line.push(' ');
+                    current_line.push_str(word);
+                } else {
+                    result.push(Line::from(Span::styled(current_line.clone(), style)));
+                    current_line = word.to_string();
+                }
+            }
+            if !current_line.is_empty() {
+                result.push(Line::from(Span::styled(current_line, style)));
+            }
+        }
+    }
+
+    result
+}
+
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     // Minimum size check for modals - avoid crashes on very small terminals
     if area.width < 20 || area.height < 10 {
@@ -649,10 +684,22 @@ pub(super) fn draw_qdos_modal_themed(
 ) {
     let colors = app.colors();
 
-    // Fixed modal size
-    let modal_width: u16 = 50;
+    // Calculate dynamic modal width based on content
+    let title_width = title.len() + 4; // title + some padding
+    let max_content_width = content.iter().map(|line| line.width()).max().unwrap_or(0) + 4; // content + padding
+
+    // Use the larger of title or content width, with min/max constraints
+    let min_width: u16 = 30;
+    let max_width: u16 = (area.width * 8 / 10).min(80); // 80% of area or 80 chars
+    let calculated_width = title_width.max(max_content_width) as u16;
+    let modal_width = calculated_width.clamp(min_width, max_width);
+
+    // Wrap content that exceeds inner width (modal_width - 2 for borders)
+    let inner_width = (modal_width as usize).saturating_sub(4);
+    let content = wrap_lines(content, inner_width);
+
     let content_lines = content.len() as u16;
-    let modal_height = content_lines + 4; // top + title + separator + bottom
+    let modal_height = (content_lines + 4).min(area.height - 2); // cap at screen height
 
     // Center the modal within the given area
     let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
@@ -2904,6 +2951,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
         BeadsView::List => " BEADS - ALL ISSUES ",
         BeadsView::Ready => " BEADS - READY TO WORK ",
         BeadsView::Blocked => " BEADS - BLOCKED ISSUES ",
+        BeadsView::Epics => " BEADS - EPICS ",
         BeadsView::Stats => " BEADS - STATISTICS ",
         BeadsView::Create => " BEADS - CREATE ISSUE ",
         BeadsView::Detail => " BEADS - ISSUE DETAIL ",
@@ -3036,7 +3084,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
-            BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
+            BeadsView::List | BeadsView::Ready | BeadsView::Blocked | BeadsView::Epics => {
                 // Account for search bar and header
                 let search_height = if state.search_active || !state.search_query.is_empty() {
                     1
@@ -4485,7 +4533,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
     } else {
         match state.view {
             BeadsView::Menu => "↑↓ select  Enter open  ESC close",
-            BeadsView::List | BeadsView::Ready | BeadsView::Blocked => {
+            BeadsView::List | BeadsView::Ready | BeadsView::Blocked | BeadsView::Epics => {
                 if state.search_active {
                     "Type to search  Enter finish  ESC cancel"
                 } else if !state.search_query.is_empty() {

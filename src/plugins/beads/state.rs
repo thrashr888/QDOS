@@ -9,6 +9,7 @@ pub enum BeadsMenuItem {
     List,
     Ready,
     Blocked,
+    Epics,
     Stats,
     Create,
     Graph,
@@ -21,10 +22,11 @@ pub enum BeadsMenuItem {
 
 impl BeadsMenuItem {
     /// Items shown when beads is initialized
-    pub const INITIALIZED: [BeadsMenuItem; 10] = [
+    pub const INITIALIZED: [BeadsMenuItem; 11] = [
         BeadsMenuItem::List,
         BeadsMenuItem::Ready,
         BeadsMenuItem::Blocked,
+        BeadsMenuItem::Epics,
         BeadsMenuItem::Stats,
         BeadsMenuItem::Create,
         BeadsMenuItem::Graph,
@@ -51,6 +53,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::List => "List",
             BeadsMenuItem::Ready => "Ready",
             BeadsMenuItem::Blocked => "Blocked",
+            BeadsMenuItem::Epics => "Epics",
             BeadsMenuItem::Stats => "Stats",
             BeadsMenuItem::Create => "Create",
             BeadsMenuItem::Graph => "Graph",
@@ -67,6 +70,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::List => "List all open issues",
             BeadsMenuItem::Ready => "Show issues ready to work on",
             BeadsMenuItem::Blocked => "Show blocked issues",
+            BeadsMenuItem::Epics => "Show all epics and their progress",
             BeadsMenuItem::Stats => "Project statistics",
             BeadsMenuItem::Create => "Create a new issue",
             BeadsMenuItem::Graph => "View dependency graph",
@@ -130,6 +134,7 @@ pub enum BeadsView {
     List,
     Ready,
     Blocked,
+    Epics,
     Stats,
     Create,
     Detail,
