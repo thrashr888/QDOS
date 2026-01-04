@@ -22,10 +22,7 @@ mod watcher;
 use anyhow::Result;
 use app::App;
 use crossterm::{
-    event::{
-        DisableMouseCapture, EnableMouseCapture, KeyboardEnhancementFlags,
-        PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
-    },
+    event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -109,12 +106,9 @@ async fn main() -> Result<()> {
             | KeyboardEnhancementFlags::REPORT_ALTERNATE_KEYS,
     );
 
-    execute!(
-        stdout,
-        EnterAlternateScreen,
-        EnableMouseCapture,
-        keyboard_enhancement
-    )?;
+    // Note: Mouse capture disabled to allow native terminal text selection
+    // Can be re-enabled later as a config option that dynamically enables/disables
+    execute!(stdout, EnterAlternateScreen, keyboard_enhancement)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -127,8 +121,7 @@ async fn main() -> Result<()> {
     execute!(
         terminal.backend_mut(),
         PopKeyboardEnhancementFlags,
-        LeaveAlternateScreen,
-        DisableMouseCapture
+        LeaveAlternateScreen
     )?;
     terminal.show_cursor()?;
 
