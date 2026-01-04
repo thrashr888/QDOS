@@ -733,14 +733,18 @@ impl BeadsPlugin {
 
                     match result {
                         Ok(msg) => {
+                            // Clear create form
                             state.create_title.clear();
                             state.create_description.clear();
                             state.create_field = 0;
                             state.create_type = 0;
                             state.create_priority = 2;
                             state.subtask_parent_id.clear();
-                            self.close_modal();
-                            KeyHandleResult::CloseWithSuccess(msg)
+                            // Show success message and return to list
+                            state.success_message = Some(msg);
+                            ops::load_beads_list(state, cwd, None);
+                            state.view = BeadsView::List;
+                            KeyHandleResult::Handled
                         }
                         Err(e) => {
                             state.error = Some(e);
