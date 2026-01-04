@@ -16,8 +16,6 @@ use ratatui::{
     Frame,
 };
 
-use super::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
-
 /// Create a centered rectangle with fixed width and height
 /// All modals should use this instead of percentage-based sizing
 pub(super) fn centered_fixed(width: u16, height: u16, area: Rect) -> Rect {
@@ -89,7 +87,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Quit => draw_quit_modal(frame, area, app),
         Modal::Error(msg) => draw_error_modal(frame, area, msg, app),
         Modal::Success(msg) => draw_success_modal(frame, area, msg, app),
-        Modal::Progress(state) => draw_progress_modal(frame, area, state),
+        Modal::Progress(state) => draw_progress_modal(frame, area, state, app),
 
         Modal::CopyTo(dest) => {
             let modal_area = centered_fixed(50, 12, area);
@@ -105,7 +103,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         }
         Modal::PathInput(path) => {
             let modal_area = centered_fixed(50, 10, area);
-            draw_path_input_modal(frame, modal_area, path);
+            draw_path_input_modal(frame, modal_area, path, app);
         }
         Modal::RenameInput(name) => {
             let modal_area = centered_fixed(50, 10, area);
@@ -126,8 +124,10 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw quit confirmation modal (Q-DOS II style with double-line box)
-pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
+pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
     use crate::ui::components::ModalFrame;
+
+    let colors = app.colors();
 
     // Modal is 60 chars wide, 8 lines tall (matching spec/ui.md)
     let width: u16 = 60;
@@ -147,7 +147,7 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
         1,
         vec![Span::styled(
             "Press F10 again to quit, or RETURN for options",
-            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+            Style::default().fg(colors.fg()).bg(colors.bg()),
         )],
     );
     modal.render_row(frame, 2, vec![]); // Empty row
@@ -156,45 +156,9 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
         3,
         vec![Span::styled(
             "Press ESC to return to Q-DOS II",
-            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+            Style::default().fg(colors.green()).bg(colors.bg()),
         )],
     );
-}
-
-/// Draw Q-DOS II style modal with header separator (non-themed version for backwards compatibility)
-pub(super) fn draw_qdos_modal_colored(
-    frame: &mut Frame,
-    area: Rect,
-    title: &str,
-    content: Vec<Line>,
-    _border_color: Color,
-) {
-    use crate::ui::components::ModalFrame;
-
-    // Fixed modal size for consistency
-    let modal_width: u16 = 50;
-    let content_lines = content.len() as u16;
-    let modal_height = content_lines + 4; // +4 for top border, title, separator, bottom border
-
-    let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
-    let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
-    let modal_area = Rect::new(
-        x,
-        y,
-        modal_width.min(area.width),
-        modal_height.min(area.height),
-    );
-
-    // Use ModalFrame for consistent styling
-    let modal = ModalFrame::new(modal_area, &format!(" {} ", title)).no_footer_separator();
-    modal.render_frame(frame);
-
-    // Render content lines (centered)
-    for (i, line) in content.iter().enumerate() {
-        // Convert Line to Vec<Span> for render_row
-        let spans: Vec<Span> = line.spans.to_vec();
-        modal.render_row(frame, i as u16, spans);
-    }
 }
 
 /// Draw Q-DOS II style modal with header separator and dynamic height (themed version)
@@ -331,7 +295,8 @@ pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app
 }
 
 /// Draw path input modal
-pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
+pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, app: &App) {
+    let colors = app.colors();
     use crate::ui::components::ModalFrame;
 
     // Use ModalFrame for consistent double-line border styling
@@ -347,7 +312,7 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
         1,
         vec![Span::styled(
             "Enter path (Tab to complete):",
-            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+            Style::default().fg(colors.green()).bg(colors.bg()),
         )],
     );
     modal.render_row(frame, 2, vec![]); // Empty row
@@ -356,7 +321,7 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
         3,
         vec![Span::styled(
             format!("{}_", path),
-            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+            Style::default().fg(colors.fg()).bg(colors.bg()),
         )],
     );
     modal.render_row(frame, 4, vec![]); // Empty row
@@ -385,7 +350,8 @@ pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str, a
 }
 
 /// Draw progress modal for file operations
-pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &ProgressState) {
+pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &ProgressState, app: &App) {
+    let colors = app.colors();
     let total = state.files.len();
     let current = state.current_index.min(total);
     let percentage = if total > 0 {
@@ -416,18 +382,21 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
         Line::from(""),
         Line::from(Span::styled(
             format!("{} {} of {}", state.operation_name(), current, total),
-            Style::default().fg(COLOR_FG),
+            Style::default().fg(colors.fg()),
         )),
         Line::from(""),
-        Line::from(Span::styled(progress_bar, Style::default().fg(COLOR_BLUE))),
+        Line::from(Span::styled(
+            progress_bar,
+            Style::default().fg(colors.blue()),
+        )),
         Line::from(Span::styled(
             format!("{}%", percentage),
-            Style::default().fg(COLOR_GREEN),
+            Style::default().fg(colors.green()),
         )),
         Line::from(""),
         Line::from(Span::styled(
             current_file,
-            Style::default().fg(COLOR_YELLOW),
+            Style::default().fg(colors.yellow()),
         )),
     ];
 
@@ -436,7 +405,7 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
         content.push(Line::from(""));
         content.push(Line::from(Span::styled(
             format!("Error: {}", err),
-            Style::default().fg(COLOR_RED),
+            Style::default().fg(colors.red()),
         )));
     }
 
@@ -444,13 +413,13 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     content.push(Line::from(""));
     content.push(Line::from(Span::styled(
         format!("Completed: {}  Failed: {}", state.completed, state.failed),
-        Style::default().fg(COLOR_GREEN),
+        Style::default().fg(colors.green()),
     )));
     content.push(Line::from(""));
     content.push(Line::from(Span::styled(
         "Press ESC to cancel",
-        Style::default().fg(COLOR_GREY),
+        Style::default().fg(colors.grey()),
     )));
 
-    draw_qdos_modal_colored(frame, area, &title, content, COLOR_BLUE);
+    draw_qdos_modal_themed(frame, area, &title, content, colors.blue(), app);
 }

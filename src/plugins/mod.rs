@@ -360,6 +360,13 @@ impl PluginManager {
             .and_then(|p| p.as_any_mut().downcast_mut::<beads::BeadsPlugin>())
     }
 
+    /// Get mutable reference to GitPlugin for key handling delegation
+    pub fn git_plugin_mut(&mut self) -> Option<&mut git::GitPlugin> {
+        self.plugins
+            .get_mut("git")
+            .and_then(|p| p.as_any_mut().downcast_mut::<git::GitPlugin>())
+    }
+
     /// Get mutable reference to StatusPlugin
     pub fn status_plugin_mut(&mut self) -> Option<&mut status::StatusPlugin> {
         self.plugins

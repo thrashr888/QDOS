@@ -71,6 +71,25 @@ impl GitPlugin {
         self.modal_state.as_mut()
     }
 
+    /// Handle key event with external state (for Modal::Git delegation)
+    /// This method temporarily uses the provided state for key handling,
+    /// allowing the app to delegate key handling while keeping state in Modal::Git.
+    pub fn handle_external_state_key(
+        &mut self,
+        key: KeyEvent,
+        state: &mut GitState,
+        cwd: &PathBuf,
+    ) -> KeyHandleResult {
+        // Store the external state temporarily
+        self.modal_state = Some(std::mem::take(state));
+        let result = self.handle_modal_key(key, cwd);
+        // Copy updated state back
+        if let Some(updated) = self.modal_state.take() {
+            *state = updated;
+        }
+        result
+    }
+
     /// Check if a directory is a git repository
     fn check_is_repo(&self, cwd: &PathBuf) -> bool {
         Command::new("git")
