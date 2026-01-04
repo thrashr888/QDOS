@@ -982,7 +982,7 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
 pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
     frame.render_widget(Clear, area);
 
-    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;
@@ -1078,7 +1078,7 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
     frame.render_widget(Clear, area);
 
-    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;
@@ -1174,7 +1174,7 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(Clear, area);
 
-    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let title_style = Style::default().fg(COLOR_RED).bg(COLOR_BG).add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;

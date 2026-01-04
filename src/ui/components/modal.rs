@@ -4,7 +4,7 @@
 
 use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_YELLOW};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
@@ -57,7 +57,7 @@ impl ModalFrame {
         Self {
             area,
             title: title.to_string(),
-            border_style: Style::default().fg(Color::White).bg(COLOR_BG),
+            border_style: Style::default().fg(COLOR_FG).bg(COLOR_BG),
             title_style: Style::default()
                 .fg(COLOR_YELLOW)
                 .bg(COLOR_BG)
