@@ -94,9 +94,12 @@ pub struct ProcessInfo {
     pub pid: u32,
     pub name: String,
     pub cpu_usage: f32,
+    pub cpu_time_ms: u64,
     pub memory: u64,
     pub status: String,
     pub user: String,
+    pub bytes_read: u64,
+    pub bytes_written: u64,
 }
 
 /// Disk info for display
@@ -231,16 +234,21 @@ impl ProcPlugin {
                 _ => "?",
             };
 
+            let disk_usage = process.disk_usage();
+
             self.state.processes.push(ProcessInfo {
                 pid: pid.as_u32(),
                 name: process.name().to_string_lossy().to_string(),
                 cpu_usage: process.cpu_usage(),
+                cpu_time_ms: process.accumulated_cpu_time(),
                 memory: process.memory(),
                 status: status.to_string(),
                 user: process
                     .user_id()
                     .map(|u| u.to_string())
                     .unwrap_or_else(|| "-".to_string()),
+                bytes_read: disk_usage.total_read_bytes,
+                bytes_written: disk_usage.total_written_bytes,
             });
         }
 
@@ -342,8 +350,7 @@ impl ProcPlugin {
     /// Get current list length based on view
     fn current_list_len(&self) -> usize {
         match self.state.view {
-            ProcView::Cpu | ProcView::Memory => self.state.processes.len(),
-            ProcView::Disk => self.state.disks.len(),
+            ProcView::Cpu | ProcView::Memory | ProcView::Disk => self.state.processes.len(),
             ProcView::Network => self.state.networks.len(),
         }
     }
@@ -570,8 +577,11 @@ impl Plugin for ProcPlugin {
         let content_height = modal_area.height.saturating_sub(6) as usize; // 3 header + 2 footer + 1 border
 
         match self.state.view {
-            ProcView::Cpu | ProcView::Memory => {
-                self.draw_process_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+            ProcView::Cpu => {
+                self.draw_cpu_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+            }
+            ProcView::Memory => {
+                self.draw_memory_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
             }
             ProcView::Disk => {
                 self.draw_disk_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
@@ -653,8 +663,21 @@ impl Plugin for ProcPlugin {
 }
 
 impl ProcPlugin {
-    /// Draw process list view (CPU or Memory)
-    fn draw_process_view(
+    /// Format CPU time from milliseconds to HH:MM:SS
+    fn format_cpu_time(ms: u64) -> String {
+        let total_secs = ms / 1000;
+        let hours = total_secs / 3600;
+        let mins = (total_secs % 3600) / 60;
+        let secs = total_secs % 60;
+        if hours > 0 {
+            format!("{:02}:{:02}:{:02}", hours, mins, secs)
+        } else {
+            format!("{:02}:{:02}", mins, secs)
+        }
+    }
+
+    /// Draw CPU view: Name, % CPU, CPU Time, PID, User
+    fn draw_cpu_view(
         &self,
         frame: &mut Frame,
         x: u16,
@@ -674,11 +697,11 @@ impl ProcPlugin {
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
-        // Header row - use spans so borders are styled correctly
+        // Header row
         let sort_indicator = self.state.sort.as_str();
         let header_content = format!(
-            "{:>7}  {:<30}  {:>8}  {:>12}  {:>6}  (sorted by {})",
-            "PID", "Name", "CPU %", "Memory", "Status", sort_indicator
+            "{:<30}  {:>8}  {:>10}  {:>7}  {:<12}  ({})",
+            "Name", "% CPU", "CPU Time", "PID", "User", sort_indicator
         );
         let mut header_spans = vec![
             Span::styled("║ ", border_style),
@@ -730,28 +753,27 @@ impl ProcPlugin {
                 style
             };
 
-            // Build spans with different colors for CPU
+            let name = if proc.name.len() > 30 {
+                &proc.name[..30]
+            } else {
+                &proc.name
+            };
+            let user = if proc.user.len() > 12 {
+                &proc.user[..12]
+            } else {
+                &proc.user
+            };
+
             let mut spans = vec![Span::styled("║ ", border_style)];
-            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
-            spans.push(Span::styled(
-                format!(
-                    "{:<30}  ",
-                    if proc.name.len() > 30 {
-                        &proc.name[..30]
-                    } else {
-                        &proc.name
-                    }
-                ),
-                style,
-            ));
+            spans.push(Span::styled(format!("{:<30}  ", name), style));
             spans.push(Span::styled(format!("{:>8.1}  ", proc.cpu_usage), cpu_style));
             spans.push(Span::styled(
-                format!("{:>12}  ", format_size(proc.memory, DECIMAL)),
+                format!("{:>10}  ", Self::format_cpu_time(proc.cpu_time_ms)),
                 style,
             ));
-            spans.push(Span::styled(format!("{:>6}", proc.status), style));
+            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
+            spans.push(Span::styled(format!("{:<12}", user), style));
 
-            // Padding to fill line - total width minus content and closing border
             let content_width: usize = spans.iter().map(|s| s.width()).sum();
             let padding = (width as usize).saturating_sub(content_width + 1);
             spans.push(Span::styled(" ".repeat(padding), style));
@@ -774,8 +796,8 @@ impl ProcPlugin {
         }
     }
 
-    /// Draw disk view
-    fn draw_disk_view(
+    /// Draw Memory view: Name, Memory, PID, User
+    fn draw_memory_view(
         &self,
         frame: &mut Frame,
         x: u16,
@@ -789,17 +811,17 @@ impl ProcPlugin {
         let blue = COLOR_BLUE;
         let yellow = COLOR_YELLOW;
         let red = COLOR_RED;
-        let green = COLOR_GREEN;
 
         let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
-        // Header row - use spans so borders are styled correctly
+        // Header row
+        let sort_indicator = self.state.sort.as_str();
         let header_content = format!(
-            "{:<20}  {:<20}  {:>12}  {:>12}  {:>12}  {:>6}",
-            "Name", "Mount Point", "Total", "Used", "Available", "Use%"
+            "{:<30}  {:>12}  {:>7}  {:<12}  ({})",
+            "Name", "Memory", "PID", "User", sort_indicator
         );
         let mut header_spans = vec![
             Span::styled("║ ", border_style),
@@ -814,12 +836,27 @@ impl ProcPlugin {
             Rect::new(x, start_y, width, 1),
         );
 
-        // Visible disks
+        // Visible processes
         let visible_height = height.saturating_sub(1);
+        let mut scroll_offset = self.state.scroll_offset;
+        if self.state.selected >= scroll_offset + visible_height {
+            scroll_offset = self.state.selected.saturating_sub(visible_height - 1);
+        }
+        if self.state.selected < scroll_offset {
+            scroll_offset = self.state.selected;
+        }
 
-        for (i, disk) in self.state.disks.iter().take(visible_height).enumerate() {
+        for (i, proc) in self
+            .state
+            .processes
+            .iter()
+            .skip(scroll_offset)
+            .take(visible_height)
+            .enumerate()
+        {
             let y = start_y + 1 + i as u16;
-            let is_selected = i == self.state.selected;
+            let actual_idx = scroll_offset + i;
+            let is_selected = actual_idx == self.state.selected;
 
             let style = if is_selected {
                 highlight_style
@@ -827,59 +864,26 @@ impl ProcPlugin {
                 normal_style
             };
 
-            let usage_pct = if disk.total > 0 {
-                (disk.used as f64 / disk.total as f64) * 100.0
+            let name = if proc.name.len() > 30 {
+                &proc.name[..30]
             } else {
-                0.0
+                &proc.name
             };
-
-            // Color usage percentage based on value
-            let usage_style = if usage_pct > 90.0 {
-                style.fg(red)
-            } else if usage_pct > 70.0 {
-                style.fg(yellow)
+            let user = if proc.user.len() > 12 {
+                &proc.user[..12]
             } else {
-                style.fg(green)
+                &proc.user
             };
 
             let mut spans = vec![Span::styled("║ ", border_style)];
+            spans.push(Span::styled(format!("{:<30}  ", name), style));
             spans.push(Span::styled(
-                format!(
-                    "{:<20}  ",
-                    if disk.name.len() > 20 {
-                        &disk.name[..20]
-                    } else {
-                        &disk.name
-                    }
-                ),
+                format!("{:>12}  ", format_size(proc.memory, DECIMAL)),
                 style,
             ));
-            spans.push(Span::styled(
-                format!(
-                    "{:<20}  ",
-                    if disk.mount_point.len() > 20 {
-                        &disk.mount_point[..20]
-                    } else {
-                        &disk.mount_point
-                    }
-                ),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>12}  ", format_size(disk.total, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>12}  ", format_size(disk.used, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>12}  ", format_size(disk.available, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(format!("{:>5.1}%", usage_pct), usage_style));
+            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
+            spans.push(Span::styled(format!("{:<12}", user), style));
 
-            // Padding - total width minus content and closing border
             let content_width: usize = spans.iter().map(|s| s.width()).sum();
             let padding = (width as usize).saturating_sub(content_width + 1);
             spans.push(Span::styled(" ".repeat(padding), style));
@@ -892,7 +896,120 @@ impl ProcPlugin {
         }
 
         // Fill remaining lines
-        for i in self.state.disks.len().min(visible_height)..visible_height {
+        for i in self.state.processes.len().min(visible_height)..visible_height {
+            let y = start_y + 1 + i as u16;
+            let empty_line = format!("║{:width$}║", "", width = inner_width);
+            frame.render_widget(
+                Paragraph::new(Span::styled(&empty_line, normal_style)),
+                Rect::new(x, y, width, 1),
+            );
+        }
+    }
+
+    /// Draw disk view: Per-process disk I/O (Name, Bytes Written, Bytes Read, PID, User)
+    fn draw_disk_view(
+        &self,
+        frame: &mut Frame,
+        x: u16,
+        start_y: u16,
+        width: u16,
+        height: usize,
+        inner_width: usize,
+    ) {
+        let bg = COLOR_BG;
+        let fg = Color::White;
+        let blue = COLOR_BLUE;
+        let yellow = COLOR_YELLOW;
+        let red = COLOR_RED;
+
+        let border_style = Style::default().fg(fg).bg(bg);
+        let header_style = Style::default().fg(blue).bg(bg);
+        let normal_style = Style::default().fg(fg).bg(bg);
+        let highlight_style = Style::default().fg(yellow).bg(red);
+
+        // Header row
+        let header_content = format!(
+            "{:<30}  {:>14}  {:>14}  {:>7}  {:<12}",
+            "Name", "Bytes Written", "Bytes Read", "PID", "User"
+        );
+        let mut header_spans = vec![
+            Span::styled("║ ", border_style),
+            Span::styled(&header_content, header_style),
+        ];
+        let header_width: usize = header_spans.iter().map(|s| s.width()).sum();
+        let padding = (width as usize).saturating_sub(header_width + 1);
+        header_spans.push(Span::styled(" ".repeat(padding), header_style));
+        header_spans.push(Span::styled("║", border_style));
+        frame.render_widget(
+            Paragraph::new(Line::from(header_spans)),
+            Rect::new(x, start_y, width, 1),
+        );
+
+        // Visible processes (sorted by disk activity)
+        let visible_height = height.saturating_sub(1);
+        let mut scroll_offset = self.state.scroll_offset;
+        if self.state.selected >= scroll_offset + visible_height {
+            scroll_offset = self.state.selected.saturating_sub(visible_height - 1);
+        }
+        if self.state.selected < scroll_offset {
+            scroll_offset = self.state.selected;
+        }
+
+        for (i, proc) in self
+            .state
+            .processes
+            .iter()
+            .skip(scroll_offset)
+            .take(visible_height)
+            .enumerate()
+        {
+            let y = start_y + 1 + i as u16;
+            let actual_idx = scroll_offset + i;
+            let is_selected = actual_idx == self.state.selected;
+
+            let style = if is_selected {
+                highlight_style
+            } else {
+                normal_style
+            };
+
+            let name = if proc.name.len() > 30 {
+                &proc.name[..30]
+            } else {
+                &proc.name
+            };
+            let user = if proc.user.len() > 12 {
+                &proc.user[..12]
+            } else {
+                &proc.user
+            };
+
+            let mut spans = vec![Span::styled("║ ", border_style)];
+            spans.push(Span::styled(format!("{:<30}  ", name), style));
+            spans.push(Span::styled(
+                format!("{:>14}  ", format_size(proc.bytes_written, DECIMAL)),
+                style,
+            ));
+            spans.push(Span::styled(
+                format!("{:>14}  ", format_size(proc.bytes_read, DECIMAL)),
+                style,
+            ));
+            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
+            spans.push(Span::styled(format!("{:<12}", user), style));
+
+            let content_width: usize = spans.iter().map(|s| s.width()).sum();
+            let padding = (width as usize).saturating_sub(content_width + 1);
+            spans.push(Span::styled(" ".repeat(padding), style));
+            spans.push(Span::styled("║", border_style));
+
+            frame.render_widget(
+                Paragraph::new(Line::from(spans)),
+                Rect::new(x, y, width, 1),
+            );
+        }
+
+        // Fill remaining lines
+        for i in self.state.processes.len().min(visible_height)..visible_height {
             let y = start_y + 1 + i as u16;
             let empty_line = format!("║{:width$}║", "", width = inner_width);
             frame.render_widget(
