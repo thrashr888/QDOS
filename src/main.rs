@@ -22,7 +22,10 @@ mod watcher;
 use anyhow::Result;
 use app::App;
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{
+        DisableMouseCapture, EnableMouseCapture, KeyboardEnhancementFlags,
+        PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -97,7 +100,21 @@ async fn main() -> Result<()> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+
+    // Enable Kitty keyboard protocol for enhanced input handling
+    // This provides better modifier key detection and removes escape code ambiguity
+    // Supported by: Kitty, Ghostty, WezTerm, foot, and other modern terminals
+    let keyboard_enhancement = PushKeyboardEnhancementFlags(
+        KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
+            | KeyboardEnhancementFlags::REPORT_ALTERNATE_KEYS,
+    );
+
+    execute!(
+        stdout,
+        EnterAlternateScreen,
+        EnableMouseCapture,
+        keyboard_enhancement
+    )?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -109,6 +126,7 @@ async fn main() -> Result<()> {
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
+        PopKeyboardEnhancementFlags,
         LeaveAlternateScreen,
         DisableMouseCapture
     )?;
