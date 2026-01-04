@@ -467,6 +467,37 @@ impl BeadsPlugin {
                 }
                 KeyHandleResult::Handled
             }
+            KeyCode::Char('s') | KeyCode::Char('S') => {
+                // Cycle status: open -> in_progress -> closed -> open
+                if let Some(ref detail) = state.detail_issue {
+                    let issue_id = detail.id.clone();
+                    let new_status = match detail.status.as_str() {
+                        "open" => 1,        // -> in_progress
+                        "in_progress" => 2, // -> closed
+                        "closed" => 0,      // -> open
+                        _ => 0,
+                    };
+                    match ops::execute_beads_update(&issue_id, None, Some(new_status), None, cwd) {
+                        Ok(_) => {
+                            // Reload detail
+                            if let Ok(updated) = ops::load_beads_issue_detail(&issue_id, cwd) {
+                                state.detail_issue = Some(updated);
+                                state.success_message =
+                                    Some(format!("Status updated to {}", match new_status {
+                                        0 => "open",
+                                        1 => "in_progress",
+                                        2 => "closed",
+                                        _ => "unknown",
+                                    }));
+                            }
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
             _ => KeyHandleResult::Handled,
         }
     }
@@ -1301,13 +1332,12 @@ impl Plugin for BeadsPlugin {
             BeadsView::Detail => self.handle_detail_key(key, cwd),
             BeadsView::Human | BeadsView::Doctor => self.handle_human_doctor_key(key),
             BeadsView::Kanban => self.handle_kanban_key(key, cwd),
-            // TODO: Add remaining view handlers
-            BeadsView::Create
-            | BeadsView::Edit
-            | BeadsView::Comments
-            | BeadsView::Dependencies
-            | BeadsView::History
-            | BeadsView::FileIssues => {
+            BeadsView::Create => self.handle_create_key(key, cwd),
+            BeadsView::Edit => self.handle_edit_key(key, cwd),
+            BeadsView::Comments => self.handle_comments_key(key, cwd),
+            BeadsView::Dependencies => self.handle_dependencies_key(key, cwd),
+            BeadsView::History => self.handle_history_key(key),
+            BeadsView::FileIssues => {
                 // For now, return NotHandled to let app handle these
                 KeyHandleResult::NotHandled
             }

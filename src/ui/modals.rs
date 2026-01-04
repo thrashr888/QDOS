@@ -3520,20 +3520,12 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                             )));
                             // Wrap text to fit content area (subtract 4 for indent)
                             let max_width = (content_area.width as usize).saturating_sub(6);
-                            let mut line_count = 0;
+                            // Show all lines (no truncation)
                             for paragraph in desc.lines() {
-                                if line_count >= 8 {
-                                    lines.push(Line::from(vec![
-                                        Span::styled("    ", Style::default()),
-                                        Span::styled("...", Style::default().fg(colors.grey())),
-                                    ]));
-                                    break;
-                                }
                                 // Simple word wrap
                                 let words: Vec<&str> = paragraph.split_whitespace().collect();
                                 if words.is_empty() {
                                     lines.push(Line::from(""));
-                                    line_count += 1;
                                     continue;
                                 }
                                 let mut current_line = String::new();
@@ -3552,14 +3544,10 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                                 Style::default().fg(colors.grey()),
                                             ),
                                         ]));
-                                        line_count += 1;
-                                        if line_count >= 8 {
-                                            break;
-                                        }
                                         current_line = word.to_string();
                                     }
                                 }
-                                if !current_line.is_empty() && line_count < 8 {
+                                if !current_line.is_empty() {
                                     lines.push(Line::from(vec![
                                         Span::styled("    ", Style::default()),
                                         Span::styled(
@@ -3567,7 +3555,6 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                                             Style::default().fg(colors.grey()),
                                         ),
                                     ]));
-                                    line_count += 1;
                                 }
                             }
                         }
