@@ -10,11 +10,10 @@
 #[allow(unused_imports)]
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
-    ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase, FindState,
-    GitMenuItem, GitState, GitView, HelpState, Modal, ProgressState, RemoteAction, SearchSpecState,
+    ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, GitMenuItem, GitState,
+    GitView, HelpState, Modal, ProgressState, RemoteAction,
 };
 use crate::file_ops::get_disk_space;
-use humansize::{format_size, DECIMAL};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -82,7 +81,6 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     match &app.modal {
         // Full-screen modals (use entire area)
         Modal::Help(state) => draw_help_modal(frame, area, state),
-        Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
         Modal::Git(state) => draw_git_modal(frame, area, state, app),
@@ -115,14 +113,6 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::RenameInput(name) => {
             let modal_area = centered_fixed(50, 10, area);
             draw_rename_modal(frame, modal_area, name);
-        }
-        Modal::SearchSpec(state) => {
-            let modal_area = centered_fixed(55, 12, area);
-            draw_search_spec_modal(frame, modal_area, state);
-        }
-        Modal::Status(info) => {
-            let modal_area = centered_fixed(55, 15, area);
-            draw_status_modal(frame, modal_area, info);
         }
         Modal::Attribute(state) => {
             let modal_area = centered_fixed(60, 15, area);
@@ -275,62 +265,6 @@ pub(super) fn draw_help_modal(frame: &mut Frame, area: Rect, state: &HelpState) 
     }
 }
 
-/// Draw status modal
-pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::SystemInfo) {
-    let status_block = Block::default()
-        .title(" System Status ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
-
-    let label_style = Style::default().fg(COLOR_GREEN);
-    let value_style = Style::default().fg(COLOR_FG);
-
-    let status_text = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Hostname: ", label_style),
-            Span::styled(&info.hostname, value_style),
-        ]),
-        Line::from(vec![
-            Span::styled("OS: ", label_style),
-            Span::styled(format!("{} {}", info.os_name, info.os_version), value_style),
-        ]),
-        Line::from(vec![
-            Span::styled("CPUs: ", label_style),
-            Span::styled(format!("{}", info.cpu_count), value_style),
-        ]),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Total Memory: ", label_style),
-            Span::styled(format_size(info.total_memory, DECIMAL), value_style),
-        ]),
-        Line::from(vec![
-            Span::styled("Used Memory: ", label_style),
-            Span::styled(format_size(info.used_memory, DECIMAL), value_style),
-        ]),
-        Line::from(vec![
-            Span::styled("Total Swap: ", label_style),
-            Span::styled(format_size(info.total_swap, DECIMAL), value_style),
-        ]),
-        Line::from(vec![
-            Span::styled("Used Swap: ", label_style),
-            Span::styled(format_size(info.used_swap, DECIMAL), value_style),
-        ]),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(COLOR_GREEN),
-        )),
-    ];
-
-    let paragraph = Paragraph::new(status_text)
-        .block(status_block)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
-}
-
 /// Draw clipboard selection modal
 fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardState) {
     use crate::ui::components::ModalFrame;
@@ -413,102 +347,6 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
             Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
         )],
     );
-}
-
-/// Draw search specification modal
-pub(super) fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &SearchSpecState) {
-    let title = if state.phase == 0 {
-        " Set Search Specification "
-    } else {
-        " Search Attributes "
-    };
-
-    let search_block = Block::default()
-        .title(title)
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
-
-    let mut lines = vec![Line::from("")];
-
-    if state.phase == 0 {
-        // Phase 0: Pattern input
-        lines.push(Line::from(Span::styled(
-            "Enter file search specification:",
-            Style::default().fg(COLOR_GREEN),
-        )));
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("Pattern: ", Style::default().fg(COLOR_BLUE)),
-            Span::styled(
-                &state.pattern,
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED),
-            ),
-            Span::styled("█", Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)),
-        ]));
-        lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled(
-            "Examples: *.*  *.txt  *.rs  config.*",
-            Style::default().fg(COLOR_GREY),
-        )));
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" next  "),
-            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" cancel"),
-        ]));
-    } else {
-        // Phase 1: Attribute selection
-        lines.push(Line::from(vec![
-            Span::styled("Pattern: ", Style::default().fg(COLOR_GREEN)),
-            Span::styled(&state.pattern, Style::default().fg(COLOR_FG)),
-        ]));
-        lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled(
-            "Select which file types to display:",
-            Style::default().fg(COLOR_GREEN),
-        )));
-        lines.push(Line::from(""));
-
-        // Build attribute bar
-        let mut attr_spans: Vec<Span> = vec![Span::raw("  ")];
-        for i in 0..6 {
-            let name = SearchSpecState::attr_name(i);
-            let is_on = state.attrs[i];
-            let is_selected = i == state.selected_attr;
-
-            let style = if is_selected {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
-            } else if is_on {
-                Style::default().fg(COLOR_GREEN)
-            } else {
-                Style::default().fg(COLOR_GREY)
-            };
-
-            let indicator = if is_on { " ✓ " } else { "   " };
-            attr_spans.push(Span::styled(format!("[{}{}]", name, indicator), style));
-            attr_spans.push(Span::raw(" "));
-        }
-        lines.push(Line::from(attr_spans));
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("←→", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" select  "),
-            Span::styled("SPACE", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" toggle  "),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" apply  "),
-            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" back"),
-        ]));
-    }
-
-    let paragraph = Paragraph::new(lines)
-        .block(search_block)
-        .wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, area);
 }
 
 /// Draw Q-DOS II style modal with header separator (non-themed version for backwards compatibility)
@@ -1023,124 +861,6 @@ pub(super) fn draw_rename_modal(frame: &mut Frame, area: Rect, name: &str) {
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);
-}
-
-pub(super) fn draw_directory_map(frame: &mut Frame, area: Rect, state: &DirectoryMapState) {
-    // Clear the entire screen
-    frame.render_widget(Clear, area);
-
-    // Layout: title bar, separator, tree content, separator, help/input
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Title bar
-            Constraint::Length(1), // Separator
-            Constraint::Min(5),    // Tree content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Help/input line
-        ])
-        .split(area);
-
-    // Title bar
-    let title = " DIRECTORY MAP - Tree View ";
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            title,
-            Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
-        )),
-        chunks[0],
-    );
-
-    // Separator (double line)
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
-        chunks[1],
-    );
-
-    // Tree content area
-    let tree_area = chunks[2];
-    let visible_height = tree_area.height as usize;
-
-    // Calculate scroll position to keep selected item visible
-    let scroll_offset = if state.selected_index >= visible_height {
-        state.selected_index - visible_height + 1
-    } else {
-        0
-    };
-
-    // Render tree lines
-    let mut lines: Vec<Line> = Vec::new();
-    for (i, (path, depth, expanded, has_children)) in state
-        .flat_list
-        .iter()
-        .enumerate()
-        .skip(scroll_offset)
-        .take(visible_height)
-    {
-        let is_selected = i == state.selected_index;
-
-        // Build the tree line with indentation and expand/collapse indicator
-        let indent = "  ".repeat(*depth);
-        let indicator = if *has_children {
-            if *expanded {
-                "▼ "
-            } else {
-                "▶ "
-            }
-        } else {
-            "  "
-        };
-
-        // Get the directory name (last component of path)
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| path.to_string_lossy().to_string());
-
-        let line_text = format!("{}{}{}", indent, indicator, name);
-
-        let style = if is_selected {
-            Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
-        } else {
-            Style::default().fg(COLOR_FG)
-        };
-
-        // Pad to full width for selection highlighting
-        let padded = format!("{:<width$}", line_text, width = tree_area.width as usize);
-        lines.push(Line::from(Span::styled(padded, style)));
-    }
-
-    frame.render_widget(Paragraph::new(lines), tree_area);
-
-    // Bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
-        chunks[3],
-    );
-
-    // Help/input line
-    let (help_text, help_style) = if let Some(ref path) = state.confirm_delete {
-        let dir_name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| path.to_string_lossy().to_string());
-        (
-            format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name),
-            Style::default().fg(COLOR_YELLOW),
-        )
-    } else if let Some(ref mode) = state.input_mode {
-        (
-            format!("{}: {}█", mode, state.input_buffer),
-            Style::default().fg(COLOR_GREEN),
-        )
-    } else {
-        ("↑↓ Navigate  Enter/→ Expand  ←/Backspace Collapse  M Make Dir  D Delete Dir  ESC Close".to_string(), Style::default().fg(COLOR_GREEN))
-    };
-    frame.render_widget(
-        Paragraph::new(Span::styled(help_text, help_style)),
-        chunks[4],
-    );
 }
 
 /// Draw the Find modal

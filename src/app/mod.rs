@@ -7,9 +7,8 @@ use crate::plugins::git::ops as git_ops;
 // Re-export state types for external use (non-plugin types)
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
-    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase,
-    FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, SearchSpecState,
-    SortMode, ThemeColors,
+    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, HelpState,
+    Modal, NavItem, ProgressOperation, ProgressState, SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -759,165 +758,6 @@ impl App {
             Modal::FileViewer(_) => {
                 // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
             }
-            Modal::DirectoryMap(ref mut state) => {
-                // Handle delete confirmation mode
-                if let Some(ref path_to_delete) = state.confirm_delete.clone() {
-                    match key.code {
-                        KeyCode::Char('y') | KeyCode::Char('Y') => {
-                            // Confirmed - delete the directory
-                            match fs::remove_dir(path_to_delete) {
-                                Ok(()) => {
-                                    // Refresh tree
-                                    let parent_idx = if state.selected_index > 0 {
-                                        state.selected_index - 1
-                                    } else {
-                                        0
-                                    };
-                                    state.confirm_delete = None;
-                                    state.rebuild_flat_list();
-                                    state.selected_index =
-                                        parent_idx.min(state.flat_list.len().saturating_sub(1));
-                                }
-                                Err(e) => {
-                                    state.confirm_delete = None;
-                                    self.modal =
-                                        Modal::Error(format!("Cannot remove directory: {}", e));
-                                    return Ok(());
-                                }
-                            }
-                        }
-                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                            // Cancelled
-                            state.confirm_delete = None;
-                        }
-                        _ => {}
-                    }
-                }
-                // Handle input mode (for make directory)
-                else if state.input_mode.is_some() {
-                    match key.code {
-                        KeyCode::Enter => {
-                            let dir_name = state.input_buffer.clone();
-                            if !dir_name.is_empty() {
-                                if let Some(parent_path) = state.selected_path() {
-                                    let new_dir = parent_path.join(&dir_name);
-                                    match fs::create_dir(&new_dir) {
-                                        Ok(()) => {
-                                            // Refresh the tree
-                                            state.input_mode = None;
-                                            state.input_buffer.clear();
-                                            // Reload children of selected node
-                                            state.toggle_expand(state.selected_index);
-                                            state.toggle_expand(state.selected_index);
-                                        }
-                                        Err(e) => {
-                                            state.input_mode = None;
-                                            state.input_buffer.clear();
-                                            self.modal = Modal::Error(format!(
-                                                "Failed to create directory: {}",
-                                                e
-                                            ));
-                                            return Ok(());
-                                        }
-                                    }
-                                }
-                            }
-                            state.input_mode = None;
-                            state.input_buffer.clear();
-                        }
-                        KeyCode::Esc => {
-                            state.input_mode = None;
-                            state.input_buffer.clear();
-                        }
-                        KeyCode::Backspace => {
-                            state.input_buffer.pop();
-                        }
-                        KeyCode::Char(c) => {
-                            state.input_buffer.push(c);
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key.code {
-                        KeyCode::Esc => {
-                            self.modal = Modal::None;
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            if state.selected_index > 0 {
-                                state.selected_index -= 1;
-                            }
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            if state.selected_index + 1 < state.flat_list.len() {
-                                state.selected_index += 1;
-                            }
-                        }
-                        KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
-                            // Navigate to directory or expand
-                            if let Some((_, _, expanded, has_children)) =
-                                state.flat_list.get(state.selected_index)
-                            {
-                                if *has_children && !*expanded {
-                                    state.toggle_expand(state.selected_index);
-                                } else if let Some(path) = state.selected_path() {
-                                    // Navigate to the selected directory
-                                    let path = path.clone();
-                                    self.modal = Modal::None;
-                                    let _ = self.navigate_to(&path);
-                                }
-                            }
-                        }
-                        KeyCode::Left | KeyCode::Char('h') | KeyCode::Backspace => {
-                            // Collapse if expanded, otherwise go to parent
-                            if let Some((_, _, expanded, _)) =
-                                state.flat_list.get(state.selected_index)
-                            {
-                                if *expanded {
-                                    state.toggle_expand(state.selected_index);
-                                } else if state.selected_index > 0 {
-                                    // Find parent (look for item with depth - 1)
-                                    let current_depth = state
-                                        .flat_list
-                                        .get(state.selected_index)
-                                        .map(|(_, d, _, _)| *d)
-                                        .unwrap_or(0);
-                                    if current_depth > 0 {
-                                        for i in (0..state.selected_index).rev() {
-                                            if let Some((_, d, _, _)) = state.flat_list.get(i) {
-                                                if *d < current_depth {
-                                                    state.selected_index = i;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        KeyCode::Char('m') | KeyCode::Char('M') => {
-                            // Make directory mode
-                            state.input_mode = Some("New directory name".to_string());
-                            state.input_buffer.clear();
-                        }
-                        KeyCode::Char('d') | KeyCode::Char('D') => {
-                            // Request delete confirmation
-                            if let Some(path) = state.selected_path() {
-                                // Don't allow deleting root
-                                if path != state.root.path {
-                                    state.confirm_delete = Some(path);
-                                }
-                            }
-                        }
-                        KeyCode::Home => {
-                            state.selected_index = 0;
-                        }
-                        KeyCode::End => {
-                            state.selected_index = state.flat_list.len().saturating_sub(1);
-                        }
-                        _ => {}
-                    }
-                }
-            }
             Modal::Find(ref mut state) => {
                 match state.phase {
                     FindPhase::InputPattern => {
@@ -1322,60 +1162,6 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::SearchSpec(ref mut state) => {
-                match state.phase {
-                    0 => {
-                        // Phase 0: Editing pattern
-                        match key.code {
-                            KeyCode::Enter => {
-                                // Move to attribute selection phase
-                                state.phase = 1;
-                            }
-                            KeyCode::Esc => {
-                                self.modal = Modal::None;
-                            }
-                            KeyCode::Backspace => {
-                                state.pattern.pop();
-                            }
-                            KeyCode::Char(c) => {
-                                state.pattern.push(c);
-                            }
-                            _ => {}
-                        }
-                    }
-                    1 => {
-                        // Phase 1: Editing attributes
-                        match key.code {
-                            KeyCode::Left | KeyCode::Char('h') => {
-                                if state.selected_attr > 0 {
-                                    state.selected_attr -= 1;
-                                }
-                            }
-                            KeyCode::Right | KeyCode::Char('l') => {
-                                if state.selected_attr < 5 {
-                                    state.selected_attr += 1;
-                                }
-                            }
-                            KeyCode::Char(' ') => {
-                                state.toggle_current();
-                            }
-                            KeyCode::Enter => {
-                                // Apply the search specification
-                                let pattern = state.pattern.clone();
-                                self.search_spec = pattern;
-                                self.modal = Modal::None;
-                                let _ = self.refresh_files();
-                            }
-                            KeyCode::Esc => {
-                                // Go back to pattern phase
-                                state.phase = 0;
-                            }
-                            _ => {}
-                        }
-                    }
-                    _ => {}
-                }
-            }
             Modal::Help(ref mut state) => {
                 match key.code {
                     KeyCode::Esc => {
@@ -1446,14 +1232,12 @@ impl App {
                     }
                 }
             }
-            Modal::Status(_) | Modal::Space | Modal::Error(_) | Modal::Success(_) => {
-                match key.code {
-                    KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
-                        self.modal = Modal::None;
-                    }
-                    _ => {}
+            Modal::Space | Modal::Error(_) | Modal::Success(_) => match key.code {
+                KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                    self.modal = Modal::None;
                 }
-            }
+                _ => {}
+            },
             Modal::ColorTheme(state) => match key.code {
                 KeyCode::Esc => {
                     // Cancel - restore original theme

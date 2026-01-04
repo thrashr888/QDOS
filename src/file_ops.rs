@@ -387,37 +387,6 @@ fn sort_entries(entries: &mut [FileEntry], sort_mode: SortMode) {
     });
 }
 
-/// System information
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SystemInfo {
-    pub total_memory: u64,
-    pub used_memory: u64,
-    pub total_swap: u64,
-    pub used_swap: u64,
-    pub cpu_count: usize,
-    pub os_name: String,
-    pub os_version: String,
-    pub hostname: String,
-}
-
-/// Get system information
-#[allow(dead_code)] // Legacy - StatusPlugin now has its own implementation
-pub fn get_system_info() -> Result<SystemInfo> {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    Ok(SystemInfo {
-        total_memory: sys.total_memory(),
-        used_memory: sys.used_memory(),
-        total_swap: sys.total_swap(),
-        used_swap: sys.used_swap(),
-        cpu_count: sys.cpus().len(),
-        os_name: System::name().unwrap_or_else(|| "Unknown".to_string()),
-        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
-        hostname: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
-    })
-}
-
 /// Get disk space information for a path
 pub fn get_disk_space(path: &PathBuf) -> Result<(u64, u64)> {
     // This is a simplified version - in production you'd use statvfs or similar
@@ -632,15 +601,6 @@ mod tests {
         let entries = result.unwrap();
         // Should have at least the parent directory entry
         assert!(!entries.is_empty());
-    }
-
-    #[test]
-    fn test_get_system_info() {
-        let result = get_system_info();
-        assert!(result.is_ok());
-        let info = result.unwrap();
-        assert!(info.cpu_count > 0);
-        assert!(info.total_memory > 0);
     }
 
     #[test]

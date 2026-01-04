@@ -2,8 +2,6 @@
 //!
 //! This module contains all the state structs and enums used throughout the application.
 
-use crate::file_ops::SystemInfo;
-use std::fs;
 use std::path::PathBuf;
 
 // Import Git types needed by this module (Modal uses GitState).
@@ -147,173 +145,6 @@ impl SortMode {
 // FileViewerState has been moved to plugins/viewer/mod.rs
 // Re-export from plugin for backwards compatibility with Modal::FileViewer
 pub use crate::plugins::viewer::ViewerState as FileViewerState;
-
-/// Directory tree node for Directory Map
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DirTreeNode {
-    pub name: String,
-    pub path: PathBuf,
-    pub expanded: bool,
-    pub children: Vec<DirTreeNode>,
-    pub depth: usize,
-}
-
-impl DirTreeNode {
-    pub fn new(name: String, path: PathBuf, depth: usize) -> Self {
-        Self {
-            name,
-            path,
-            expanded: false,
-            children: Vec::new(),
-            depth,
-        }
-    }
-
-    pub fn load_children(&mut self) {
-        if !self.children.is_empty() {
-            return;
-        }
-        if let Ok(entries) = fs::read_dir(&self.path) {
-            let mut dirs: Vec<_> = entries
-                .filter_map(|e| e.ok())
-                .filter(|e| e.path().is_dir())
-                .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
-                .map(|e| {
-                    DirTreeNode::new(
-                        e.file_name().to_string_lossy().to_string(),
-                        e.path(),
-                        self.depth + 1,
-                    )
-                })
-                .collect();
-            dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-            self.children = dirs;
-        }
-    }
-}
-
-/// Directory Map state
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DirectoryMapState {
-    pub root: DirTreeNode,
-    pub selected_index: usize,
-    pub flat_list: Vec<(PathBuf, usize, bool, bool)>,
-    pub input_mode: Option<String>,
-    pub input_buffer: String,
-    pub confirm_delete: Option<PathBuf>,
-}
-
-#[allow(dead_code)] // Legacy - DirMapPlugin now handles this
-impl DirectoryMapState {
-    pub fn new(start_path: &PathBuf) -> Self {
-        let root_path = if let Some(root) = start_path.ancestors().last() {
-            root.to_path_buf()
-        } else {
-            start_path.clone()
-        };
-
-        let mut root = DirTreeNode::new(root_path.to_string_lossy().to_string(), root_path, 0);
-        root.expanded = true;
-        root.load_children();
-
-        let mut state = Self {
-            root,
-            selected_index: 0,
-            flat_list: Vec::new(),
-            input_mode: None,
-            input_buffer: String::new(),
-            confirm_delete: None,
-        };
-        state.expand_to_path(start_path);
-        state.rebuild_flat_list();
-
-        if let Some(idx) = state
-            .flat_list
-            .iter()
-            .position(|(p, _, _, _)| p == start_path)
-        {
-            state.selected_index = idx;
-        }
-
-        state
-    }
-
-    fn expand_to_path(&mut self, target: &PathBuf) {
-        let ancestors: Vec<_> = target.ancestors().collect();
-        for ancestor in ancestors.into_iter().rev() {
-            self.expand_path_in_tree(&self.root.clone(), &ancestor.to_path_buf());
-        }
-    }
-
-    fn expand_path_in_tree(&mut self, _node: &DirTreeNode, target: &PathBuf) {
-        fn expand_recursive(node: &mut DirTreeNode, target: &PathBuf) {
-            if target.starts_with(&node.path) {
-                node.expanded = true;
-                node.load_children();
-                for child in &mut node.children {
-                    expand_recursive(child, target);
-                }
-            }
-        }
-        expand_recursive(&mut self.root, target);
-    }
-
-    pub fn rebuild_flat_list(&mut self) {
-        self.flat_list.clear();
-        fn flatten(node: &DirTreeNode, list: &mut Vec<(PathBuf, usize, bool, bool)>) {
-            let has_children = !node.children.is_empty() || {
-                fs::read_dir(&node.path)
-                    .map(|entries| {
-                        entries.filter_map(|e| e.ok()).any(|e| {
-                            e.path().is_dir() && !e.file_name().to_string_lossy().starts_with('.')
-                        })
-                    })
-                    .unwrap_or(false)
-            };
-            list.push((node.path.clone(), node.depth, node.expanded, has_children));
-            if node.expanded {
-                for child in &node.children {
-                    flatten(child, list);
-                }
-            }
-        }
-        flatten(&self.root, &mut self.flat_list);
-    }
-
-    pub fn toggle_expand(&mut self, index: usize) {
-        if index >= self.flat_list.len() {
-            return;
-        }
-        let (path, _, expanded, _) = &self.flat_list[index];
-        let path = path.clone();
-        let expanded = *expanded;
-
-        fn toggle_in_tree(node: &mut DirTreeNode, target: &PathBuf, expand: bool) -> bool {
-            if node.path == *target {
-                node.expanded = expand;
-                if expand {
-                    node.load_children();
-                }
-                return true;
-            }
-            for child in &mut node.children {
-                if toggle_in_tree(child, target, expand) {
-                    return true;
-                }
-            }
-            false
-        }
-
-        toggle_in_tree(&mut self.root, &path, !expanded);
-        self.rebuild_flat_list();
-    }
-
-    pub fn selected_path(&self) -> Option<PathBuf> {
-        self.flat_list
-            .get(self.selected_index)
-            .map(|(p, _, _, _)| p.clone())
-    }
-}
 
 /// Find command phases
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -542,43 +373,6 @@ impl AttributeState {
         if self.selected > 0 {
             self.selected -= 1;
         }
-    }
-}
-
-/// Search specification state
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SearchSpecState {
-    pub pattern: String,
-    pub phase: u8,
-    pub attrs: [bool; 6],
-    pub selected_attr: usize,
-}
-
-#[allow(dead_code)] // Legacy - SearchSpecPlugin now handles this
-impl SearchSpecState {
-    pub fn new(current_spec: &str) -> Self {
-        Self {
-            pattern: current_spec.to_string(),
-            phase: 0,
-            attrs: [true, true, false, false, false, false],
-            selected_attr: 0,
-        }
-    }
-
-    pub fn attr_name(index: usize) -> &'static str {
-        match index {
-            0 => "NORM",
-            1 => "DIR ",
-            2 => "HID ",
-            3 => "SYS ",
-            4 => "R/O ",
-            5 => "ARC ",
-            _ => "????",
-        }
-    }
-
-    pub fn toggle_current(&mut self) {
-        self.attrs[self.selected_attr] = !self.attrs[self.selected_attr];
     }
 }
 
@@ -1265,9 +1059,7 @@ impl ClipboardState {
 pub enum Modal {
     None,
     Help(HelpState),
-    Status(SystemInfo),
     Quit,
-    SearchSpec(SearchSpecState),
     Space,
     Error(String),
     Success(String),
@@ -1277,7 +1069,6 @@ pub enum Modal {
     EraseConfirm,
     RenameInput(String),
     FileViewer(FileViewerState),
-    DirectoryMap(DirectoryMapState),
     Find(FindState),
     BatchRename(BatchRenameState),
     Attribute(AttributeState),
