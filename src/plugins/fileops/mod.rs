@@ -11,6 +11,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;
 use std::any::Any;
+use std::fs;
 use std::path::PathBuf;
 
 /// File operation type
@@ -141,6 +142,69 @@ impl FileOpsPlugin {
     pub fn take_result(&mut self) -> Option<FileOpsResult> {
         self.result.take()
     }
+
+    /// Tab completion for paths
+    fn tab_complete(partial: &str) -> Option<String> {
+        let path = PathBuf::from(partial);
+
+        // Determine the directory to search and the prefix to match
+        let (search_dir, prefix) = if partial.ends_with('/') || partial.ends_with('\\') {
+            (path.clone(), String::new())
+        } else if let Some(parent) = path.parent() {
+            let file_name = path.file_name()?.to_string_lossy().to_string();
+            (parent.to_path_buf(), file_name)
+        } else {
+            (PathBuf::from("."), partial.to_string())
+        };
+
+        // Read directory and find matches (directories only for copy/move destination)
+        let entries = fs::read_dir(&search_dir).ok()?;
+        let mut matches: Vec<String> = entries
+            .filter_map(|e| e.ok())
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().to_string();
+                let full_path = search_dir.join(&name);
+                // Only match directories for destination paths
+                if full_path.is_dir()
+                    && name.to_lowercase().starts_with(&prefix.to_lowercase())
+                {
+                    let mut result = full_path.to_string_lossy().to_string();
+                    if !result.ends_with('/') {
+                        result.push('/');
+                    }
+                    Some(result)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        matches.sort();
+
+        // Return first match, or find common prefix if multiple matches
+        if matches.len() == 1 {
+            Some(matches.remove(0))
+        } else if matches.len() > 1 {
+            // Find common prefix among all matches
+            let first = &matches[0];
+            let mut common_len = first.len();
+            for m in &matches[1..] {
+                common_len = first
+                    .chars()
+                    .zip(m.chars())
+                    .take_while(|(a, b)| a == b)
+                    .count()
+                    .min(common_len);
+            }
+            if common_len > partial.len() {
+                Some(first[..common_len].to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for FileOpsPlugin {
@@ -242,6 +306,15 @@ impl Plugin for FileOpsPlugin {
                         state.input.pop();
                         KeyHandleResult::Handled
                     }
+                    KeyCode::Tab => {
+                        // Tab completion for Copy/Move destination paths
+                        if matches!(state.operation, FileOperation::Copy | FileOperation::Move) {
+                            if let Some(completed) = Self::tab_complete(&state.input) {
+                                state.input = completed;
+                            }
+                        }
+                        KeyHandleResult::Handled
+                    }
                     KeyCode::Char(c) => {
                         state.input.push(c);
                         KeyHandleResult::Handled
@@ -335,7 +408,14 @@ impl Plugin for FileOpsPlugin {
                     ],
                 );
 
-                modal.render_help(frame, vec![("Enter", "confirm"), ("ESC", "cancel")]);
+                // Show Tab hint for Copy/Move (path completion), not for Rename
+                let help = if matches!(state.operation, FileOperation::Copy | FileOperation::Move)
+                {
+                    vec![("Tab", "complete"), ("Enter", "confirm"), ("ESC", "cancel")]
+                } else {
+                    vec![("Enter", "confirm"), ("ESC", "cancel")]
+                };
+                modal.render_help(frame, help);
             }
         }
     }
