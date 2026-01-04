@@ -1298,12 +1298,12 @@ impl Plugin for BeadsPlugin {
             BeadsView::Stats => self.handle_stats_key(key),
             BeadsView::Detail => self.handle_detail_key(key, cwd),
             BeadsView::Human | BeadsView::Doctor => self.handle_human_doctor_key(key),
+            BeadsView::Kanban => self.handle_kanban_key(key, cwd),
             // TODO: Add remaining view handlers
             BeadsView::Create
             | BeadsView::Edit
             | BeadsView::Comments
             | BeadsView::Dependencies
-            | BeadsView::Kanban
             | BeadsView::History
             | BeadsView::FileIssues => {
                 // For now, return NotHandled to let app handle these

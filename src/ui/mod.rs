@@ -662,7 +662,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 info.branch.clone()
             };
-            let git_status = format!(" {}{}", status_prefix, branch_display);
+            let git_status = format!(" git: {}{}", status_prefix, branch_display);
             let padded = format!("{:<width$}", git_status, width = status_width);
             frame.render_widget(
                 Paragraph::new(Span::styled(padded, cyan_style)),

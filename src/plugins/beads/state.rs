@@ -56,7 +56,7 @@ impl BeadsMenuItem {
             BeadsMenuItem::Graph => "Graph",
             BeadsMenuItem::Kanban => "Kanban",
             BeadsMenuItem::Sync => "Sync",
-            BeadsMenuItem::Human => "Help/Commands",
+            BeadsMenuItem::Human => "Help",
             BeadsMenuItem::Init => "Init",
             BeadsMenuItem::Doctor => "Doctor",
         }

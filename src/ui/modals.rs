@@ -3119,7 +3119,7 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                         .enumerate()
                         .take(visible_height)
                     {
-                        let is_selected = i == state.selected_issue;
+                        let is_selected = state.scroll_offset + i == state.selected_issue;
                         let style = if is_selected {
                             Style::default().fg(colors.yellow()).bg(colors.red())
                         } else {
