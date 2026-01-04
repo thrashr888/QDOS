@@ -38,8 +38,11 @@ use crate::ui;
 use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
+use crossterm::execute;
 use ratatui::prelude::*;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 /// Application state
@@ -167,8 +170,12 @@ impl App {
         let event_handler = EventHandler::new(100);
 
         loop {
-            // Draw UI
+            // Draw UI with synchronized update to reduce flicker
+            // BeginSynchronizedUpdate tells the terminal to buffer rendering
+            // until EndSynchronizedUpdate, preventing tearing
+            let _ = execute!(io::stdout(), BeginSynchronizedUpdate);
             terminal.draw(|frame| ui::draw(frame, self))?;
+            let _ = execute!(io::stdout(), EndSynchronizedUpdate);
 
             // Handle events
             if let Some(event) = event_handler.next().await? {
