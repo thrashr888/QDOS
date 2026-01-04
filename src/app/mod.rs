@@ -275,12 +275,21 @@ impl App {
             // Git menu (G key)
             KeyCode::Char('g') | KeyCode::Char('G') => {
                 let is_repo = self.is_git_repo();
-                self.modal = Modal::Git(GitState::new(is_repo));
+                let mut state = GitState::new(is_repo);
+                if is_repo {
+                    git_ops::load_git_status(&mut state, &self.current_path);
+                }
+                self.modal = Modal::Git(state);
             }
             // Beads menu (B key)
             KeyCode::Char('b') | KeyCode::Char('B') => {
                 let is_beads = self.is_beads_project();
-                self.modal = Modal::Beads(BeadsState::new(is_beads));
+                let mut state = BeadsState::new(is_beads);
+                if is_beads {
+                    beads_ops::load_recent_issues(&mut state, &self.current_path);
+                    beads_ops::load_top_epics(&mut state, &self.current_path);
+                }
+                self.modal = Modal::Beads(state);
             }
             // File issues (I key) - show beads issues related to selected file
             KeyCode::Char('i') | KeyCode::Char('I') => {

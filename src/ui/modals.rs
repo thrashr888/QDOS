@@ -978,126 +978,286 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     draw_qdos_modal_colored(frame, area, &title, content, COLOR_BLUE);
 }
 
-/// Draw copy modal
+/// Draw copy modal with double-line border style
 pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    // Use the modal area directly (already centered by draw_modal)
-    let copy_block = Block::default()
-        .title(" Copy Files ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
+    frame.render_widget(Clear, area);
 
-    let copy_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            format!("Copying {} tagged file(s)", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Destination (Tab to complete):",
-            Style::default().fg(COLOR_GREEN),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            format!("{}_", dest),
-            Style::default().fg(COLOR_FG),
-        )),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" complete, "),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" copy, "),
-            Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" cancel"),
-        ]),
+    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let inner_width = area.width.saturating_sub(2) as usize;
+
+    let mut y = area.y;
+
+    // Top border
+    let top = format!("╔{}╗", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Title
+    let title = " COPY FILES ";
+    let title_pad = inner_width.saturating_sub(title.len());
+    let title_line = vec![
+        Span::styled("║", border_style),
+        Span::styled(title, title_style),
+        Span::styled(" ".repeat(title_pad), normal_style),
+        Span::styled("║", border_style),
     ];
+    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    let paragraph = Paragraph::new(copy_text)
-        .block(copy_block)
-        .wrap(Wrap { trim: true });
+    // Separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    frame.render_widget(paragraph, area);
+    // Content lines helper
+    let render_line = |frame: &mut Frame, y: u16, content: Vec<Span>| {
+        let mut spans = vec![Span::styled("║ ", border_style)];
+        spans.extend(content);
+        let content_width: usize = spans.iter().map(|s| s.width()).sum();
+        let pad = (area.width as usize).saturating_sub(content_width + 1);
+        spans.push(Span::styled(" ".repeat(pad), normal_style));
+        spans.push(Span::styled("║", border_style));
+        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+    };
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Copy count
+    render_line(frame, y, vec![Span::styled(
+        format!("Copying {} tagged file(s)", app.tagged_files.len()),
+        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Destination prompt
+    render_line(frame, y, vec![Span::styled(
+        "Destination (Tab to complete):",
+        Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Input field
+    render_line(frame, y, vec![Span::styled(format!("{}_", dest), normal_style)]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Footer separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Help line
+    let help = vec![
+        Span::styled("Tab", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" complete  ", normal_style),
+        Span::styled("Enter", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" copy  ", normal_style),
+        Span::styled("Esc", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" cancel", normal_style),
+    ];
+    render_line(frame, y, help);
+    y += 1;
+
+    // Bottom border
+    let bottom = format!("╚{}╝", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
 }
 
-/// Draw move modal
+/// Draw move modal with double-line border style
 pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    // Use the modal area directly (already centered by draw_modal)
-    let move_block = Block::default()
-        .title(" Move Files ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
+    frame.render_widget(Clear, area);
 
-    let move_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            format!("Moving {} tagged file(s)", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Destination (Tab to complete):",
-            Style::default().fg(COLOR_GREEN),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            format!("{}_", dest),
-            Style::default().fg(COLOR_FG),
-        )),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Tab", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" complete, "),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" move, "),
-            Span::styled("Esc", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" cancel"),
-        ]),
+    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let inner_width = area.width.saturating_sub(2) as usize;
+
+    let mut y = area.y;
+
+    // Top border
+    let top = format!("╔{}╗", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Title
+    let title = " MOVE FILES ";
+    let title_pad = inner_width.saturating_sub(title.len());
+    let title_line = vec![
+        Span::styled("║", border_style),
+        Span::styled(title, title_style),
+        Span::styled(" ".repeat(title_pad), normal_style),
+        Span::styled("║", border_style),
     ];
+    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    let paragraph = Paragraph::new(move_text)
-        .block(move_block)
-        .wrap(Wrap { trim: true });
+    // Separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    frame.render_widget(paragraph, area);
+    // Content lines helper
+    let render_line = |frame: &mut Frame, y: u16, content: Vec<Span>| {
+        let mut spans = vec![Span::styled("║ ", border_style)];
+        spans.extend(content);
+        let content_width: usize = spans.iter().map(|s| s.width()).sum();
+        let pad = (area.width as usize).saturating_sub(content_width + 1);
+        spans.push(Span::styled(" ".repeat(pad), normal_style));
+        spans.push(Span::styled("║", border_style));
+        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+    };
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Move count
+    render_line(frame, y, vec![Span::styled(
+        format!("Moving {} tagged file(s)", app.tagged_files.len()),
+        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Destination prompt
+    render_line(frame, y, vec![Span::styled(
+        "Destination (Tab to complete):",
+        Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Input field
+    render_line(frame, y, vec![Span::styled(format!("{}_", dest), normal_style)]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Footer separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Help line
+    let help = vec![
+        Span::styled("Tab", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" complete  ", normal_style),
+        Span::styled("Enter", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" move  ", normal_style),
+        Span::styled("Esc", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled(" cancel", normal_style),
+    ];
+    render_line(frame, y, help);
+    y += 1;
+
+    // Bottom border
+    let bottom = format!("╚{}╝", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
 }
 
-/// Draw erase confirmation modal
+/// Draw erase confirmation modal with double-line border style
 pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
-    // Use the modal area directly (already centered by draw_modal)
-    let erase_block = Block::default()
-        .title(" Erase Files ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_RED))
-        .style(Style::default().bg(COLOR_BG));
+    frame.render_widget(Clear, area);
 
-    let erase_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            format!("Delete {} tagged file(s)?", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            "This cannot be undone!",
-            Style::default().fg(COLOR_RED),
-        )),
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("[Y]", Style::default().fg(COLOR_BLUE)),
-            Span::raw("es  "),
-            Span::styled("[N]", Style::default().fg(COLOR_BLUE)),
-            Span::raw("o"),
-        ]),
+    let border_style = Style::default().fg(Color::White).bg(COLOR_BG);
+    let title_style = Style::default().fg(COLOR_RED).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let inner_width = area.width.saturating_sub(2) as usize;
+
+    let mut y = area.y;
+
+    // Top border
+    let top = format!("╔{}╗", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Title
+    let title = " ERASE FILES ";
+    let title_pad = inner_width.saturating_sub(title.len());
+    let title_line = vec![
+        Span::styled("║", border_style),
+        Span::styled(title, title_style),
+        Span::styled(" ".repeat(title_pad), normal_style),
+        Span::styled("║", border_style),
     ];
+    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    let paragraph = Paragraph::new(erase_text)
-        .block(erase_block)
-        .wrap(Wrap { trim: true });
+    // Separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
 
-    frame.render_widget(paragraph, area);
+    // Content lines helper
+    let render_line = |frame: &mut Frame, y: u16, content: Vec<Span>| {
+        let mut spans = vec![Span::styled("║ ", border_style)];
+        spans.extend(content);
+        let content_width: usize = spans.iter().map(|s| s.width()).sum();
+        let pad = (area.width as usize).saturating_sub(content_width + 1);
+        spans.push(Span::styled(" ".repeat(pad), normal_style));
+        spans.push(Span::styled("║", border_style));
+        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+    };
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Delete count
+    render_line(frame, y, vec![Span::styled(
+        format!("Delete {} tagged file(s)?", app.tagged_files.len()),
+        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Warning
+    render_line(frame, y, vec![Span::styled(
+        "This cannot be undone!",
+        Style::default().fg(COLOR_RED).bg(COLOR_BG),
+    )]);
+    y += 1;
+
+    // Empty line
+    render_line(frame, y, vec![Span::styled("", normal_style)]);
+    y += 1;
+
+    // Footer separator
+    let sep = format!("╠{}╣", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    y += 1;
+
+    // Help line
+    let help = vec![
+        Span::styled("Y", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled("es  ", normal_style),
+        Span::styled("N", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
+        Span::styled("o", normal_style),
+    ];
+    render_line(frame, y, help);
+    y += 1;
+
+    // Bottom border
+    let bottom = format!("╚{}╝", "═".repeat(inner_width));
+    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
 }
 
 /// Draw rename modal
