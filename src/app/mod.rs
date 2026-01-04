@@ -513,6 +513,14 @@ impl App {
                     .unwrap_or(0);
                 self.execute_action()?;
             }
+            KeyCode::Char('o') | KeyCode::Char('O') => {
+                // Open - open file in default application
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::Open)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
             KeyCode::Char('c') | KeyCode::Char('C') => {
                 // Copy - select nav item and execute
                 self.nav_index = NavItem::ALL
@@ -3025,6 +3033,24 @@ impl App {
                                 self.modal =
                                     Modal::Error(errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string());
                             }
+                        }
+                    }
+                }
+            }
+            NavItem::Open => {
+                if self.files.is_empty() || self.files[self.selected_index].name == ".." {
+                    self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
+                } else {
+                    let file = &self.files[self.selected_index];
+                    match crate::file_ops::open_in_default_app(&file.path) {
+                        Ok(()) => {
+                            self.modal = Modal::Success(format!(
+                                "Opening {} in default application...",
+                                file.name
+                            ));
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Failed to open file: {}", e));
                         }
                     }
                 }

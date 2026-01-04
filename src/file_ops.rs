@@ -589,6 +589,36 @@ pub fn apply_attributes(path: &PathBuf, attrs: &[crate::app::AttrValue; 4]) -> R
     Ok(())
 }
 
+/// Open a file in its default application using the system's open command
+/// Uses 'open' on macOS and 'xdg-open' on Linux
+pub fn open_in_default_app(path: &PathBuf) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| anyhow::anyhow!("Failed to open file: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| anyhow::anyhow!("Failed to open file: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &path.to_string_lossy()])
+            .spawn()
+            .map_err(|e| anyhow::anyhow!("Failed to open file: {}", e))?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

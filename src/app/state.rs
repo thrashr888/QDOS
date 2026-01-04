@@ -22,6 +22,7 @@ pub enum NavItem {
     Directory,
     Tag,
     View,
+    Open,
     Copy,
     Move,
     Find,
@@ -35,10 +36,11 @@ pub enum NavItem {
 }
 
 impl NavItem {
-    pub const ALL: [NavItem; 13] = [
+    pub const ALL: [NavItem; 14] = [
         NavItem::Directory,
         NavItem::Tag,
         NavItem::View,
+        NavItem::Open,
         NavItem::Copy,
         NavItem::Move,
         NavItem::Find,
@@ -56,6 +58,7 @@ impl NavItem {
             NavItem::Directory => "Directory",
             NavItem::Tag => "Tag",
             NavItem::View => "View",
+            NavItem::Open => "Open",
             NavItem::Copy => "Copy",
             NavItem::Move => "Move",
             NavItem::Find => "Find",
@@ -80,6 +83,7 @@ impl NavItem {
             NavItem::View => {
                 "View the contents of any file on the screen (in \"ASCII\" or \"HEX\")"
             }
+            NavItem::Open => "Open file in its default application (macOS/Linux)",
             NavItem::Copy => "Copy one or several files to another disk or directory",
             NavItem::Move => "Move one or several files from this directory to another directory",
             NavItem::Find => "Search all directories on the disk to find specified file(s)",
