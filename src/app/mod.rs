@@ -29,8 +29,8 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    BeadsPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
-    PluginStatusInfo, PrintPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    BeadsPlugin, DirMapPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager,
+    PluginMenuItem, PluginStatusInfo, PrintPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -95,6 +95,7 @@ impl App {
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
         plugin_manager.register(Box::new(HelpPlugin::new()));
+        plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));
@@ -2842,9 +2843,12 @@ impl App {
         let nav_item = NavItem::ALL[self.nav_index];
         match nav_item {
             NavItem::Directory => {
-                // Open Directory Map tree view
-                let state = DirectoryMapState::new(&self.current_path);
-                self.modal = Modal::DirectoryMap(state);
+                // Open Directory Map plugin
+                if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
+                    dirmap_plugin.open_modal(&self.current_path);
+                    self.plugin_manager.set_active_modal(Some("dirmap"));
+                    self.modal = Modal::Plugin("dirmap".to_string());
+                }
             }
             NavItem::Tag => {
                 self.toggle_tag();
@@ -3437,6 +3441,14 @@ impl App {
                 if let Some(theme_name) = msg.strip_prefix("theme:") {
                     if let Some(theme) = ColorTheme::ALL.iter().find(|t| t.name() == theme_name) {
                         self.color_theme = *theme;
+                    }
+                    self.modal = Modal::None;
+                } else if msg == "dirmap:navigate" {
+                    // Handle directory map navigation
+                    if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
+                        if let Some(path) = dirmap_plugin.take_navigate_path() {
+                            let _ = self.navigate_to(&path);
+                        }
                     }
                     self.modal = Modal::None;
                 } else {

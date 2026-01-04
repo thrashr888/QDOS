@@ -13,6 +13,7 @@
 #![allow(dead_code)]
 
 pub mod beads;
+pub mod dirmap;
 pub mod git;
 pub mod help;
 pub mod print;
@@ -21,6 +22,7 @@ pub mod status;
 pub mod theme;
 
 pub use beads::BeadsPlugin;
+pub use dirmap::DirMapPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use print::PrintPlugin;
@@ -350,6 +352,13 @@ impl PluginManager {
         self.plugins
             .get_mut("print")
             .and_then(|p| p.as_any_mut().downcast_mut::<print::PrintPlugin>())
+    }
+
+    /// Get mutable reference to DirMapPlugin
+    pub fn dirmap_plugin_mut(&mut self) -> Option<&mut dirmap::DirMapPlugin> {
+        self.plugins
+            .get_mut("dirmap")
+            .and_then(|p| p.as_any_mut().downcast_mut::<dirmap::DirMapPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
