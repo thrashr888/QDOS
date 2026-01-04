@@ -25,6 +25,7 @@
       "Bash(grep:*)",
       "Bash(head:*)",
       "Bash(rdos --help:*)",
+      "Bash(rdos --version:*)",
       "Bash(shasum:*)",
       "Bash(tail:*)",
       "Bash(wc:*)",
