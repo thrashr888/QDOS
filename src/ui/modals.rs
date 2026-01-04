@@ -11,8 +11,7 @@
 use crate::app::{
     App, AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
     ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase, FindState,
-    GitMenuItem, GitState, GitView, HelpState, Modal, ProgressState, QdstartField, QdstartState,
-    RemoteAction, SearchSpecState,
+    GitMenuItem, GitState, GitView, HelpState, Modal, ProgressState, RemoteAction, SearchSpecState,
 };
 use crate::file_ops::get_disk_space;
 use humansize::{format_size, DECIMAL};
@@ -86,7 +85,6 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
-        Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::Git(state) => draw_git_modal(frame, area, state, app),
         Modal::Beads(state) => draw_beads_modal(frame, area, state, app),
         Modal::Plugin(_) => app.plugin_manager.draw_modal(frame, area),
@@ -123,11 +121,8 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
             draw_search_spec_modal(frame, modal_area, state);
         }
         Modal::Status(info) => {
-            // Status modal height depends on plugin count
-            let plugin_count = app.plugin_manager.plugin_list().len();
-            let height = (15 + plugin_count).min(25) as u16;
-            let modal_area = centered_fixed(55, height, area);
-            draw_status_modal(frame, modal_area, info, app);
+            let modal_area = centered_fixed(55, 15, area);
+            draw_status_modal(frame, modal_area, info);
         }
         Modal::Attribute(state) => {
             let modal_area = centered_fixed(60, 15, area);
@@ -281,12 +276,7 @@ pub(super) fn draw_help_modal(frame: &mut Frame, area: Rect, state: &HelpState) 
 }
 
 /// Draw status modal
-pub(super) fn draw_status_modal(
-    frame: &mut Frame,
-    area: Rect,
-    info: &crate::file_ops::SystemInfo,
-    app: &App,
-) {
+pub(super) fn draw_status_modal(frame: &mut Frame, area: Rect, info: &crate::file_ops::SystemInfo) {
     let status_block = Block::default()
         .title(" System Status ")
         .borders(Borders::ALL)
@@ -295,9 +285,8 @@ pub(super) fn draw_status_modal(
 
     let label_style = Style::default().fg(COLOR_GREEN);
     let value_style = Style::default().fg(COLOR_FG);
-    let header_style = Style::default().fg(COLOR_YELLOW);
 
-    let mut status_text = vec![
+    let status_text = vec![
         Line::from(""),
         Line::from(vec![
             Span::styled("Hostname: ", label_style),
@@ -329,28 +318,11 @@ pub(super) fn draw_status_modal(
             Span::styled(format_size(info.used_swap, DECIMAL), value_style),
         ]),
         Line::from(""),
-        Line::from(Span::styled("Registered Plugins:", header_style)),
+        Line::from(Span::styled(
+            "Press any key to close",
+            Style::default().fg(COLOR_GREEN),
+        )),
     ];
-
-    // Add registered plugins
-    for (id, name, description) in app.plugin_manager.plugin_list() {
-        status_text.push(Line::from(vec![
-            Span::styled(format!("  {} ", id), label_style),
-            Span::styled(format!("({}) ", name), value_style),
-            Span::styled(
-                format!("- {}", description),
-                Style::default()
-                    .fg(COLOR_FG)
-                    .add_modifier(ratatui::style::Modifier::DIM),
-            ),
-        ]));
-    }
-
-    status_text.push(Line::from(""));
-    status_text.push(Line::from(Span::styled(
-        "Press any key to close",
-        Style::default().fg(COLOR_GREEN),
-    )));
 
     let paragraph = Paragraph::new(status_text)
         .block(status_block)
@@ -540,7 +512,6 @@ pub(super) fn draw_search_spec_modal(frame: &mut Frame, area: Rect, state: &Sear
 }
 
 /// Draw Q-DOS II style modal with header separator (non-themed version for backwards compatibility)
-#[allow(dead_code)]
 pub(super) fn draw_qdos_modal_colored(
     frame: &mut Frame,
     area: Rect,
@@ -1698,175 +1669,6 @@ fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState
     modal.render_help(
         frame,
         vec![("↑↓/1-5", "select"), ("Enter", "apply"), ("ESC", "cancel")],
-    );
-}
-
-/// Draw QDSTART configuration modal
-fn draw_qdstart_modal(frame: &mut Frame, area: Rect, state: &QdstartState, app: &App) {
-    let colors = app.colors();
-
-    // Clear the entire area
-    frame.render_widget(Clear, area);
-
-    // Layout: title, separator, content, separator, help
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Title
-            Constraint::Length(1), // Separator
-            Constraint::Min(12),   // Content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Help line
-        ])
-        .split(area);
-
-    // Title
-    let title = " R-DOS STARTUP CONFIGURATION ";
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            title,
-            Style::default()
-                .fg(colors.fg())
-                .add_modifier(Modifier::BOLD),
-        )),
-        chunks[0],
-    );
-
-    // Separator
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-        chunks[1],
-    );
-
-    // Content area
-    let content_area = chunks[2];
-    let mut lines: Vec<Line> = vec![Line::from("")];
-
-    for (i, field) in QdstartField::ALL.iter().enumerate() {
-        let is_selected = i == state.selected;
-        let is_editing = is_selected && state.editing;
-
-        // Get field name and value
-        let name = field.name();
-        let value = match field {
-            QdstartField::SearchSpec => {
-                if is_editing {
-                    format!("{}█", state.input_buffer)
-                } else {
-                    state.search_spec.clone()
-                }
-            }
-            QdstartField::SortMethod => state.sort_method_name().to_string(),
-            QdstartField::SortDirection => {
-                if state.sort_asc {
-                    "Ascending".to_string()
-                } else {
-                    "Descending".to_string()
-                }
-            }
-            QdstartField::ShowHidden => {
-                if state.show_hidden {
-                    "Yes".to_string()
-                } else {
-                    "No".to_string()
-                }
-            }
-            QdstartField::ConfirmDelete => {
-                if state.confirm_delete {
-                    "Yes".to_string()
-                } else {
-                    "No".to_string()
-                }
-            }
-            QdstartField::Editor => {
-                if is_editing {
-                    format!("{}█", state.input_buffer)
-                } else {
-                    state
-                        .editor
-                        .clone()
-                        .unwrap_or_else(|| "$EDITOR".to_string())
-                }
-            }
-            QdstartField::ColorTheme => state.theme().name().to_string(),
-            QdstartField::MouseSupport => {
-                if state.mouse_support {
-                    "Yes".to_string()
-                } else {
-                    "No".to_string()
-                }
-            }
-            QdstartField::UppercaseNames => {
-                if state.uppercase_names {
-                    "Yes".to_string()
-                } else {
-                    "No".to_string()
-                }
-            }
-        };
-
-        // Style based on selection
-        let line_style = if is_selected {
-            Style::default().fg(colors.yellow()).bg(colors.red())
-        } else {
-            Style::default().fg(colors.fg())
-        };
-
-        let name_style = if is_selected {
-            Style::default()
-                .fg(colors.yellow())
-                .bg(colors.red())
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(colors.blue())
-        };
-
-        let value_style = if is_editing {
-            Style::default().fg(colors.yellow()).bg(colors.red())
-        } else if is_selected {
-            Style::default().fg(colors.yellow()).bg(colors.red())
-        } else {
-            Style::default().fg(colors.green())
-        };
-
-        // Format as "  Field Name:        Value"
-        let padded_name = format!("  {:<22}", format!("{}:", name));
-        let padded_value = format!("{:<20}", value);
-
-        lines.push(Line::from(vec![
-            Span::styled(padded_name, name_style),
-            Span::styled(padded_value, value_style),
-            Span::styled(
-                " ".repeat(area.width.saturating_sub(44) as usize),
-                line_style,
-            ),
-        ]));
-    }
-
-    lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "Settings will be saved to ~/.config/rdos/config.toml",
-        Style::default().fg(colors.grey()),
-    )));
-
-    frame.render_widget(Paragraph::new(lines), content_area);
-
-    // Bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-        chunks[3],
-    );
-
-    // Help line
-    let help_text = if state.editing {
-        "Type value, Enter to confirm, ESC to cancel"
-    } else {
-        "↑↓ select  Enter/Space toggle  S save  ESC close"
-    };
-    frame.render_widget(
-        Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
-        chunks[4],
     );
 }
 

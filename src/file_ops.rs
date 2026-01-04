@@ -330,7 +330,7 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
 
         entries.push(FileEntry {
             name,
-            extension: extension.to_uppercase(),
+            extension,
             path: file_path,
             size: metadata.len(),
             is_dir: metadata.is_dir(),

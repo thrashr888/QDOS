@@ -90,6 +90,8 @@ pub struct QdconfigState {
     pub auto_refresh_interval: u64,
     /// Original theme for cancel restore
     original_theme_index: usize,
+    /// Registered plugins list (id, name, description)
+    pub plugins: Vec<(String, String, String)>,
 }
 
 impl QdconfigState {
@@ -103,6 +105,7 @@ impl QdconfigState {
         mouse_support: bool,
         uppercase_names: bool,
         auto_refresh_interval: u64,
+        plugins: Vec<(String, String, String)>,
     ) -> Self {
         // Convert SortMode to method + direction
         let (sort_method, sort_asc) = match sort_mode {
@@ -138,6 +141,7 @@ impl QdconfigState {
             uppercase_names,
             auto_refresh_interval,
             original_theme_index: theme_index,
+            plugins,
         }
     }
 
@@ -242,6 +246,7 @@ impl QdconfigPlugin {
         mouse_support: bool,
         uppercase_names: bool,
         auto_refresh_interval: u64,
+        plugins: Vec<(String, String, String)>,
     ) {
         self.state = Some(QdconfigState::new(
             search_spec,
@@ -253,6 +258,7 @@ impl QdconfigPlugin {
             mouse_support,
             uppercase_names,
             auto_refresh_interval,
+            plugins,
         ));
         self.result_state = None;
         self.settings_saved = false;
@@ -342,7 +348,8 @@ impl Plugin for QdconfigPlugin {
                 ColorTheme::Default,
                 false,
                 false,
-                5, // default auto-refresh
+                5,          // default auto-refresh
+                Vec::new(), // plugins will be synced from app
             ));
             self.result_state = None;
             self.settings_saved = false;
@@ -628,6 +635,26 @@ impl Plugin for QdconfigPlugin {
         }
 
         lines.push(Line::from(""));
+
+        // Show registered plugins
+        if !state.plugins.is_empty() {
+            lines.push(Line::from(Span::styled(
+                "Registered Plugins:",
+                Style::default().fg(COLOR_BLUE).add_modifier(Modifier::BOLD),
+            )));
+            for (id, name, description) in &state.plugins {
+                lines.push(Line::from(vec![
+                    Span::styled(format!("  {} ", id), Style::default().fg(COLOR_GREEN)),
+                    Span::styled(format!("({}) ", name), Style::default().fg(COLOR_FG)),
+                    Span::styled(
+                        format!("- {}", description),
+                        Style::default().fg(COLOR_GREY).add_modifier(Modifier::DIM),
+                    ),
+                ]));
+            }
+            lines.push(Line::from(""));
+        }
+
         lines.push(Line::from(Span::styled(
             "Settings will be saved to ~/.config/rdos/config.toml",
             Style::default().fg(COLOR_GREY),
@@ -694,6 +721,7 @@ mod tests {
             false,
             false,
             5,
+            Vec::new(),
         );
         assert!(plugin.is_modal_open());
         plugin.close_modal();
@@ -712,6 +740,7 @@ mod tests {
             false,
             false,
             5,
+            Vec::new(),
         );
 
         // Test sort method cycling

@@ -8,8 +8,8 @@ use crate::plugins::git::ops as git_ops;
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
     ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase,
-    FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
-    QdstartState, SearchSpecState, SortMode, ThemeColors,
+    FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, SearchSpecState,
+    SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -1501,119 +1501,6 @@ impl App {
                 }
                 _ => {}
             },
-            Modal::Qdstart(ref mut state) => {
-                if state.editing {
-                    // Handle text input mode
-                    match key.code {
-                        KeyCode::Enter => {
-                            // Apply the edited value
-                            let current_field = state.current_field();
-                            match current_field {
-                                QdstartField::SearchSpec => {
-                                    state.search_spec = state.input_buffer.clone();
-                                }
-                                QdstartField::Editor => {
-                                    if state.input_buffer.is_empty()
-                                        || state.input_buffer == "$EDITOR"
-                                    {
-                                        state.editor = None;
-                                    } else {
-                                        state.editor = Some(state.input_buffer.clone());
-                                    }
-                                }
-                                _ => {}
-                            }
-                            state.editing = false;
-                            state.input_buffer.clear();
-                        }
-                        KeyCode::Esc => {
-                            state.editing = false;
-                            state.input_buffer.clear();
-                        }
-                        KeyCode::Backspace => {
-                            state.input_buffer.pop();
-                        }
-                        KeyCode::Char(c) => {
-                            state.input_buffer.push(c);
-                        }
-                        _ => {}
-                    }
-                } else {
-                    // Handle navigation/selection mode
-                    match key.code {
-                        KeyCode::Esc => {
-                            self.modal = Modal::None;
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            if state.selected > 0 {
-                                state.selected -= 1;
-                            }
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            if state.selected < QdstartField::ALL.len() - 1 {
-                                state.selected += 1;
-                            }
-                        }
-                        KeyCode::Enter | KeyCode::Char(' ') => {
-                            // Toggle or edit based on field type
-                            let current_field = state.current_field();
-                            match current_field {
-                                QdstartField::SearchSpec | QdstartField::Editor => {
-                                    // Enter editing mode
-                                    state.editing = true;
-                                    match current_field {
-                                        QdstartField::SearchSpec => {
-                                            state.input_buffer = state.search_spec.clone();
-                                        }
-                                        QdstartField::Editor => {
-                                            state.input_buffer = state
-                                                .editor
-                                                .clone()
-                                                .unwrap_or_else(|| "$EDITOR".to_string());
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                                QdstartField::SortMethod => {
-                                    state.cycle_sort_method();
-                                }
-                                QdstartField::SortDirection => {
-                                    state.toggle_sort_direction();
-                                }
-                                QdstartField::ShowHidden => {
-                                    state.show_hidden = !state.show_hidden;
-                                }
-                                QdstartField::ConfirmDelete => {
-                                    state.confirm_delete = !state.confirm_delete;
-                                }
-                                QdstartField::ColorTheme => {
-                                    state.cycle_theme();
-                                    // Live preview
-                                    self.color_theme = state.theme();
-                                }
-                                QdstartField::MouseSupport => {
-                                    state.mouse_support = !state.mouse_support;
-                                }
-                                QdstartField::UppercaseNames => {
-                                    state.uppercase_names = !state.uppercase_names;
-                                }
-                            }
-                        }
-                        KeyCode::Char('s') | KeyCode::Char('S') => {
-                            // Save configuration - clone state to avoid borrow issues
-                            let state_clone = state.clone();
-                            self.apply_qdstart_settings(&state_clone);
-                            if let Err(e) = self.save_config() {
-                                self.modal = Modal::Error(format!("Failed to save config: {}", e));
-                            } else {
-                                self.modal =
-                                    Modal::Success("Configuration saved successfully".to_string());
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
             Modal::Git(ref mut state) => {
                 if !state.is_repo {
                     // Not a git repo - any key closes
@@ -2561,73 +2448,6 @@ impl App {
         }
 
         Ok(())
-    }
-
-    /// Apply QDSTART settings to app state
-    fn apply_qdstart_settings(&mut self, state: &QdstartState) {
-        self.search_spec = state.search_spec.clone();
-        self.show_hidden = state.show_hidden;
-        self.color_theme = state.theme();
-
-        // Convert sort settings to SortMode
-        let method = state.sort_method;
-        let asc = state.sort_asc;
-        self.sort_mode = match (method, asc) {
-            (0, true) => SortMode::NameAsc,
-            (0, false) => SortMode::NameDesc,
-            (1, true) => SortMode::ExtAsc,
-            (1, false) => SortMode::ExtDesc,
-            (2, true) => SortMode::SizeAsc,
-            (2, false) => SortMode::SizeDesc,
-            (3, true) => SortMode::DateAsc,
-            (3, false) => SortMode::DateDesc,
-            _ => SortMode::None,
-        };
-
-        // Update config
-        self.config.general.search_spec = state.search_spec.clone();
-        self.config.general.show_hidden = state.show_hidden;
-        self.config.general.confirm_delete = state.confirm_delete;
-        self.config.general.mouse_support = state.mouse_support;
-        self.config.display.uppercase_names = state.uppercase_names;
-        self.config.display.theme = state.theme().into();
-        self.config.editor.command = state.editor.clone();
-        self.config.from_sort_mode(self.sort_mode);
-    }
-
-    /// Create QDSTART state from current settings
-    #[allow(dead_code)] // Legacy - QdconfigPlugin now handles this
-    pub fn create_qdstart_state(&self) -> QdstartState {
-        // Convert current SortMode to method + direction
-        let (sort_method, sort_asc) = match self.sort_mode {
-            SortMode::NameAsc => (0, true),
-            SortMode::NameDesc => (0, false),
-            SortMode::ExtAsc => (1, true),
-            SortMode::ExtDesc => (1, false),
-            SortMode::SizeAsc => (2, true),
-            SortMode::SizeDesc => (2, false),
-            SortMode::DateAsc => (3, true),
-            SortMode::DateDesc => (3, false),
-            SortMode::None => (4, true),
-        };
-
-        // Get current theme index
-        let theme_index = ColorTheme::ALL
-            .iter()
-            .position(|&t| t == self.color_theme)
-            .unwrap_or(0);
-
-        QdstartState::new(
-            self.search_spec.clone(),
-            sort_method,
-            sort_asc,
-            self.show_hidden,
-            self.config.general.confirm_delete,
-            self.config.editor.command.clone(),
-            theme_index,
-            self.config.general.mouse_support,
-            self.config.display.uppercase_names,
-        )
     }
 
     /// Move file selection up or down
@@ -3623,6 +3443,7 @@ impl App {
 
                     // Sync current settings to QdconfigPlugin when it opens
                     if plugin_id == "qdconfig" {
+                        let plugins = self.plugin_manager.plugin_list();
                         if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
                             // Re-open with correct settings (since it was opened with defaults)
                             qdconfig_plugin.open_modal(
@@ -3635,6 +3456,7 @@ impl App {
                                 self.config.general.mouse_support,
                                 self.config.display.uppercase_names,
                                 self.config.general.auto_refresh_interval,
+                                plugins,
                             );
                         }
                     }

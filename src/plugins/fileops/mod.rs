@@ -165,9 +165,7 @@ impl FileOpsPlugin {
                 let name = e.file_name().to_string_lossy().to_string();
                 let full_path = search_dir.join(&name);
                 // Only match directories for destination paths
-                if full_path.is_dir()
-                    && name.to_lowercase().starts_with(&prefix.to_lowercase())
-                {
+                if full_path.is_dir() && name.to_lowercase().starts_with(&prefix.to_lowercase()) {
                     let mut result = full_path.to_string_lossy().to_string();
                     if !result.ends_with('/') {
                         result.push('/');
@@ -409,8 +407,7 @@ impl Plugin for FileOpsPlugin {
                 );
 
                 // Show Tab hint for Copy/Move (path completion), not for Rename
-                let help = if matches!(state.operation, FileOperation::Copy | FileOperation::Move)
-                {
+                let help = if matches!(state.operation, FileOperation::Copy | FileOperation::Move) {
                     vec![("Tab", "complete"), ("Enter", "confirm"), ("ESC", "cancel")]
                 } else {
                     vec![("Enter", "confirm"), ("ESC", "cancel")]

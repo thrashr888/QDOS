@@ -92,7 +92,7 @@ Before ending a session:
 2. Verify quality gates pass (`cargo fmt --check`, `cargo clippy`, `cargo test`)
 3. Update issue status - close finished work
 4. Commit changes
-5. **Ask before pushing** - NEVER `bd sync` or `git push` without user confirmation
+5. NEVER `bd sync` or `git push` and NEVER ask to do so
 
 ## Plugin Architecture
 

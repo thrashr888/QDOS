@@ -770,13 +770,17 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
             let name = if file.name == ".." {
                 "..".to_string()
-            } else {
+            } else if app.config.display.uppercase_names {
                 file.name.to_uppercase()
+            } else {
+                file.name.clone()
             };
             let ext = if file.is_dir && file.name != ".." {
                 String::new()
             } else if file.extension.is_empty() {
                 String::new()
+            } else if app.config.display.uppercase_names {
+                format!(".{}", file.extension.to_uppercase())
             } else {
                 format!(".{}", file.extension)
             };
