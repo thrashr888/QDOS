@@ -299,17 +299,6 @@ impl FileViewerState {
     }
 }
 
-/// Shell command state
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ShellCommandState {
-    pub input: String,
-    pub output: Vec<String>,
-    pub running: bool,
-    pub exit_code: Option<i32>,
-    pub scroll_offset: usize,
-    pub history: Vec<String>,
-    pub history_index: Option<usize>,
-}
 
 /// Directory tree node for Directory Map
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1570,7 +1559,6 @@ pub enum Modal {
     MoveTo(String),
     EraseConfirm,
     RenameInput(String),
-    ShellCommand(ShellCommandState),
     FileViewer(FileViewerState),
     DirectoryMap(DirectoryMapState),
     Find(FindState),

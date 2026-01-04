@@ -27,7 +27,7 @@ use ratatui::{
 use super::{
     components::ModalFrame,
     format_size_short,
-    viewer::{draw_file_viewer, draw_shell_command},
+    viewer::draw_file_viewer,
     COLOR_BG, COLOR_BLUE, COLOR_CYAN, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
 };
 
@@ -136,7 +136,6 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
         Modal::EraseConfirm => draw_erase_modal(frame, modal_area, app),
         Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
-        Modal::ShellCommand(state) => draw_shell_command(frame, area, state, app),
         Modal::FileViewer(state) => draw_file_viewer(frame, area, state),
         Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
         Modal::Find(state) => draw_find_modal(frame, area, state),
@@ -578,7 +577,7 @@ pub(super) fn draw_qdos_modal_colored(
     // Render content lines (centered)
     for (i, line) in content.iter().enumerate() {
         // Convert Line to Vec<Span> for render_row
-        let spans: Vec<Span> = line.spans.iter().cloned().collect();
+        let spans: Vec<Span> = line.spans.to_vec();
         modal.render_row(frame, i as u16, spans);
     }
 }

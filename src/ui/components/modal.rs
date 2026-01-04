@@ -75,12 +75,6 @@ impl ModalFrame {
         self
     }
 
-    /// Set custom title style.
-    pub fn title_style(mut self, style: Style) -> Self {
-        self.title_style = style;
-        self
-    }
-
     /// Set custom content style.
     pub fn content_style(mut self, style: Style) -> Self {
         self.content_style = style;
@@ -223,16 +217,6 @@ impl ModalFrame {
         );
     }
 
-    /// Render a separator line at the given content row.
-    pub fn render_separator(&self, frame: &mut Frame, row: u16) {
-        let y = self.content_y(row);
-        let sep = format!("╠{}╣", "═".repeat(self.inner_width));
-        frame.render_widget(
-            Paragraph::new(Span::styled(&sep, self.border_style)),
-            Rect::new(self.area.x, y, self.area.width, 1),
-        );
-    }
-
     /// Render the help row at the bottom with key hints.
     /// Takes pairs of (key, description).
     pub fn render_help(&self, frame: &mut Frame, hints: Vec<(&str, &str)>) {
@@ -250,56 +234,6 @@ impl ModalFrame {
 
         self.render_row_at(frame, y, spans);
     }
-
-    /// Render a custom help row with pre-built spans.
-    pub fn render_help_spans(&self, frame: &mut Frame, spans: Vec<Span>) {
-        let y = self.area.y + self.area.height - 2;
-        self.render_row_at(frame, y, spans);
-    }
-}
-
-/// Helper struct for building modal content rows with mixed styling.
-pub struct ModalRow {
-    spans: Vec<Span<'static>>,
-}
-
-impl ModalRow {
-    /// Create a new empty row.
-    pub fn new() -> Self {
-        Self { spans: Vec::new() }
-    }
-
-    /// Add text with default style.
-    pub fn text(mut self, text: &str, style: Style) -> Self {
-        self.spans.push(Span::styled(text.to_string(), style));
-        self
-    }
-
-    /// Add a label (yellow text).
-    pub fn label(self, text: &str) -> Self {
-        self.text(text, Style::default().fg(COLOR_YELLOW).bg(COLOR_BG))
-    }
-
-    /// Add normal text.
-    pub fn normal(self, text: &str) -> Self {
-        self.text(text, Style::default().fg(COLOR_FG).bg(COLOR_BG))
-    }
-
-    /// Add highlighted text (green).
-    pub fn highlight(self, text: &str) -> Self {
-        self.text(text, Style::default().fg(COLOR_GREEN).bg(COLOR_BG))
-    }
-
-    /// Build the spans vector.
-    pub fn build(self) -> Vec<Span<'static>> {
-        self.spans
-    }
-}
-
-impl Default for ModalRow {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[cfg(test)]
@@ -314,15 +248,5 @@ mod tests {
         assert_eq!(modal.area, area);
         assert_eq!(modal.content_y(0), 8); // y + 2 (top+title) + 1 (separator)
         assert!(modal.content_height() > 0);
-    }
-
-    #[test]
-    fn test_modal_row_builder() {
-        let row = ModalRow::new()
-            .label("Name: ")
-            .normal("test.txt")
-            .build();
-
-        assert_eq!(row.len(), 2);
     }
 }

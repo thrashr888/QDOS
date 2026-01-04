@@ -215,18 +215,12 @@ pub fn load_top_epics(state: &mut BeadsState, cwd: &PathBuf) {
         .current_dir(cwd)
         .output();
 
-    match output {
-        Ok(output) => {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            match parse_beads_json(&stdout) {
-                Ok(issues) => {
-                    // Take top 5 epics
-                    state.top_epics = issues.into_iter().take(5).collect();
-                }
-                Err(_) => {} // Silently ignore parse errors for menu display
-            }
+    if let Ok(output) = output {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Ok(issues) = parse_beads_json(&stdout) {
+            // Take top 5 epics
+            state.top_epics = issues.into_iter().take(5).collect();
         }
-        Err(_) => {} // Silently ignore errors for menu display
     }
 }
 

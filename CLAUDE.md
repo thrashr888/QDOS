@@ -91,8 +91,8 @@ Before ending a session:
 1. File issues for remaining work
 2. Verify quality gates pass (`cargo fmt --check`, `cargo clippy`, `cargo test`)
 3. Update issue status - close finished work
-4. Commit changes and run `bd sync`
-5. **Ask before pushing** - NEVER `git push` without user confirmation
+4. Commit changes
+5. **Ask before pushing** - NEVER `bd sync` or `git push` without user confirmation
 
 ## Plugin Architecture
 

@@ -9,8 +9,8 @@ pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
     ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FileViewerState,
     FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
-    QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode, ThemeColors,
-    ViewFilter, ViewMode,
+    QdstartField, QdstartState, SearchSpecState, SortMode,
+    ThemeColors, ViewFilter, ViewMode,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -32,7 +32,7 @@ use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_cont
 use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
     KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QdconfigPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -136,6 +136,7 @@ impl App {
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
+        plugin_manager.register(Box::new(ShellPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -180,7 +181,7 @@ impl App {
     /// Check if the terminal has a light background (luma > 0.6)
     #[allow(dead_code)]
     pub fn is_light_terminal(&self) -> bool {
-        self.terminal_luma.map_or(false, |l| l > 0.6)
+        self.terminal_luma.is_some_and(|l| l > 0.6)
     }
 
     /// Get theme colors adjusted for the terminal's light/dark mode
@@ -301,24 +302,22 @@ impl App {
             }
             MouseEventKind::ScrollUp => {
                 // Scroll up in file list
-                if matches!(self.modal, Modal::None) {
-                    if self.selected_index > 0 {
+                if matches!(self.modal, Modal::None)
+                    && self.selected_index > 0 {
                         self.selected_index -= 1;
                         // Adjust scroll if needed
                         if self.selected_index < self.scroll_offset {
                             self.scroll_offset = self.selected_index;
                         }
                     }
-                }
             }
             MouseEventKind::ScrollDown => {
                 // Scroll down in file list
-                if matches!(self.modal, Modal::None) {
-                    if self.selected_index + 1 < self.files.len() {
+                if matches!(self.modal, Modal::None)
+                    && self.selected_index + 1 < self.files.len() {
                         self.selected_index += 1;
                         // Note: scroll adjustment happens in UI render
                     }
-                }
             }
             _ => {
                 // Ignore other mouse events (moves, releases, etc.)
@@ -435,10 +434,7 @@ impl App {
                 let path = self.current_path.to_string_lossy().to_string();
                 self.modal = Modal::PathInput(path);
             }
-            // Shell Command
-            KeyCode::F(6) => {
-                self.modal = Modal::ShellCommand(ShellCommandState::default());
-            }
+            // Shell Command - handled by ShellPlugin via plugin system
             // Search spec - handled by SearchSpecPlugin via plugin system
             // F7 key is intercepted by handle_plugin_key() before reaching here
             // Sort
@@ -893,73 +889,6 @@ impl App {
                                 }
                             }
                         }
-                    }
-                    _ => {}
-                }
-            }
-            Modal::ShellCommand(ref mut state) => {
-                match key.code {
-                    KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    KeyCode::Enter => {
-                        if !state.input.is_empty() {
-                            let cmd = state.input.clone();
-                            let cwd = self.current_path.clone();
-                            // Add to history
-                            state.history.push(cmd.clone());
-                            state.history_index = None;
-                            // Execute command (use standalone function to avoid borrow issues)
-                            let output = execute_shell_command_impl(&cmd, &cwd);
-                            state.output = output.0;
-                            state.exit_code = Some(output.1);
-                            state.input.clear();
-                            state.scroll_offset = 0;
-                        }
-                    }
-                    KeyCode::Backspace => {
-                        state.input.pop();
-                    }
-                    KeyCode::Up => {
-                        // Navigate history up
-                        if !state.history.is_empty() {
-                            let new_idx = match state.history_index {
-                                Some(idx) if idx > 0 => idx - 1,
-                                Some(idx) => idx,
-                                None => state.history.len() - 1,
-                            };
-                            state.history_index = Some(new_idx);
-                            state.input = state.history[new_idx].clone();
-                        }
-                    }
-                    KeyCode::Down => {
-                        // Navigate history down
-                        if let Some(idx) = state.history_index {
-                            if idx + 1 < state.history.len() {
-                                let new_idx = idx + 1;
-                                state.history_index = Some(new_idx);
-                                state.input = state.history[new_idx].clone();
-                            } else {
-                                state.history_index = None;
-                                state.input.clear();
-                            }
-                        }
-                    }
-                    KeyCode::PageUp => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(10);
-                    }
-                    KeyCode::PageDown => {
-                        let max_scroll = state.output.len().saturating_sub(10);
-                        state.scroll_offset = (state.scroll_offset + 10).min(max_scroll);
-                    }
-                    KeyCode::Tab => {
-                        // Tab completion for commands/paths
-                        if let Some(completed) = Self::tab_complete(&state.input) {
-                            state.input = completed;
-                        }
-                    }
-                    KeyCode::Char(c) => {
-                        state.input.push(c);
                     }
                     _ => {}
                 }
@@ -4112,41 +4041,3 @@ fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-/// Execute a shell command and return (output lines, exit code)
-fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
-    use std::io::{BufRead, BufReader};
-    use std::process::{Command, Stdio};
-
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-
-    let result = Command::new(&shell)
-        .arg("-c")
-        .arg(cmd)
-        .current_dir(cwd)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output();
-
-    match result {
-        Ok(output) => {
-            let mut lines = Vec::new();
-
-            // Add stdout lines
-            let stdout_reader = BufReader::new(&output.stdout[..]);
-            for l in stdout_reader.lines().flatten() {
-                lines.push(l);
-            }
-
-            // Add stderr lines
-            let stderr_reader = BufReader::new(&output.stderr[..]);
-            for l in stderr_reader.lines().flatten() {
-                lines.push(format!("stderr: {}", l));
-            }
-
-            let exit_code = output.status.code().unwrap_or(-1);
-            (lines, exit_code)
-        }
-        Err(e) => (vec![format!("Error executing command: {}", e)], -1),
-    }
-}

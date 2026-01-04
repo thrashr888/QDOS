@@ -4,4 +4,4 @@
 
 mod modal;
 
-pub use modal::{ModalFrame, ModalRow};
+pub use modal::ModalFrame;
