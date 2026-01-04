@@ -29,28 +29,8 @@ use super::{
     COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
 };
 
-/// Create a centered rectangle using percentages
-pub(super) fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(area);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
 /// Create a centered rectangle with fixed width and height
+/// All modals should use this instead of percentage-based sizing
 pub(super) fn centered_fixed(width: u16, height: u16, area: Rect) -> Rect {
     let x = area.x + (area.width.saturating_sub(width)) / 2;
     let y = area.y + (area.height.saturating_sub(height)) / 2;
@@ -98,83 +78,74 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         return; // Too small to render any modal safely
     }
 
-    // Modals that handle their own area/clearing (overlay directly like quit modal)
+    // All modals handle their own area/clearing with fixed sizes
+    // NO percentage-based sizing - all modals use centered_fixed for exact dimensions
     match &app.modal {
-        Modal::Quit => {
-            draw_quit_modal(frame, area, app);
-            return;
-        }
-        Modal::Space => {
-            draw_space_modal(frame, area, app);
-            return;
-        }
-        Modal::Error(msg) => {
-            draw_error_modal(frame, area, msg, app);
-            return;
-        }
-        Modal::Success(msg) => {
-            draw_success_modal(frame, area, msg, app);
-            return;
-        }
-        Modal::Progress(state) => {
-            draw_progress_modal(frame, area, state);
-            return;
-        }
-        Modal::CopyTo(dest) => {
-            // Copy modal uses fixed size - handles its own clearing via ModalFrame
-            let copy_area = centered_fixed(50, 12, area);
-            draw_copy_modal(frame, copy_area, dest, app);
-            return;
-        }
-        Modal::MoveTo(dest) => {
-            // Move modal uses fixed size - handles its own clearing via ModalFrame
-            let move_area = centered_fixed(50, 12, area);
-            draw_move_modal(frame, move_area, dest, app);
-            return;
-        }
-        Modal::EraseConfirm => {
-            // Erase modal uses fixed size - handles its own clearing via ModalFrame
-            let erase_area = centered_fixed(50, 10, area);
-            draw_erase_modal(frame, erase_area, app);
-            return;
-        }
-        _ => {}
-    }
-
-    let modal_area = centered_rect(60, 50, area);
-
-    // Clear the modal area for other modals
-    frame.render_widget(Clear, modal_area);
-
-    match &app.modal {
+        // Full-screen modals (use entire area)
         Modal::Help(state) => draw_help_modal(frame, area, state),
-        Modal::Status(info) => draw_status_modal(frame, modal_area, info, app),
-        Modal::Quit => {}       // Handled above
-        Modal::SearchSpec(state) => draw_search_spec_modal(frame, modal_area, state),
-        Modal::Space => {}      // Handled above
-        Modal::Error(_) => {}   // Handled above
-        Modal::Success(_) => {} // Handled above
-        Modal::CopyTo(_) => {}  // Handled above
-        Modal::MoveTo(_) => {}  // Handled above
-        Modal::EraseConfirm => {} // Handled above
-        Modal::PathInput(path) => draw_path_input_modal(frame, modal_area, path),
-        Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
-        Modal::FileViewer(_) => {
-            // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
-        }
         Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
-        Modal::Attribute(state) => draw_attribute_modal(frame, modal_area, state),
-        Modal::Progress(_) => {} // Handled above
-        Modal::ColorTheme(state) => draw_color_theme_modal(frame, modal_area, state, app),
         Modal::Qdstart(state) => draw_qdstart_modal(frame, area, state, app),
         Modal::Git(state) => draw_git_modal(frame, area, state, app),
         Modal::Beads(state) => draw_beads_modal(frame, area, state, app),
-        Modal::Clipboard(state) => draw_clipboard_modal(frame, modal_area, state),
-        Modal::Plugin(_plugin_id) => {
-            // Delegate to the plugin manager to draw the active plugin's modal
-            app.plugin_manager.draw_modal(frame, area);
+        Modal::Plugin(_) => app.plugin_manager.draw_modal(frame, area),
+
+        // Fixed-size modals with their own clearing
+        Modal::Quit => draw_quit_modal(frame, area, app),
+        Modal::Space => draw_space_modal(frame, area, app),
+        Modal::Error(msg) => draw_error_modal(frame, area, msg, app),
+        Modal::Success(msg) => draw_success_modal(frame, area, msg, app),
+        Modal::Progress(state) => draw_progress_modal(frame, area, state),
+
+        Modal::CopyTo(dest) => {
+            let modal_area = centered_fixed(50, 12, area);
+            draw_copy_modal(frame, modal_area, dest, app);
+        }
+        Modal::MoveTo(dest) => {
+            let modal_area = centered_fixed(50, 12, area);
+            draw_move_modal(frame, modal_area, dest, app);
+        }
+        Modal::EraseConfirm => {
+            let modal_area = centered_fixed(50, 10, area);
+            draw_erase_modal(frame, modal_area, app);
+        }
+        Modal::PathInput(path) => {
+            let modal_area = centered_fixed(50, 10, area);
+            draw_path_input_modal(frame, modal_area, path);
+        }
+        Modal::RenameInput(name) => {
+            let modal_area = centered_fixed(50, 10, area);
+            draw_rename_modal(frame, modal_area, name);
+        }
+        Modal::SearchSpec(state) => {
+            let modal_area = centered_fixed(55, 12, area);
+            draw_search_spec_modal(frame, modal_area, state);
+        }
+        Modal::Status(info) => {
+            // Status modal height depends on plugin count
+            let plugin_count = app.plugin_manager.plugin_list().len();
+            let height = (15 + plugin_count).min(25) as u16;
+            let modal_area = centered_fixed(55, height, area);
+            draw_status_modal(frame, modal_area, info, app);
+        }
+        Modal::Attribute(state) => {
+            let modal_area = centered_fixed(60, 15, area);
+            draw_attribute_modal(frame, modal_area, state);
+        }
+        Modal::ColorTheme(state) => {
+            let modal_area = centered_fixed(60, 16, area);
+            draw_color_theme_modal(frame, modal_area, state, app);
+        }
+        Modal::Clipboard(state) => {
+            // Clipboard modal height depends on item count
+            let height = (state.items.len() + 5).min(15) as u16;
+            let modal_area = centered_fixed(50, height, area);
+            draw_clipboard_modal(frame, modal_area, state);
+        }
+
+        Modal::FileViewer(_) => {
+            // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
         }
         Modal::None => {}
     }
