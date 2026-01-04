@@ -188,7 +188,7 @@ pub fn load_beads_epics(state: &mut BeadsState, cwd: &PathBuf) {
     state.selected_issue = 0;
 
     let output = Command::new("bd")
-        .args(["list", "--type=epic", "--status=all", "--json"])
+        .args(["list", "--type=epic", "--status=open", "--json"])
         .current_dir(cwd)
         .output();
 
@@ -203,6 +203,30 @@ pub fn load_beads_epics(state: &mut BeadsState, cwd: &PathBuf) {
         Err(e) => {
             state.error = Some(format!("Failed to load epics: {}", e));
         }
+    }
+}
+
+/// Load top 5 open epics for main menu display
+pub fn load_top_epics(state: &mut BeadsState, cwd: &PathBuf) {
+    state.top_epics.clear();
+
+    let output = Command::new("bd")
+        .args(["list", "--type=epic", "--status=open", "--json"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            match parse_beads_json(&stdout) {
+                Ok(issues) => {
+                    // Take top 5 epics
+                    state.top_epics = issues.into_iter().take(5).collect();
+                }
+                Err(_) => {} // Silently ignore parse errors for menu display
+            }
+        }
+        Err(_) => {} // Silently ignore errors for menu display
     }
 }
 

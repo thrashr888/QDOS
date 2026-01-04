@@ -54,6 +54,7 @@ impl BeadsPlugin {
         let mut state = BeadsState::new(is_beads);
         if is_beads {
             ops::load_recent_issues(&mut state, cwd);
+            ops::load_top_epics(&mut state, cwd);
         }
         self.modal_state = Some(state);
     }
@@ -129,6 +130,16 @@ impl BeadsPlugin {
             None => return KeyHandleResult::NotHandled,
         };
 
+        let items = BeadsMenuItem::items(state.is_beads_project);
+        let menu_count = items.len();
+        let epic_count = state.top_epics.len();
+        // Total navigable items: menu items + epics (if any)
+        let total_items = if epic_count > 0 {
+            menu_count + epic_count
+        } else {
+            menu_count
+        };
+
         match key.code {
             KeyCode::Esc => {
                 self.close_modal();
@@ -141,16 +152,32 @@ impl BeadsPlugin {
                 KeyHandleResult::Handled
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                let items = BeadsMenuItem::items(state.is_beads_project);
-                if state.menu_selected < items.len() - 1 {
+                if state.menu_selected < total_items - 1 {
                     state.menu_selected += 1;
                 }
                 KeyHandleResult::Handled
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
-                let items = BeadsMenuItem::items(state.is_beads_project);
-                let item = items[state.menu_selected];
-                self.activate_menu_item(item, cwd);
+                if state.menu_selected < menu_count {
+                    // Regular menu item
+                    let item = items[state.menu_selected];
+                    self.activate_menu_item(item, cwd);
+                } else {
+                    // Epic selected - go to detail view
+                    let epic_idx = state.menu_selected - menu_count;
+                    if let Some(epic) = state.top_epics.get(epic_idx) {
+                        let issue_id = epic.id.clone();
+                        match ops::load_beads_issue_detail(&issue_id, cwd) {
+                            Ok(detail) => {
+                                state.detail_issue = Some(detail);
+                                state.view = BeadsView::Detail;
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,

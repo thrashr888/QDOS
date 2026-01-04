@@ -4003,6 +4003,7 @@ fn execute_shell_command_impl(cmd: &str, cwd: &PathBuf) -> (Vec<String>, i32) {
         .arg("-c")
         .arg(cmd)
         .current_dir(cwd)
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output();

@@ -271,6 +271,8 @@ pub struct BeadsState {
     pub subtask_parent_id: String,
     /// Recent issues for quick access (in_progress and recently touched)
     pub recent_issues: Vec<BeadsIssue>,
+    /// Top open epics for main menu display
+    pub top_epics: Vec<BeadsIssue>,
 }
 
 impl Default for BeadsState {
@@ -314,6 +316,7 @@ impl Default for BeadsState {
             edit_priority: 2,
             subtask_parent_id: String::new(),
             recent_issues: Vec::new(),
+            top_epics: Vec::new(),
         }
     }
 }

@@ -3042,6 +3042,36 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
                     ]));
                 }
 
+                // Show top epics after menu items (navigable)
+                let menu_count = items.len();
+                if !state.top_epics.is_empty() {
+                    lines.push(Line::from("")); // blank line separator
+                    for (i, epic) in state.top_epics.iter().take(5).enumerate() {
+                        let epic_idx = menu_count + i;
+                        let is_selected = epic_idx == state.menu_selected;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Truncate title to fit
+                        let max_title = content_area.width.saturating_sub(20) as usize;
+                        let title = if epic.title.len() > max_title {
+                            format!("{}…", &epic.title[..max_title.saturating_sub(1)])
+                        } else {
+                            epic.title.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled("  ", style),
+                            Span::styled("◆ ", if is_selected { style } else { Style::default().fg(colors.magenta()) }),
+                            Span::styled(format!("{:<12}", epic.id), if is_selected { style } else { Style::default().fg(colors.grey()) }),
+                            Span::styled(title, style),
+                        ]));
+                    }
+                }
+
                 // Show recent issues if we have any
                 if !state.recent_issues.is_empty() {
                     lines.push(Line::from(""));
