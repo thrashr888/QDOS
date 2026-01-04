@@ -102,52 +102,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  homebrew:
-    name: Update Homebrew Tap
-    needs: release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout tap repository
-        uses: actions/checkout@v4
-        with:
-          repository: thrashr888/homebrew-qdos
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: homebrew-tap
-
-      - name: Get release artifacts info
-        id: release-info
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-          # Download release assets to calculate SHA256
-          curl -sL "https://github.com/thrashr888/QDOS/releases/download/$GITHUB_REF_NAME/rdos-macos-aarch64" -o rdos-macos-aarch64
-          curl -sL "https://github.com/thrashr888/QDOS/releases/download/$GITHUB_REF_NAME/rdos-macos-x86_64" -o rdos-macos-x86_64 || true
-
-          SHA_ARM=$(shasum -a 256 rdos-macos-aarch64 | cut -d' ' -f1)
-          echo "sha_arm=$SHA_ARM" >> $GITHUB_OUTPUT
-
-          if [ -f rdos-macos-x86_64 ]; then
-            SHA_INTEL=$(shasum -a 256 rdos-macos-x86_64 | cut -d' ' -f1)
-            echo "sha_intel=$SHA_INTEL" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Update formula
-        env:
-          VERSION: ${{ steps.release-info.outputs.version }}
-          TAG: ${{ github.ref_name }}
-          SHA_ARM: ${{ steps.release-info.outputs.sha_arm }}
-          SHA_INTEL: ${{ steps.release-info.outputs.sha_intel }}
-        run: |
-          # Generate formula from template with variable substitution
-          envsubst < .github/templates/rdos.rb.template > homebrew-tap/Formula/rdos.rb
-
-      - name: Commit and push
-        run: |
-          cd homebrew-tap
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add Formula/rdos.rb
-          git commit -m "Update rdos to ${{ steps.release-info.outputs.version }}"
-          git push
+  # homebrew:
+  #   name: Update Homebrew Tap
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout tap repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         repository: thrashr888/homebrew-qdos
+  #         token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+  #         path: homebrew-tap
+  #
+  #     - name: Get release artifacts info
+  #       id: release-info
+  #       run: |
+  #         VERSION="${GITHUB_REF_NAME#v}"
+  #         echo "version=$VERSION" >> $GITHUB_OUTPUT
+  #
+  #         # Download release assets to calculate SHA256
+  #         curl -sL "https://github.com/thrashr888/QDOS/releases/download/$GITHUB_REF_NAME/rdos-macos-aarch64" -o rdos-macos-aarch64
+  #         curl -sL "https://github.com/thrashr888/QDOS/releases/download/$GITHUB_REF_NAME/rdos-macos-x86_64" -o rdos-macos-x86_64 || true
+  #
+  #         SHA_ARM=$(shasum -a 256 rdos-macos-aarch64 | cut -d' ' -f1)
+  #         echo "sha_arm=$SHA_ARM" >> $GITHUB_OUTPUT
+  #
+  #         if [ -f rdos-macos-x86_64 ]; then
+  #           SHA_INTEL=$(shasum -a 256 rdos-macos-x86_64 | cut -d' ' -f1)
+  #           echo "sha_intel=$SHA_INTEL" >> $GITHUB_OUTPUT
+  #         fi
+  #
+  #     - name: Update formula
+  #       env:
+  #         VERSION: ${{ steps.release-info.outputs.version }}
+  #         TAG: ${{ github.ref_name }}
+  #         SHA_ARM: ${{ steps.release-info.outputs.sha_arm }}
+  #         SHA_INTEL: ${{ steps.release-info.outputs.sha_intel }}
+  #       run: |
+  #         # Generate formula from template with variable substitution
+  #         envsubst < .github/templates/rdos.rb.template > homebrew-tap/Formula/rdos.rb
+  #
+  #     - name: Commit and push
+  #       run: |
+  #         cd homebrew-tap
+  #         git config user.name "GitHub Actions"
+  #         git config user.email "actions@github.com"
+  #         git add Formula/rdos.rb
+  #         git commit -m "Update rdos to ${{ steps.release-info.outputs.version }}"
+  #         git push
