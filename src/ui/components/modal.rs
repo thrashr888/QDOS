@@ -81,6 +81,12 @@ impl ModalFrame {
         self
     }
 
+    /// Set custom title style.
+    pub fn title_style(mut self, style: Style) -> Self {
+        self.title_style = style;
+        self
+    }
+
     /// Disable the title separator.
     pub fn no_title_separator(mut self) -> Self {
         self.show_title_separator = false;
