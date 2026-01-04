@@ -140,40 +140,8 @@ jobs:
           SHA_ARM: ${{ steps.release-info.outputs.sha_arm }}
           SHA_INTEL: ${{ steps.release-info.outputs.sha_intel }}
         run: |
-          cd homebrew-tap/Formula
-
-          # Generate formula with proper Ruby formatting
-          cat > rdos.rb <<EOF
-class Rdos < Formula
-  desc "R-DOS: A modern TUI file manager inspired by Q-DOS II, written in Rust"
-  homepage "https://github.com/thrashr888/QDOS"
-  version "${VERSION}"
-  license "MIT"
-
-  on_macos do
-    on_arm do
-      url "https://github.com/thrashr888/QDOS/releases/download/${TAG}/rdos-macos-aarch64"
-      sha256 "${SHA_ARM}"
-    end
-    on_intel do
-      url "https://github.com/thrashr888/QDOS/releases/download/${TAG}/rdos-macos-x86_64"
-      sha256 "${SHA_INTEL}"
-    end
-  end
-
-  def install
-    if Hardware::CPU.arm?
-      bin.install "rdos-macos-aarch64" => "rdos"
-    else
-      bin.install "rdos-macos-x86_64" => "rdos"
-    end
-  end
-
-  test do
-    assert_match "rdos", shell_output("\#{bin}/rdos --version 2>&1", 1)
-  end
-end
-EOF
+          # Generate formula from template with variable substitution
+          envsubst < .github/templates/rdos.rb.template > homebrew-tap/Formula/rdos.rb
 
       - name: Commit and push
         run: |
