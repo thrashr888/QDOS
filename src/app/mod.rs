@@ -54,6 +54,8 @@ pub struct App {
     pub sort_mode: SortMode,
     /// Selected navigation menu item
     pub nav_index: usize,
+    /// Scroll offset for navigation menu (horizontal scrolling)
+    pub nav_scroll_offset: usize,
     /// Current active modal
     pub modal: Modal,
     /// Scroll offset for file list
@@ -117,6 +119,7 @@ impl App {
             tagged_files: Vec::new(),
             sort_mode,
             nav_index: 0,
+            nav_scroll_offset: 0,
             modal: Modal::None,
             scroll_offset: 0,
             should_quit: false,

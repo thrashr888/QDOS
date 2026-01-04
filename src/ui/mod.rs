@@ -164,44 +164,95 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 }
 
-/// Draw the navigation menu bar
+/// Draw the navigation menu bar with horizontal scrolling
 fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
     let colors = app.colors();
+    let available_width = area.width as usize;
 
-    // First line: menu items - first letter green, rest white, selected is yellow on red
-    let nav_items: Vec<Span> = NavItem::ALL
-        .iter()
-        .enumerate()
-        .flat_map(|(i, item)| {
-            let name = item.as_str();
-            let first_char = &name[..1];
-            let rest = &name[1..];
+    // Calculate item widths and positions
+    let item_widths: Vec<usize> = NavItem::ALL.iter().map(|item| item.as_str().len() + 2).collect();
+    let total_width: usize = item_widths.iter().sum();
 
-            let is_selected = i == app.nav_index;
+    // Calculate item start positions
+    let mut item_positions: Vec<usize> = Vec::new();
+    let mut pos = 0;
+    for width in &item_widths {
+        item_positions.push(pos);
+        pos += width;
+    }
 
-            // First letter style: green normally, yellow on red when selected
-            let first_style = if is_selected {
-                Style::default().fg(colors.yellow()).bg(colors.red())
-            } else {
-                Style::default().fg(colors.green()) // Green first letter
-            };
+    // Determine scroll offset needed to show selected item
+    let selected_start = item_positions[app.nav_index];
+    let selected_end = selected_start + item_widths[app.nav_index];
 
-            // Rest of name style: white normally, yellow on red when selected
-            let rest_style = if is_selected {
-                Style::default().fg(colors.yellow()).bg(colors.red())
-            } else {
-                Style::default().fg(colors.fg()) // White text
-            };
+    // Use app's stored scroll offset, but adjust if selected item is not visible
+    let mut scroll_offset = app.nav_scroll_offset;
+    let indicator_space = if scroll_offset > 0 || total_width > available_width { 2 } else { 0 };
+    let visible_width = available_width.saturating_sub(indicator_space * 2);
 
-            vec![
-                Span::styled(first_char, first_style),
-                Span::styled(rest, rest_style),
-                Span::raw("  "),
-            ]
-        })
-        .collect();
+    // Ensure selected item is visible (scroll when needed pattern)
+    if selected_start < scroll_offset {
+        scroll_offset = selected_start;
+    } else if selected_end > scroll_offset + visible_width {
+        scroll_offset = selected_end.saturating_sub(visible_width);
+    }
 
-    let nav_line = Line::from(nav_items);
+    // Build visible menu items
+    let has_left = scroll_offset > 0;
+    let has_right = scroll_offset + visible_width < total_width;
+
+    let mut nav_spans: Vec<Span> = Vec::new();
+
+    // Left scroll indicator
+    if has_left {
+        nav_spans.push(Span::styled("< ", Style::default().fg(colors.blue())));
+    }
+
+    // Render visible items
+    for (i, item) in NavItem::ALL.iter().enumerate() {
+        let item_start = item_positions[i];
+        let item_end = item_start + item_widths[i];
+
+        // Skip items that are fully before the visible area
+        if item_end <= scroll_offset {
+            continue;
+        }
+        // Stop if item is fully after the visible area
+        if item_start >= scroll_offset + visible_width {
+            break;
+        }
+
+        let name = item.as_str();
+        let first_char = &name[..1];
+        let rest = &name[1..];
+
+        let is_selected = i == app.nav_index;
+
+        // First letter style: green normally, yellow on red when selected
+        let first_style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.green())
+        };
+
+        // Rest of name style: white normally, yellow on red when selected
+        let rest_style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(colors.fg())
+        };
+
+        nav_spans.push(Span::styled(first_char, first_style));
+        nav_spans.push(Span::styled(rest, rest_style));
+        nav_spans.push(Span::raw("  "));
+    }
+
+    // Right scroll indicator
+    if has_right {
+        nav_spans.push(Span::styled(" >", Style::default().fg(colors.blue())));
+    }
+
+    let nav_line = Line::from(nav_spans);
 
     // Second line: description in green (like original)
     let description = NavItem::ALL[app.nav_index].description();
