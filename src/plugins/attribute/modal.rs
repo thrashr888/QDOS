@@ -15,7 +15,7 @@ pub fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &AttributeStat
         " Change File Attributes "
     };
 
-    let modal = ModalFrame::new(area, title).no_footer_separator();
+    let modal = ModalFrame::themed(area, title, &colors).no_footer_separator();
     modal.render_frame(frame);
 
     let label_style = Style::default().fg(colors.green()).bg(colors.bg());

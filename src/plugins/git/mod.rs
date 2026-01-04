@@ -1111,7 +1111,7 @@ impl Plugin for GitPlugin {
         }
     }
 
-    fn draw_modal(&self, _frame: &mut Frame, _area: Rect) {
+    fn draw_modal(&self, _frame: &mut Frame, _area: Rect, _colors: &crate::app::ThemeColors) {
         // Modal drawing is done by the existing draw_git_modal
     }
 

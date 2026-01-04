@@ -8,7 +8,6 @@ pub use state::HelpState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_CYAN, COLOR_FG, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -239,7 +238,7 @@ impl Plugin for HelpPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         // Calculate centered modal area (80% width, 80% height)
         let popup_width = ((area.width as f32) * 0.8) as u16;
         let popup_height = ((area.height as f32) * 0.8) as u16;
@@ -249,10 +248,10 @@ impl Plugin for HelpPlugin {
 
         if self.state.current_topic == 0 {
             // Index page
-            self.draw_index(frame, modal_area);
+            self.draw_index(frame, modal_area, colors);
         } else {
             // Topic page
-            self.draw_topic(frame, modal_area);
+            self.draw_topic(frame, modal_area, colors);
         }
     }
 
@@ -266,16 +265,16 @@ impl Plugin for HelpPlugin {
 }
 
 impl HelpPlugin {
-    fn draw_index(&self, frame: &mut Frame, area: Rect) {
-        let modal = ModalFrame::new(area, " R-DOS Help ").no_footer_separator();
+    fn draw_index(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+        let modal = ModalFrame::themed(area, " R-DOS Help ", colors).no_footer_separator();
         modal.render_frame(frame);
 
-        let label_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
+        let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
         let key_style = Style::default()
-            .fg(COLOR_CYAN)
-            .bg(COLOR_BG)
+            .fg(colors.cyan())
+            .bg(colors.bg())
             .add_modifier(Modifier::BOLD);
-        let title_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+        let title_style = Style::default().fg(colors.fg()).bg(colors.bg());
 
         modal.render_row(
             frame,
@@ -301,15 +300,15 @@ impl HelpPlugin {
         modal.render_help(frame, vec![("ESC", "close help")]);
     }
 
-    fn draw_topic(&self, frame: &mut Frame, area: Rect) {
+    fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let topic_idx = self.state.current_topic - 1;
         let topic = &self.state.topics[topic_idx];
 
         let title = format!(" {} ", topic.title);
-        let modal = ModalFrame::new(area, &title).no_footer_separator();
+        let modal = ModalFrame::themed(area, &title, colors).no_footer_separator();
         modal.render_frame(frame);
 
-        let content_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+        let content_style = Style::default().fg(colors.fg()).bg(colors.bg());
 
         // Get content lines
         let content_lines: Vec<&str> = topic.content.lines().collect();

@@ -15,7 +15,7 @@ pub fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardStat
         .add_modifier(ratatui::style::Modifier::BOLD);
 
     // Use ModalFrame for consistent double-line border styling
-    let modal = ModalFrame::new(area, " Copy to Clipboard (Y) ")
+    let modal = ModalFrame::themed(area, " Copy to Clipboard (Y) ", &colors)
         .no_title_separator()
         .no_footer_separator();
     modal.render_frame(frame);

@@ -81,7 +81,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::Beads(state) => {
             crate::plugins::beads::modal::draw_beads_modal(frame, area, state, app);
         }
-        Modal::Plugin(_) => app.plugin_manager.draw_modal(frame, area),
+        Modal::Plugin(_) => app.plugin_manager.draw_modal(frame, area, &app.colors()),
 
         // Fixed-size modals with their own clearing
         Modal::Quit => draw_quit_modal(frame, area, app),
@@ -137,7 +137,8 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
     let quit_area = Rect::new(x, y, width.min(area.width), height.min(area.height));
 
     // Use ModalFrame for consistent styling
-    let modal = ModalFrame::new(quit_area, " F10 - Quit Q-DOS II ").no_footer_separator();
+    let modal =
+        ModalFrame::themed(quit_area, " F10 - Quit Q-DOS II ", &colors).no_footer_separator();
     modal.render_frame(frame);
 
     // Content rows (centered text)
@@ -300,7 +301,7 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
     use crate::ui::components::ModalFrame;
 
     // Use ModalFrame for consistent double-line border styling
-    let modal = ModalFrame::new(area, " Change Directory ")
+    let modal = ModalFrame::themed(area, " Change Directory ", &colors)
         .no_title_separator()
         .no_footer_separator();
     modal.render_frame(frame);

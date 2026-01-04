@@ -4,7 +4,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -162,7 +161,7 @@ impl Plugin for PrintPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
         let popup_height = 8.min(area.height.saturating_sub(4));
@@ -171,7 +170,7 @@ impl Plugin for PrintPlugin {
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
         // Use ModalFrame for consistent styling
-        let modal = ModalFrame::new(modal_area, " PRINT FILE ")
+        let modal = ModalFrame::themed(modal_area, " PRINT FILE ", colors)
             .no_title_separator()
             .no_footer_separator();
         modal.render_frame(frame);
@@ -184,7 +183,7 @@ impl Plugin for PrintPlugin {
                 1,
                 vec![Span::styled(
                     error.clone(),
-                    Style::default().fg(COLOR_RED).bg(COLOR_BG),
+                    Style::default().fg(colors.red()).bg(colors.bg()),
                 )],
             );
 
@@ -194,7 +193,7 @@ impl Plugin for PrintPlugin {
                 3,
                 vec![Span::styled(
                     "Press any key to close",
-                    Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+                    Style::default().fg(colors.green()).bg(colors.bg()),
                 )],
             );
         } else {
@@ -205,11 +204,11 @@ impl Plugin for PrintPlugin {
                 vec![
                     Span::styled(
                         "Print file: ",
-                        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+                        Style::default().fg(colors.yellow()).bg(colors.bg()),
                     ),
                     Span::styled(
                         self.state.file_name.clone(),
-                        Style::default().fg(COLOR_FG).bg(COLOR_BG),
+                        Style::default().fg(colors.fg()).bg(colors.bg()),
                     ),
                 ],
             );

@@ -14,7 +14,6 @@ use crate::plugins::git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };
 use crate::plugins::git::{BlameLine, FileHistoryEntry};
-use crate::ui::{COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -451,7 +450,7 @@ impl Plugin for ViewerPlugin {
         KeyHandleResult::Handled
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let state = match &self.state {
             Some(s) => s,
             None => return,
@@ -511,7 +510,9 @@ impl Plugin for ViewerPlugin {
         frame.render_widget(
             Paragraph::new(Span::styled(
                 title,
-                Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.fg())
+                    .add_modifier(Modifier::BOLD),
             )),
             chunks[0],
         );
@@ -519,61 +520,67 @@ impl Plugin for ViewerPlugin {
         // Separator
         let sep = "═".repeat(area.width as usize);
         frame.render_widget(
-            Paragraph::new(Span::styled(&sep, Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
             chunks[1],
         );
 
         // Content area
         let content_height = chunks[2].height as usize;
         match state.mode {
-            ViewMode::Normal => self.draw_normal_view(frame, chunks[2], state, content_height),
-            ViewMode::Hex => self.draw_hex_view(frame, chunks[2], state, content_height),
-            ViewMode::Image => self.draw_image_view(frame, chunks[2], state),
-            ViewMode::Markdown => self.draw_markdown_view(frame, chunks[2], state, content_height),
-            ViewMode::Blame => self.draw_blame_view(frame, chunks[2], state, content_height),
-            ViewMode::Diff => self.draw_diff_view(frame, chunks[2], state, content_height),
+            ViewMode::Normal => {
+                self.draw_normal_view(frame, chunks[2], state, content_height, colors)
+            }
+            ViewMode::Hex => self.draw_hex_view(frame, chunks[2], state, content_height, colors),
+            ViewMode::Image => self.draw_image_view(frame, chunks[2], state, colors),
+            ViewMode::Markdown => {
+                self.draw_markdown_view(frame, chunks[2], state, content_height, colors)
+            }
+            ViewMode::Blame => {
+                self.draw_blame_view(frame, chunks[2], state, content_height, colors)
+            }
+            ViewMode::Diff => self.draw_diff_view(frame, chunks[2], state, content_height, colors),
         }
 
         // Separator
         frame.render_widget(
-            Paragraph::new(Span::styled(&sep, Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
             chunks[3],
         );
 
         // Help line
         let mut help_spans = vec![
-            Span::styled(" H", Style::default().fg(COLOR_BLUE)),
+            Span::styled(" H", Style::default().fg(colors.blue())),
             Span::raw("ex "),
-            Span::styled("N", Style::default().fg(COLOR_BLUE)),
+            Span::styled("N", Style::default().fg(colors.blue())),
             Span::raw("ormal "),
-            Span::styled("I", Style::default().fg(COLOR_BLUE)),
+            Span::styled("I", Style::default().fg(colors.blue())),
             Span::raw("mage "),
-            Span::styled("M", Style::default().fg(COLOR_BLUE)),
+            Span::styled("M", Style::default().fg(colors.blue())),
             Span::raw("arkdown "),
         ];
 
         if state.is_git_repo {
-            help_spans.push(Span::styled("B", Style::default().fg(COLOR_BLUE)));
+            help_spans.push(Span::styled("B", Style::default().fg(colors.blue())));
             help_spans.push(Span::raw("lame "));
-            help_spans.push(Span::styled("D", Style::default().fg(COLOR_BLUE)));
+            help_spans.push(Span::styled("D", Style::default().fg(colors.blue())));
             help_spans.push(Span::raw("iff "));
         }
 
-        help_spans.push(Span::styled("F", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::styled("F", Style::default().fg(colors.blue())));
         help_spans.push(Span::raw("ilter "));
-        help_spans.push(Span::styled("↑↓", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::styled("↑↓", Style::default().fg(colors.blue())));
         help_spans.push(Span::raw(" scroll "));
 
         if state.has_older_version() {
-            help_spans.push(Span::styled("←", Style::default().fg(COLOR_BLUE)));
+            help_spans.push(Span::styled("←", Style::default().fg(colors.blue())));
             help_spans.push(Span::raw(" older "));
         }
         if state.has_newer_version() {
-            help_spans.push(Span::styled("→", Style::default().fg(COLOR_BLUE)));
+            help_spans.push(Span::styled("→", Style::default().fg(colors.blue())));
             help_spans.push(Span::raw(" newer "));
         }
 
-        help_spans.push(Span::styled("Esc", Style::default().fg(COLOR_BLUE)));
+        help_spans.push(Span::styled("Esc", Style::default().fg(colors.blue())));
         help_spans.push(Span::raw(" exit"));
 
         frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[4]);
@@ -606,7 +613,14 @@ impl Plugin for ViewerPlugin {
 
 // Drawing helper methods
 impl ViewerPlugin {
-    fn draw_normal_view(&self, frame: &mut Frame, area: Rect, state: &ViewerState, height: usize) {
+    fn draw_normal_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        height: usize,
+        colors: &crate::app::ThemeColors,
+    ) {
         let content_str = String::from_utf8_lossy(&state.content);
         let ss = get_syntax_set();
         let ts = get_theme_set();
@@ -705,7 +719,7 @@ impl ViewerPlugin {
                 .map(|line| {
                     Line::from(Span::styled(
                         format!(" {}", line),
-                        Style::default().fg(COLOR_FG),
+                        Style::default().fg(colors.fg()),
                     ))
                 })
                 .collect()
@@ -714,7 +728,14 @@ impl ViewerPlugin {
         frame.render_widget(Paragraph::new(visible_lines), area);
     }
 
-    fn draw_hex_view(&self, frame: &mut Frame, area: Rect, state: &ViewerState, height: usize) {
+    fn draw_hex_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        height: usize,
+        colors: &crate::app::ThemeColors,
+    ) {
         let bytes_per_line: usize = 16;
         let total_lines = state.content.len().div_ceil(bytes_per_line);
         let max_scroll = total_lines.saturating_sub(height);
@@ -731,7 +752,7 @@ impl ViewerPlugin {
 
             spans.push(Span::styled(
                 format!(" {:08X}  ", offset),
-                Style::default().fg(COLOR_BLUE),
+                Style::default().fg(colors.blue()),
             ));
 
             for (i, &byte) in chunk.iter().enumerate() {
@@ -740,7 +761,7 @@ impl ViewerPlugin {
                 }
                 spans.push(Span::styled(
                     format!("{:02X} ", byte),
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 ));
             }
 
@@ -762,7 +783,7 @@ impl ViewerPlugin {
                     }
                 })
                 .collect();
-            spans.push(Span::styled(ascii, Style::default().fg(COLOR_GREEN)));
+            spans.push(Span::styled(ascii, Style::default().fg(colors.green())));
 
             lines.push(Line::from(spans));
         }
@@ -770,7 +791,13 @@ impl ViewerPlugin {
         frame.render_widget(Paragraph::new(lines), area);
     }
 
-    fn draw_image_view(&self, frame: &mut Frame, area: Rect, state: &ViewerState) {
+    fn draw_image_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        colors: &crate::app::ThemeColors,
+    ) {
         if let Some(mut protocol) = get_or_create_image_protocol(&state.content) {
             let image_widget = StatefulImage::new(None);
             frame.render_stateful_widget(image_widget, area, &mut protocol);
@@ -779,17 +806,19 @@ impl ViewerPlugin {
                 Line::from(""),
                 Line::from(Span::styled(
                     " Cannot display image",
-                    Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(colors.red())
+                        .add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     format!(" File: {}", state.file_path.display()),
-                    Style::default().fg(COLOR_GREEN),
+                    Style::default().fg(colors.green()),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     " Press N for normal view or H for hex view",
-                    Style::default().fg(COLOR_BLUE),
+                    Style::default().fg(colors.blue()),
                 )),
             ];
             frame.render_widget(Paragraph::new(error_msg), area);
@@ -802,6 +831,7 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
+        colors: &crate::app::ThemeColors,
     ) {
         let content_str = String::from_utf8_lossy(&state.content);
         let mut lines: Vec<Line> = Vec::new();
@@ -810,17 +840,21 @@ impl ViewerPlugin {
             if line.starts_with("# ") {
                 lines.push(Line::from(Span::styled(
                     format!(" {}", &line[2..]),
-                    Style::default().fg(COLOR_BLUE).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(colors.blue())
+                        .add_modifier(Modifier::BOLD),
                 )));
             } else if line.starts_with("## ") {
                 lines.push(Line::from(Span::styled(
                     format!(" {}", &line[3..]),
-                    Style::default().fg(COLOR_BLUE).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(colors.blue())
+                        .add_modifier(Modifier::BOLD),
                 )));
             } else if line.starts_with("### ") {
                 lines.push(Line::from(Span::styled(
                     format!(" {}", &line[4..]),
-                    Style::default().fg(COLOR_BLUE),
+                    Style::default().fg(colors.blue()),
                 )));
             } else if line.starts_with("#### ")
                 || line.starts_with("##### ")
@@ -829,39 +863,41 @@ impl ViewerPlugin {
                 let header_content = line.trim_start_matches('#').trim_start();
                 lines.push(Line::from(Span::styled(
                     format!(" {}", header_content),
-                    Style::default().fg(COLOR_BLUE),
+                    Style::default().fg(colors.blue()),
                 )));
             } else if line.starts_with("```") {
                 lines.push(Line::from(Span::styled(
                     " ─────────────────────────────────────",
-                    Style::default().fg(COLOR_GREEN),
+                    Style::default().fg(colors.green()),
                 )));
             } else if line.starts_with("- ") || line.starts_with("* ") {
                 lines.push(Line::from(Span::styled(
                     format!("  • {}", &line[2..]),
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )));
             } else if line.chars().next().is_some_and(|c| c.is_ascii_digit()) && line.contains(". ")
             {
                 lines.push(Line::from(Span::styled(
                     format!("  {}", line),
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )));
             } else if line.starts_with("> ") {
                 lines.push(Line::from(Span::styled(
                     format!(" │ {}", &line[2..]),
-                    Style::default().fg(COLOR_GREEN),
+                    Style::default().fg(colors.green()),
                 )));
             } else if line == "---" || line == "***" || line == "___" {
                 lines.push(Line::from(Span::styled(
                     " ═════════════════════════════════════",
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )));
             } else if line.contains("**") || line.contains("__") {
                 let clean_line = line.replace("**", "").replace("__", "");
                 lines.push(Line::from(Span::styled(
                     format!(" {}", clean_line),
-                    Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(colors.fg())
+                        .add_modifier(Modifier::BOLD),
                 )));
             } else if line.contains('*') || line.contains('_') {
                 let clean_line = line
@@ -870,19 +906,21 @@ impl ViewerPlugin {
                     .collect::<String>();
                 lines.push(Line::from(Span::styled(
                     format!(" {}", clean_line),
-                    Style::default().fg(COLOR_FG).add_modifier(Modifier::ITALIC),
+                    Style::default()
+                        .fg(colors.fg())
+                        .add_modifier(Modifier::ITALIC),
                 )));
             } else if line.contains('`') {
                 lines.push(Line::from(Span::styled(
                     format!(" {}", line),
-                    Style::default().fg(COLOR_GREEN),
+                    Style::default().fg(colors.green()),
                 )));
             } else if line.trim().is_empty() {
                 lines.push(Line::from(""));
             } else {
                 lines.push(Line::from(Span::styled(
                     format!(" {}", line),
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )));
             }
         }
@@ -894,18 +932,25 @@ impl ViewerPlugin {
         frame.render_widget(Paragraph::new(visible_lines), area);
     }
 
-    fn draw_blame_view(&self, frame: &mut Frame, area: Rect, state: &ViewerState, height: usize) {
+    fn draw_blame_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        height: usize,
+        colors: &crate::app::ThemeColors,
+    ) {
         if state.blame_lines.is_empty() {
             let error_msg = vec![
                 Line::from(""),
                 Line::from(Span::styled(
                     " No blame data available",
-                    Style::default().fg(COLOR_RED),
+                    Style::default().fg(colors.red()),
                 )),
                 Line::from(""),
                 Line::from(Span::styled(
                     " File may not be tracked by git",
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )),
             ];
             frame.render_widget(Paragraph::new(error_msg), area);
@@ -931,18 +976,18 @@ impl ViewerPlugin {
                 let spans = vec![
                     Span::styled(
                         format!(" {:>4} ", line_num + 1),
-                        Style::default().fg(COLOR_BLUE),
+                        Style::default().fg(colors.blue()),
                     ),
                     Span::styled(
                         format!("{} ", blame.hash),
-                        Style::default().fg(Color::Rgb(128, 128, 128)),
+                        Style::default().fg(colors.grey()),
                     ),
-                    Span::styled(author, Style::default().fg(COLOR_GREEN)),
+                    Span::styled(author, Style::default().fg(colors.green())),
                     Span::styled(
                         format!(" {:>8} │ ", blame.time_ago),
-                        Style::default().fg(Color::Rgb(128, 128, 128)),
+                        Style::default().fg(colors.grey()),
                     ),
-                    Span::styled(&blame.line_content, Style::default().fg(COLOR_FG)),
+                    Span::styled(&blame.line_content, Style::default().fg(colors.fg())),
                 ];
 
                 Line::from(spans)
@@ -952,13 +997,20 @@ impl ViewerPlugin {
         frame.render_widget(Paragraph::new(visible_lines), area);
     }
 
-    fn draw_diff_view(&self, frame: &mut Frame, area: Rect, state: &ViewerState, height: usize) {
+    fn draw_diff_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        height: usize,
+        colors: &crate::app::ThemeColors,
+    ) {
         if state.diff_lines.is_empty() {
             let error_msg = vec![
                 Line::from(""),
                 Line::from(Span::styled(
                     " No diff data available",
-                    Style::default().fg(COLOR_FG),
+                    Style::default().fg(colors.fg()),
                 )),
             ];
             frame.render_widget(Paragraph::new(error_msg), area);
@@ -967,7 +1019,6 @@ impl ViewerPlugin {
 
         let max_scroll = state.diff_lines.len().saturating_sub(height);
         let scroll = state.scroll_offset.min(max_scroll);
-        let color_cyan = Color::Rgb(0, 170, 170);
 
         let visible_lines: Vec<Line> = state
             .diff_lines
@@ -976,17 +1027,17 @@ impl ViewerPlugin {
             .take(height)
             .map(|line| {
                 let (style, prefix) = if line.starts_with('+') && !line.starts_with("+++") {
-                    (Style::default().fg(COLOR_GREEN), "+")
+                    (Style::default().fg(colors.green()), "+")
                 } else if line.starts_with('-') && !line.starts_with("---") {
-                    (Style::default().fg(COLOR_RED), "-")
+                    (Style::default().fg(colors.red()), "-")
                 } else if line.starts_with("@@") {
-                    (Style::default().fg(color_cyan), "@")
+                    (Style::default().fg(colors.cyan()), "@")
                 } else if line.starts_with("diff ") || line.starts_with("index ") {
-                    (Style::default().fg(COLOR_BLUE), " ")
+                    (Style::default().fg(colors.blue()), " ")
                 } else if line.starts_with("+++") || line.starts_with("---") {
-                    (Style::default().fg(COLOR_BLUE), " ")
+                    (Style::default().fg(colors.blue()), " ")
                 } else {
-                    (Style::default().fg(COLOR_FG), " ")
+                    (Style::default().fg(colors.fg()), " ")
                 };
 
                 Line::from(vec![

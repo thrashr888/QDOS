@@ -4,7 +4,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -216,7 +215,7 @@ impl Plugin for SearchSpecPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -234,13 +233,13 @@ impl Plugin for SearchSpecPlugin {
             " Search Attributes "
         };
 
-        let modal = ModalFrame::new(modal_area, title);
+        let modal = ModalFrame::themed(modal_area, title, colors);
         modal.render_frame(frame);
 
-        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-        let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-        let input_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_RED);
-        let hint_style = Style::default().fg(COLOR_GREY).bg(COLOR_BG);
+        let label_style = Style::default().fg(colors.green()).bg(colors.bg());
+        let value_style = Style::default().fg(colors.fg()).bg(colors.bg());
+        let input_style = Style::default().fg(colors.yellow()).bg(colors.red());
+        let hint_style = Style::default().fg(colors.grey()).bg(colors.bg());
 
         if state.phase == 0 {
             // Phase 0: Pattern input
@@ -302,16 +301,16 @@ impl Plugin for SearchSpecPlugin {
                 let is_selected = i == state.selected_attr;
 
                 let style = if is_selected {
-                    Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                    Style::default().fg(colors.yellow()).bg(colors.red())
                 } else if is_on {
-                    Style::default().fg(COLOR_GREEN).bg(COLOR_BG)
+                    Style::default().fg(colors.green()).bg(colors.bg())
                 } else {
-                    Style::default().fg(COLOR_GREY).bg(COLOR_BG)
+                    Style::default().fg(colors.grey()).bg(colors.bg())
                 };
 
                 let indicator = if is_on { " ✓ " } else { "   " };
                 attr_spans.push(Span::styled(format!("[{}{}]", name, indicator), style));
-                attr_spans.push(Span::styled(" ", Style::default().bg(COLOR_BG)));
+                attr_spans.push(Span::styled(" ", Style::default().bg(colors.bg())));
             }
             modal.render_row(frame, 4, attr_spans);
 

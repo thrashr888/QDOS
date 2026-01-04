@@ -7,7 +7,6 @@ mod state;
 pub use state::DirMapState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::ui::{COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -303,7 +302,7 @@ impl Plugin for DirMapPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -328,7 +327,9 @@ impl Plugin for DirMapPlugin {
         frame.render_widget(
             Paragraph::new(Span::styled(
                 title,
-                Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.fg())
+                    .add_modifier(Modifier::BOLD),
             )),
             chunks[0],
         );
@@ -336,7 +337,7 @@ impl Plugin for DirMapPlugin {
         // Separator (double line)
         let sep = "═".repeat(area.width as usize);
         frame.render_widget(
-            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
             chunks[1],
         );
 
@@ -383,9 +384,9 @@ impl Plugin for DirMapPlugin {
             let line_text = format!("{}{}{}", indent, indicator, name);
 
             let style = if is_selected {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
-                Style::default().fg(COLOR_FG)
+                Style::default().fg(colors.fg())
             };
 
             // Pad to full width for selection highlighting
@@ -397,7 +398,7 @@ impl Plugin for DirMapPlugin {
 
         // Bottom separator
         frame.render_widget(
-            Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
             chunks[3],
         );
 
@@ -409,18 +410,18 @@ impl Plugin for DirMapPlugin {
                 .unwrap_or_else(|| path.to_string_lossy().to_string());
             (
                 format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name),
-                Style::default().fg(COLOR_YELLOW),
+                Style::default().fg(colors.yellow()),
             )
         } else if let Some(ref mode) = state.input_mode {
             (
                 format!("{}: {}█", mode, state.input_buffer),
-                Style::default().fg(COLOR_GREEN),
+                Style::default().fg(colors.green()),
             )
         } else {
             (
                 "↑↓ Navigate  Enter/→ Expand  ←/Backspace Collapse  M Make Dir  d Delete Dir  ESC Close"
                     .to_string(),
-                Style::default().fg(COLOR_GREEN),
+                Style::default().fg(colors.green()),
             )
         };
         frame.render_widget(

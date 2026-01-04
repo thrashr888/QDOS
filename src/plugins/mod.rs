@@ -155,7 +155,7 @@ pub trait Plugin: Send + Sync {
     fn tick(&mut self) {}
 
     /// Draw the plugin's modal
-    fn draw_modal(&self, _frame: &mut Frame, _area: Rect) {}
+    fn draw_modal(&self, _frame: &mut Frame, _area: Rect, _colors: &crate::app::ThemeColors) {}
 
     /// Get help content lines
     fn help_content(&self) -> Vec<String> {
@@ -338,9 +338,9 @@ impl PluginManager {
     }
 
     /// Draw the active modal
-    pub fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    pub fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         if let Some(plugin) = self.active_modal() {
-            plugin.draw_modal(frame, area);
+            plugin.draw_modal(frame, area, colors);
         }
     }
 

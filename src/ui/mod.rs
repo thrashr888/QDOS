@@ -5,7 +5,7 @@ use crate::app::{App, Modal, NavItem, SortMode};
 use crate::file_ops::GitStatus;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::Paragraph,
     Frame,
@@ -14,15 +14,9 @@ use ratatui::{
 // Use submodule functions
 use modals::draw_modal;
 
-/// QDOS color scheme - exact DOS 16-color palette RGB values
-pub(crate) const COLOR_BG: Color = Color::Reset; // Terminal default (transparent)
-pub(crate) const COLOR_FG: Color = Color::Rgb(255, 255, 255); // White
-pub(crate) const COLOR_BLUE: Color = Color::Rgb(102, 183, 179); // DOS Blue - borders, menu items
-pub(crate) const COLOR_GREEN: Color = Color::Rgb(103, 204, 77); // DOS Green - help text, descriptions
-pub(crate) const COLOR_RED: Color = Color::Rgb(157, 31, 20); // DOS Red - path bar, selection bg
-pub(crate) const COLOR_YELLOW: Color = Color::Rgb(232, 218, 89); // DOS Yellow - tagged items
-pub(crate) const COLOR_GREY: Color = Color::Rgb(128, 128, 128); // Grey - hidden files
-pub(crate) const COLOR_CYAN: Color = Color::Rgb(0, 170, 170); // Cyan - git added
+// Note: Color constants removed. Use ThemeColors from app::state for themed rendering.
+// Reference values: BG=Reset, FG=(255,255,255), GREEN=(103,204,77), YELLOW=(232,218,89),
+// BLUE=(102,183,179), RED=(157,31,20), GREY=(128,128,128), CYAN=(0,170,170)
 
 /// Format file size with B, K, M, G, T, P suffixes (max 2 decimal places)
 pub(crate) fn format_size_short(bytes: u64) -> String {

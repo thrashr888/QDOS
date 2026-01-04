@@ -4,7 +4,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
@@ -163,7 +162,7 @@ impl Plugin for StatusPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         // Calculate centered area (60% width, 50% height)
         let popup_width = (area.width as f32 * 0.6) as u16;
         let popup_height = (area.height as f32 * 0.5) as u16;
@@ -171,15 +170,15 @@ impl Plugin for StatusPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        let modal = ModalFrame::new(modal_area, " System Status ").no_footer_separator();
+        let modal = ModalFrame::themed(modal_area, " System Status ", colors).no_footer_separator();
         modal.render_frame(frame);
 
-        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-        let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-        let header_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
+        let label_style = Style::default().fg(colors.green()).bg(colors.bg());
+        let value_style = Style::default().fg(colors.fg()).bg(colors.bg());
+        let header_style = Style::default().fg(colors.yellow()).bg(colors.bg());
         let dim_style = Style::default()
-            .fg(COLOR_FG)
-            .bg(COLOR_BG)
+            .fg(colors.fg())
+            .bg(colors.bg())
             .add_modifier(Modifier::DIM);
 
         let info = &self.state.info;

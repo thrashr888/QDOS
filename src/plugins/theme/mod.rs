@@ -3,7 +3,7 @@
 //! Provides color theme selection (Ctrl+T functionality) as a self-contained plugin.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::app::{ColorTheme, ColorThemeState, ThemeColors};
+use crate::app::{ColorTheme, ColorThemeState};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
@@ -63,11 +63,6 @@ impl ThemePlugin {
     /// Set current theme (called by app when theme changes)
     pub fn set_current_theme(&mut self, theme: ColorTheme) {
         self.current_theme = theme;
-    }
-
-    /// Get current theme colors for rendering
-    fn theme_colors(&self) -> ThemeColors {
-        self.current_theme.colors()
     }
 }
 
@@ -182,12 +177,10 @@ impl Plugin for ThemePlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
-
-        let colors = self.theme_colors();
 
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
@@ -197,9 +190,7 @@ impl Plugin for ThemePlugin {
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
         // Use ModalFrame with theme-aware border (fg color for white borders per SPEC)
-        let modal = ModalFrame::new(modal_area, " Color Theme ")
-            .border_style(Style::default().fg(colors.fg()).bg(colors.bg()))
-            .content_style(Style::default().fg(colors.fg()).bg(colors.bg()));
+        let modal = ModalFrame::themed(modal_area, " Color Theme ", colors);
         modal.render_frame(frame);
 
         let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());

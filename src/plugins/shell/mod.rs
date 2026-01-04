@@ -9,7 +9,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_CYAN, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -536,11 +535,11 @@ impl Plugin for ShellPlugin {
         self.poll_tasks();
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         match self.state.view {
-            ShellView::Command => self.draw_command_view(frame, area),
-            ShellView::TaskList => self.draw_task_list_view(frame, area),
-            ShellView::Attached(id) => self.draw_attached_view(frame, area, id),
+            ShellView::Command => self.draw_command_view(frame, area, colors),
+            ShellView::TaskList => self.draw_task_list_view(frame, area, colors),
+            ShellView::Attached(id) => self.draw_attached_view(frame, area, id, colors),
         }
     }
 
@@ -766,17 +765,17 @@ impl ShellPlugin {
         }
     }
 
-    fn draw_command_view(&self, frame: &mut Frame, area: Rect) {
+    fn draw_command_view(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         frame.render_widget(Clear, area);
 
-        let modal = ModalFrame::new(area, " DOS Command ");
+        let modal = ModalFrame::themed(area, " DOS Command ", colors);
         modal.render_frame(frame);
 
         let content_height = modal.content_height() as usize;
 
         // Draw prompt and input
-        let prompt_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-        let input_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+        let prompt_style = Style::default().fg(colors.green()).bg(colors.bg());
+        let input_style = Style::default().fg(colors.fg()).bg(colors.bg());
 
         let prompt = format!("{}> ", self.current_cwd.display());
         let prompt_len = prompt.len().min(area.width.saturating_sub(4) as usize);
@@ -790,8 +789,8 @@ impl ShellPlugin {
                 Span::styled(
                     "_",
                     Style::default()
-                        .fg(COLOR_CYAN)
-                        .bg(COLOR_BG)
+                        .fg(colors.cyan())
+                        .bg(colors.bg())
                         .add_modifier(Modifier::SLOW_BLINK),
                 ),
             ],
@@ -814,9 +813,9 @@ impl ShellPlugin {
             .enumerate()
         {
             let style = if line.starts_with("stderr:") {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_BG)
+                Style::default().fg(colors.yellow()).bg(colors.bg())
             } else {
-                Style::default().fg(COLOR_FG).bg(COLOR_BG)
+                Style::default().fg(colors.fg()).bg(colors.bg())
             };
             modal.render_row(
                 frame,
@@ -844,23 +843,29 @@ impl ShellPlugin {
             frame,
             status_row,
             vec![
-                Span::styled(&exit_str, Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled(&tasks_str, Style::default().fg(COLOR_CYAN).bg(COLOR_BG)),
+                Span::styled(
+                    &exit_str,
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled(
+                    &tasks_str,
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                ),
                 Span::styled(
                     " | jobs  fg <id>  kill <id>  cmd&",
-                    Style::default().fg(COLOR_GREY).bg(COLOR_BG),
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
                 ),
             ],
         );
     }
 
-    fn draw_task_list_view(&self, frame: &mut Frame, area: Rect) {
+    fn draw_task_list_view(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         frame.render_widget(Clear, area);
 
         let running = self.running_count();
         let total = self.tasks.len();
         let title = format!(" Task List ({} running / {} total) ", running, total);
-        let modal = ModalFrame::new(area, &title);
+        let modal = ModalFrame::themed(area, &title, colors);
         modal.render_frame(frame);
 
         let content_height = modal.content_height() as usize;
@@ -871,7 +876,7 @@ impl ShellPlugin {
                 1,
                 vec![Span::styled(
                     "No background tasks",
-                    Style::default().fg(COLOR_GREY).bg(COLOR_BG),
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
                 )],
             );
         } else {
@@ -880,10 +885,19 @@ impl ShellPlugin {
                 frame,
                 0,
                 vec![
-                    Span::styled("  ID  ", Style::default().fg(COLOR_CYAN).bg(COLOR_BG)),
-                    Span::styled("Status   ", Style::default().fg(COLOR_CYAN).bg(COLOR_BG)),
-                    Span::styled("Time     ", Style::default().fg(COLOR_CYAN).bg(COLOR_BG)),
-                    Span::styled("Command", Style::default().fg(COLOR_CYAN).bg(COLOR_BG)),
+                    Span::styled("  ID  ", Style::default().fg(colors.cyan()).bg(colors.bg())),
+                    Span::styled(
+                        "Status   ",
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    ),
+                    Span::styled(
+                        "Time     ",
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    ),
+                    Span::styled(
+                        "Command",
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    ),
                 ],
             );
 
@@ -893,13 +907,21 @@ impl ShellPlugin {
             for (i, id) in task_ids.iter().take(max_display).enumerate() {
                 if let Some(task) = self.tasks.get(id) {
                     let is_selected = i == self.state.selected_task;
-                    let bg = if is_selected { COLOR_RED } else { COLOR_BG };
-                    let fg = if is_selected { COLOR_YELLOW } else { COLOR_FG };
+                    let bg = if is_selected {
+                        colors.red()
+                    } else {
+                        colors.bg()
+                    };
+                    let fg = if is_selected {
+                        colors.yellow()
+                    } else {
+                        colors.fg()
+                    };
 
                     let status_style = match task.status {
-                        TaskStatus::Running => Style::default().fg(COLOR_GREEN).bg(bg),
-                        TaskStatus::Completed => Style::default().fg(COLOR_CYAN).bg(bg),
-                        TaskStatus::Failed => Style::default().fg(COLOR_RED).bg(bg),
+                        TaskStatus::Running => Style::default().fg(colors.green()).bg(bg),
+                        TaskStatus::Completed => Style::default().fg(colors.cyan()).bg(bg),
+                        TaskStatus::Failed => Style::default().fg(colors.red()).bg(bg),
                     };
 
                     let status_icon = match task.status {
@@ -929,7 +951,7 @@ impl ShellPlugin {
                             Span::styled(format!(" {:>3}  ", id), Style::default().fg(fg).bg(bg)),
                             Span::styled(status_icon, status_style),
                             Span::styled(format!("{:<6} ", task.status.as_str()), status_style),
-                            Span::styled(&time_str, Style::default().fg(COLOR_GREY).bg(bg)),
+                            Span::styled(&time_str, Style::default().fg(colors.grey()).bg(bg)),
                             Span::styled(cmd_display, Style::default().fg(fg).bg(bg)),
                         ],
                     );
@@ -943,19 +965,34 @@ impl ShellPlugin {
             frame,
             status_row,
             vec![
-                Span::styled("Enter", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":attach  ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("D", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":kill  ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("C", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":clear  ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("Esc", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":back", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
+                Span::styled("Enter", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(
+                    ":attach  ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("D", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(
+                    ":kill  ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("C", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(
+                    ":clear  ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("Esc", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(":back", Style::default().fg(colors.grey()).bg(colors.bg())),
             ],
         );
     }
 
-    fn draw_attached_view(&self, frame: &mut Frame, area: Rect, task_id: u64) {
+    fn draw_attached_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        task_id: u64,
+        colors: &crate::app::ThemeColors,
+    ) {
         frame.render_widget(Clear, area);
 
         let task = match self.tasks.get(&task_id) {
@@ -978,7 +1015,7 @@ impl ShellPlugin {
             title
         };
 
-        let modal = ModalFrame::new(area, &title_truncated);
+        let modal = ModalFrame::themed(area, &title_truncated, colors);
         modal.render_frame(frame);
 
         let content_height = modal.content_height() as usize;
@@ -995,11 +1032,11 @@ impl ShellPlugin {
         // Draw output lines
         for (i, line) in output.iter().skip(scroll).take(visible_height).enumerate() {
             let style = if line.starts_with("stderr:") {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_BG)
+                Style::default().fg(colors.yellow()).bg(colors.bg())
             } else if line == "[Killed]" {
-                Style::default().fg(COLOR_RED).bg(COLOR_BG)
+                Style::default().fg(colors.red()).bg(colors.bg())
             } else {
-                Style::default().fg(COLOR_FG).bg(COLOR_BG)
+                Style::default().fg(colors.fg()).bg(colors.bg())
             };
             modal.render_row(frame, i as u16, vec![Span::styled(line, style)]);
         }
@@ -1024,17 +1061,32 @@ impl ShellPlugin {
             frame,
             status_row,
             vec![
-                Span::styled(&time_str, Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("  ", Style::default().bg(COLOR_BG)),
-                Span::styled(&exit_str, Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled(&scroll_str, Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled(" | ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("↑↓", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":scroll  ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("F", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":follow  ", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
-                Span::styled("q", Style::default().fg(COLOR_GREEN).bg(COLOR_BG)),
-                Span::styled(":back", Style::default().fg(COLOR_GREY).bg(COLOR_BG)),
+                Span::styled(
+                    &time_str,
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("  ", Style::default().bg(colors.bg())),
+                Span::styled(
+                    &exit_str,
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled(
+                    &scroll_str,
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled(" | ", Style::default().fg(colors.grey()).bg(colors.bg())),
+                Span::styled("↑↓", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(
+                    ":scroll  ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("F", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(
+                    ":follow  ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled("q", Style::default().fg(colors.green()).bg(colors.bg())),
+                Span::styled(":back", Style::default().fg(colors.grey()).bg(colors.bg())),
             ],
         );
     }

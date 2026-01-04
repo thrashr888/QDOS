@@ -4,7 +4,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::app::{ColorTheme, SortMode};
-use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -485,7 +484,7 @@ impl Plugin for QdconfigPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -510,7 +509,9 @@ impl Plugin for QdconfigPlugin {
         frame.render_widget(
             Paragraph::new(Span::styled(
                 title,
-                Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.fg())
+                    .add_modifier(Modifier::BOLD),
             )),
             chunks[0],
         );
@@ -518,7 +519,7 @@ impl Plugin for QdconfigPlugin {
         // Separator
         let sep = "═".repeat(area.width as usize);
         frame.render_widget(
-            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
             chunks[1],
         );
 
@@ -598,26 +599,26 @@ impl Plugin for QdconfigPlugin {
 
             // Style based on selection
             let line_style = if is_selected {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
-                Style::default().fg(COLOR_FG).bg(COLOR_BG)
+                Style::default().fg(colors.fg()).bg(colors.bg())
             };
 
             let name_style = if is_selected {
                 Style::default()
-                    .fg(COLOR_YELLOW)
-                    .bg(COLOR_RED)
+                    .fg(colors.yellow())
+                    .bg(colors.red())
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(COLOR_BLUE)
+                Style::default().fg(colors.blue())
             };
 
             let value_style = if is_editing {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else if is_selected {
-                Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
+                Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
-                Style::default().fg(COLOR_GREEN)
+                Style::default().fg(colors.green())
             };
 
             // Format as "  Field Name:        Value"
@@ -640,15 +641,19 @@ impl Plugin for QdconfigPlugin {
         if !state.plugins.is_empty() {
             lines.push(Line::from(Span::styled(
                 "Registered Plugins:",
-                Style::default().fg(COLOR_BLUE).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.blue())
+                    .add_modifier(Modifier::BOLD),
             )));
             for (id, name, description) in &state.plugins {
                 lines.push(Line::from(vec![
-                    Span::styled(format!("  {} ", id), Style::default().fg(COLOR_GREEN)),
-                    Span::styled(format!("({}) ", name), Style::default().fg(COLOR_FG)),
+                    Span::styled(format!("  {} ", id), Style::default().fg(colors.green())),
+                    Span::styled(format!("({}) ", name), Style::default().fg(colors.fg())),
                     Span::styled(
                         format!("- {}", description),
-                        Style::default().fg(COLOR_GREY).add_modifier(Modifier::DIM),
+                        Style::default()
+                            .fg(colors.grey())
+                            .add_modifier(Modifier::DIM),
                     ),
                 ]));
             }
@@ -657,14 +662,14 @@ impl Plugin for QdconfigPlugin {
 
         lines.push(Line::from(Span::styled(
             "Settings will be saved to ~/.config/rdos/config.toml",
-            Style::default().fg(COLOR_GREY),
+            Style::default().fg(colors.grey()),
         )));
 
         frame.render_widget(Paragraph::new(lines), content_area);
 
         // Bottom separator
         frame.render_widget(
-            Paragraph::new(Span::styled(sep, Style::default().fg(COLOR_FG))),
+            Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
             chunks[3],
         );
 
@@ -675,7 +680,7 @@ impl Plugin for QdconfigPlugin {
             "↑↓ select  Enter/Space toggle  S save  ESC close"
         };
         frame.render_widget(
-            Paragraph::new(Span::styled(help_text, Style::default().fg(COLOR_GREEN))),
+            Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
             chunks[4],
         );
     }

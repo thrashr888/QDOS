@@ -4,7 +4,6 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_CYAN, COLOR_GREEN, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
@@ -167,7 +166,7 @@ impl Plugin for SpacePlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
         let popup_height = 12.min(area.height.saturating_sub(4));
@@ -176,7 +175,7 @@ impl Plugin for SpacePlugin {
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
         let title = format!(" Space On Disk {} ", self.state.disk_name);
-        let modal = ModalFrame::new(modal_area, &title).no_footer_separator();
+        let modal = ModalFrame::themed(modal_area, &title, colors).no_footer_separator();
         modal.render_frame(frame);
 
         let used = self.state.total.saturating_sub(self.state.available);
@@ -186,8 +185,8 @@ impl Plugin for SpacePlugin {
             0.0
         };
 
-        let label_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG);
-        let value_style = Style::default().fg(COLOR_CYAN).bg(COLOR_BG);
+        let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
+        let value_style = Style::default().fg(colors.cyan()).bg(colors.bg());
 
         // Content rows
         modal.render_row(frame, 0, vec![]); // Empty row
@@ -226,7 +225,7 @@ impl Plugin for SpacePlugin {
             7,
             vec![Span::styled(
                 "Press any key to continue",
-                Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+                Style::default().fg(colors.green()).bg(colors.bg()),
             )],
         );
     }

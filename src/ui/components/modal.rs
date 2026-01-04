@@ -2,8 +2,9 @@
 //!
 //! Reusable modal frame with double-line borders and consistent styling.
 
+#[cfg(test)]
+use crate::app::ColorTheme;
 use crate::app::ThemeColors;
-use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_YELLOW};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -20,7 +21,8 @@ use ratatui::Frame;
 ///
 /// # Example
 /// ```ignore
-/// let modal = ModalFrame::new(area, " MY TITLE ");
+/// let colors = app.colors();
+/// let modal = ModalFrame::themed(area, " MY TITLE ", &colors);
 /// modal.render_frame(frame);
 ///
 /// // Render content rows
@@ -55,25 +57,6 @@ pub struct ModalFrame {
 }
 
 impl ModalFrame {
-    /// Create a new modal frame with default styling (hardcoded colors).
-    /// Prefer `themed()` for theme-aware modals.
-    pub fn new(area: Rect, title: &str) -> Self {
-        Self {
-            area,
-            title: title.to_string(),
-            border_style: Style::default().fg(COLOR_FG).bg(COLOR_BG),
-            title_style: Style::default()
-                .fg(COLOR_YELLOW)
-                .bg(COLOR_BG)
-                .add_modifier(Modifier::BOLD),
-            content_style: Style::default().fg(COLOR_FG).bg(COLOR_BG),
-            help_key_color: COLOR_GREEN,
-            show_title_separator: true,
-            show_footer_separator: true,
-            inner_width: area.width.saturating_sub(2) as usize,
-        }
-    }
-
     /// Create a new modal frame with theme colors.
     /// This is the preferred constructor for theme-aware modals.
     pub fn themed(area: Rect, title: &str, colors: &ThemeColors) -> Self {
@@ -91,18 +74,6 @@ impl ModalFrame {
             show_footer_separator: true,
             inner_width: area.width.saturating_sub(2) as usize,
         }
-    }
-
-    /// Set custom border style.
-    pub fn border_style(mut self, style: Style) -> Self {
-        self.border_style = style;
-        self
-    }
-
-    /// Set custom content style.
-    pub fn content_style(mut self, style: Style) -> Self {
-        self.content_style = style;
-        self
     }
 
     /// Set custom title style.
@@ -282,7 +253,8 @@ mod tests {
     #[test]
     fn test_modal_frame_dimensions() {
         let area = Rect::new(10, 5, 40, 12);
-        let modal = ModalFrame::new(area, " TEST ");
+        let colors = ColorTheme::Default.colors();
+        let modal = ModalFrame::themed(area, " TEST ", &colors);
 
         assert_eq!(modal.area, area);
         assert_eq!(modal.content_y(0), 8); // y + 2 (top+title) + 1 (separator)

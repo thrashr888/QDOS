@@ -7,7 +7,6 @@ pub mod modal;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities};
 use crate::ui::components::ModalFrame;
-use crate::ui::{COLOR_BG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
@@ -325,7 +324,7 @@ impl Plugin for FileOpsPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -342,16 +341,16 @@ impl Plugin for FileOpsPlugin {
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
         let title = format!(" {} ", state.operation.name());
-        let modal = ModalFrame::new(modal_area, &title)
+        let modal = ModalFrame::themed(modal_area, &title, colors)
             .no_title_separator()
             .no_footer_separator();
         modal.render_frame(frame);
 
-        let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
-        let input_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_RED);
+        let label_style = Style::default().fg(colors.green()).bg(colors.bg());
+        let input_style = Style::default().fg(colors.yellow()).bg(colors.red());
         let warning_style = Style::default()
-            .fg(COLOR_RED)
-            .bg(COLOR_BG)
+            .fg(colors.red())
+            .bg(colors.bg())
             .add_modifier(Modifier::BOLD);
 
         match state.operation {
@@ -369,7 +368,7 @@ impl Plugin for FileOpsPlugin {
                     1,
                     vec![Span::styled(
                         format!("Erase {}?", file_text),
-                        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+                        Style::default().fg(colors.yellow()).bg(colors.bg()),
                     )],
                 );
                 modal.render_row(frame, 2, vec![]);

@@ -4,7 +4,6 @@
 //! Triggered via F12, provides multiple views for CPU, Memory, Disk, Network.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
@@ -571,7 +570,7 @@ impl Plugin for ProcPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         // Full screen modal - cover entire screen
         let modal_area = Rect::new(0, 0, area.width, area.height);
 
@@ -579,12 +578,12 @@ impl Plugin for ProcPlugin {
         frame.render_widget(Clear, modal_area);
 
         // Use theme colors
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let green = COLOR_GREEN;
-        let yellow = COLOR_YELLOW;
-        let red = COLOR_RED;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let green = colors.green();
+        let yellow = colors.yellow();
+        let red = colors.red();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let title_style = Style::default()
@@ -684,6 +683,7 @@ impl Plugin for ProcPlugin {
                     modal_area.width,
                     content_height,
                     inner_width,
+                    colors,
                 );
             }
             ProcView::Memory => {
@@ -694,6 +694,7 @@ impl Plugin for ProcPlugin {
                     modal_area.width,
                     content_height,
                     inner_width,
+                    colors,
                 );
             }
             ProcView::Disk => {
@@ -704,6 +705,7 @@ impl Plugin for ProcPlugin {
                     modal_area.width,
                     content_height,
                     inner_width,
+                    colors,
                 );
             }
             ProcView::Network => {
@@ -714,6 +716,7 @@ impl Plugin for ProcPlugin {
                     modal_area.width,
                     content_height,
                     inner_width,
+                    colors,
                 );
             }
         }
@@ -770,7 +773,7 @@ impl Plugin for ProcPlugin {
 
         // Draw process detail overlay if open
         if self.state.show_detail {
-            self.draw_detail_overlay(frame, modal_area);
+            self.draw_detail_overlay(frame, modal_area, colors);
         }
     }
 
@@ -820,12 +823,13 @@ impl ProcPlugin {
         width: u16,
         height: usize,
         inner_width: usize,
+        colors: &crate::app::ThemeColors,
     ) {
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let yellow = COLOR_YELLOW;
-        let red = COLOR_RED;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let yellow = colors.yellow();
+        let red = colors.red();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
@@ -940,12 +944,13 @@ impl ProcPlugin {
         width: u16,
         height: usize,
         inner_width: usize,
+        colors: &crate::app::ThemeColors,
     ) {
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let yellow = COLOR_YELLOW;
-        let red = COLOR_RED;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let yellow = colors.yellow();
+        let red = colors.red();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
@@ -1047,12 +1052,13 @@ impl ProcPlugin {
         width: u16,
         height: usize,
         inner_width: usize,
+        colors: &crate::app::ThemeColors,
     ) {
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let yellow = COLOR_YELLOW;
-        let red = COLOR_RED;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let yellow = colors.yellow();
+        let red = colors.red();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
@@ -1149,16 +1155,21 @@ impl ProcPlugin {
     }
 
     /// Draw process detail overlay
-    fn draw_detail_overlay(&self, frame: &mut Frame, parent_area: Rect) {
+    fn draw_detail_overlay(
+        &self,
+        frame: &mut Frame,
+        parent_area: Rect,
+        colors: &crate::app::ThemeColors,
+    ) {
         let Some(ref detail) = self.state.detail_info else {
             return;
         };
 
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let green = COLOR_GREEN;
-        let yellow = COLOR_YELLOW;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let green = colors.green();
+        let yellow = colors.yellow();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let title_style = Style::default()
@@ -1330,12 +1341,13 @@ impl ProcPlugin {
         width: u16,
         height: usize,
         inner_width: usize,
+        colors: &crate::app::ThemeColors,
     ) {
-        let bg = COLOR_BG;
-        let fg = COLOR_FG;
-        let blue = COLOR_BLUE;
-        let yellow = COLOR_YELLOW;
-        let red = COLOR_RED;
+        let bg = colors.bg();
+        let fg = colors.fg();
+        let blue = colors.blue();
+        let yellow = colors.yellow();
+        let red = colors.red();
 
         let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
