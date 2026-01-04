@@ -1,0 +1,290 @@
+//! Theme Plugin for R-DOS
+//!
+//! Provides color theme selection (Ctrl+T functionality) as a self-contained plugin.
+
+use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::app::{ColorTheme, ColorThemeState, ThemeColors};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::layout::Rect;
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::Frame;
+use std::any::Any;
+use std::path::PathBuf;
+
+/// Theme plugin that manages color theme selection
+pub struct ThemePlugin {
+    /// Whether modal is open
+    modal_open: bool,
+    /// Theme selection state
+    state: Option<ColorThemeState>,
+    /// Current app theme (for live preview)
+    current_theme: ColorTheme,
+}
+
+impl ThemePlugin {
+    pub fn new() -> Self {
+        Self {
+            modal_open: false,
+            state: None,
+            current_theme: ColorTheme::Default,
+        }
+    }
+
+    /// Check if modal is open
+    pub fn is_modal_open(&self) -> bool {
+        self.modal_open
+    }
+
+    /// Open the modal with current theme
+    pub fn open_modal(&mut self, current_theme: ColorTheme) {
+        self.current_theme = current_theme;
+        self.state = Some(ColorThemeState::new(current_theme));
+        self.modal_open = true;
+    }
+
+    /// Close the modal
+    pub fn close_modal(&mut self) {
+        self.modal_open = false;
+        self.state = None;
+    }
+
+    /// Get the currently selected theme (for live preview)
+    pub fn selected_theme(&self) -> Option<ColorTheme> {
+        self.state.as_ref().map(|s| s.selected_theme())
+    }
+
+    /// Get the original theme (for cancel)
+    pub fn original_theme(&self) -> Option<ColorTheme> {
+        self.state.as_ref().map(|s| s.original_theme)
+    }
+
+    /// Set current theme (called by app when theme changes)
+    pub fn set_current_theme(&mut self, theme: ColorTheme) {
+        self.current_theme = theme;
+    }
+
+    /// Get current theme colors for rendering
+    fn theme_colors(&self) -> ThemeColors {
+        self.current_theme.colors()
+    }
+}
+
+impl Default for ThemePlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Plugin for ThemePlugin {
+    fn id(&self) -> &str {
+        "theme"
+    }
+
+    fn name(&self) -> &str {
+        "Color Theme"
+    }
+
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities {
+            has_menu: true,
+            has_keys: true,
+            has_modal: true,
+            has_status: false,
+            has_cli: false,
+            has_help: true,
+        }
+    }
+
+    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn shutdown(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn is_available(&self, _cwd: &PathBuf) -> bool {
+        true // Always available
+    }
+
+    fn menu_item(&self) -> Option<PluginMenuItem> {
+        Some(PluginMenuItem {
+            name: "Theme".to_string(),
+            key: 'T',
+            description: "Change color theme".to_string(),
+            priority: 80, // After other features
+        })
+    }
+
+    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        // Ctrl+T opens theme selector
+        if key.code == KeyCode::Char('t') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.open_modal(self.current_theme);
+            KeyHandleResult::OpenModal
+        } else {
+            KeyHandleResult::NotHandled
+        }
+    }
+
+    fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        let Some(ref mut state) = self.state else {
+            return KeyHandleResult::CloseModal;
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                // Cancel - restore original theme
+                let original = state.original_theme;
+                self.close_modal();
+                KeyHandleResult::CloseWithError(format!("theme:{}", original.name()))
+            }
+            KeyCode::Enter => {
+                // Apply selected theme
+                let selected = state.selected_theme();
+                self.close_modal();
+                KeyHandleResult::CloseWithSuccess(format!("theme:{}", selected.name()))
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected > 0 {
+                    state.selected -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.selected < ColorTheme::ALL.len() - 1 {
+                    state.selected += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('1') => {
+                state.selected = 0;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('2') => {
+                state.selected = 1;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('3') => {
+                state.selected = 2;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('4') => {
+                state.selected = 3;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('5') => {
+                state.selected = 4;
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+        let Some(ref state) = self.state else {
+            return;
+        };
+
+        let colors = self.theme_colors();
+
+        // Calculate centered modal area
+        let popup_width = 50.min(area.width.saturating_sub(4));
+        let popup_height = 15.min(area.height.saturating_sub(4));
+        let popup_x = (area.width - popup_width) / 2;
+        let popup_y = (area.height - popup_height) / 2;
+        let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
+
+        // Clear the modal area
+        frame.render_widget(Clear, modal_area);
+
+        let block = Block::default()
+            .title(" Color Theme ")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(colors.blue()))
+            .style(Style::default().bg(colors.bg()));
+
+        let mut lines = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                "Select a theme:",
+                Style::default().fg(colors.yellow()),
+            )),
+            Line::from(""),
+        ];
+
+        for (i, theme) in ColorTheme::ALL.iter().enumerate() {
+            let marker = if i == state.selected { "> " } else { "  " };
+            let style = if i == state.selected {
+                Style::default()
+                    .fg(colors.yellow())
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(colors.fg())
+            };
+
+            lines.push(Line::from(vec![
+                Span::styled(marker, style),
+                Span::styled(
+                    format!("{}. ", i + 1),
+                    Style::default().fg(colors.cyan()),
+                ),
+                Span::styled(theme.name(), style),
+                Span::styled(
+                    format!(" - {}", theme.description()),
+                    Style::default()
+                        .fg(colors.grey())
+                        .add_modifier(Modifier::DIM),
+                ),
+            ]));
+        }
+
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "Enter: Apply  Esc: Cancel  1-5: Select",
+            Style::default().fg(colors.green()),
+        )));
+
+        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        frame.render_widget(paragraph, modal_area);
+    }
+
+    fn help_content(&self) -> Vec<String> {
+        vec![
+            "Ctrl+T - Open Color Theme".to_string(),
+            "  Select from available color themes".to_string(),
+            "  Use Up/Down or 1-5 to select".to_string(),
+        ]
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_theme_plugin_creation() {
+        let plugin = ThemePlugin::new();
+        assert_eq!(plugin.id(), "theme");
+        assert!(!plugin.is_modal_open());
+    }
+
+    #[test]
+    fn test_modal_open_close() {
+        let mut plugin = ThemePlugin::new();
+        plugin.open_modal(ColorTheme::Default);
+        assert!(plugin.is_modal_open());
+        assert_eq!(plugin.selected_theme(), Some(ColorTheme::Default));
+        plugin.close_modal();
+        assert!(!plugin.is_modal_open());
+    }
+}

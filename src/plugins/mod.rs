@@ -17,12 +17,14 @@ pub mod git;
 pub mod help;
 pub mod space;
 pub mod status;
+pub mod theme;
 
 pub use beads::BeadsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
+pub use theme::ThemePlugin;
 
 use crate::config::PluginsConfig;
 use crossterm::event::KeyEvent;
@@ -332,6 +334,13 @@ impl PluginManager {
         self.plugins
             .get_mut("status")
             .and_then(|p| p.as_any_mut().downcast_mut::<status::StatusPlugin>())
+    }
+
+    /// Get mutable reference to ThemePlugin
+    pub fn theme_plugin_mut(&mut self) -> Option<&mut theme::ThemePlugin> {
+        self.plugins
+            .get_mut("theme")
+            .and_then(|p| p.as_any_mut().downcast_mut::<theme::ThemePlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

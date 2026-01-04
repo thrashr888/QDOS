@@ -30,7 +30,7 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     BeadsPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
-    PluginStatusInfo, SpacePlugin, StatusPlugin,
+    PluginStatusInfo, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -99,6 +99,7 @@ impl App {
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));
         plugin_manager.register(Box::new(SpacePlugin::new()));
+        plugin_manager.register(Box::new(ThemePlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -189,11 +190,8 @@ impl App {
             return Ok(());
         }
 
-        // Color theme shortcut (Ctrl+T)
-        if key.code == KeyCode::Char('t') && key.modifiers.contains(KeyModifiers::CONTROL) {
-            self.modal = Modal::ColorTheme(ColorThemeState::new(self.color_theme));
-            return Ok(());
-        }
+        // Color theme shortcut (Ctrl+T) - handled by ThemePlugin via plugin system
+        // Ctrl+T is intercepted by handle_plugin_key() before reaching here
 
         // QDSTART configuration shortcut (Ctrl+S)
         if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -2521,12 +2519,23 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::Plugin(_plugin_id) => {
+            Modal::Plugin(ref plugin_id) => {
                 // Plugin modals are handled by handle_plugin_key before this function is called
                 // This is a fallback - delegate to plugin manager
+                let is_theme = plugin_id == "theme";
                 let result = self
                     .plugin_manager
                     .handle_modal_key(key, &self.current_path);
+
+                // Live preview for theme plugin - update theme as user navigates
+                if is_theme && result == KeyHandleResult::Handled {
+                    if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
+                        if let Some(theme) = theme_plugin.selected_theme() {
+                            self.color_theme = theme;
+                        }
+                    }
+                }
+
                 self.handle_plugin_result(result);
             }
             Modal::None => {}
@@ -3404,6 +3413,15 @@ impl App {
                         }
                     }
 
+                    // Sync current theme to ThemePlugin when it opens
+                    if plugin_id == "theme" {
+                        if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
+                            theme_plugin.set_current_theme(self.color_theme);
+                            // Re-open with correct theme (since it was opened with default)
+                            theme_plugin.open_modal(self.color_theme);
+                        }
+                    }
+
                     self.modal = Modal::Plugin(plugin_id);
                 }
                 true
@@ -3415,12 +3433,28 @@ impl App {
             }
             KeyHandleResult::CloseWithSuccess(msg) => {
                 self.plugin_manager.set_active_modal(None);
-                self.modal = Modal::Success(msg);
+                // Handle theme selection (format: "theme:ThemeName")
+                if let Some(theme_name) = msg.strip_prefix("theme:") {
+                    if let Some(theme) = ColorTheme::ALL.iter().find(|t| t.name() == theme_name) {
+                        self.color_theme = *theme;
+                    }
+                    self.modal = Modal::None;
+                } else {
+                    self.modal = Modal::Success(msg);
+                }
                 true
             }
             KeyHandleResult::CloseWithError(msg) => {
                 self.plugin_manager.set_active_modal(None);
-                self.modal = Modal::Error(msg);
+                // Handle theme cancel (format: "theme:ThemeName" - restore original)
+                if let Some(theme_name) = msg.strip_prefix("theme:") {
+                    if let Some(theme) = ColorTheme::ALL.iter().find(|t| t.name() == theme_name) {
+                        self.color_theme = *theme;
+                    }
+                    self.modal = Modal::None;
+                } else {
+                    self.modal = Modal::Error(msg);
+                }
                 true
             }
             KeyHandleResult::RefreshFiles => {
