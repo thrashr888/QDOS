@@ -7,11 +7,12 @@ mod state;
 pub use state::DirMapState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::layout::Rect;
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Clear, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use std::any::Any;
 use std::fs;
@@ -307,45 +308,16 @@ impl Plugin for DirMapPlugin {
             return;
         };
 
-        // Clear the entire screen
-        frame.render_widget(Clear, area);
-
-        // Layout: title bar, separator, tree content, separator, help/input
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(1), // Title bar
-                Constraint::Length(1), // Separator
-                Constraint::Min(5),    // Tree content
-                Constraint::Length(1), // Separator
-                Constraint::Length(1), // Help/input line
-            ])
-            .split(area);
-
-        // Title bar
-        let title = " DIRECTORY MAP - Tree View ";
-        frame.render_widget(
-            Paragraph::new(Span::styled(
-                title,
-                Style::default()
-                    .fg(colors.fg())
-                    .add_modifier(Modifier::BOLD),
-            )),
-            chunks[0],
-        );
-
-        // Separator (double line)
-        let sep = "═".repeat(area.width as usize);
-        frame.render_widget(
-            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-            chunks[1],
-        );
+        // Create full-screen view
+        let view = FullScreenView::new(area, " DIRECTORY MAP - Tree View ", colors);
+        view.render_frame(frame);
 
         // Tree content area
-        let tree_area = chunks[2];
-        let visible_height = tree_area.height as usize;
+        let content_area = view.content_area();
+        let visible_height = content_area.height as usize;
 
         // Calculate scroll position to keep selected item visible
+        let tree_area = content_area;
         let scroll_offset = if state.selected_index >= visible_height {
             state.selected_index - visible_height + 1
         } else {
@@ -396,38 +368,40 @@ impl Plugin for DirMapPlugin {
 
         frame.render_widget(Paragraph::new(lines), tree_area);
 
-        // Bottom separator
-        frame.render_widget(
-            Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-            chunks[3],
-        );
-
-        // Help/input line
-        let (help_text, help_style) = if let Some(ref path) = state.confirm_delete {
+        // Help/input line - use render_footer for custom content
+        if let Some(ref path) = state.confirm_delete {
             let dir_name = path
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| path.to_string_lossy().to_string());
-            (
-                format!("Delete '{}'? (Y)es / (N)o / ESC", dir_name),
-                Style::default().fg(colors.yellow()),
-            )
+            view.render_footer(
+                frame,
+                vec![Span::styled(
+                    format!(" Delete '{}'? (Y)es / (N)o / ESC", dir_name),
+                    Style::default().fg(colors.yellow()),
+                )],
+            );
         } else if let Some(ref mode) = state.input_mode {
-            (
-                format!("{}: {}█", mode, state.input_buffer),
-                Style::default().fg(colors.green()),
-            )
+            view.render_footer(
+                frame,
+                vec![Span::styled(
+                    format!(" {}: {}█", mode, state.input_buffer),
+                    Style::default().fg(colors.green()),
+                )],
+            );
         } else {
-            (
-                "↑↓ Navigate  Enter/→ Expand  ←/Backspace Collapse  M Make Dir  d Delete Dir  ESC Close"
-                    .to_string(),
-                Style::default().fg(colors.green()),
-            )
-        };
-        frame.render_widget(
-            Paragraph::new(Span::styled(help_text, help_style)),
-            chunks[4],
-        );
+            view.render_help(
+                frame,
+                vec![
+                    ("↑↓", "Navigate"),
+                    ("Enter/→", "Expand"),
+                    ("←/Backspace", "Collapse"),
+                    ("M", "Make Dir"),
+                    ("d", "Delete Dir"),
+                    ("ESC", "Close"),
+                ],
+            );
+        }
     }
 
     fn help_content(&self) -> Vec<String> {

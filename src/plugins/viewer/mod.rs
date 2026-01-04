@@ -14,11 +14,12 @@ use crate::plugins::git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };
 use crate::plugins::git::{BlameLine, FileHistoryEntry};
+use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Clear, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use ratatui_image::picker::Picker;
 use ratatui_image::protocol::StatefulProtocol;
@@ -456,22 +457,7 @@ impl Plugin for ViewerPlugin {
             None => return,
         };
 
-        // Clear the entire screen
-        frame.render_widget(Clear, area);
-
-        // Layout: title bar, separator, content, separator, status/help
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(1), // Title bar
-                Constraint::Length(1), // Separator
-                Constraint::Min(5),    // Content area
-                Constraint::Length(1), // Separator
-                Constraint::Length(1), // Status/help line
-            ])
-            .split(area);
-
-        // Title bar
+        // Build dynamic title
         let mode_str = match state.mode {
             ViewMode::Normal => "NORMAL",
             ViewMode::Hex => "HEX",
@@ -482,108 +468,77 @@ impl Plugin for ViewerPlugin {
         };
         let filter_str = match state.filter {
             ViewFilter::Off => "",
-            ViewFilter::Ascii => " [Filter: ASCII]",
-            ViewFilter::WordStar => " [Filter: W/S]",
+            ViewFilter::Ascii => " [ASCII]",
+            ViewFilter::WordStar => " [W/S]",
         };
 
         let version_str = if let Some(entry) = state.current_commit() {
             let short_hash = &entry.hash[..7.min(entry.hash.len())];
-            let short_msg = if entry.message.len() > 25 {
-                format!("{}...", &entry.message[..22])
-            } else {
-                entry.message.clone()
-            };
-            format!("  [{}] {} - {}", short_hash, entry.date, short_msg)
+            format!(" [{}]", short_hash)
         } else if state.is_git_repo && !state.git_history.is_empty() {
-            "  [working copy]".to_string()
+            " [HEAD]".to_string()
         } else {
             String::new()
         };
 
         let title = format!(
-            " VIEW: {}  Mode: {}{}{}",
+            " VIEW: {} - {}{}{}",
             state.file_name.to_uppercase(),
             mode_str,
             filter_str,
             version_str
         );
-        frame.render_widget(
-            Paragraph::new(Span::styled(
-                title,
-                Style::default()
-                    .fg(colors.fg())
-                    .add_modifier(Modifier::BOLD),
-            )),
-            chunks[0],
-        );
 
-        // Separator
-        let sep = "═".repeat(area.width as usize);
-        frame.render_widget(
-            Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
-            chunks[1],
-        );
+        // Create modal frame
+        let modal = ModalFrame::themed(area, &title, colors);
+        modal.render_frame(frame);
 
         // Content area
-        let content_height = chunks[2].height as usize;
+        let content_area = modal.content_area();
+        let content_height = content_area.height as usize;
         match state.mode {
             ViewMode::Normal => {
-                self.draw_normal_view(frame, chunks[2], state, content_height, colors)
+                self.draw_normal_view(frame, content_area, state, content_height, colors)
             }
-            ViewMode::Hex => self.draw_hex_view(frame, chunks[2], state, content_height, colors),
-            ViewMode::Image => self.draw_image_view(frame, chunks[2], state, colors),
+            ViewMode::Hex => self.draw_hex_view(frame, content_area, state, content_height, colors),
+            ViewMode::Image => self.draw_image_view(frame, content_area, state, colors),
             ViewMode::Markdown => {
-                self.draw_markdown_view(frame, chunks[2], state, content_height, colors)
+                self.draw_markdown_view(frame, content_area, state, content_height, colors)
             }
             ViewMode::Blame => {
-                self.draw_blame_view(frame, chunks[2], state, content_height, colors)
+                self.draw_blame_view(frame, content_area, state, content_height, colors)
             }
-            ViewMode::Diff => self.draw_diff_view(frame, chunks[2], state, content_height, colors),
+            ViewMode::Diff => {
+                self.draw_diff_view(frame, content_area, state, content_height, colors)
+            }
         }
 
-        // Separator
-        frame.render_widget(
-            Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
-            chunks[3],
-        );
-
-        // Help line
-        let mut help_spans = vec![
-            Span::styled(" H", Style::default().fg(colors.blue())),
-            Span::raw("ex "),
-            Span::styled("N", Style::default().fg(colors.blue())),
-            Span::raw("ormal "),
-            Span::styled("I", Style::default().fg(colors.blue())),
-            Span::raw("mage "),
-            Span::styled("M", Style::default().fg(colors.blue())),
-            Span::raw("arkdown "),
+        // Build dynamic help hints
+        let mut help_hints: Vec<(&str, &str)> = vec![
+            ("H", "hex"),
+            ("N", "normal"),
+            ("I", "image"),
+            ("M", "markdown"),
         ];
 
         if state.is_git_repo {
-            help_spans.push(Span::styled("B", Style::default().fg(colors.blue())));
-            help_spans.push(Span::raw("lame "));
-            help_spans.push(Span::styled("D", Style::default().fg(colors.blue())));
-            help_spans.push(Span::raw("iff "));
+            help_hints.push(("B", "blame"));
+            help_hints.push(("D", "diff"));
         }
 
-        help_spans.push(Span::styled("F", Style::default().fg(colors.blue())));
-        help_spans.push(Span::raw("ilter "));
-        help_spans.push(Span::styled("↑↓", Style::default().fg(colors.blue())));
-        help_spans.push(Span::raw(" scroll "));
+        help_hints.push(("F", "filter"));
+        help_hints.push(("↑↓", "scroll"));
 
         if state.has_older_version() {
-            help_spans.push(Span::styled("←", Style::default().fg(colors.blue())));
-            help_spans.push(Span::raw(" older "));
+            help_hints.push(("←", "older"));
         }
         if state.has_newer_version() {
-            help_spans.push(Span::styled("→", Style::default().fg(colors.blue())));
-            help_spans.push(Span::raw(" newer "));
+            help_hints.push(("→", "newer"));
         }
 
-        help_spans.push(Span::styled("Esc", Style::default().fg(colors.blue())));
-        help_spans.push(Span::raw(" exit"));
+        help_hints.push(("Esc", "exit"));
 
-        frame.render_widget(Paragraph::new(Line::from(help_spans)), chunks[4]);
+        modal.render_help(frame, help_hints);
     }
 
     fn help_content(&self) -> Vec<String> {

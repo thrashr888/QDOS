@@ -10,9 +10,8 @@
 use crate::app::{App, Modal, ProgressState};
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
-    text::{Line, Span},
-    widgets::{Clear, Paragraph},
+    style::Style,
+    text::Span,
     Frame,
 };
 
@@ -22,41 +21,6 @@ pub(super) fn centered_fixed(width: u16, height: u16, area: Rect) -> Rect {
     let x = area.x + (area.width.saturating_sub(width)) / 2;
     let y = area.y + (area.height.saturating_sub(height)) / 2;
     Rect::new(x, y, width.min(area.width), height.min(area.height))
-}
-
-/// Wrap text lines to fit within a maximum width
-/// Simple word-wrapping that preserves span styles
-fn wrap_lines(lines: Vec<Line>, max_width: usize) -> Vec<Line> {
-    let mut result = Vec::new();
-
-    for line in lines {
-        let line_width = line.width();
-        if line_width <= max_width {
-            result.push(line);
-        } else {
-            // For simple text lines (single span or plain text), word wrap
-            let text: String = line.spans.iter().map(|s| s.content.as_ref()).collect();
-            let style = line.spans.first().map(|s| s.style).unwrap_or_default();
-
-            let mut current_line = String::new();
-            for word in text.split_whitespace() {
-                if current_line.is_empty() {
-                    current_line = word.to_string();
-                } else if current_line.len() + 1 + word.len() <= max_width {
-                    current_line.push(' ');
-                    current_line.push_str(word);
-                } else {
-                    result.push(Line::from(Span::styled(current_line.clone(), style)));
-                    current_line = word.to_string();
-                }
-            }
-            if !current_line.is_empty() {
-                result.push(Line::from(Span::styled(current_line, style)));
-            }
-        }
-    }
-
-    result
 }
 
 pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
@@ -163,137 +127,10 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-/// Draw Q-DOS II style modal with header separator and dynamic height (themed version)
-/// Uses fixed sizes and preserves individual span colors in content.
-/// Layout:
-/// ╔════════════════════════════════╗
-/// ║            Title               ║
-/// ╠════════════════════════════════╣
-/// ║           Content              ║
-/// ╚════════════════════════════════╝
-pub(super) fn draw_qdos_modal_themed(
-    frame: &mut Frame,
-    area: Rect,
-    title: &str,
-    content: Vec<Line>,
-    border_color: Color,
-    app: &App,
-) {
-    let colors = app.colors();
-
-    // Calculate dynamic modal width based on content
-    let title_width = title.len() + 4; // title + some padding
-    let max_content_width = content.iter().map(|line| line.width()).max().unwrap_or(0) + 4; // content + padding
-
-    // Use the larger of title or content width, with min/max constraints
-    let min_width: u16 = 30;
-    let max_width: u16 = (area.width * 8 / 10).min(80); // 80% of area or 80 chars
-    let calculated_width = title_width.max(max_content_width) as u16;
-    let modal_width = calculated_width.clamp(min_width, max_width);
-
-    // Wrap content that exceeds inner width (modal_width - 2 for borders)
-    let inner_width = (modal_width as usize).saturating_sub(4);
-    let content = wrap_lines(content, inner_width);
-
-    let content_lines = content.len() as u16;
-    let modal_height = (content_lines + 4).min(area.height - 2); // cap at screen height
-
-    // Center the modal within the given area
-    let x = area.x + (area.width.saturating_sub(modal_width)) / 2;
-    let y = area.y + (area.height.saturating_sub(modal_height)) / 2;
-    let modal_area = Rect::new(
-        x,
-        y,
-        modal_width.min(area.width),
-        modal_height.min(area.height),
-    );
-
-    // Clear only the exact modal area
-    frame.render_widget(Clear, modal_area);
-
-    let width = modal_area.width as usize;
-    let inner_w = width.saturating_sub(2);
-
-    // Border style uses the border_color for fg, with theme background
-    let border_style = Style::default().fg(border_color).bg(colors.bg());
-    // Style for padding/empty space
-    let pad_style = Style::default().fg(colors.fg()).bg(colors.bg());
-
-    // Top border: ╔═══╗
-    let top = format!("╔{}╗", "═".repeat(inner_w));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&top, border_style)),
-        Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
-    );
-
-    // Title row: ║ Title ║
-    let title_padded = format!("{:^width$}", title, width = inner_w);
-    let title_line = format!("║{}║", title_padded);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&title_line, border_style)),
-        Rect::new(modal_area.x, modal_area.y + 1, modal_area.width, 1),
-    );
-
-    // Header separator: ╠═══╣
-    let sep = format!("╠{}╣", "═".repeat(inner_w));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&sep, border_style)),
-        Rect::new(modal_area.x, modal_area.y + 2, modal_area.width, 1),
-    );
-
-    // Content area - preserve individual span colors
-    for (i, line) in content.iter().enumerate() {
-        let row_y = modal_area.y + 3 + i as u16;
-
-        // Calculate padding for centering
-        let content_width = line.width();
-        let padding = inner_w.saturating_sub(content_width);
-        let left_pad = padding / 2;
-        let right_pad = padding.saturating_sub(left_pad);
-
-        // Build row: ║ [padding] [content spans] [padding] ║
-        let mut row_spans: Vec<Span> = Vec::with_capacity(line.spans.len() + 4);
-        row_spans.push(Span::styled("║", border_style));
-        row_spans.push(Span::styled(" ".repeat(left_pad), pad_style));
-
-        // Add content spans with background applied
-        for span in line.spans.iter() {
-            let span_style = span.style.bg(colors.bg());
-            row_spans.push(Span::styled(span.content.clone(), span_style));
-        }
-
-        row_spans.push(Span::styled(" ".repeat(right_pad), pad_style));
-        row_spans.push(Span::styled("║", border_style));
-
-        frame.render_widget(
-            Paragraph::new(Line::from(row_spans)),
-            Rect::new(modal_area.x, row_y, modal_area.width, 1),
-        );
-    }
-
-    // Bottom border: ╚═══╝
-    let bottom = format!("╚{}╝", "═".repeat(inner_w));
-    let bottom_y = modal_area.y.saturating_add(modal_height.saturating_sub(1));
-    frame.render_widget(
-        Paragraph::new(Span::styled(&bottom, border_style)),
-        Rect::new(modal_area.x, bottom_y, modal_area.width, 1),
-    );
-}
-
 /// Draw error modal
 pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app: &App) {
-    let colors = app.colors();
-    let content = vec![
-        Line::from(""),
-        Line::from(Span::styled(message, Style::default().fg(colors.fg()))),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(colors.green()),
-        )),
-    ];
-
-    draw_qdos_modal_themed(frame, area, "Error", content, colors.fg(), app);
+    use crate::ui::components::MessageModal;
+    MessageModal::error(message).render(frame, area, &app.colors());
 }
 
 /// Draw path input modal with z suggestions
@@ -390,11 +227,7 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
 
     // Help line
     let help = if z_count > 0 {
-        vec![
-            ("Tab", "complete"),
-            ("Enter", "go"),
-            ("Esc", "cancel"),
-        ]
+        vec![("Tab", "complete"), ("Enter", "go"), ("Esc", "cancel")]
     } else {
         vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")]
     };
@@ -403,22 +236,14 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
 
 /// Draw success modal
 pub(super) fn draw_success_modal(frame: &mut Frame, area: Rect, message: &str, app: &App) {
-    let colors = app.colors();
-    let content = vec![
-        Line::from(""),
-        Line::from(Span::styled(message, Style::default().fg(colors.fg()))),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(colors.green()),
-        )),
-    ];
-
-    draw_qdos_modal_themed(frame, area, "Success", content, colors.fg(), app);
+    use crate::ui::components::MessageModal;
+    MessageModal::success(message).render(frame, area, &app.colors());
 }
 
 /// Draw progress modal for file operations
 pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &ProgressState, app: &App) {
+    use crate::ui::components::ModalFrame;
+
     let colors = app.colors();
     let total = state.files.len();
     let current = state.current_index.min(total);
@@ -444,50 +269,75 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     let empty = bar_width - filled;
     let progress_bar = format!("[{}{}]", "█".repeat(filled), "░".repeat(empty));
 
-    let title = format!("{} Files", state.operation_name());
+    let title = format!(" {} Files ", state.operation_name());
 
-    let mut content = vec![
-        Line::from(""),
-        Line::from(Span::styled(
+    // Calculate height based on whether there's an error
+    let height: u16 = if state.last_error.is_some() { 14 } else { 12 };
+    let width: u16 = 50;
+    let modal_area = centered_fixed(width, height, area);
+
+    let modal = ModalFrame::themed(modal_area, &title, &colors).no_footer_separator();
+    modal.render_frame(frame);
+
+    // Content rows
+    modal.render_row(frame, 0, vec![]);
+    modal.render_row(
+        frame,
+        1,
+        vec![Span::styled(
             format!("{} {} of {}", state.operation_name(), current, total),
             Style::default().fg(colors.fg()),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            progress_bar,
-            Style::default().fg(colors.blue()),
-        )),
-        Line::from(Span::styled(
+        )],
+    );
+    modal.render_row(frame, 2, vec![]);
+    modal.render_row(
+        frame,
+        3,
+        vec![Span::styled(&progress_bar, Style::default().fg(colors.blue()))],
+    );
+    modal.render_row(
+        frame,
+        4,
+        vec![Span::styled(
             format!("{}%", percentage),
             Style::default().fg(colors.green()),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            current_file,
-            Style::default().fg(colors.yellow()),
-        )),
-    ];
+        )],
+    );
+    modal.render_row(frame, 5, vec![]);
+    modal.render_row(
+        frame,
+        6,
+        vec![Span::styled(&current_file, Style::default().fg(colors.yellow()))],
+    );
+
+    let mut row = 7;
 
     // Show error if any
     if let Some(ref err) = state.last_error {
-        content.push(Line::from(""));
-        content.push(Line::from(Span::styled(
-            format!("Error: {}", err),
-            Style::default().fg(colors.red()),
-        )));
+        modal.render_row(frame, row, vec![]);
+        row += 1;
+        modal.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Error: {}", err),
+                Style::default().fg(colors.red()),
+            )],
+        );
+        row += 1;
     }
 
-    // Show stats
-    content.push(Line::from(""));
-    content.push(Line::from(Span::styled(
-        format!("Completed: {}  Failed: {}", state.completed, state.failed),
-        Style::default().fg(colors.green()),
-    )));
-    content.push(Line::from(""));
-    content.push(Line::from(Span::styled(
-        "Press ESC to cancel",
-        Style::default().fg(colors.grey()),
-    )));
+    // Show stats and cancel hint
+    modal.render_row(frame, row, vec![]);
+    modal.render_row(
+        frame,
+        row + 1,
+        vec![Span::styled(
+            format!("Completed: {}  Failed: {}", state.completed, state.failed),
+            Style::default().fg(colors.green()),
+        )],
+    );
 
-    draw_qdos_modal_themed(frame, area, &title, content, colors.blue(), app);
+    // Cancel hint in footer area
+    modal.render_help(frame, vec![("Esc", "cancel")]);
 }

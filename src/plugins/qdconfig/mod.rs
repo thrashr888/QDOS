@@ -4,11 +4,12 @@
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::app::{ColorTheme, SortMode};
+use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Clear, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
@@ -489,42 +490,12 @@ impl Plugin for QdconfigPlugin {
             return;
         };
 
-        // Clear the entire area
-        frame.render_widget(Clear, area);
-
-        // Layout: title, separator, content, separator, help
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(1), // Title
-                Constraint::Length(1), // Separator
-                Constraint::Min(12),   // Content
-                Constraint::Length(1), // Separator
-                Constraint::Length(1), // Help line
-            ])
-            .split(area);
-
-        // Title
-        let title = " R-DOS STARTUP CONFIGURATION ";
-        frame.render_widget(
-            Paragraph::new(Span::styled(
-                title,
-                Style::default()
-                    .fg(colors.fg())
-                    .add_modifier(Modifier::BOLD),
-            )),
-            chunks[0],
-        );
-
-        // Separator
-        let sep = "═".repeat(area.width as usize);
-        frame.render_widget(
-            Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-            chunks[1],
-        );
+        // Create full-screen view
+        let view = FullScreenView::new(area, " R-DOS STARTUP CONFIGURATION ", colors);
+        view.render_frame(frame);
 
         // Content area
-        let content_area = chunks[2];
+        let content_area = view.content_area();
         let mut lines: Vec<Line> = vec![Line::from("")];
 
         for (i, field) in QdconfigField::ALL.iter().enumerate() {
@@ -667,22 +638,26 @@ impl Plugin for QdconfigPlugin {
 
         frame.render_widget(Paragraph::new(lines), content_area);
 
-        // Bottom separator
-        frame.render_widget(
-            Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-            chunks[3],
-        );
-
         // Help line
-        let help_text = if state.editing {
-            "Type value, Enter to confirm, ESC to cancel"
+        if state.editing {
+            view.render_footer(
+                frame,
+                vec![Span::styled(
+                    " Type value, Enter to confirm, ESC to cancel",
+                    Style::default().fg(colors.green()),
+                )],
+            );
         } else {
-            "↑↓ select  Enter/Space toggle  S save  ESC close"
-        };
-        frame.render_widget(
-            Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
-            chunks[4],
-        );
+            view.render_help(
+                frame,
+                vec![
+                    ("↑↓", "select"),
+                    ("Enter/Space", "toggle"),
+                    ("S", "save"),
+                    ("ESC", "close"),
+                ],
+            );
+        }
     }
 
     fn help_content(&self) -> Vec<String> {

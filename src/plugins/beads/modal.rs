@@ -2,32 +2,18 @@
 
 use crate::app::App;
 use crate::plugins::beads::{BeadsMenuItem, BeadsState, BeadsView};
+use crate::ui::components::ModalFrame;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Clear, Paragraph},
+    widgets::Paragraph,
     Frame,
 };
 
 /// Draw Beads modal
 pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App) {
     let colors = app.colors();
-
-    // Clear the entire area
-    frame.render_widget(Clear, area);
-
-    // Layout: title, separator, content, separator, help
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Title
-            Constraint::Length(1), // Separator
-            Constraint::Min(10),   // Content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Help line
-        ])
-        .split(area);
 
     // Title based on current view
     let title = match state.view {
@@ -48,25 +34,13 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
         BeadsView::Human => " BEADS - COMMAND HELP ",
         BeadsView::Doctor => " BEADS - HEALTH CHECK ",
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            title,
-            Style::default()
-                .fg(colors.fg())
-                .add_modifier(Modifier::BOLD),
-        )),
-        chunks[0],
-    );
 
-    // Separator
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-        chunks[1],
-    );
+    // Create modal frame
+    let modal = ModalFrame::themed(area, title, &colors);
+    modal.render_frame(frame);
 
     // Content area
-    let content_area = chunks[2];
+    let content_area = modal.content_area();
 
     if !state.is_beads_project {
         // Not a beads project
@@ -1636,49 +1610,88 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
         }
     }
 
-    // Bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-        chunks[3],
-    );
-
-    // Help line based on view
-    let help_text = if !state.is_beads_project {
-        "Press any key to close"
+    // Render help line based on view
+    let help_hints: Vec<(&str, &str)> = if !state.is_beads_project {
+        vec![("Any key", "close")]
     } else {
         match state.view {
-            BeadsView::Menu => "↑↓ select  Enter open  ESC close",
+            BeadsView::Menu => vec![("↑↓", "select"), ("Enter", "open"), ("ESC", "close")],
             BeadsView::List | BeadsView::Ready | BeadsView::Blocked | BeadsView::Epics => {
                 if state.search_active {
-                    "Type to search  Enter finish  ESC cancel"
+                    vec![("type", "search"), ("Enter", "finish"), ("ESC", "cancel")]
                 } else if !state.search_query.is_empty() {
-                    "↑↓ nav  / search  C close  S start  R refresh  ESC clear"
+                    vec![
+                        ("↑↓", "nav"),
+                        ("/", "search"),
+                        ("C", "close"),
+                        ("S", "start"),
+                        ("ESC", "clear"),
+                    ]
                 } else {
-                    "↑↓ nav  / search  C close  S start  R refresh  ESC back"
+                    vec![
+                        ("↑↓", "nav"),
+                        ("/", "search"),
+                        ("C", "close"),
+                        ("S", "start"),
+                        ("ESC", "back"),
+                    ]
                 }
             }
-            BeadsView::Stats => "R refresh  ESC back",
-            BeadsView::Create => "↑↓ field  ←→ value  Enter create  ESC cancel",
-            BeadsView::Detail => {
-                "↑↓ subtasks  E edit  N new subtask  M comments  H history  S start  C close"
-            }
-            BeadsView::Edit => "↑↓ field  ←→ value  Enter save  ESC cancel",
+            BeadsView::Stats => vec![("R", "refresh"), ("ESC", "back")],
+            BeadsView::Create => vec![
+                ("↑↓", "field"),
+                ("←→", "value"),
+                ("Enter", "create"),
+                ("ESC", "cancel"),
+            ],
+            BeadsView::Detail => vec![
+                ("↑↓", "subtasks"),
+                ("E", "edit"),
+                ("N", "new"),
+                ("M", "comments"),
+                ("C", "close"),
+            ],
+            BeadsView::Edit => vec![
+                ("↑↓", "field"),
+                ("←→", "value"),
+                ("Enter", "save"),
+                ("ESC", "cancel"),
+            ],
             BeadsView::Comments => {
                 if state.comment_input_active {
-                    "Type comment  Enter submit  ESC cancel"
+                    vec![("type", "comment"), ("Enter", "submit"), ("ESC", "cancel")]
                 } else {
-                    "↑↓ navigate  A add comment  ESC back"
+                    vec![("↑↓", "navigate"), ("A", "add"), ("ESC", "back")]
                 }
             }
-            BeadsView::History => "↑↓ navigate  PgUp/PgDn page  Home/End  R refresh  ESC back",
-            BeadsView::FileIssues => "↑↓ navigate  Enter view detail  R refresh  ESC back",
-            BeadsView::Dependencies => "↑↓ navigate  Enter view detail  R refresh  ESC back",
-            BeadsView::Kanban => "←→ columns  ↑↓ rows  Enter view detail  R refresh  ESC back",
-            BeadsView::Human | BeadsView::Doctor => "↑↓ scroll  PgUp/PgDn page  ESC back",
+            BeadsView::History => vec![
+                ("↑↓", "navigate"),
+                ("PgUp/Dn", "page"),
+                ("R", "refresh"),
+                ("ESC", "back"),
+            ],
+            BeadsView::FileIssues => vec![
+                ("↑↓", "navigate"),
+                ("Enter", "detail"),
+                ("R", "refresh"),
+                ("ESC", "back"),
+            ],
+            BeadsView::Dependencies => vec![
+                ("↑↓", "navigate"),
+                ("Enter", "detail"),
+                ("R", "refresh"),
+                ("ESC", "back"),
+            ],
+            BeadsView::Kanban => vec![
+                ("←→", "columns"),
+                ("↑↓", "rows"),
+                ("Enter", "detail"),
+                ("ESC", "back"),
+            ],
+            BeadsView::Human | BeadsView::Doctor => {
+                vec![("↑↓", "scroll"), ("PgUp/Dn", "page"), ("ESC", "back")]
+            }
         }
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
-        chunks[4],
-    );
+    modal.render_help(frame, help_hints);
 }

@@ -2,52 +2,34 @@
 
 use super::state::{DisplayMode, EditorMode, QEditMenuItem, QEditState};
 use crate::app::ThemeColors;
+use crate::ui::components::FullScreenView;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Rect,
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Clear, Paragraph},
+    widgets::Paragraph,
     Frame,
 };
 
 /// Draw the Q-EDIT modal
 pub fn draw_qedit_modal(frame: &mut Frame, area: Rect, state: &QEditState, colors: &ThemeColors) {
-    // Clear the area
-    frame.render_widget(Clear, area);
+    // Create full-screen view with empty title (we'll render menu bar instead)
+    let view = FullScreenView::new(area, "", colors);
+    view.render_frame(frame);
 
-    // Layout: menu bar, separator, content, separator, status
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Menu bar
-            Constraint::Length(1), // Separator
-            Constraint::Min(5),    // Editor content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Status bar
-        ])
-        .split(area);
-
-    // Draw menu bar
-    draw_menu_bar(frame, chunks[0], state, colors);
-
-    // Draw separator
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
-        chunks[1],
+    // Draw menu bar (overwrites the title row)
+    draw_menu_bar(
+        frame,
+        Rect::new(area.x, view.title_y(), area.width, 1),
+        state,
+        colors,
     );
 
     // Draw editor content
-    draw_editor_content(frame, chunks[2], state, colors);
-
-    // Draw bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(&sep, Style::default().fg(colors.fg()))),
-        chunks[3],
-    );
+    draw_editor_content(frame, view.content_area(), state, colors);
 
     // Draw status bar
-    draw_status_bar(frame, chunks[4], state, colors);
+    draw_status_bar(frame, &view, state, colors);
 }
 
 /// Draw the menu bar
@@ -226,7 +208,12 @@ fn draw_hex_content(
 }
 
 /// Draw the status bar
-fn draw_status_bar(frame: &mut Frame, area: Rect, state: &QEditState, colors: &ThemeColors) {
+fn draw_status_bar(
+    frame: &mut Frame,
+    view: &FullScreenView,
+    state: &QEditState,
+    colors: &ThemeColors,
+) {
     let file_name = state.display_name();
     let modified = if state.modified { " [Modified]" } else { "" };
     let mode = state.mode.name();
@@ -241,8 +228,8 @@ fn draw_status_bar(frame: &mut Frame, area: Rect, state: &QEditState, colors: &T
         file_name, modified, mode, display, indent, line, col, bytes
     );
 
-    frame.render_widget(
-        Paragraph::new(Span::styled(status, Style::default().fg(colors.green()))),
-        area,
+    view.render_footer(
+        frame,
+        vec![Span::styled(status, Style::default().fg(colors.green()))],
     );
 }

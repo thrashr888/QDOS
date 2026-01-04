@@ -4,6 +4,7 @@
 //! Triggered via F12, provides multiple views for CPU, Memory, Disk, Network.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
@@ -571,11 +572,12 @@ impl Plugin for ProcPlugin {
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
-        // Full screen modal - cover entire screen
+        // Full screen modal
         let modal_area = Rect::new(0, 0, area.width, area.height);
 
-        // Clear the modal area
-        frame.render_widget(Clear, modal_area);
+        // Create full-screen view (title will be overwritten with tabs)
+        let view = FullScreenView::new(modal_area, " PROC ", colors);
+        view.render_frame(frame);
 
         // Use theme colors
         let bg = colors.bg();
@@ -585,44 +587,30 @@ impl Plugin for ProcPlugin {
         let yellow = colors.yellow();
         let red = colors.red();
 
-        let border_style = Style::default().fg(fg).bg(bg);
         let title_style = Style::default()
             .fg(yellow)
             .bg(bg)
             .add_modifier(Modifier::BOLD);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
-        let _highlight_style = Style::default().fg(yellow).bg(red);
 
-        // Calculate dimensions
-        let width = modal_area.width as usize;
-        let inner_width = width.saturating_sub(2);
-
-        // Draw top border: ╔═══╗
-        let top_border = format!("╔{}╗", "═".repeat(inner_width));
-        frame.render_widget(
-            Paragraph::new(Span::styled(&top_border, border_style)),
-            Rect::new(modal_area.x, modal_area.y, modal_area.width, 1),
-        );
-
-        // Draw title row with view tabs
-        let mut y = modal_area.y + 1;
+        // Override title row with view tabs
         let views = [
             ProcView::Cpu,
             ProcView::Memory,
             ProcView::Disk,
             ProcView::Network,
         ];
-        let mut title_spans: Vec<Span> = vec![Span::styled("║ ", border_style)];
+        let mut title_spans: Vec<Span> = vec![Span::styled(" ", normal_style)];
 
-        for view in views.iter() {
-            let is_selected = *view == self.state.view;
+        for v in views.iter() {
+            let is_selected = *v == self.state.view;
             let style = if is_selected {
                 title_style
             } else {
                 header_style
             };
-            let label = format!(" {} ", view.as_str());
+            let label = format!(" {} ", v.as_str());
             title_spans.push(Span::styled(label, style));
             title_spans.push(Span::styled(" ", normal_style));
         }
@@ -634,7 +622,7 @@ impl Plugin for ProcPlugin {
             0.0
         };
 
-        title_spans.push(Span::styled(" │ ", border_style));
+        title_spans.push(Span::styled(" │ ", normal_style));
         title_spans.push(Span::styled(
             format!("CPU: {:.1}% ", self.state.cpu_usage),
             Style::default().fg(green).bg(bg),
@@ -650,125 +638,48 @@ impl Plugin for ProcPlugin {
             title_spans.push(Span::styled("[Manual]", Style::default().fg(red).bg(bg)));
         }
 
-        // Pad and close - calculate remaining space for padding
+        // Render custom title row
         let title_content_width: usize = title_spans.iter().map(|s| s.width()).sum();
-        // Total line width is modal_area.width. We need: content + padding + "║"
-        let padding = (width).saturating_sub(title_content_width + 1);
+        let padding = (modal_area.width as usize).saturating_sub(title_content_width);
         title_spans.push(Span::styled(" ".repeat(padding), normal_style));
-        title_spans.push(Span::styled("║", border_style));
 
         frame.render_widget(
             Paragraph::new(Line::from(title_spans)),
-            Rect::new(modal_area.x, y, modal_area.width, 1),
+            Rect::new(modal_area.x, view.title_y(), modal_area.width, 1),
         );
-        y += 1;
-
-        // Draw separator: ╠═══╣
-        let sep = format!("╠{}╣", "═".repeat(inner_width));
-        frame.render_widget(
-            Paragraph::new(Span::styled(&sep, border_style)),
-            Rect::new(modal_area.x, y, modal_area.width, 1),
-        );
-        y += 1;
 
         // Draw content based on view
-        let content_height = modal_area.height.saturating_sub(6) as usize; // 3 header + 2 footer + 1 border
+        let content_area = view.content_area();
+        let content_height = content_area.height as usize;
 
         match self.state.view {
             ProcView::Cpu => {
-                self.draw_cpu_view(
-                    frame,
-                    modal_area.x,
-                    y,
-                    modal_area.width,
-                    content_height,
-                    inner_width,
-                    colors,
-                );
+                self.draw_cpu_view(frame, &view, content_height, colors);
             }
             ProcView::Memory => {
-                self.draw_memory_view(
-                    frame,
-                    modal_area.x,
-                    y,
-                    modal_area.width,
-                    content_height,
-                    inner_width,
-                    colors,
-                );
+                self.draw_memory_view(frame, &view, content_height, colors);
             }
             ProcView::Disk => {
-                self.draw_disk_view(
-                    frame,
-                    modal_area.x,
-                    y,
-                    modal_area.width,
-                    content_height,
-                    inner_width,
-                    colors,
-                );
+                self.draw_disk_view(frame, &view, content_height, colors);
             }
             ProcView::Network => {
-                self.draw_network_view(
-                    frame,
-                    modal_area.x,
-                    y,
-                    modal_area.width,
-                    content_height,
-                    inner_width,
-                    colors,
-                );
+                self.draw_network_view(frame, &view, content_height, colors);
             }
         }
 
-        y += content_height as u16;
-
-        // Draw separator before footer
-        let sep = format!("╠{}╣", "═".repeat(inner_width));
-        frame.render_widget(
-            Paragraph::new(Span::styled(&sep, border_style)),
-            Rect::new(modal_area.x, y, modal_area.width, 1),
-        );
-        y += 1;
-
-        // Draw footer with help
-        let help_spans = vec![
-            Span::styled("║ ", border_style),
-            Span::styled("↑↓", Style::default().fg(green).bg(bg)),
-            Span::styled(" nav  ", normal_style),
-            Span::styled("Tab", Style::default().fg(green).bg(bg)),
-            Span::styled(" view  ", normal_style),
-            Span::styled("S", Style::default().fg(green).bg(bg)),
-            Span::styled(" sort  ", normal_style),
-            Span::styled("i", Style::default().fg(green).bg(bg)),
-            Span::styled(" info  ", normal_style),
-            Span::styled("R", Style::default().fg(green).bg(bg)),
-            Span::styled(" refresh  ", normal_style),
-            Span::styled("A", Style::default().fg(green).bg(bg)),
-            Span::styled(" auto  ", normal_style),
-            Span::styled("X", Style::default().fg(red).bg(bg)),
-            Span::styled(" kill  ", normal_style),
-            Span::styled("Esc", Style::default().fg(green).bg(bg)),
-            Span::styled(" close", normal_style),
-        ];
-        let help_content_width: usize = help_spans.iter().map(|s| s.width()).sum();
-        let mut footer_spans = help_spans;
-        // Total line width is modal_area.width. We need: content + padding + "║"
-        let padding = (width).saturating_sub(help_content_width + 1);
-        footer_spans.push(Span::styled(" ".repeat(padding), normal_style));
-        footer_spans.push(Span::styled("║", border_style));
-
-        frame.render_widget(
-            Paragraph::new(Line::from(footer_spans)),
-            Rect::new(modal_area.x, y, modal_area.width, 1),
-        );
-        y += 1;
-
-        // Draw bottom border: ╚═══╝
-        let bottom_border = format!("╚{}╝", "═".repeat(inner_width));
-        frame.render_widget(
-            Paragraph::new(Span::styled(&bottom_border, border_style)),
-            Rect::new(modal_area.x, y, modal_area.width, 1),
+        // Render help footer
+        view.render_help(
+            frame,
+            vec![
+                ("↑↓", "nav"),
+                ("Tab", "view"),
+                ("S", "sort"),
+                ("i", "info"),
+                ("R", "refresh"),
+                ("A", "auto"),
+                ("X", "kill"),
+                ("Esc", "close"),
+            ],
         );
 
         // Draw process detail overlay if open
@@ -818,11 +729,8 @@ impl ProcPlugin {
     fn draw_cpu_view(
         &self,
         frame: &mut Frame,
-        x: u16,
-        start_y: u16,
-        width: u16,
+        view: &FullScreenView,
         height: usize,
-        inner_width: usize,
         colors: &crate::app::ThemeColors,
     ) {
         let bg = colors.bg();
@@ -831,28 +739,22 @@ impl ProcPlugin {
         let yellow = colors.yellow();
         let red = colors.red();
 
-        let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
         // Header row
         let sort_indicator = self.state.sort.as_str();
-        let header_content = format!(
-            "{:<30}  {:>8}  {:>10}  {:>7}  {:<12}  ({})",
-            "Name", "% CPU", "CPU Time", "PID", "User", sort_indicator
-        );
-        let mut header_spans = vec![
-            Span::styled("║ ", border_style),
-            Span::styled(&header_content, header_style),
-        ];
-        let header_width: usize = header_spans.iter().map(|s| s.width()).sum();
-        let padding = (width as usize).saturating_sub(header_width + 1);
-        header_spans.push(Span::styled(" ".repeat(padding), header_style));
-        header_spans.push(Span::styled("║", border_style));
-        frame.render_widget(
-            Paragraph::new(Line::from(header_spans)),
-            Rect::new(x, start_y, width, 1),
+        view.render_row(
+            frame,
+            0,
+            vec![Span::styled(
+                format!(
+                    " {:<30}  {:>8}  {:>10}  {:>7}  {:<12}  ({})",
+                    "Name", "% CPU", "CPU Time", "PID", "User", sort_indicator
+                ),
+                header_style,
+            )],
         );
 
         // Visible processes
@@ -873,7 +775,7 @@ impl ProcPlugin {
             .take(visible_height)
             .enumerate()
         {
-            let y = start_y + 1 + i as u16;
+            let row = i as u16 + 1;
             let actual_idx = scroll_offset + i;
             let is_selected = actual_idx == self.state.selected;
 
@@ -903,35 +805,26 @@ impl ProcPlugin {
                 &proc.user
             };
 
-            let mut spans = vec![Span::styled("║ ", border_style)];
-            spans.push(Span::styled(format!("{:<30}  ", name), style));
-            spans.push(Span::styled(
-                format!("{:>8.1}  ", proc.cpu_usage),
-                cpu_style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>10}  ", Self::format_cpu_time(proc.cpu_time_ms)),
-                style,
-            ));
-            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
-            spans.push(Span::styled(format!("{:<12}", user), style));
-
-            let content_width: usize = spans.iter().map(|s| s.width()).sum();
-            let padding = (width as usize).saturating_sub(content_width + 1);
-            spans.push(Span::styled(" ".repeat(padding), style));
-            spans.push(Span::styled("║", border_style));
-
-            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(format!(" {:<30}  ", name), style),
+                    Span::styled(format!("{:>8.1}  ", proc.cpu_usage), cpu_style),
+                    Span::styled(
+                        format!("{:>10}  ", Self::format_cpu_time(proc.cpu_time_ms)),
+                        style,
+                    ),
+                    Span::styled(format!("{:>7}  ", proc.pid), style),
+                    Span::styled(format!("{:<12}", user), style),
+                ],
+            );
         }
 
         // Fill remaining lines
-        for i in self.state.processes.len().min(visible_height)..visible_height {
-            let y = start_y + 1 + i as u16;
-            let empty_line = format!("║{:width$}║", "", width = inner_width);
-            frame.render_widget(
-                Paragraph::new(Span::styled(&empty_line, normal_style)),
-                Rect::new(x, y, width, 1),
-            );
+        let displayed = self.state.processes.len().min(visible_height);
+        for i in displayed..visible_height {
+            view.render_row(frame, i as u16 + 1, vec![Span::styled("", normal_style)]);
         }
     }
 
@@ -939,11 +832,8 @@ impl ProcPlugin {
     fn draw_memory_view(
         &self,
         frame: &mut Frame,
-        x: u16,
-        start_y: u16,
-        width: u16,
+        view: &FullScreenView,
         height: usize,
-        inner_width: usize,
         colors: &crate::app::ThemeColors,
     ) {
         let bg = colors.bg();
@@ -952,28 +842,22 @@ impl ProcPlugin {
         let yellow = colors.yellow();
         let red = colors.red();
 
-        let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
         // Header row
         let sort_indicator = self.state.sort.as_str();
-        let header_content = format!(
-            "{:<30}  {:>12}  {:>7}  {:<12}  ({})",
-            "Name", "Memory", "PID", "User", sort_indicator
-        );
-        let mut header_spans = vec![
-            Span::styled("║ ", border_style),
-            Span::styled(&header_content, header_style),
-        ];
-        let header_width: usize = header_spans.iter().map(|s| s.width()).sum();
-        let padding = (width as usize).saturating_sub(header_width + 1);
-        header_spans.push(Span::styled(" ".repeat(padding), header_style));
-        header_spans.push(Span::styled("║", border_style));
-        frame.render_widget(
-            Paragraph::new(Line::from(header_spans)),
-            Rect::new(x, start_y, width, 1),
+        view.render_row(
+            frame,
+            0,
+            vec![Span::styled(
+                format!(
+                    " {:<30}  {:>12}  {:>7}  {:<12}  ({})",
+                    "Name", "Memory", "PID", "User", sort_indicator
+                ),
+                header_style,
+            )],
         );
 
         // Visible processes
@@ -994,7 +878,7 @@ impl ProcPlugin {
             .take(visible_height)
             .enumerate()
         {
-            let y = start_y + 1 + i as u16;
+            let row = i as u16 + 1;
             let actual_idx = scroll_offset + i;
             let is_selected = actual_idx == self.state.selected;
 
@@ -1015,31 +899,25 @@ impl ProcPlugin {
                 &proc.user
             };
 
-            let mut spans = vec![Span::styled("║ ", border_style)];
-            spans.push(Span::styled(format!("{:<30}  ", name), style));
-            spans.push(Span::styled(
-                format!("{:>12}  ", format_size(proc.memory, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
-            spans.push(Span::styled(format!("{:<12}", user), style));
-
-            let content_width: usize = spans.iter().map(|s| s.width()).sum();
-            let padding = (width as usize).saturating_sub(content_width + 1);
-            spans.push(Span::styled(" ".repeat(padding), style));
-            spans.push(Span::styled("║", border_style));
-
-            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(format!(" {:<30}  ", name), style),
+                    Span::styled(
+                        format!("{:>12}  ", format_size(proc.memory, DECIMAL)),
+                        style,
+                    ),
+                    Span::styled(format!("{:>7}  ", proc.pid), style),
+                    Span::styled(format!("{:<12}", user), style),
+                ],
+            );
         }
 
         // Fill remaining lines
-        for i in self.state.processes.len().min(visible_height)..visible_height {
-            let y = start_y + 1 + i as u16;
-            let empty_line = format!("║{:width$}║", "", width = inner_width);
-            frame.render_widget(
-                Paragraph::new(Span::styled(&empty_line, normal_style)),
-                Rect::new(x, y, width, 1),
-            );
+        let displayed = self.state.processes.len().min(visible_height);
+        for i in displayed..visible_height {
+            view.render_row(frame, i as u16 + 1, vec![Span::styled("", normal_style)]);
         }
     }
 
@@ -1047,11 +925,8 @@ impl ProcPlugin {
     fn draw_disk_view(
         &self,
         frame: &mut Frame,
-        x: u16,
-        start_y: u16,
-        width: u16,
+        view: &FullScreenView,
         height: usize,
-        inner_width: usize,
         colors: &crate::app::ThemeColors,
     ) {
         let bg = colors.bg();
@@ -1060,27 +935,21 @@ impl ProcPlugin {
         let yellow = colors.yellow();
         let red = colors.red();
 
-        let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
         // Header row
-        let header_content = format!(
-            "{:<30}  {:>14}  {:>14}  {:>7}  {:<12}",
-            "Name", "Bytes Written", "Bytes Read", "PID", "User"
-        );
-        let mut header_spans = vec![
-            Span::styled("║ ", border_style),
-            Span::styled(&header_content, header_style),
-        ];
-        let header_width: usize = header_spans.iter().map(|s| s.width()).sum();
-        let padding = (width as usize).saturating_sub(header_width + 1);
-        header_spans.push(Span::styled(" ".repeat(padding), header_style));
-        header_spans.push(Span::styled("║", border_style));
-        frame.render_widget(
-            Paragraph::new(Line::from(header_spans)),
-            Rect::new(x, start_y, width, 1),
+        view.render_row(
+            frame,
+            0,
+            vec![Span::styled(
+                format!(
+                    " {:<30}  {:>14}  {:>14}  {:>7}  {:<12}",
+                    "Name", "Bytes Written", "Bytes Read", "PID", "User"
+                ),
+                header_style,
+            )],
         );
 
         // Visible processes (sorted by disk activity)
@@ -1101,7 +970,7 @@ impl ProcPlugin {
             .take(visible_height)
             .enumerate()
         {
-            let y = start_y + 1 + i as u16;
+            let row = i as u16 + 1;
             let actual_idx = scroll_offset + i;
             let is_selected = actual_idx == self.state.selected;
 
@@ -1122,35 +991,29 @@ impl ProcPlugin {
                 &proc.user
             };
 
-            let mut spans = vec![Span::styled("║ ", border_style)];
-            spans.push(Span::styled(format!("{:<30}  ", name), style));
-            spans.push(Span::styled(
-                format!("{:>14}  ", format_size(proc.bytes_written, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>14}  ", format_size(proc.bytes_read, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(format!("{:>7}  ", proc.pid), style));
-            spans.push(Span::styled(format!("{:<12}", user), style));
-
-            let content_width: usize = spans.iter().map(|s| s.width()).sum();
-            let padding = (width as usize).saturating_sub(content_width + 1);
-            spans.push(Span::styled(" ".repeat(padding), style));
-            spans.push(Span::styled("║", border_style));
-
-            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(format!(" {:<30}  ", name), style),
+                    Span::styled(
+                        format!("{:>14}  ", format_size(proc.bytes_written, DECIMAL)),
+                        style,
+                    ),
+                    Span::styled(
+                        format!("{:>14}  ", format_size(proc.bytes_read, DECIMAL)),
+                        style,
+                    ),
+                    Span::styled(format!("{:>7}  ", proc.pid), style),
+                    Span::styled(format!("{:<12}", user), style),
+                ],
+            );
         }
 
         // Fill remaining lines
-        for i in self.state.processes.len().min(visible_height)..visible_height {
-            let y = start_y + 1 + i as u16;
-            let empty_line = format!("║{:width$}║", "", width = inner_width);
-            frame.render_widget(
-                Paragraph::new(Span::styled(&empty_line, normal_style)),
-                Rect::new(x, y, width, 1),
-            );
+        let displayed = self.state.processes.len().min(visible_height);
+        for i in displayed..visible_height {
+            view.render_row(frame, i as u16 + 1, vec![Span::styled("", normal_style)]);
         }
     }
 
@@ -1336,11 +1199,8 @@ impl ProcPlugin {
     fn draw_network_view(
         &self,
         frame: &mut Frame,
-        x: u16,
-        start_y: u16,
-        width: u16,
+        view: &FullScreenView,
         height: usize,
-        inner_width: usize,
         colors: &crate::app::ThemeColors,
     ) {
         let bg = colors.bg();
@@ -1349,34 +1209,28 @@ impl ProcPlugin {
         let yellow = colors.yellow();
         let red = colors.red();
 
-        let border_style = Style::default().fg(fg).bg(bg);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let highlight_style = Style::default().fg(yellow).bg(red);
 
-        // Header row - use spans so borders are styled correctly
-        let header_content = format!(
-            "{:<20}  {:>14}  {:>14}  {:>12}  {:>12}",
-            "Interface", "Received", "Transmitted", "Pkts In", "Pkts Out"
-        );
-        let mut header_spans = vec![
-            Span::styled("║ ", border_style),
-            Span::styled(&header_content, header_style),
-        ];
-        let header_width: usize = header_spans.iter().map(|s| s.width()).sum();
-        let padding = (width as usize).saturating_sub(header_width + 1);
-        header_spans.push(Span::styled(" ".repeat(padding), header_style));
-        header_spans.push(Span::styled("║", border_style));
-        frame.render_widget(
-            Paragraph::new(Line::from(header_spans)),
-            Rect::new(x, start_y, width, 1),
+        // Header row
+        view.render_row(
+            frame,
+            0,
+            vec![Span::styled(
+                format!(
+                    " {:<20}  {:>14}  {:>14}  {:>12}  {:>12}",
+                    "Interface", "Received", "Transmitted", "Pkts In", "Pkts Out"
+                ),
+                header_style,
+            )],
         );
 
         // Visible networks
         let visible_height = height.saturating_sub(1);
 
         for (i, net) in self.state.networks.iter().take(visible_height).enumerate() {
-            let y = start_y + 1 + i as u16;
+            let row = i as u16 + 1;
             let is_selected = i == self.state.selected;
 
             let style = if is_selected {
@@ -1385,46 +1239,35 @@ impl ProcPlugin {
                 normal_style
             };
 
-            let mut spans = vec![Span::styled("║ ", border_style)];
-            spans.push(Span::styled(
-                format!(
-                    "{:<20}  ",
-                    if net.name.len() > 20 {
-                        &net.name[..20]
-                    } else {
-                        &net.name
-                    }
-                ),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>14}  ", format_size(net.received, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(
-                format!("{:>14}  ", format_size(net.transmitted, DECIMAL)),
-                style,
-            ));
-            spans.push(Span::styled(format!("{:>12}  ", net.packets_in), style));
-            spans.push(Span::styled(format!("{:>12}", net.packets_out), style));
+            let iface_name = if net.name.len() > 20 {
+                &net.name[..20]
+            } else {
+                &net.name
+            };
 
-            // Padding - total width minus content and closing border
-            let content_width: usize = spans.iter().map(|s| s.width()).sum();
-            let padding = (width as usize).saturating_sub(content_width + 1);
-            spans.push(Span::styled(" ".repeat(padding), style));
-            spans.push(Span::styled("║", border_style));
-
-            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(format!(" {:<20}  ", iface_name), style),
+                    Span::styled(
+                        format!("{:>14}  ", format_size(net.received, DECIMAL)),
+                        style,
+                    ),
+                    Span::styled(
+                        format!("{:>14}  ", format_size(net.transmitted, DECIMAL)),
+                        style,
+                    ),
+                    Span::styled(format!("{:>12}  ", net.packets_in), style),
+                    Span::styled(format!("{:>12}", net.packets_out), style),
+                ],
+            );
         }
 
         // Fill remaining lines
-        for i in self.state.networks.len().min(visible_height)..visible_height {
-            let y = start_y + 1 + i as u16;
-            let empty_line = format!("║{:width$}║", "", width = inner_width);
-            frame.render_widget(
-                Paragraph::new(Span::styled(&empty_line, normal_style)),
-                Rect::new(x, y, width, 1),
-            );
+        let displayed = self.state.networks.len().min(visible_height);
+        for i in displayed..visible_height {
+            view.render_row(frame, i as u16 + 1, vec![Span::styled("", normal_style)]);
         }
     }
 }

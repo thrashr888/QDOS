@@ -1,11 +1,12 @@
 //! Find modal drawing function
 
 use crate::app::{App, FindPhase, FindState, SearchMode};
+use crate::ui::components::FullScreenView;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
+    layout::Rect,
+    style::Style,
     text::{Line, Span},
-    widgets::{Clear, Paragraph},
+    widgets::Paragraph,
     Frame,
 };
 
@@ -13,42 +14,13 @@ use ratatui::{
 pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &App) {
     let colors = app.colors();
 
-    // Clear the entire screen
-    frame.render_widget(Clear, area);
+    // Create full-screen view
+    let view = FullScreenView::new(area, " FIND FILES ", &colors);
+    view.render_frame(frame);
 
-    // Layout: title, separator, content, separator, help
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Title
-            Constraint::Length(1), // Separator
-            Constraint::Min(5),    // Content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Help line
-        ])
-        .split(area);
+    // Content area
+    let content_area = view.content_area();
 
-    // Title
-    let title = " FIND FILES ";
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            title,
-            Style::default()
-                .fg(colors.fg())
-                .add_modifier(Modifier::BOLD),
-        )),
-        chunks[0],
-    );
-
-    // Separator
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-        chunks[1],
-    );
-
-    // Content area based on phase
-    let content_area = chunks[2];
     match state.phase {
         FindPhase::SelectMode => {
             let resolved_tool = state.search_tool.resolve();
@@ -289,24 +261,31 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
         }
     }
 
-    // Bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-        chunks[3],
-    );
-
-    // Help line based on phase
-    let help_text = match state.phase {
-        FindPhase::SelectMode => "1/2 or Tab to select, Enter to continue, ESC cancel",
-        FindPhase::InputPattern => "Enter pattern, Ctrl+R recall, ESC cancel",
-        FindPhase::AskPause => "Y pause on match, N show all, ESC cancel",
-        FindPhase::Searching => "Searching...",
-        FindPhase::ShowResult => "(C)ontinue (J)ump (V)iew  ESC quit",
-        FindPhase::ShowAllResults => "↑↓ select  Enter/(J)ump  (V)iew  ESC close",
-        FindPhase::NoResults => "Press any key",
+    // Render help based on phase
+    let help_hints: Vec<(&str, &str)> = match state.phase {
+        FindPhase::SelectMode => vec![
+            ("1/2/Tab", "select"),
+            ("Enter", "continue"),
+            ("ESC", "cancel"),
+        ],
+        FindPhase::InputPattern => {
+            vec![("Enter", "search"), ("Ctrl+R", "recall"), ("ESC", "cancel")]
+        }
+        FindPhase::AskPause => vec![("Y", "pause"), ("N", "show all"), ("ESC", "cancel")],
+        FindPhase::Searching => vec![("", "Searching...")],
+        FindPhase::ShowResult => vec![
+            ("C", "continue"),
+            ("J", "jump"),
+            ("V", "view"),
+            ("ESC", "quit"),
+        ],
+        FindPhase::ShowAllResults => vec![
+            ("↑↓", "select"),
+            ("Enter/J", "jump"),
+            ("V", "view"),
+            ("ESC", "close"),
+        ],
+        FindPhase::NoResults => vec![("Any key", "continue")],
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
-        chunks[4],
-    );
+    view.render_help(frame, help_hints);
 }

@@ -2,32 +2,18 @@
 
 use crate::app::App;
 use crate::plugins::git::{GitMenuItem, GitState, GitView, RemoteAction};
+use crate::ui::components::ModalFrame;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Clear, Paragraph},
+    widgets::Paragraph,
     Frame,
 };
 
 /// Draw Git modal
 pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App) {
     let colors = app.colors();
-
-    // Clear the entire area
-    frame.render_widget(Clear, area);
-
-    // Layout: title, separator, content, separator, help
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Title
-            Constraint::Length(1), // Separator
-            Constraint::Min(10),   // Content
-            Constraint::Length(1), // Separator
-            Constraint::Length(1), // Help line
-        ])
-        .split(area);
 
     // Title based on current view
     let title = match state.view {
@@ -47,25 +33,13 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
         GitView::Conflicts => " MERGE CONFLICTS ",
         GitView::Submodules => " GIT SUBMODULES ",
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(
-            title,
-            Style::default()
-                .fg(colors.fg())
-                .add_modifier(Modifier::BOLD),
-        )),
-        chunks[0],
-    );
 
-    // Separator
-    let sep = "═".repeat(area.width as usize);
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep.clone(), Style::default().fg(colors.fg()))),
-        chunks[1],
-    );
+    // Create modal frame
+    let modal = ModalFrame::themed(area, title, &colors);
+    modal.render_frame(frame);
 
     // Content area
-    let content_area = chunks[2];
+    let content_area = modal.content_area();
 
     if !state.is_repo {
         // Not a git repo
@@ -940,45 +914,98 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
         }
     }
 
-    // Bottom separator
-    frame.render_widget(
-        Paragraph::new(Span::styled(sep, Style::default().fg(colors.fg()))),
-        chunks[3],
-    );
-
-    // Help line based on view
-    let help_text = if !state.is_repo {
-        "Press any key to close"
+    // Render help line based on view
+    let help_hints: Vec<(&str, &str)> = if !state.is_repo {
+        vec![("Any key", "close")]
     } else {
         match state.view {
-            GitView::Menu => "↑↓ select  Enter open  S/L/D/C/B/H/T/G quick select  ESC close",
-            GitView::Status => "↑↓ navigate  Enter view diff  A stage/unstage  R refresh  ESC back",
-            GitView::Log => "↑↓ select  Enter view diff  PgUp/PgDn fast scroll  ESC back",
-            GitView::Diff => "↑↓ scroll  PgUp/PgDn fast scroll  ESC back",
-            GitView::Commit => "Type message  Shift+Enter newline  Enter commit  ESC cancel",
-            GitView::Branch => if state.branch_input_mode {
-                "Type branch name  Enter create  ESC cancel"
-            } else {
-                "↑↓ select  Enter switch  N new  D delete  R refresh  ESC back"
-            },
-            GitView::Stash => if state.stash_input_mode {
-                "Type stash message  Enter create  ESC cancel"
-            } else {
-                "↑↓ select  S stash  P pop  A apply  D drop  R refresh  ESC back"
-            },
-            GitView::Tag => if state.tag_input_mode {
-                "Type tag name  Enter create  ESC cancel"
-            } else {
-                "↑↓ select  N new  D delete  P push tags  R refresh  ESC back"
-            },
-            GitView::Remote => "↑↓ select  Enter execute  ESC back",
-            GitView::Config => "↑↓ scroll  PgUp/PgDn fast scroll  R refresh  ESC back",
-            GitView::Conflicts => "←→ files  ↑↓ sections  O ours  T theirs  B both  M mark resolved  A abort  ESC back",
-            GitView::Submodules => "↑↓ select  I init  U update  S sync  R refresh  ESC back",
+            GitView::Menu => vec![
+                ("↑↓", "select"),
+                ("Enter", "open"),
+                ("S/L/D/C/B/H/T/G", "quick"),
+                ("ESC", "close"),
+            ],
+            GitView::Status => vec![
+                ("↑↓", "navigate"),
+                ("Enter", "diff"),
+                ("A", "stage"),
+                ("R", "refresh"),
+                ("ESC", "back"),
+            ],
+            GitView::Log => vec![
+                ("↑↓", "select"),
+                ("Enter", "diff"),
+                ("PgUp/Dn", "scroll"),
+                ("ESC", "back"),
+            ],
+            GitView::Diff => vec![("↑↓", "scroll"), ("PgUp/Dn", "fast"), ("ESC", "back")],
+            GitView::Commit => vec![
+                ("type", "message"),
+                ("Shift+Enter", "newline"),
+                ("Enter", "commit"),
+                ("ESC", "cancel"),
+            ],
+            GitView::Branch => {
+                if state.branch_input_mode {
+                    vec![("type", "name"), ("Enter", "create"), ("ESC", "cancel")]
+                } else {
+                    vec![
+                        ("↑↓", "select"),
+                        ("Enter", "switch"),
+                        ("N", "new"),
+                        ("D", "delete"),
+                        ("ESC", "back"),
+                    ]
+                }
+            }
+            GitView::Stash => {
+                if state.stash_input_mode {
+                    vec![("type", "message"), ("Enter", "create"), ("ESC", "cancel")]
+                } else {
+                    vec![
+                        ("↑↓", "select"),
+                        ("S", "stash"),
+                        ("P", "pop"),
+                        ("D", "drop"),
+                        ("ESC", "back"),
+                    ]
+                }
+            }
+            GitView::Tag => {
+                if state.tag_input_mode {
+                    vec![("type", "name"), ("Enter", "create"), ("ESC", "cancel")]
+                } else {
+                    vec![
+                        ("↑↓", "select"),
+                        ("N", "new"),
+                        ("D", "delete"),
+                        ("P", "push"),
+                        ("ESC", "back"),
+                    ]
+                }
+            }
+            GitView::Remote => vec![("↑↓", "select"), ("Enter", "execute"), ("ESC", "back")],
+            GitView::Config => vec![
+                ("↑↓", "scroll"),
+                ("PgUp/Dn", "fast"),
+                ("R", "refresh"),
+                ("ESC", "back"),
+            ],
+            GitView::Conflicts => vec![
+                ("←→", "files"),
+                ("↑↓", "sections"),
+                ("O/T/B", "resolve"),
+                ("M", "mark"),
+                ("ESC", "back"),
+            ],
+            GitView::Submodules => vec![
+                ("↑↓", "select"),
+                ("I", "init"),
+                ("U", "update"),
+                ("S", "sync"),
+                ("ESC", "back"),
+            ],
         }
     };
-    frame.render_widget(
-        Paragraph::new(Span::styled(help_text, Style::default().fg(colors.green()))),
-        chunks[4],
-    );
+    modal.render_help(frame, help_hints);
 }

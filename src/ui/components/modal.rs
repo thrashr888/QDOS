@@ -110,6 +110,18 @@ impl ModalFrame {
         self.area.height.saturating_sub(overhead)
     }
 
+    /// Get the content area as a Rect (inside borders, excluding title and help).
+    pub fn content_area(&self) -> Rect {
+        let y = self.content_y(0);
+        let height = self.content_height();
+        Rect::new(
+            self.area.x + 2, // After left border and space
+            y,
+            self.area.width.saturating_sub(4), // Minus borders and padding
+            height,
+        )
+    }
+
     /// Render the modal frame (borders, title, separators).
     /// Call this first, then render content rows.
     pub fn render_frame(&self, frame: &mut Frame) {
