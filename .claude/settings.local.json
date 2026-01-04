@@ -11,6 +11,7 @@
       "Bash(cargo build:*)",
       "Bash(cargo check:*)",
       "Bash(cargo clippy:*)",
+      "Bash(cargo fix:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo run:*)",
       "Bash(cargo test:*)",
