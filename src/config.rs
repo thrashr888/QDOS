@@ -114,7 +114,7 @@ impl SearchTool {
     /// Check if this tool is available on the system
     pub fn is_available(&self) -> bool {
         match self {
-            SearchTool::Auto => true, // Always available (will pick best)
+            SearchTool::Auto => true,  // Always available (will pick best)
             SearchTool::Basic => true, // Built-in
             SearchTool::Rg => crate::rg::is_available(),
             SearchTool::Ag => std::process::Command::new("ag")

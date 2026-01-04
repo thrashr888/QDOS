@@ -31,6 +31,21 @@ use crossterm::{
 use ratatui::prelude::*;
 use std::io;
 
+/// CLI subcommand for direct modal access
+#[derive(Debug, Clone)]
+enum Subcommand {
+    /// Open file manager (default)
+    Browse(Option<String>),
+    /// Open file in Q-EDIT text editor
+    Edit(String),
+    /// Open file in viewer
+    View(String),
+    /// Open Git modal
+    Git,
+    /// Open Beads modal
+    Beads,
+}
+
 fn print_help() {
     let version = env!("CARGO_PKG_VERSION");
     println!(
@@ -40,9 +55,19 @@ A modern TUI file manager inspired by Q-DOS, with Git and Beads integration.
 
 USAGE:
     rdos [OPTIONS] [PATH]
+    rdos edit <FILE>     Open file in Q-EDIT text editor
+    rdos view <FILE>     View file contents
+    rdos git             Open Git modal
+    rdos beads           Open Beads issue tracker
 
 ARGUMENTS:
     [PATH]    Starting directory (defaults to current directory)
+
+SUBCOMMANDS:
+    edit <FILE>    Open Q-EDIT text editor with file
+    view <FILE>    Open viewer with file
+    git            Open Git integration modal
+    beads          Open Beads issue tracker modal
 
 OPTIONS:
     -h, --help       Show this help message
@@ -64,6 +89,28 @@ For more information, see the in-app help (F10 or ?).
 Repository: https://github.com/thrashr888/QDOS"#,
         version
     );
+}
+
+fn parse_subcommand(args: &[String]) -> Subcommand {
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "edit" => {
+                let file = args.get(2).cloned().unwrap_or_else(|| ".".to_string());
+                return Subcommand::Edit(file);
+            }
+            "view" => {
+                let file = args.get(2).cloned().unwrap_or_else(|| ".".to_string());
+                return Subcommand::View(file);
+            }
+            "git" => return Subcommand::Git,
+            "beads" => return Subcommand::Beads,
+            _ => {
+                // Might be a path, not a subcommand
+                return Subcommand::Browse(Some(args[1].clone()));
+            }
+        }
+    }
+    Subcommand::Browse(None)
 }
 
 fn print_version() {
@@ -89,12 +136,29 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Get starting directory from args or use current directory
-    let start_path = args.get(1).cloned().unwrap_or_else(|| {
-        std::env::current_dir()
+    // Parse subcommand
+    let subcommand = parse_subcommand(&args);
+
+    // Get starting directory based on subcommand
+    let start_path = match &subcommand {
+        Subcommand::Browse(Some(path)) => path.clone(),
+        Subcommand::Edit(file) | Subcommand::View(file) => {
+            // Use file's parent directory, or current directory
+            let path = std::path::PathBuf::from(file);
+            if path.is_absolute() {
+                path.parent()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| ".".to_string())
+            } else {
+                std::env::current_dir()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|_| ".".to_string())
+            }
+        }
+        _ => std::env::current_dir()
             .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| ".".to_string())
-    });
+            .unwrap_or_else(|_| ".".to_string()),
+    };
 
     // Setup terminal
     enable_raw_mode()?;
@@ -116,6 +180,37 @@ async fn main() -> Result<()> {
 
     // Create app and run it
     let mut app = App::new(&start_path)?;
+
+    // Handle subcommand: open appropriate modal
+    match subcommand {
+        Subcommand::Edit(file) => {
+            let path = std::path::PathBuf::from(&file).canonicalize().ok();
+            if let Some(plugin) = app.plugin_manager.qedit_plugin_mut() {
+                let _ = plugin.open(path);
+            }
+            app.plugin_manager.set_active_modal(Some("qedit"));
+        }
+        Subcommand::View(file) => {
+            let path = std::path::PathBuf::from(&file)
+                .canonicalize()
+                .unwrap_or_else(|_| std::path::PathBuf::from(&file));
+            let cwd = app.current_path.clone();
+            if let Some(plugin) = app.plugin_manager.viewer_plugin_mut() {
+                let _ = plugin.open_file(path, &cwd);
+            }
+            app.plugin_manager.set_active_modal(Some("viewer"));
+        }
+        Subcommand::Git => {
+            app.plugin_manager.set_active_modal(Some("git"));
+        }
+        Subcommand::Beads => {
+            app.plugin_manager.set_active_modal(Some("beads"));
+        }
+        Subcommand::Browse(_) => {
+            // Default behavior, no modal
+        }
+    }
+
     let res = app.run(&mut terminal).await;
 
     // Restore terminal

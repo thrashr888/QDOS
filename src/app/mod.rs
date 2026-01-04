@@ -30,8 +30,8 @@ use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_cont
 use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
     KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
-    ViewerPlugin,
+    QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
+    ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -140,6 +140,7 @@ impl App {
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
         plugin_manager.register(Box::new(ShellPlugin::new()));
         plugin_manager.register(Box::new(ViewerPlugin::new()));
+        plugin_manager.register(Box::new(QEditPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -632,7 +633,8 @@ impl App {
                 KeyCode::Enter => {
                     // First try z match if it looks like a query (short text without slashes)
                     let input = path.clone();
-                    let is_z_query = !input.contains('/') && !input.contains('\\') && input.len() < 50;
+                    let is_z_query =
+                        !input.contains('/') && !input.contains('\\') && input.len() < 50;
 
                     if is_z_query {
                         if let Some(entry) = self.z_db.best_match(&input) {
@@ -660,8 +662,7 @@ impl App {
                 }
                 KeyCode::Tab => {
                     // Try z completion first for short queries without path separators
-                    let is_z_query =
-                        !path.contains('/') && !path.contains('\\') && path.len() < 50;
+                    let is_z_query = !path.contains('/') && !path.contains('\\') && path.len() < 50;
 
                     if is_z_query {
                         if let Some(entry) = self.z_db.best_match(path) {
@@ -857,10 +858,14 @@ impl App {
 
                                 // Use appropriate search function based on mode and tool
                                 state.matches = match state.search_mode {
-                                    SearchMode::ByName => find_files_recursive(&root, &state.pattern),
-                                    SearchMode::ByContent => {
-                                        crate::rg::search_content_with_tool(&root, &state.pattern, state.search_tool)
+                                    SearchMode::ByName => {
+                                        find_files_recursive(&root, &state.pattern)
                                     }
+                                    SearchMode::ByContent => crate::rg::search_content_with_tool(
+                                        &root,
+                                        &state.pattern,
+                                        state.search_tool,
+                                    ),
                                 };
 
                                 self.last_find_pattern = state.pattern.clone();
@@ -881,10 +886,14 @@ impl App {
 
                                 // Use appropriate search function based on mode and tool
                                 state.matches = match state.search_mode {
-                                    SearchMode::ByName => find_files_recursive(&root, &state.pattern),
-                                    SearchMode::ByContent => {
-                                        crate::rg::search_content_with_tool(&root, &state.pattern, state.search_tool)
+                                    SearchMode::ByName => {
+                                        find_files_recursive(&root, &state.pattern)
                                     }
+                                    SearchMode::ByContent => crate::rg::search_content_with_tool(
+                                        &root,
+                                        &state.pattern,
+                                        state.search_tool,
+                                    ),
                                 };
 
                                 self.last_find_pattern = state.pattern.clone();

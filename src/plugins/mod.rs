@@ -23,6 +23,7 @@ pub mod help;
 pub mod print;
 pub mod proc;
 pub mod qdconfig;
+pub mod qedit;
 pub mod searchspec;
 pub mod shell;
 pub mod space;
@@ -38,6 +39,7 @@ pub use help::HelpPlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
+pub use qedit::QEditPlugin;
 pub use searchspec::SearchSpecPlugin;
 pub use shell::ShellPlugin;
 pub use space::SpacePlugin;
@@ -436,6 +438,13 @@ impl PluginManager {
         self.plugins
             .get("viewer")
             .and_then(|p| p.as_any().downcast_ref::<viewer::ViewerPlugin>())
+    }
+
+    /// Get mutable reference to QEditPlugin
+    pub fn qedit_plugin_mut(&mut self) -> Option<&mut qedit::QEditPlugin> {
+        self.plugins
+            .get_mut("qedit")
+            .and_then(|p| p.as_any_mut().downcast_mut::<qedit::QEditPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

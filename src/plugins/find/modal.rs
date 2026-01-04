@@ -126,7 +126,10 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
 
             let mut lines = vec![
                 Line::from(""),
-                Line::from(Span::styled(&mode_label, Style::default().fg(colors.green()))),
+                Line::from(Span::styled(
+                    &mode_label,
+                    Style::default().fg(colors.green()),
+                )),
                 Line::from(""),
                 Line::from(vec![
                     Span::styled("Pattern: ", Style::default().fg(colors.fg())),
