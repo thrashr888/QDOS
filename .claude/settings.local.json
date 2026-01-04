@@ -34,7 +34,9 @@
       "Bash(wc:*)",
       "Skill(beads:create)",
       "Skill(beads:list)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "Bash(bd dep add:*)",
+      "Bash(bd blocked)"
     ]
   }
 }
