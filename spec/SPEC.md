@@ -6,6 +6,7 @@ A detailed specification for recreating Q-DOS II as a modern Rust TUI applicatio
 
 - `/images/` - Screenshots from original Q-DOS II
 - `/spec/ui.md` - ASCII layout of main screen
+- `/spec/PLUGIN.md` - Plugin development specification and best practices
 - `/spec/help.txt` - Extracted help text content
 - `/spec/qdos-strings.txt` - Raw extracted strings from disk image (2,815 lines)
 - `/spec/strings/` - Organized string files by feature:

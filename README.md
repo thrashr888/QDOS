@@ -27,8 +27,15 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 
 ## Plugins
 
+R-DOS features a modular plugin system. Built-in plugins include:
+
 - **Beads**: View and manage Beads issues and comments
 - **Git**: View Git status, log, diff, and commit history
+- **Q-EDIT**: Built-in text editor (F9)
+- **Shell**: Execute shell commands (F6)
+- **Theme**: Color theme selector (Ctrl+T)
+
+See [spec/PLUGIN.md](spec/PLUGIN.md) for plugin development documentation.
 
 ## Installation
 

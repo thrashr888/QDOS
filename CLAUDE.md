@@ -58,6 +58,7 @@ src/
 ## Spec & Reference Files
 
 - `spec/SPEC.md` - Detailed feature specification
+- `spec/PLUGIN.md` - **Plugin development specification** (MUST read before creating plugins)
 - `spec/ui.md` - ASCII layout reference for the 80x25 screen
 - `spec/strings/` - Organized original Q-DOS strings by feature (for authentic messaging)
 
@@ -96,7 +97,7 @@ Before ending a session:
 
 ## Plugin Architecture
 
-Plugins are self-contained modules in `src/plugins/` that extend QDOS functionality. See `git/` and `beads/` for reference implementations.
+Plugins are self-contained modules in `src/plugins/` that extend QDOS functionality. **See `spec/PLUGIN.md` for the complete plugin development guide**, including UI/UX conventions, file structure, and best practices. Reference `git/` and `beads/` for existing implementations.
 
 ### Plugin Directory Structure
 
