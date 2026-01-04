@@ -82,6 +82,8 @@ pub struct App {
     pub git_status_info: Option<git_ops::GitStatusInfo>,
     /// Plugin manager for extensibility
     pub plugin_manager: PluginManager,
+    /// Last time the file list was refreshed (for auto-refresh)
+    pub last_refresh: std::time::Instant,
 }
 
 impl App {
@@ -133,6 +135,7 @@ impl App {
             beads_status_info: None,
             git_status_info: None,
             plugin_manager,
+            last_refresh: std::time::Instant::now(),
         };
 
         // Load status bar info
@@ -168,6 +171,16 @@ impl App {
                         // Auto-process progress on tick
                         if matches!(self.modal, Modal::Progress(_)) {
                             self.process_next_progress_file();
+                        }
+
+                        // Auto-refresh file list when interval elapsed and no modal active
+                        let refresh_interval = self.config.general.auto_refresh_interval;
+                        if refresh_interval > 0
+                            && matches!(self.modal, Modal::None)
+                            && self.last_refresh.elapsed().as_secs() >= refresh_interval
+                        {
+                            let _ = self.refresh_files();
+                            self.last_refresh = std::time::Instant::now();
                         }
                     }
                     crate::event::Event::Resize(_, _) => {}
@@ -3178,6 +3191,8 @@ impl App {
         }
         // Refresh status bar when files change (e.g., after git/beads operations)
         self.refresh_status_bar();
+        // Reset auto-refresh timer
+        self.last_refresh = std::time::Instant::now();
         Ok(())
     }
 
@@ -3594,6 +3609,7 @@ impl App {
                                 self.color_theme,
                                 self.config.general.mouse_support,
                                 self.config.display.uppercase_names,
+                                self.config.general.auto_refresh_interval,
                             );
                         }
                     }
@@ -3647,6 +3663,7 @@ impl App {
                             self.config.general.show_hidden = state.show_hidden;
                             self.config.general.confirm_delete = state.confirm_delete;
                             self.config.general.mouse_support = state.mouse_support;
+                            self.config.general.auto_refresh_interval = state.auto_refresh_interval;
                             self.config.display.uppercase_names = state.uppercase_names;
                             self.config.display.theme = state.theme().into();
                             self.config.editor.command = state.editor.clone();

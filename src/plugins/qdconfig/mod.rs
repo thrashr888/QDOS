@@ -34,10 +34,11 @@ pub enum QdconfigField {
     ColorTheme,
     MouseSupport,
     UppercaseNames,
+    AutoRefresh,
 }
 
 impl QdconfigField {
-    pub const ALL: [QdconfigField; 9] = [
+    pub const ALL: [QdconfigField; 10] = [
         QdconfigField::SearchSpec,
         QdconfigField::SortMethod,
         QdconfigField::SortDirection,
@@ -47,6 +48,7 @@ impl QdconfigField {
         QdconfigField::ColorTheme,
         QdconfigField::MouseSupport,
         QdconfigField::UppercaseNames,
+        QdconfigField::AutoRefresh,
     ];
 
     pub fn name(&self) -> &'static str {
@@ -60,6 +62,7 @@ impl QdconfigField {
             QdconfigField::ColorTheme => "Color Theme",
             QdconfigField::MouseSupport => "Mouse Support",
             QdconfigField::UppercaseNames => "Uppercase Names",
+            QdconfigField::AutoRefresh => "Auto-Refresh (sec)",
         }
     }
 }
@@ -91,6 +94,8 @@ pub struct QdconfigState {
     pub mouse_support: bool,
     /// Show filenames in uppercase
     pub uppercase_names: bool,
+    /// Auto-refresh interval in seconds (0 = disabled)
+    pub auto_refresh_interval: u64,
     /// Original theme for cancel restore
     original_theme_index: usize,
 }
@@ -105,6 +110,7 @@ impl QdconfigState {
         color_theme: ColorTheme,
         mouse_support: bool,
         uppercase_names: bool,
+        auto_refresh_interval: u64,
     ) -> Self {
         // Convert SortMode to method + direction
         let (sort_method, sort_asc) = match sort_mode {
@@ -138,8 +144,22 @@ impl QdconfigState {
             theme_index,
             mouse_support,
             uppercase_names,
+            auto_refresh_interval,
             original_theme_index: theme_index,
         }
+    }
+
+    pub fn cycle_auto_refresh(&mut self) {
+        // Cycle through: 0 (off), 1, 2, 5, 10, 30, 60 seconds
+        self.auto_refresh_interval = match self.auto_refresh_interval {
+            0 => 1,
+            1 => 2,
+            2 => 5,
+            5 => 10,
+            10 => 30,
+            30 => 60,
+            _ => 0,
+        };
     }
 
     pub fn current_field(&self) -> QdconfigField {
@@ -229,6 +249,7 @@ impl QdconfigPlugin {
         color_theme: ColorTheme,
         mouse_support: bool,
         uppercase_names: bool,
+        auto_refresh_interval: u64,
     ) {
         self.state = Some(QdconfigState::new(
             search_spec,
@@ -239,6 +260,7 @@ impl QdconfigPlugin {
             color_theme,
             mouse_support,
             uppercase_names,
+            auto_refresh_interval,
         ));
         self.result_state = None;
         self.settings_saved = false;
@@ -328,6 +350,7 @@ impl Plugin for QdconfigPlugin {
                 ColorTheme::Default,
                 false,
                 false,
+                5, // default auto-refresh
             ));
             self.result_state = None;
             self.settings_saved = false;
@@ -444,6 +467,9 @@ impl Plugin for QdconfigPlugin {
                         }
                         QdconfigField::UppercaseNames => {
                             state.uppercase_names = !state.uppercase_names;
+                        }
+                        QdconfigField::AutoRefresh => {
+                            state.cycle_auto_refresh();
                         }
                     }
                     KeyHandleResult::Handled
@@ -564,6 +590,13 @@ impl Plugin for QdconfigPlugin {
                         "No".to_string()
                     }
                 }
+                QdconfigField::AutoRefresh => {
+                    if state.auto_refresh_interval == 0 {
+                        "Off".to_string()
+                    } else {
+                        format!("{} sec", state.auto_refresh_interval)
+                    }
+                }
             };
 
             // Style based on selection
@@ -670,6 +703,7 @@ mod tests {
             ColorTheme::Default,
             false,
             false,
+            5,
         );
         assert!(plugin.is_modal_open());
         plugin.close_modal();
@@ -687,6 +721,7 @@ mod tests {
             ColorTheme::Default,
             false,
             false,
+            5,
         );
 
         // Test sort method cycling

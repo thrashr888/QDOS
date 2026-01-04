@@ -43,6 +43,9 @@ pub struct GeneralConfig {
     /// Enable mouse support (default: false)
     #[serde(default)]
     pub mouse_support: bool,
+    /// Auto-refresh interval in seconds (0 to disable, default: 5)
+    #[serde(default = "default_auto_refresh")]
+    pub auto_refresh_interval: u64,
 }
 
 impl Default for GeneralConfig {
@@ -54,6 +57,7 @@ impl Default for GeneralConfig {
             show_hidden: false,
             confirm_delete: true,
             mouse_support: false,
+            auto_refresh_interval: default_auto_refresh(),
         }
     }
 }
@@ -274,6 +278,10 @@ fn default_search_spec() -> String {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_auto_refresh() -> u64 {
+    5 // 5 seconds default
 }
 
 impl Config {
