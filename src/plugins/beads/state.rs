@@ -213,6 +213,8 @@ pub struct BeadsState {
     pub selected_subtask: usize,
     /// Scroll offset for list view
     pub scroll_offset: usize,
+    /// Scroll offset for detail view
+    pub detail_scroll: usize,
     /// Stats data
     pub stats: BeadsStats,
     /// Create form state
@@ -285,6 +287,7 @@ impl Default for BeadsState {
             detail_issue: None,
             selected_subtask: 0,
             scroll_offset: 0,
+            detail_scroll: 0,
             stats: BeadsStats::default(),
             create_title: String::new(),
             create_description: String::new(),

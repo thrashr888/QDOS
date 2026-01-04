@@ -171,6 +171,7 @@ impl BeadsPlugin {
                         match ops::load_beads_issue_detail(&issue_id, cwd) {
                             Ok(detail) => {
                                 state.detail_issue = Some(detail);
+                                state.detail_scroll = 0;
                                 state.view = BeadsView::Detail;
                             }
                             Err(e) => {
@@ -381,6 +382,7 @@ impl BeadsPlugin {
                         Ok(detail) => {
                             state.detail_issue = Some(detail);
                             state.selected_subtask = 0;
+                            state.detail_scroll = 0;
                             state.view = BeadsView::Detail;
                         }
                         Err(e) => {
@@ -526,6 +528,30 @@ impl BeadsPlugin {
                         }
                     }
                 }
+                KeyHandleResult::Handled
+            }
+            KeyCode::PageUp => {
+                // Scroll detail view up
+                if state.detail_scroll >= 5 {
+                    state.detail_scroll -= 5;
+                } else {
+                    state.detail_scroll = 0;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::PageDown => {
+                // Scroll detail view down
+                state.detail_scroll += 5;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Home => {
+                // Scroll to top
+                state.detail_scroll = 0;
+                KeyHandleResult::Handled
+            }
+            KeyCode::End => {
+                // Scroll to bottom (will be clamped in render)
+                state.detail_scroll = usize::MAX / 2; // Large value, will be clamped
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,

@@ -863,7 +863,32 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                     )));
                 }
 
-                frame.render_widget(Paragraph::new(lines), content_area);
+                // Apply scrolling - skip detail_scroll lines and limit to visible height
+                let visible_height = content_area.height as usize;
+                let total_lines = lines.len();
+                let scroll = state.detail_scroll.min(total_lines.saturating_sub(visible_height));
+                let visible_lines: Vec<Line> = lines
+                    .into_iter()
+                    .skip(scroll)
+                    .take(visible_height)
+                    .collect();
+
+                // Show scroll indicator if content extends beyond view
+                if total_lines > visible_height {
+                    let indicator = format!(
+                        " [{}/{}] ↑↓ scroll ",
+                        scroll + 1,
+                        total_lines.saturating_sub(visible_height) + 1
+                    );
+                    let indicator_len = indicator.len() as u16;
+                    let indicator_x = content_area.x + content_area.width.saturating_sub(indicator_len + 1);
+                    frame.render_widget(
+                        Paragraph::new(Span::styled(indicator, Style::default().fg(colors.grey()))),
+                        Rect::new(indicator_x, content_area.y, indicator_len + 1, 1),
+                    );
+                }
+
+                frame.render_widget(Paragraph::new(visible_lines), content_area);
             }
             BeadsView::Edit => {
                 let statuses = ["open", "in_progress", "closed"];
@@ -1646,9 +1671,9 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
             ],
             BeadsView::Detail => vec![
                 ("↑↓", "subtasks"),
+                ("PgUp/Dn", "scroll"),
                 ("E", "edit"),
                 ("N", "new"),
-                ("M", "comments"),
                 ("C", "close"),
             ],
             BeadsView::Edit => vec![
