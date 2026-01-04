@@ -25,6 +25,7 @@ use ratatui::{
 };
 
 use super::{
+    components::ModalFrame,
     format_size_short,
     viewer::{draw_file_viewer, draw_shell_command},
     COLOR_BG, COLOR_BLUE, COLOR_CYAN, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
@@ -1662,37 +1663,37 @@ pub(super) fn draw_batch_rename_modal(frame: &mut Frame, area: Rect, state: &Bat
 
 /// Draw the Attribute modal
 pub(super) fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &AttributeState) {
-    let attr_block = Block::default()
-        .title(if state.display_only {
-            " Display File Attributes "
-        } else if state.for_tagged {
-            " Change Tagged Files Attributes "
-        } else {
-            " Change File Attributes "
-        })
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(COLOR_BLUE))
-        .style(Style::default().bg(COLOR_BG));
+    let title = if state.display_only {
+        " Display File Attributes "
+    } else if state.for_tagged {
+        " Change Tagged Files Attributes "
+    } else {
+        " Change File Attributes "
+    };
 
-    frame.render_widget(attr_block.clone(), area);
-    let inner = attr_block.inner(area);
+    let modal = ModalFrame::new(area, title).no_footer_separator();
+    modal.render_frame(frame);
 
-    // Build attribute display lines
-    let mut lines = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("File: ", Style::default().fg(COLOR_GREEN)),
-            Span::styled(&state.name, Style::default().fg(COLOR_FG)),
-        ]),
-        Line::from(""),
-    ];
+    let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+    let value_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
+    let grey_style = Style::default().fg(COLOR_GREY).bg(COLOR_BG);
 
-    // Show current attributes row
-    lines.push(Line::from(Span::styled(
-        "Current attributes:",
-        Style::default().fg(COLOR_GREEN),
-    )));
-    lines.push(Line::from(""));
+    // File name
+    modal.render_row(
+        frame,
+        0,
+        vec![
+            Span::styled("File: ", label_style),
+            Span::styled(&state.name, value_style),
+        ],
+    );
+    modal.render_row(frame, 1, vec![]);
+    modal.render_row(
+        frame,
+        2,
+        vec![Span::styled("Current attributes:", label_style)],
+    );
+    modal.render_row(frame, 3, vec![]);
 
     // Show original values
     let orig_text = format!(
@@ -1702,14 +1703,11 @@ pub(super) fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &Attrib
         if state.original[2] { "R/O" } else { "   " },
         if state.original[3] { "ARC" } else { "   " },
     );
-    lines.push(Line::from(Span::styled(
-        orig_text,
-        Style::default().fg(COLOR_GREY),
-    )));
-    lines.push(Line::from(""));
+    modal.render_row(frame, 4, vec![Span::styled(orig_text, grey_style)]);
+    modal.render_row(frame, 5, vec![]);
 
     // Build attribute bars
-    let mut attr_spans: Vec<Span> = vec![Span::raw("  ")];
+    let mut attr_spans: Vec<Span> = Vec::new();
     for i in 0..4 {
         let name = AttributeState::attr_name(i);
         let value = state.attrs[i];
@@ -1722,18 +1720,18 @@ pub(super) fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &Attrib
         let style = if is_selected {
             Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
         } else if is_modifiable {
-            Style::default().fg(COLOR_FG)
+            Style::default().fg(COLOR_FG).bg(COLOR_BG)
         } else {
-            Style::default().fg(COLOR_GREY)
+            Style::default().fg(COLOR_GREY).bg(COLOR_BG)
         };
 
         let value_style = if is_selected {
             Style::default().fg(COLOR_YELLOW).bg(COLOR_RED)
         } else {
             match value {
-                AttrValue::On => Style::default().fg(COLOR_GREEN),
-                AttrValue::Off => Style::default().fg(COLOR_GREY),
-                AttrValue::NoChange => Style::default().fg(COLOR_BLUE),
+                AttrValue::On => Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+                AttrValue::Off => Style::default().fg(COLOR_GREY).bg(COLOR_BG),
+                AttrValue::NoChange => Style::default().fg(COLOR_BLUE).bg(COLOR_BG),
             }
         };
 
@@ -1741,69 +1739,70 @@ pub(super) fn draw_attribute_modal(frame: &mut Frame, area: Rect, state: &Attrib
         attr_spans.push(Span::styled(value.as_str(), value_style));
         attr_spans.push(Span::styled(" ]  ", style));
     }
-    lines.push(Line::from(attr_spans));
-    lines.push(Line::from(""));
+    modal.render_row(frame, 6, attr_spans);
 
     // Help text
     if state.display_only {
-        lines.push(Line::from(Span::styled(
-            "Press any key to close",
-            Style::default().fg(COLOR_GREEN),
-        )));
+        modal.render_help(frame, vec![("Any key", "close")]);
     } else {
-        lines.push(Line::from(Span::styled(
-            "Note: Only R/O (Read-Only) can be changed on Unix",
-            Style::default().fg(COLOR_GREY),
-        )));
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("←→", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" select  "),
-            Span::styled("SPACE", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" toggle  "),
-            Span::styled("Enter", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" apply  "),
-            Span::styled("ESC", Style::default().fg(COLOR_BLUE)),
-            Span::raw(" cancel"),
-        ]));
+        modal.render_row(
+            frame,
+            8,
+            vec![Span::styled(
+                "Note: Only R/O (Read-Only) can be changed on Unix",
+                grey_style,
+            )],
+        );
+        modal.render_help(
+            frame,
+            vec![
+                ("←→", "select"),
+                ("SPACE", "toggle"),
+                ("Enter", "apply"),
+                ("ESC", "cancel"),
+            ],
+        );
     }
-
-    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
-
-    frame.render_widget(paragraph, inner);
 }
 
 /// Draw color theme selection modal (QDCOLOR)
 fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState, app: &App) {
     let colors = app.colors();
 
-    let theme_block = Block::default()
-        .title(" R-DOS Color Configuration ")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(colors.blue()))
-        .style(Style::default().bg(colors.bg()));
+    // Use ModalFrame with dynamic theme colors (fg for white borders per SPEC)
+    let modal = ModalFrame::new(area, " R-DOS Color Configuration ")
+        .border_style(Style::default().fg(colors.fg()).bg(colors.bg()))
+        .content_style(Style::default().fg(colors.fg()).bg(colors.bg()))
+        .no_footer_separator();
+    modal.render_frame(frame);
 
-    frame.render_widget(theme_block.clone(), area);
-    let inner = theme_block.inner(area);
-
-    let mut lines = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled("Current Theme: ", Style::default().fg(colors.green())),
+    modal.render_row(
+        frame,
+        0,
+        vec![
+            Span::styled(
+                "Current Theme: ",
+                Style::default().fg(colors.green()).bg(colors.bg()),
+            ),
             Span::styled(
                 app.color_theme.name(),
                 Style::default()
                     .fg(colors.yellow())
+                    .bg(colors.bg())
                     .add_modifier(Modifier::BOLD),
             ),
-        ]),
-        Line::from(""),
-        Line::from(Span::styled(
+        ],
+    );
+    modal.render_row(frame, 1, vec![]);
+    modal.render_row(
+        frame,
+        2,
+        vec![Span::styled(
             "Select a color theme:",
-            Style::default().fg(colors.fg()),
-        )),
-        Line::from(""),
-    ];
+            Style::default().fg(colors.fg()).bg(colors.bg()),
+        )],
+    );
+    modal.render_row(frame, 3, vec![]);
 
     // List all themes
     for (i, theme) in ColorTheme::ALL.iter().enumerate() {
@@ -1815,46 +1814,47 @@ fn draw_color_theme_modal(frame: &mut Frame, area: Rect, state: &ColorThemeState
         let style = if is_selected {
             Style::default().fg(colors.yellow()).bg(colors.red())
         } else {
-            Style::default().fg(colors.fg())
+            Style::default().fg(colors.fg()).bg(colors.bg())
         };
 
         let number_style = if is_selected {
             Style::default().fg(colors.yellow()).bg(colors.red())
         } else {
-            Style::default().fg(colors.blue())
+            Style::default().fg(colors.cyan()).bg(colors.bg())
         };
 
         let desc_style = if is_selected {
             Style::default().fg(colors.yellow()).bg(colors.red())
         } else {
-            Style::default().fg(colors.green())
+            Style::default().fg(colors.green()).bg(colors.bg())
         };
 
-        lines.push(Line::from(vec![
-            Span::styled("  ", style),
-            Span::styled(number, number_style),
-            Span::styled(name, style),
-            Span::styled(desc, desc_style),
-        ]));
+        modal.render_row(
+            frame,
+            4 + i as u16,
+            vec![
+                Span::styled("  ", style),
+                Span::styled(number, number_style),
+                Span::styled(name, style),
+                Span::styled(desc, desc_style),
+            ],
+        );
     }
 
-    lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "Theme changes preview live as you select.",
-        Style::default().fg(colors.grey()),
-    )));
-    lines.push(Line::from(""));
-    lines.push(Line::from(vec![
-        Span::styled("↑↓/1-5", Style::default().fg(colors.blue())),
-        Span::raw(" select  "),
-        Span::styled("Enter", Style::default().fg(colors.blue())),
-        Span::raw(" apply  "),
-        Span::styled("ESC", Style::default().fg(colors.blue())),
-        Span::raw(" cancel"),
-    ]));
+    modal.render_row(frame, 10, vec![]);
+    modal.render_row(
+        frame,
+        11,
+        vec![Span::styled(
+            "Theme changes preview live as you select.",
+            Style::default().fg(colors.grey()).bg(colors.bg()),
+        )],
+    );
 
-    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: true });
-    frame.render_widget(paragraph, inner);
+    modal.render_help(
+        frame,
+        vec![("↑↓/1-5", "select"), ("Enter", "apply"), ("ESC", "cancel")],
+    );
 }
 
 /// Draw QDSTART configuration modal
