@@ -7,14 +7,17 @@
       "Bash(bd list:*)",
       "Bash(bd show:*)",
       "Bash(bd update:*)",
-      "Bash(bd:*)",
       "Bash(cargo build:*)",
       "Bash(cargo check:*)",
       "Bash(cargo clippy:*)",
+      "Bash(cargo doc:*)",
       "Bash(cargo fix:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo run:*)",
+      "Bash(cargo search:*)",
       "Bash(cargo test:*)",
+      "Bash(cargo update:*)",
+      "Bash(gh release view:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
       "Bash(git checkout:*)",
@@ -29,14 +32,9 @@
       "Bash(shasum:*)",
       "Bash(tail:*)",
       "Bash(wc:*)",
-      "Skill(beads:*)",
       "Skill(beads:create)",
       "Skill(beads:list)",
-      "Bash(cargo update:*)",
-      "Bash(gh release view:*)",
-      "WebFetch(domain:docs.rs)",
-      "Bash(cargo search:*)",
-      "Bash(cargo doc:*)"
+      "WebFetch(domain:docs.rs)"
     ]
   }
 }
