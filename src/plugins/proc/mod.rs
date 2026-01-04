@@ -4,11 +4,11 @@
 //! Triggered via F12, provides multiple views for CPU, Memory, Disk, Network.
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
+use crate::ui::{COLOR_BG, COLOR_BLUE, COLOR_FG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
@@ -576,7 +576,7 @@ impl Plugin for ProcPlugin {
 
         // Use theme colors
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let green = COLOR_GREEN;
         let yellow = COLOR_YELLOW;
@@ -785,7 +785,7 @@ impl ProcPlugin {
         inner_width: usize,
     ) {
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let yellow = COLOR_YELLOW;
         let red = COLOR_RED;
@@ -905,7 +905,7 @@ impl ProcPlugin {
         inner_width: usize,
     ) {
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let yellow = COLOR_YELLOW;
         let red = COLOR_RED;
@@ -1015,7 +1015,7 @@ impl ProcPlugin {
         inner_width: usize,
     ) {
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let yellow = COLOR_YELLOW;
         let red = COLOR_RED;
@@ -1124,7 +1124,7 @@ impl ProcPlugin {
         };
 
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let green = COLOR_GREEN;
         let yellow = COLOR_YELLOW;
@@ -1304,7 +1304,7 @@ impl ProcPlugin {
         inner_width: usize,
     ) {
         let bg = COLOR_BG;
-        let fg = Color::White;
+        let fg = COLOR_FG;
         let blue = COLOR_BLUE;
         let yellow = COLOR_YELLOW;
         let red = COLOR_RED;
