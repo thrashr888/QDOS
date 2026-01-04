@@ -1,6 +1,5 @@
 pub mod components;
 mod modals;
-mod viewer;
 
 use crate::app::{App, Modal, NavItem, SortMode};
 use crate::file_ops::GitStatus;

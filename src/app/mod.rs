@@ -7,10 +7,9 @@ use crate::plugins::git::ops as git_ops;
 // Re-export state types for external use (non-plugin types)
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
-    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FileViewerState,
-    FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
-    QdstartField, QdstartState, SearchSpecState, SortMode,
-    ThemeColors, ViewFilter, ViewMode,
+    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FindPhase,
+    FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
+    QdstartState, SearchSpecState, SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -33,13 +32,14 @@ use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
     KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
     QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
-use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use crossterm::execute;
+use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use ratatui::prelude::*;
 use std::fs;
 use std::io::{self, Write};
@@ -137,6 +137,7 @@ impl App {
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
         plugin_manager.register(Box::new(ShellPlugin::new()));
+        plugin_manager.register(Box::new(ViewerPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -302,22 +303,20 @@ impl App {
             }
             MouseEventKind::ScrollUp => {
                 // Scroll up in file list
-                if matches!(self.modal, Modal::None)
-                    && self.selected_index > 0 {
-                        self.selected_index -= 1;
-                        // Adjust scroll if needed
-                        if self.selected_index < self.scroll_offset {
-                            self.scroll_offset = self.selected_index;
-                        }
+                if matches!(self.modal, Modal::None) && self.selected_index > 0 {
+                    self.selected_index -= 1;
+                    // Adjust scroll if needed
+                    if self.selected_index < self.scroll_offset {
+                        self.scroll_offset = self.selected_index;
                     }
+                }
             }
             MouseEventKind::ScrollDown => {
                 // Scroll down in file list
-                if matches!(self.modal, Modal::None)
-                    && self.selected_index + 1 < self.files.len() {
-                        self.selected_index += 1;
-                        // Note: scroll adjustment happens in UI render
-                    }
+                if matches!(self.modal, Modal::None) && self.selected_index + 1 < self.files.len() {
+                    self.selected_index += 1;
+                    // Note: scroll adjustment happens in UI render
+                }
             }
             _ => {
                 // Ignore other mouse events (moves, releases, etc.)
@@ -579,11 +578,9 @@ impl App {
     /// Handle keyboard input in modal dialogs
     fn handle_modal_key(&mut self, key: KeyEvent) -> Result<()> {
         // Handle 'y' (yank/copy) in specific modals that should support clipboard
+        let is_viewer = matches!(&self.modal, Modal::Plugin(id) if id == "viewer");
         if matches!(key.code, KeyCode::Char('y') | KeyCode::Char('Y'))
-            && matches!(
-                self.modal,
-                Modal::Beads(_) | Modal::Git(_) | Modal::FileViewer(_)
-            )
+            && (matches!(self.modal, Modal::Beads(_) | Modal::Git(_)) || is_viewer)
         {
             self.open_clipboard_menu();
             return Ok(());
@@ -751,147 +748,8 @@ impl App {
                 }
                 _ => {}
             },
-            Modal::FileViewer(ref mut state) => {
-                // Calculate max scroll based on mode and content
-                let max_scroll = state.max_scroll(20); // Assume ~20 lines visible, will be recalculated in UI
-
-                match key.code {
-                    KeyCode::Esc => {
-                        self.modal = Modal::None;
-                    }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(1);
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        state.scroll_offset = (state.scroll_offset + 1).min(max_scroll);
-                    }
-                    KeyCode::PageUp => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(20);
-                    }
-                    KeyCode::PageDown => {
-                        state.scroll_offset = (state.scroll_offset + 20).min(max_scroll);
-                    }
-                    KeyCode::Home => {
-                        state.scroll_offset = 0;
-                    }
-                    KeyCode::End => {
-                        state.scroll_offset = max_scroll;
-                    }
-                    KeyCode::Char('h') | KeyCode::Char('H') => {
-                        state.mode = ViewMode::Hex;
-                        // Clamp scroll for new mode
-                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
-                    }
-                    KeyCode::Char('n')
-                    | KeyCode::Char('N')
-                    | KeyCode::Char('a')
-                    | KeyCode::Char('A') => {
-                        state.mode = ViewMode::Normal;
-                        // Clamp scroll for new mode
-                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
-                    }
-                    KeyCode::Char('i') | KeyCode::Char('I') => {
-                        state.mode = ViewMode::Image;
-                        state.scroll_offset = 0;
-                    }
-                    KeyCode::Char('m') | KeyCode::Char('M') => {
-                        state.mode = ViewMode::Markdown;
-                        // Clamp scroll for new mode
-                        state.scroll_offset = state.scroll_offset.min(state.max_scroll(20));
-                    }
-                    KeyCode::Char('f') | KeyCode::Char('F') => {
-                        state.filter = state.filter.next();
-                    }
-                    KeyCode::Char('b') | KeyCode::Char('B') => {
-                        // Switch to blame view (only if in git repo)
-                        if state.is_git_repo {
-                            // Load blame data if not already loaded
-                            if state.blame_lines.is_empty() {
-                                state.blame_lines =
-                                    git_ops::load_file_blame(&state.file_path, &self.current_path);
-                            }
-                            state.mode = ViewMode::Blame;
-                            state.scroll_offset = 0;
-                        }
-                    }
-                    KeyCode::Char('d') | KeyCode::Char('D') => {
-                        // Switch to diff view (only if in git repo)
-                        if state.is_git_repo {
-                            // Load diff data if not already loaded
-                            if state.diff_lines.is_empty() {
-                                state.diff_lines = git_ops::load_file_diff_against_head(
-                                    &state.file_path,
-                                    &self.current_path,
-                                );
-                            }
-                            state.mode = ViewMode::Diff;
-                            state.scroll_offset = 0;
-                        }
-                    }
-                    KeyCode::F(4) => {
-                        // Toggle hex/ascii side in hex mode
-                        if state.mode == ViewMode::Hex {
-                            state.hex_side = !state.hex_side;
-                        }
-                    }
-                    KeyCode::Left => {
-                        // Go to older version in git history
-                        if state.has_older_version() {
-                            let new_idx = match state.history_index {
-                                None => {
-                                    // Currently at working copy, go to most recent commit
-                                    state.git_history.len() - 1
-                                }
-                                Some(idx) => idx.saturating_sub(1),
-                            };
-                            if let Some(entry) = state.git_history.get(new_idx) {
-                                let commit_hash = entry.hash.clone();
-                                let file_path = state.file_path.clone();
-                                if let Ok(content) = git_ops::load_file_at_commit(
-                                    &file_path,
-                                    &commit_hash,
-                                    &self.current_path,
-                                ) {
-                                    state.content = content;
-                                    state.history_index = Some(new_idx);
-                                    state.scroll_offset = 0;
-                                }
-                            }
-                        }
-                    }
-                    KeyCode::Right => {
-                        // Go to newer version in git history
-                        if state.has_newer_version() {
-                            if let Some(idx) = state.history_index {
-                                if idx + 1 >= state.git_history.len() {
-                                    // Go to working copy
-                                    if let Ok(content) = std::fs::read(&state.file_path) {
-                                        state.content = content;
-                                        state.history_index = None;
-                                        state.scroll_offset = 0;
-                                    }
-                                } else {
-                                    // Go to next commit
-                                    let new_idx = idx + 1;
-                                    if let Some(entry) = state.git_history.get(new_idx) {
-                                        let commit_hash = entry.hash.clone();
-                                        let file_path = state.file_path.clone();
-                                        if let Ok(content) = git_ops::load_file_at_commit(
-                                            &file_path,
-                                            &commit_hash,
-                                            &self.current_path,
-                                        ) {
-                                            state.content = content;
-                                            state.history_index = Some(new_idx);
-                                            state.scroll_offset = 0;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
+            Modal::FileViewer(_) => {
+                // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
             }
             Modal::DirectoryMap(ref mut state) => {
                 // Handle delete confirmation mode
@@ -1169,27 +1027,13 @@ impl App {
                             KeyCode::Char('v') | KeyCode::Char('V') => {
                                 // View the file
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
-                                    if let Ok(content) = std::fs::read(path) {
-                                        let file_name = path
-                                            .file_name()
-                                            .map(|n| n.to_string_lossy().to_string())
-                                            .unwrap_or_else(|| "file".to_string());
-                                        let file_path = path.clone();
-                                        let mut viewer_state = FileViewerState::new(
-                                            file_name,
-                                            file_path.clone(),
-                                            content,
-                                        );
-                                        // Load git history if in a git repo
-                                        let is_repo = git_ops::is_git_repo(&self.current_path);
-                                        if is_repo {
-                                            let history = git_ops::load_file_history(
-                                                &file_path,
-                                                &self.current_path,
-                                            );
-                                            viewer_state.set_git_history(history, true);
+                                    let file_path = path.clone();
+                                    let cwd = self.current_path.clone();
+                                    if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
+                                        if plugin.open_file(file_path, &cwd).is_ok() {
+                                            self.plugin_manager.set_active_modal(Some("viewer"));
+                                            self.modal = Modal::Plugin("viewer".to_string());
                                         }
-                                        self.modal = Modal::FileViewer(viewer_state);
                                     }
                                 }
                             }
@@ -1285,27 +1129,13 @@ impl App {
                             KeyCode::Char('v') | KeyCode::Char('V') => {
                                 // View the selected file
                                 if let Some((path, _)) = state.matches.get(state.current_match) {
-                                    if let Ok(content) = std::fs::read(path) {
-                                        let file_name = path
-                                            .file_name()
-                                            .map(|n| n.to_string_lossy().to_string())
-                                            .unwrap_or_else(|| "file".to_string());
-                                        let file_path = path.clone();
-                                        let mut viewer_state = FileViewerState::new(
-                                            file_name,
-                                            file_path.clone(),
-                                            content,
-                                        );
-                                        // Load git history if in a git repo
-                                        let is_repo = git_ops::is_git_repo(&self.current_path);
-                                        if is_repo {
-                                            let history = git_ops::load_file_history(
-                                                &file_path,
-                                                &self.current_path,
-                                            );
-                                            viewer_state.set_git_history(history, true);
+                                    let file_path = path.clone();
+                                    let cwd = self.current_path.clone();
+                                    if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
+                                        if plugin.open_file(file_path, &cwd).is_ok() {
+                                            self.plugin_manager.set_active_modal(Some("viewer"));
+                                            self.modal = Modal::Plugin("viewer".to_string());
                                         }
-                                        self.modal = Modal::FileViewer(viewer_state);
                                     }
                                 }
                             }
@@ -3183,28 +3013,18 @@ impl App {
                     self.modal = Modal::Error(errors::file::CANNOT_VIEW_DIR.to_string());
                 } else {
                     let file = &self.files[self.selected_index];
-                    match std::fs::read(&file.path) {
-                        Ok(content) => {
-                            let file_name = if file.extension.is_empty() {
-                                file.name.clone()
-                            } else {
-                                format!("{}.{}", file.name, file.extension)
-                            };
-                            let file_path = file.path.clone();
-                            let mut viewer_state =
-                                FileViewerState::new(file_name, file_path.clone(), content);
-                            // Load git history if in a git repo
-                            let is_repo = git_ops::is_git_repo(&self.current_path);
-                            if is_repo {
-                                let history =
-                                    git_ops::load_file_history(&file_path, &self.current_path);
-                                viewer_state.set_git_history(history, true);
+                    let file_path = file.path.clone();
+                    let cwd = self.current_path.clone();
+                    if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
+                        match plugin.open_file(file_path, &cwd) {
+                            Ok(()) => {
+                                self.plugin_manager.set_active_modal(Some("viewer"));
+                                self.modal = Modal::Plugin("viewer".to_string());
                             }
-                            self.modal = Modal::FileViewer(viewer_state);
-                        }
-                        Err(_e) => {
-                            self.modal =
-                                Modal::Error(errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string());
+                            Err(_e) => {
+                                self.modal =
+                                    Modal::Error(errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string());
+                            }
                         }
                     }
                 }
@@ -3610,21 +3430,28 @@ impl App {
                     }
                 }
             }
-            Modal::FileViewer(state) => {
-                // In file viewer - add file path and commit info if viewing history
-                items.push(ClipboardItem {
-                    label: "File Path".to_string(),
-                    value: state.file_path.to_string_lossy().to_string(),
-                });
-                items.push(ClipboardItem {
-                    label: "File Name".to_string(),
-                    value: state.file_name.clone(),
-                });
-                if let Some(commit) = state.current_commit() {
-                    items.push(ClipboardItem {
-                        label: "Viewing Commit".to_string(),
-                        value: commit.hash.clone(),
-                    });
+            Modal::FileViewer(_) => {
+                // Legacy - now handled via Modal::Plugin("viewer")
+            }
+            Modal::Plugin(ref plugin_id) if plugin_id == "viewer" => {
+                // Viewer plugin - add file path and commit info if viewing history
+                if let Some(viewer) = self.plugin_manager.viewer_plugin() {
+                    if let Some(state) = viewer.get_state() {
+                        items.push(ClipboardItem {
+                            label: "File Path".to_string(),
+                            value: state.file_path.to_string_lossy().to_string(),
+                        });
+                        items.push(ClipboardItem {
+                            label: "File Name".to_string(),
+                            value: state.file_name.clone(),
+                        });
+                        if let Some(commit) = state.current_commit() {
+                            items.push(ClipboardItem {
+                                label: "Viewing Commit".to_string(),
+                                value: commit.hash.clone(),
+                            });
+                        }
+                    }
                 }
             }
             _ => {
@@ -4040,4 +3867,3 @@ fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
     }
     Ok(())
 }
-

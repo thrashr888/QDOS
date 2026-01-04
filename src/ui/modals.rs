@@ -25,10 +25,8 @@ use ratatui::{
 };
 
 use super::{
-    components::ModalFrame,
-    format_size_short,
-    viewer::draw_file_viewer,
-    COLOR_BG, COLOR_BLUE, COLOR_CYAN, COLOR_FG, COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
+    components::ModalFrame, format_size_short, COLOR_BG, COLOR_BLUE, COLOR_CYAN, COLOR_FG,
+    COLOR_GREEN, COLOR_GREY, COLOR_RED, COLOR_YELLOW,
 };
 
 /// Create a centered rectangle
@@ -136,7 +134,9 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         Modal::MoveTo(dest) => draw_move_modal(frame, modal_area, dest, app),
         Modal::EraseConfirm => draw_erase_modal(frame, modal_area, app),
         Modal::RenameInput(name) => draw_rename_modal(frame, modal_area, name),
-        Modal::FileViewer(state) => draw_file_viewer(frame, area, state),
+        Modal::FileViewer(_) => {
+            // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
+        }
         Modal::DirectoryMap(state) => draw_directory_map(frame, area, state),
         Modal::Find(state) => draw_find_modal(frame, area, state),
         Modal::BatchRename(state) => draw_batch_rename_modal(frame, area, state),
@@ -423,8 +423,7 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, _app: &App) {
     let quit_area = Rect::new(x, y, width.min(area.width), height.min(area.height));
 
     // Use ModalFrame for consistent styling
-    let modal = ModalFrame::new(quit_area, " F10 - Quit Q-DOS II ")
-        .no_footer_separator();
+    let modal = ModalFrame::new(quit_area, " F10 - Quit Q-DOS II ").no_footer_separator();
     modal.render_frame(frame);
 
     // Content rows (centered text)
@@ -570,8 +569,7 @@ pub(super) fn draw_qdos_modal_colored(
     );
 
     // Use ModalFrame for consistent styling
-    let modal = ModalFrame::new(modal_area, &format!(" {} ", title))
-        .no_footer_separator();
+    let modal = ModalFrame::new(modal_area, &format!(" {} ", title)).no_footer_separator();
     modal.render_frame(frame);
 
     // Render content lines (centered)
@@ -801,7 +799,10 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str) {
     modal.render_row(frame, 4, vec![]); // Empty row
 
     // Help line
-    modal.render_help(frame, vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")]);
+    modal.render_help(
+        frame,
+        vec![("Tab", "complete"), ("Enter", "confirm"), ("Esc", "cancel")],
+    );
 }
 
 /// Draw success modal
@@ -896,7 +897,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     frame.render_widget(Clear, area);
 
     let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-    let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let title_style = Style::default()
+        .fg(COLOR_YELLOW)
+        .bg(COLOR_BG)
+        .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;
 
@@ -904,7 +908,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Top border
     let top = format!("╔{}╗", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Title
@@ -916,12 +923,18 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         Span::styled(" ".repeat(title_pad), normal_style),
         Span::styled("║", border_style),
     ];
-    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Line::from(title_line)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Content lines helper
@@ -932,7 +945,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         let pad = (area.width as usize).saturating_sub(content_width + 1);
         spans.push(Span::styled(" ".repeat(pad), normal_style));
         spans.push(Span::styled("║", border_style));
-        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+        frame.render_widget(
+            Paragraph::new(Line::from(spans)),
+            Rect::new(area.x, y, area.width, 1),
+        );
     };
 
     // Empty line
@@ -940,10 +956,14 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     y += 1;
 
     // Copy count
-    render_line(frame, y, vec![Span::styled(
-        format!("Copying {} tagged file(s)", app.tagged_files.len()),
-        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            format!("Copying {} tagged file(s)", app.tagged_files.len()),
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Empty line
@@ -951,14 +971,22 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     y += 1;
 
     // Destination prompt
-    render_line(frame, y, vec![Span::styled(
-        "Destination (Tab to complete):",
-        Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            "Destination (Tab to complete):",
+            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Input field
-    render_line(frame, y, vec![Span::styled(format!("{}_", dest), normal_style)]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(format!("{}_", dest), normal_style)],
+    );
     y += 1;
 
     // Empty line
@@ -967,7 +995,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Footer separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Help line
@@ -984,7 +1015,10 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Bottom border
     let bottom = format!("╚{}╝", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
 }
 
 /// Draw move modal with double-line border style
@@ -992,7 +1026,10 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     frame.render_widget(Clear, area);
 
     let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-    let title_style = Style::default().fg(COLOR_YELLOW).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let title_style = Style::default()
+        .fg(COLOR_YELLOW)
+        .bg(COLOR_BG)
+        .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;
 
@@ -1000,7 +1037,10 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Top border
     let top = format!("╔{}╗", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Title
@@ -1012,12 +1052,18 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         Span::styled(" ".repeat(title_pad), normal_style),
         Span::styled("║", border_style),
     ];
-    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Line::from(title_line)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Content lines helper
@@ -1028,7 +1074,10 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         let pad = (area.width as usize).saturating_sub(content_width + 1);
         spans.push(Span::styled(" ".repeat(pad), normal_style));
         spans.push(Span::styled("║", border_style));
-        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+        frame.render_widget(
+            Paragraph::new(Line::from(spans)),
+            Rect::new(area.x, y, area.width, 1),
+        );
     };
 
     // Empty line
@@ -1036,10 +1085,14 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     y += 1;
 
     // Move count
-    render_line(frame, y, vec![Span::styled(
-        format!("Moving {} tagged file(s)", app.tagged_files.len()),
-        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            format!("Moving {} tagged file(s)", app.tagged_files.len()),
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Empty line
@@ -1047,14 +1100,22 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
     y += 1;
 
     // Destination prompt
-    render_line(frame, y, vec![Span::styled(
-        "Destination (Tab to complete):",
-        Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            "Destination (Tab to complete):",
+            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Input field
-    render_line(frame, y, vec![Span::styled(format!("{}_", dest), normal_style)]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(format!("{}_", dest), normal_style)],
+    );
     y += 1;
 
     // Empty line
@@ -1063,7 +1124,10 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Footer separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Help line
@@ -1080,7 +1144,10 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
     // Bottom border
     let bottom = format!("╚{}╝", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
 }
 
 /// Draw erase confirmation modal with double-line border style
@@ -1088,7 +1155,10 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(Clear, area);
 
     let border_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
-    let title_style = Style::default().fg(COLOR_RED).bg(COLOR_BG).add_modifier(Modifier::BOLD);
+    let title_style = Style::default()
+        .fg(COLOR_RED)
+        .bg(COLOR_BG)
+        .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().fg(COLOR_FG).bg(COLOR_BG);
     let inner_width = area.width.saturating_sub(2) as usize;
 
@@ -1096,7 +1166,10 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
 
     // Top border
     let top = format!("╔{}╗", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&top, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&top, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Title
@@ -1108,12 +1181,18 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
         Span::styled(" ".repeat(title_pad), normal_style),
         Span::styled("║", border_style),
     ];
-    frame.render_widget(Paragraph::new(Line::from(title_line)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Line::from(title_line)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Content lines helper
@@ -1124,7 +1203,10 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
         let pad = (area.width as usize).saturating_sub(content_width + 1);
         spans.push(Span::styled(" ".repeat(pad), normal_style));
         spans.push(Span::styled("║", border_style));
-        frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(area.x, y, area.width, 1));
+        frame.render_widget(
+            Paragraph::new(Line::from(spans)),
+            Rect::new(area.x, y, area.width, 1),
+        );
     };
 
     // Empty line
@@ -1132,10 +1214,14 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
     y += 1;
 
     // Delete count
-    render_line(frame, y, vec![Span::styled(
-        format!("Delete {} tagged file(s)?", app.tagged_files.len()),
-        Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            format!("Delete {} tagged file(s)?", app.tagged_files.len()),
+            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Empty line
@@ -1143,10 +1229,14 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
     y += 1;
 
     // Warning
-    render_line(frame, y, vec![Span::styled(
-        "This cannot be undone!",
-        Style::default().fg(COLOR_RED).bg(COLOR_BG),
-    )]);
+    render_line(
+        frame,
+        y,
+        vec![Span::styled(
+            "This cannot be undone!",
+            Style::default().fg(COLOR_RED).bg(COLOR_BG),
+        )],
+    );
     y += 1;
 
     // Empty line
@@ -1155,7 +1245,10 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
 
     // Footer separator
     let sep = format!("╠{}╣", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&sep, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&sep, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
     y += 1;
 
     // Help line
@@ -1170,7 +1263,10 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
 
     // Bottom border
     let bottom = format!("╚{}╝", "═".repeat(inner_width));
-    frame.render_widget(Paragraph::new(Span::styled(&bottom, border_style)), Rect::new(area.x, y, area.width, 1));
+    frame.render_widget(
+        Paragraph::new(Span::styled(&bottom, border_style)),
+        Rect::new(area.x, y, area.width, 1),
+    );
 }
 
 /// Draw rename modal
@@ -3137,8 +3233,22 @@ fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: &App
 
                         lines.push(Line::from(vec![
                             Span::styled("  ", style),
-                            Span::styled("◆ ", if is_selected { style } else { Style::default().fg(colors.magenta()) }),
-                            Span::styled(format!("{:<12}", epic.id), if is_selected { style } else { Style::default().fg(colors.grey()) }),
+                            Span::styled(
+                                "◆ ",
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.magenta())
+                                },
+                            ),
+                            Span::styled(
+                                format!("{:<12}", epic.id),
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
                             Span::styled(title, style),
                         ]));
                     }

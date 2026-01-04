@@ -25,6 +25,7 @@ pub mod shell;
 pub mod space;
 pub mod status;
 pub mod theme;
+pub mod viewer;
 
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
@@ -39,6 +40,7 @@ pub use shell::ShellPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
 pub use theme::ThemePlugin;
+pub use viewer::ViewerPlugin;
 
 use crate::config::PluginsConfig;
 use crossterm::event::KeyEvent;
@@ -403,6 +405,20 @@ impl PluginManager {
         self.plugins
             .get_mut("fileops")
             .and_then(|p| p.as_any_mut().downcast_mut::<fileops::FileOpsPlugin>())
+    }
+
+    /// Get mutable reference to ViewerPlugin
+    pub fn viewer_plugin_mut(&mut self) -> Option<&mut viewer::ViewerPlugin> {
+        self.plugins
+            .get_mut("viewer")
+            .and_then(|p| p.as_any_mut().downcast_mut::<viewer::ViewerPlugin>())
+    }
+
+    /// Get reference to ViewerPlugin
+    pub fn viewer_plugin(&self) -> Option<&viewer::ViewerPlugin> {
+        self.plugins
+            .get("viewer")
+            .and_then(|p| p.as_any().downcast_ref::<viewer::ViewerPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

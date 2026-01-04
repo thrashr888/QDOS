@@ -6,9 +6,9 @@ use crate::file_ops::SystemInfo;
 use std::fs;
 use std::path::PathBuf;
 
-// Import Git types needed by this module (FileViewerState uses BlameLine/FileHistoryEntry,
-// Modal uses GitState). The types are defined in plugins/git/state.rs.
-use crate::plugins::git::{BlameLine, FileHistoryEntry, GitState};
+// Import Git types needed by this module (Modal uses GitState).
+// The types are defined in plugins/git/state.rs.
+use crate::plugins::git::GitState;
 
 // Import Beads types from plugins/beads/state.rs for Modal enum
 pub use crate::plugins::beads::{
@@ -140,165 +140,9 @@ impl SortMode {
     }
 }
 
-/// File viewer display mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ViewMode {
-    #[default]
-    Normal,
-    Hex,
-    Image,
-    Markdown,
-    Blame,
-    Diff,
-}
-
-/// File viewer filter mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ViewFilter {
-    #[default]
-    Off,
-    Ascii,
-    WordStar,
-}
-
-impl ViewFilter {
-    pub fn next(&self) -> ViewFilter {
-        match self {
-            ViewFilter::Off => ViewFilter::Ascii,
-            ViewFilter::Ascii => ViewFilter::WordStar,
-            ViewFilter::WordStar => ViewFilter::Off,
-        }
-    }
-}
-
-// FileHistoryEntry and BlameLine are now in plugins/git/state.rs
-
-/// File viewer state
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileViewerState {
-    /// File name being viewed
-    pub file_name: String,
-    /// Full file path (for loading images)
-    pub file_path: PathBuf,
-    /// File contents as bytes
-    pub content: Vec<u8>,
-    /// Current display mode
-    pub mode: ViewMode,
-    /// Current filter mode
-    pub filter: ViewFilter,
-    /// Current scroll offset (line number for Normal, byte offset for Hex)
-    pub scroll_offset: usize,
-    /// Whether cursor is on hex side (true) or ascii side (false) in hex mode
-    pub hex_side: bool,
-    /// Git history for this file (oldest to newest, index 0 = oldest)
-    pub git_history: Vec<FileHistoryEntry>,
-    /// Current position in git history (None = current working copy)
-    pub history_index: Option<usize>,
-    /// Whether we're in a git repo
-    pub is_git_repo: bool,
-    /// Git blame data for blame view
-    pub blame_lines: Vec<BlameLine>,
-    /// Git diff lines for diff view
-    pub diff_lines: Vec<String>,
-}
-
-impl FileViewerState {
-    pub fn new(file_name: String, file_path: PathBuf, content: Vec<u8>) -> Self {
-        let mode = Self::detect_mode(&file_name);
-        Self {
-            file_name,
-            file_path,
-            content,
-            mode,
-            filter: ViewFilter::Off,
-            scroll_offset: 0,
-            hex_side: true,
-            git_history: Vec::new(),
-            history_index: None,
-            is_git_repo: false,
-            blame_lines: Vec::new(),
-            diff_lines: Vec::new(),
-        }
-    }
-
-    /// Check if we can go to an older version (there's older history)
-    pub fn has_older_version(&self) -> bool {
-        if self.git_history.is_empty() {
-            return false;
-        }
-        match self.history_index {
-            None => true,         // Currently at working copy, can go back
-            Some(idx) => idx > 0, // Can go back if not at oldest
-        }
-    }
-
-    /// Check if we can go to a newer version
-    pub fn has_newer_version(&self) -> bool {
-        if self.git_history.is_empty() {
-            return false;
-        }
-        self.history_index.is_some() // If we're in history, we can go forward
-    }
-
-    /// Get current commit info (None if viewing working copy)
-    pub fn current_commit(&self) -> Option<&FileHistoryEntry> {
-        self.history_index.and_then(|idx| self.git_history.get(idx))
-    }
-
-    /// Set git history for this file
-    pub fn set_git_history(&mut self, history: Vec<FileHistoryEntry>, is_git_repo: bool) {
-        self.git_history = history;
-        self.is_git_repo = is_git_repo;
-    }
-
-    /// Calculate max scroll offset based on mode and visible height
-    pub fn max_scroll(&self, visible_height: usize) -> usize {
-        match self.mode {
-            ViewMode::Normal | ViewMode::Markdown => {
-                let line_count = self.content.split(|&b| b == b'\n').count();
-                line_count.saturating_sub(visible_height)
-            }
-            ViewMode::Hex => {
-                let bytes_per_line = 16;
-                let total_lines = self.content.len().div_ceil(bytes_per_line);
-                total_lines.saturating_sub(visible_height)
-            }
-            ViewMode::Image => 0,
-            ViewMode::Blame => self.blame_lines.len().saturating_sub(visible_height),
-            ViewMode::Diff => self.diff_lines.len().saturating_sub(visible_height),
-        }
-    }
-
-    /// Detect the best view mode based on file extension
-    pub fn detect_mode(file_name: &str) -> ViewMode {
-        let lower = file_name.to_lowercase();
-        if lower.ends_with(".md") || lower.ends_with(".markdown") {
-            ViewMode::Markdown
-        } else if lower.ends_with(".png")
-            || lower.ends_with(".jpg")
-            || lower.ends_with(".jpeg")
-            || lower.ends_with(".gif")
-            || lower.ends_with(".bmp")
-            || lower.ends_with(".webp")
-            || lower.ends_with(".ico")
-        {
-            ViewMode::Image
-        } else {
-            ViewMode::Normal
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn scroll(&mut self, delta: isize, visible_height: usize) {
-        let max = self.max_scroll(visible_height);
-        if delta < 0 {
-            self.scroll_offset = self.scroll_offset.saturating_sub((-delta) as usize);
-        } else {
-            self.scroll_offset = (self.scroll_offset + delta as usize).min(max);
-        }
-    }
-}
-
+// FileViewerState has been moved to plugins/viewer/mod.rs
+// Re-export from plugin for backwards compatibility with Modal::FileViewer
+pub use crate::plugins::viewer::ViewerState as FileViewerState;
 
 /// Directory tree node for Directory Map
 #[derive(Debug, Clone, PartialEq, Eq)]
