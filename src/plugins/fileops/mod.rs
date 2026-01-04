@@ -3,6 +3,8 @@
 //! Provides file operation modals (Copy, Move, Erase, Rename) as a self-contained plugin.
 //! The actual file operations are executed by the app; this plugin manages the UI.
 
+pub mod modal;
+
 use super::{KeyHandleResult, Plugin, PluginCapabilities};
 use crate::ui::components::ModalFrame;
 use crate::ui::{COLOR_BG, COLOR_GREEN, COLOR_RED, COLOR_YELLOW};

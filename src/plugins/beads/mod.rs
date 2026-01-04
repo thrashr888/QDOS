@@ -2,6 +2,7 @@
 //!
 //! Provides Beads issue tracker integration as a plugin with self-contained operations.
 
+pub mod modal;
 pub mod ops;
 pub mod state;
 

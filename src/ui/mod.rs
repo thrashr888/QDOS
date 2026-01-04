@@ -23,8 +23,6 @@ pub(crate) const COLOR_RED: Color = Color::Rgb(157, 31, 20); // DOS Red - path b
 pub(crate) const COLOR_YELLOW: Color = Color::Rgb(232, 218, 89); // DOS Yellow - tagged items
 pub(crate) const COLOR_GREY: Color = Color::Rgb(128, 128, 128); // Grey - hidden files
 pub(crate) const COLOR_CYAN: Color = Color::Rgb(0, 170, 170); // Cyan - git added
-#[allow(dead_code)]
-pub(crate) const COLOR_MAGENTA: Color = Color::Rgb(170, 0, 170); // Magenta - git untracked
 
 /// Format file size with B, K, M, G, T, P suffixes (max 2 decimal places)
 pub(crate) fn format_size_short(bytes: u64) -> String {

@@ -6,9 +6,9 @@ use crate::plugins::git::ops as git_ops;
 
 // Re-export state types for external use (non-plugin types)
 pub use state::{
-    AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
-    ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, HelpState,
-    Modal, NavItem, ProgressOperation, ProgressState, SortMode, ThemeColors,
+    AttrValue, AttributeState, BatchRenameState, BeadsState, BeadsView, ClipboardItem,
+    ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, Modal, NavItem,
+    ProgressOperation, ProgressState, SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -755,9 +755,6 @@ impl App {
                 }
                 _ => {}
             },
-            Modal::FileViewer(_) => {
-                // Legacy - now handled by ViewerPlugin via Modal::Plugin("viewer")
-            }
             Modal::Find(ref mut state) => {
                 match state.phase {
                     FindPhase::InputPattern => {
@@ -1162,56 +1159,6 @@ impl App {
                     _ => {}
                 }
             }
-            Modal::Help(ref mut state) => {
-                match key.code {
-                    KeyCode::Esc => {
-                        if state.current_topic == 0 {
-                            // On index page, close help
-                            self.modal = Modal::None;
-                        } else {
-                            // On topic page, go back to index
-                            state.current_topic = 0;
-                            state.scroll_offset = 0;
-                        }
-                    }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        if state.scroll_offset > 0 {
-                            state.scroll_offset -= 1;
-                        }
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        state.scroll_offset += 1;
-                    }
-                    KeyCode::PageUp => {
-                        state.scroll_offset = state.scroll_offset.saturating_sub(10);
-                    }
-                    KeyCode::PageDown => {
-                        state.scroll_offset += 10;
-                    }
-                    KeyCode::Home => {
-                        state.scroll_offset = 0;
-                    }
-                    KeyCode::Char(c) => {
-                        // Check if character matches a topic key
-                        let c_upper = c.to_ascii_uppercase();
-                        for (i, topic) in state.topics.iter().enumerate() {
-                            if topic.key == c_upper {
-                                state.current_topic = i + 1;
-                                state.scroll_offset = 0;
-                                break;
-                            }
-                        }
-                    }
-                    KeyCode::Enter => {
-                        if state.current_topic == 0 {
-                            // On index, go to first topic
-                            state.current_topic = 1;
-                            state.scroll_offset = 0;
-                        }
-                    }
-                    _ => {}
-                }
-            }
             Modal::Progress(ref mut state) => {
                 match key.code {
                     KeyCode::Esc => {
@@ -1232,56 +1179,9 @@ impl App {
                     }
                 }
             }
-            Modal::Space | Modal::Error(_) | Modal::Success(_) => match key.code {
+            Modal::Error(_) | Modal::Success(_) => match key.code {
                 KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
                     self.modal = Modal::None;
-                }
-                _ => {}
-            },
-            Modal::ColorTheme(state) => match key.code {
-                KeyCode::Esc => {
-                    // Cancel - restore original theme
-                    self.color_theme = state.original_theme;
-                    self.modal = Modal::None;
-                }
-                KeyCode::Enter => {
-                    // Apply selected theme
-                    self.color_theme = state.selected_theme();
-                    self.modal = Modal::None;
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    if state.selected > 0 {
-                        state.selected -= 1;
-                        // Live preview
-                        self.color_theme = state.selected_theme();
-                    }
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    if state.selected < ColorTheme::ALL.len() - 1 {
-                        state.selected += 1;
-                        // Live preview
-                        self.color_theme = state.selected_theme();
-                    }
-                }
-                KeyCode::Char('1') => {
-                    state.selected = 0;
-                    self.color_theme = state.selected_theme();
-                }
-                KeyCode::Char('2') => {
-                    state.selected = 1;
-                    self.color_theme = state.selected_theme();
-                }
-                KeyCode::Char('3') => {
-                    state.selected = 2;
-                    self.color_theme = state.selected_theme();
-                }
-                KeyCode::Char('4') => {
-                    state.selected = 3;
-                    self.color_theme = state.selected_theme();
-                }
-                KeyCode::Char('5') => {
-                    state.selected = 4;
-                    self.color_theme = state.selected_theme();
                 }
                 _ => {}
             },
@@ -2504,7 +2404,11 @@ impl App {
                 self.toggle_tag();
             }
             NavItem::Space => {
-                self.modal = Modal::Space;
+                if let Some(space_plugin) = self.plugin_manager.space_plugin_mut() {
+                    space_plugin.open_modal(&self.current_path);
+                    self.plugin_manager.set_active_modal(Some("space"));
+                    self.modal = Modal::Plugin("space".to_string());
+                }
             }
             NavItem::Copy => {
                 if !self.tagged_files.is_empty() {
@@ -3059,9 +2963,6 @@ impl App {
                         });
                     }
                 }
-            }
-            Modal::FileViewer(_) => {
-                // Legacy - now handled via Modal::Plugin("viewer")
             }
             Modal::Plugin(ref plugin_id) if plugin_id == "viewer" => {
                 // Viewer plugin - add file path and commit info if viewing history

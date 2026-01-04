@@ -10,8 +10,7 @@ use crate::plugins::git::GitState;
 
 // Import Beads types from plugins/beads/state.rs for Modal enum
 pub use crate::plugins::beads::{
-    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsMenuItem, BeadsState, BeadsSubIssue,
-    BeadsView,
+    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue, BeadsView,
 };
 
 /// Navigation menu items
@@ -141,10 +140,6 @@ impl SortMode {
         }
     }
 }
-
-// FileViewerState has been moved to plugins/viewer/mod.rs
-// Re-export from plugin for backwards compatibility with Modal::FileViewer
-pub use crate::plugins::viewer::ViewerState as FileViewerState;
 
 /// Find command phases
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -373,359 +368,6 @@ impl AttributeState {
         if self.selected > 0 {
             self.selected -= 1;
         }
-    }
-}
-
-/// Help topic entry
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HelpTopic {
-    pub key: char,
-    pub title: String,
-    pub content: String,
-}
-
-/// Help system state
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HelpState {
-    pub topics: Vec<HelpTopic>,
-    pub current_topic: usize,
-    pub scroll_offset: usize,
-}
-
-impl HelpState {
-    pub fn new() -> Self {
-        let topics = Self::load_topics();
-        Self {
-            topics,
-            current_topic: 0,
-            scroll_offset: 0,
-        }
-    }
-
-    fn load_topics() -> Vec<HelpTopic> {
-        vec![
-            HelpTopic {
-                key: 'I',
-                title: "Introduction to Q-DOS II".to_string(),
-                content: r#"Q-DOS II lets you easily manage DOS directories and files. You can
-create directories with a few keystrokes and see them displayed on a
-"directory map." You can find "lost" files located anywhere on the
-disk and you can also edit files in any directory.
-
-Q-DOS II lets you mark files and move, copy, rename, print, or erase
-them without ever typing file names. You can load and execute
-programs or any DOS commands.
-
-HOW TO SELECT A COMMAND
-
-As you enter Q-DOS II, you will see the Main Screen with the main
-commands listed on the top line. One of them will be "highlighted."
-
-You may select a command by highlighting it with the arrow keys
-and pressing RETURN, or by pressing the first letter of the command.
-
-HOW TO TAG FILES
-
-COPY, ERASE, RENAME, PRINT, ATTRIBUTE, and MOVE can operate on
-several files at once. You identify multiple files by tagging them.
-Press SPACE BAR to tag/untag the highlighted file.
-
-THE ESC KEY
-
-The Escape (ESC) key returns you to the Main Screen. When pressed
-in the middle of a command, it will cancel the command."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'A',
-                title: "Attribute Command".to_string(),
-                content: r#"The ATTRIBUTE command allows you to display and/or change file
-attributes. File attributes include: HID (Hidden), SYS (System),
-R/O (Read-Only), and ARC (Archive).
-
-On Unix/macOS, only the R/O (Read-Only) attribute can be modified.
-This controls whether the file has write permissions.
-
-TO USE:
-1. Highlight a file or tag multiple files
-2. Select ATTRIBUTE from the menu
-3. Use arrow keys to select an attribute
-4. Press SPACE to toggle ON/OFF/N/C
-5. Press ENTER to apply changes
-
-Note: You cannot change DIR, NORM, or VOL attributes."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'C',
-                title: "Copy Command".to_string(),
-                content: r#"The COPY command copies files from the current directory to another.
-
-TO USE:
-1. Tag files to copy (or use highlighted file)
-2. Select COPY from the menu
-3. Enter destination path (Tab for completion)
-4. Press ENTER to copy
-
-The original files remain in their current location.
-Use Tab for path auto-completion."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'D',
-                title: "Directory Command".to_string(),
-                content: r#"The DIRECTORY command lets you manage directories.
-
-DIRECTORY MAP (D key):
-Opens a tree view of all directories. You can:
-- Navigate with arrow keys
-- Expand/collapse with Enter or Right/Left arrows
-- Create new directories with M
-- Delete empty directories with D (requires confirmation)
-
-CHANGE DIRECTORY (F5):
-Enter a path to change to a different directory.
-
-PREVIOUS DIRECTORY (F4):
-Return to the previously visited directory."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'E',
-                title: "Erase Command".to_string(),
-                content: r#"The ERASE command deletes files from the current directory.
-
-TO USE:
-1. Tag files to erase (or use highlighted file)
-2. Select ERASE from the menu
-3. Confirm with Y or cancel with N
-
-WARNING: Erased files cannot be recovered!
-
-To delete directories, use the Directory Map (D key)."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'F',
-                title: "Find Command".to_string(),
-                content: r#"The FIND command searches for files matching a pattern.
-
-TO USE:
-1. Select FIND from the menu
-2. Enter a search pattern (e.g., *.txt, config.*)
-3. Choose whether to pause on each match
-
-WILDCARDS:
-* - matches any characters
-? - matches a single character
-
-When a match is found:
-- J: Jump to the file's directory
-- V: View the file contents
-- C: Continue searching"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'M',
-                title: "Move Command".to_string(),
-                content: r#"The MOVE command moves files from the current directory to another.
-
-TO USE:
-1. Tag files to move (or use highlighted file)
-2. Select MOVE from the menu
-3. Enter destination path (Tab for completion)
-4. Press ENTER to move
-
-Unlike COPY, the original files are removed after moving."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'R',
-                title: "Rename Command".to_string(),
-                content: r#"The RENAME command changes the name of files.
-
-SINGLE FILE:
-1. Highlight the file
-2. Select RENAME from the menu
-3. Edit the filename
-4. Press ENTER to rename
-
-BATCH RENAME (tagged files):
-1. Tag multiple files
-2. Select RENAME from the menu
-3. Edit each filename, press ENTER to rename
-4. Press TAB to skip a file
-5. Press ESC when done"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'S',
-                title: "Space Command".to_string(),
-                content: r#"The SPACE command displays disk space information.
-
-Shows:
-- Total disk space
-- Used space (and percentage)
-- Available space
-
-Press any key to close the display."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'T',
-                title: "Tag Command".to_string(),
-                content: r#"The TAG command marks files for batch operations.
-
-TO TAG FILES:
-- Press SPACE BAR on highlighted file
-- Or select TAG from menu for options
-
-Tagged files show a marker (▶) next to their name.
-
-TAG OPTIONS:
-- Tag All: Tag all files in directory
-- Untag All: Remove all tags
-- Invert: Toggle all tags
-
-Tags are used by: COPY, MOVE, ERASE, RENAME, ATTRIBUTE"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'V',
-                title: "View Command".to_string(),
-                content: r#"The VIEW command displays file contents.
-
-MODES:
-- ASCII (A): Text view with line numbers
-- HEX (H): Hexadecimal byte view
-- Raw (R): Plain text without formatting
-
-NAVIGATION:
-- Arrow keys, PgUp/PgDn: Scroll
-- Home/End: Jump to start/end
-- G: Go to specific line
-- /: Search for text
-
-FILTERS:
-- 1: Show all lines
-- 2: Non-empty lines only
-- 3: Code lines (no comments)"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: '1',
-                title: "Function Keys".to_string(),
-                content: r#"FUNCTION KEY REFERENCE
-
-F1  - Help: Display this help system
-F2  - Status: Show system status and memory info
-F3  - Change Drive: Switch to a different drive/mount
-F4  - Previous Directory: Go back to last directory
-F5  - Change Directory: Enter path to navigate
-F6  - DOS Command: Run a shell command
-F7  - Search Spec: Set file filter pattern
-F8  - Sort: Cycle through sort modes
-F9  - Edit: Open file in default text editor
-F10 - Quit: Exit Q-DOS II"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: '2',
-                title: "Navigation Keys".to_string(),
-                content: r#"NAVIGATION REFERENCE
-
-FILE LIST:
-↑/↓     - Move selection up/down
-PgUp/Dn - Move one page
-Home    - Jump to first file
-End     - Jump to last file
-Enter   - Enter directory / Execute action
-
-MENU:
-←/→     - Move between menu items
-Enter   - Select menu item
-Letter  - Jump to command by first letter
-
-GENERAL:
-ESC     - Cancel / Close modal
-SPACE   - Tag/untag file"#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'G',
-                title: "Git Integration".to_string(),
-                content: r#"GIT INTEGRATION
-
-Press G to open the Git menu (requires git repository).
-
-MENU OPTIONS:
-S - Status:  View modified/staged files
-L - Log:     View recent commit history
-D - Diff:    View unstaged changes
-C - Commit:  Create a new commit
-P - Push:    Push commits to remote
-U - Pull:    Pull changes from remote
-
-STATUS VIEW:
-↑/↓ - Select file
-A   - Stage/unstage file
-R   - Refresh status
-
-LOG VIEW:
-↑/↓ - Scroll through commits
-PgUp/PgDn - Scroll faster
-
-DIFF VIEW:
-↑/↓ - Scroll through diff
-PgUp/PgDn - Scroll faster
-
-COMMIT VIEW:
-Type your commit message and press Enter to commit.
-Press ESC to cancel.
-
-PUSH/PULL:
-Select from menu or press P/U to execute immediately."#
-                    .to_string(),
-            },
-            HelpTopic {
-                key: 'B',
-                title: "Beads Integration".to_string(),
-                content: r#"BEADS ISSUE TRACKER
-
-Press B to open the Beads menu (requires .beads directory).
-
-MENU OPTIONS:
-L - List:    View open issues
-R - Ready:   View issues ready to work (no blockers)
-B - Blocked: View blocked issues
-S - Stats:   View project statistics
-C - Create:  Create a new issue
-
-LIST/READY/BLOCKED VIEWS:
-↑/↓   - Select issue
-Enter - View issue details
-R     - Refresh list
-C     - Close selected issue
-S     - Start work (set to in_progress)
-
-CREATE VIEW:
-Use arrow keys to navigate fields:
-- Title: Type the issue title
-- Type: task/bug/feature (←/→ to change)
-- Priority: 0-4 (←/→ to change)
-Press Enter to create the issue.
-
-STATS VIEW:
-Shows total, open, in-progress, closed, and blocked counts."#
-                    .to_string(),
-            },
-        ]
-    }
-}
-
-impl Default for HelpState {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -1058,9 +700,7 @@ impl ClipboardState {
 #[allow(clippy::large_enum_variant, dead_code)]
 pub enum Modal {
     None,
-    Help(HelpState),
     Quit,
-    Space,
     Error(String),
     Success(String),
     PathInput(String),
@@ -1068,12 +708,10 @@ pub enum Modal {
     MoveTo(String),
     EraseConfirm,
     RenameInput(String),
-    FileViewer(FileViewerState),
     Find(FindState),
     BatchRename(BatchRenameState),
     Attribute(AttributeState),
     Progress(ProgressState),
-    ColorTheme(ColorThemeState),
     Git(GitState),
     Beads(BeadsState),
     /// Clipboard menu for copying context items

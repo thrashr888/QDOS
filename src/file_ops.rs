@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use sysinfo::System;
 
 /// File type/kind classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -387,29 +386,6 @@ fn sort_entries(entries: &mut [FileEntry], sort_mode: SortMode) {
     });
 }
 
-/// Get disk space information for a path
-pub fn get_disk_space(path: &PathBuf) -> Result<(u64, u64)> {
-    // This is a simplified version - in production you'd use statvfs or similar
-    // For now, we'll use sysinfo's disk info
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    // Try to find the disk that contains this path
-    for disk in sysinfo::Disks::new_with_refreshed_list().iter() {
-        let mount_point = disk.mount_point();
-        if path.starts_with(mount_point) {
-            return Ok((disk.available_space(), disk.total_space()));
-        }
-    }
-
-    // Fallback to first disk
-    if let Some(disk) = sysinfo::Disks::new_with_refreshed_list().iter().next() {
-        return Ok((disk.available_space(), disk.total_space()));
-    }
-
-    Ok((0, 0))
-}
-
 /// Match a filename against a DOS-style wildcard pattern
 /// Supports * (any characters) and ? (single character)
 pub fn match_pattern(name: &str, pattern: &str) -> bool {
@@ -601,15 +577,6 @@ mod tests {
         let entries = result.unwrap();
         // Should have at least the parent directory entry
         assert!(!entries.is_empty());
-    }
-
-    #[test]
-    fn test_get_disk_space() {
-        let current_dir = env::current_dir().unwrap();
-        let result = get_disk_space(&current_dir);
-        assert!(result.is_ok());
-        let (available, total) = result.unwrap();
-        assert!(total >= available);
     }
 
     #[test]

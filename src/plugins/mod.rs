@@ -12,9 +12,12 @@
 // Allow dead code until plugins are fully integrated
 #![allow(dead_code)]
 
+pub mod attribute;
 pub mod beads;
+pub mod clipboard;
 pub mod dirmap;
 pub mod fileops;
+pub mod find;
 pub mod git;
 pub mod help;
 pub mod print;
@@ -369,6 +372,13 @@ impl PluginManager {
         self.plugins
             .get_mut("theme")
             .and_then(|p| p.as_any_mut().downcast_mut::<theme::ThemePlugin>())
+    }
+
+    /// Get mutable reference to SpacePlugin
+    pub fn space_plugin_mut(&mut self) -> Option<&mut space::SpacePlugin> {
+        self.plugins
+            .get_mut("space")
+            .and_then(|p| p.as_any_mut().downcast_mut::<space::SpacePlugin>())
     }
 
     /// Get mutable reference to PrintPlugin
