@@ -30,7 +30,7 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     BeadsPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
-    PluginStatusInfo, SpacePlugin, StatusPlugin, ThemePlugin,
+    PluginStatusInfo, PrintPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -100,6 +100,7 @@ impl App {
         plugin_manager.register(Box::new(StatusPlugin::new()));
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(ThemePlugin::new()));
+        plugin_manager.register(Box::new(PrintPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -2981,7 +2982,37 @@ impl App {
                 }
             }
             NavItem::Print => {
-                self.print_selected_file()?;
+                // Delegate to Print plugin
+                if self.files.is_empty() {
+                    if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
+                        print_plugin.open_modal_error("No file selected".to_string());
+                        self.plugin_manager.set_active_modal(Some("print"));
+                        self.modal = Modal::Plugin("print".to_string());
+                    }
+                } else {
+                    let file = &self.files[self.selected_index];
+                    if file.name == ".." {
+                        if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
+                            print_plugin.open_modal_error("Cannot print parent directory".to_string());
+                            self.plugin_manager.set_active_modal(Some("print"));
+                            self.modal = Modal::Plugin("print".to_string());
+                        }
+                    } else if file.is_dir {
+                        if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
+                            print_plugin.open_modal_error("Cannot print a directory".to_string());
+                            self.plugin_manager.set_active_modal(Some("print"));
+                            self.modal = Modal::Plugin("print".to_string());
+                        }
+                    } else {
+                        let path = file.path.clone();
+                        let name = file.name.clone();
+                        if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
+                            print_plugin.open_modal(path, name);
+                            self.plugin_manager.set_active_modal(Some("print"));
+                            self.modal = Modal::Plugin("print".to_string());
+                        }
+                    }
+                }
             }
         }
 
@@ -3239,38 +3270,7 @@ impl App {
         Ok(())
     }
 
-    /// Print the selected file
-    fn print_selected_file(&mut self) -> Result<()> {
-        if self.files.is_empty() {
-            self.modal = Modal::Error("No file selected".to_string());
-            return Ok(());
-        }
-
-        let file = &self.files[self.selected_index];
-        if file.name == ".." {
-            self.modal = Modal::Error("Cannot print parent directory".to_string());
-            return Ok(());
-        }
-
-        if file.is_dir {
-            self.modal = Modal::Error("Cannot print a directory".to_string());
-            return Ok(());
-        }
-
-        // Use the 'lpr' command to print the file
-        let result = std::process::Command::new("lpr").arg(&file.path).spawn();
-
-        match result {
-            Ok(_) => {
-                self.modal = Modal::Success(format!("Sent {} to printer", file.name));
-            }
-            Err(e) => {
-                self.modal = Modal::Error(format!("Failed to print: {}", e));
-            }
-        }
-
-        Ok(())
-    }
+    // print_selected_file removed - now handled by PrintPlugin
 
     /// Check if current directory is in a git repository
     pub fn is_git_repo(&self) -> bool {

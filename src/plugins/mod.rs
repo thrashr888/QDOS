@@ -15,6 +15,7 @@
 pub mod beads;
 pub mod git;
 pub mod help;
+pub mod print;
 pub mod space;
 pub mod status;
 pub mod theme;
@@ -22,6 +23,7 @@ pub mod theme;
 pub use beads::BeadsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
+pub use print::PrintPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
 pub use theme::ThemePlugin;
@@ -341,6 +343,13 @@ impl PluginManager {
         self.plugins
             .get_mut("theme")
             .and_then(|p| p.as_any_mut().downcast_mut::<theme::ThemePlugin>())
+    }
+
+    /// Get mutable reference to PrintPlugin
+    pub fn print_plugin_mut(&mut self) -> Option<&mut print::PrintPlugin> {
+        self.plugins
+            .get_mut("print")
+            .and_then(|p| p.as_any_mut().downcast_mut::<print::PrintPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
