@@ -856,11 +856,8 @@ impl BeadsPlugin {
                 ) {
                     Ok(_) => {
                         // Reload detail
-                        match ops::load_beads_issue_detail(&issue_id, cwd) {
-                            Ok(detail) => {
-                                state.detail_issue = Some(detail);
-                            }
-                            Err(_) => {}
+                        if let Ok(detail) = ops::load_beads_issue_detail(&issue_id, cwd) {
+                            state.detail_issue = Some(detail);
                         }
                         state.view = BeadsView::Detail;
                         KeyHandleResult::Handled

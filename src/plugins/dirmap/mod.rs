@@ -141,7 +141,7 @@ impl Plugin for DirMapPlugin {
         // Handle delete confirmation mode
         if let Some(ref path_to_delete) = state.confirm_delete.clone() {
             match key.code {
-                KeyCode::Char('y') | KeyCode::Char('Y') => match fs::remove_dir(&path_to_delete) {
+                KeyCode::Char('y') | KeyCode::Char('Y') => match fs::remove_dir(path_to_delete) {
                     Ok(()) => {
                         let parent_idx = if state.selected_index > 0 {
                             state.selected_index - 1
