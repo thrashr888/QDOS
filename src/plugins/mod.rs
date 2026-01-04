@@ -369,9 +369,10 @@ impl PluginManager {
 
     /// Get mutable reference to SearchSpecPlugin
     pub fn searchspec_plugin_mut(&mut self) -> Option<&mut searchspec::SearchSpecPlugin> {
-        self.plugins
-            .get_mut("searchspec")
-            .and_then(|p| p.as_any_mut().downcast_mut::<searchspec::SearchSpecPlugin>())
+        self.plugins.get_mut("searchspec").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<searchspec::SearchSpecPlugin>()
+        })
     }
 
     /// Get mutable reference to QdconfigPlugin

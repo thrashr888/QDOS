@@ -141,30 +141,28 @@ impl Plugin for DirMapPlugin {
         // Handle delete confirmation mode
         if let Some(ref path_to_delete) = state.confirm_delete.clone() {
             match key.code {
-                KeyCode::Char('y') | KeyCode::Char('Y') => {
-                    match fs::remove_dir(&path_to_delete) {
-                        Ok(()) => {
-                            let parent_idx = if state.selected_index > 0 {
-                                state.selected_index - 1
-                            } else {
-                                0
-                            };
-                            state.confirm_delete = None;
-                            state.rebuild_flat_list();
-                            state.selected_index =
-                                parent_idx.min(state.flat_list.len().saturating_sub(1));
-                        }
-                        Err(e) => {
-                            state.confirm_delete = None;
-                            self.last_error = Some(format!("Cannot remove directory: {}", e));
-                            self.close_modal();
-                            return KeyHandleResult::CloseWithError(format!(
-                                "Cannot remove directory: {}",
-                                e
-                            ));
-                        }
+                KeyCode::Char('y') | KeyCode::Char('Y') => match fs::remove_dir(&path_to_delete) {
+                    Ok(()) => {
+                        let parent_idx = if state.selected_index > 0 {
+                            state.selected_index - 1
+                        } else {
+                            0
+                        };
+                        state.confirm_delete = None;
+                        state.rebuild_flat_list();
+                        state.selected_index =
+                            parent_idx.min(state.flat_list.len().saturating_sub(1));
                     }
-                }
+                    Err(e) => {
+                        state.confirm_delete = None;
+                        self.last_error = Some(format!("Cannot remove directory: {}", e));
+                        self.close_modal();
+                        return KeyHandleResult::CloseWithError(format!(
+                            "Cannot remove directory: {}",
+                            e
+                        ));
+                    }
+                },
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                     state.confirm_delete = None;
                 }

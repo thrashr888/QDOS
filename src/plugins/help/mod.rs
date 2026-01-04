@@ -63,10 +63,7 @@ impl HelpPlugin {
             // Topic page
             let topic_idx = self.state.current_topic - 1;
             if topic_idx < self.state.topics.len() {
-                self.state.topics[topic_idx]
-                    .content
-                    .lines()
-                    .collect()
+                self.state.topics[topic_idx].content.lines().collect()
             } else {
                 vec![]
             }
@@ -320,7 +317,9 @@ impl HelpPlugin {
             Style::default().fg(green),
         )));
 
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, area);
     }
 
@@ -365,29 +364,23 @@ impl HelpPlugin {
         // Show scroll indicator if needed
         let total_lines = content_lines.len();
         let scroll_info = if total_lines > visible_height {
-            format!(
-                " [Line {}-{} of {}] ",
-                start + 1,
-                end,
-                total_lines
-            )
+            format!(" [Line {}-{} of {}] ", start + 1, end, total_lines)
         } else {
             String::new()
         };
 
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled(
-                "ESC/Enter: Back to index",
-                Style::default().fg(green),
-            ),
+            Span::styled("ESC/Enter: Back to index", Style::default().fg(green)),
             Span::styled(
                 format!("  Up/Down: Scroll{}", scroll_info),
                 Style::default().fg(yellow),
             ),
         ]));
 
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, area);
     }
 }

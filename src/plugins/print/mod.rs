@@ -211,7 +211,9 @@ impl Plugin for PrintPlugin {
             ]
         };
 
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, modal_area);
     }
 

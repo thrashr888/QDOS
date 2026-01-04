@@ -8,8 +8,9 @@ use crate::plugins::git::ops as git_ops;
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsMenuItem, BeadsState, BeadsView,
     ClipboardItem, ClipboardState, ColorTheme, ColorThemeState, DirectoryMapState, FileViewerState,
-    FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState, QdstartField,
-    QdstartState, SearchSpecState, ShellCommandState, SortMode, ThemeColors, ViewFilter, ViewMode,
+    FindPhase, FindState, HelpState, Modal, NavItem, ProgressOperation, ProgressState,
+    QdstartField, QdstartState, SearchSpecState, ShellCommandState, SortMode, ThemeColors,
+    ViewFilter, ViewMode,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -30,8 +31,8 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
-    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
-    QdconfigPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, QdconfigPlugin,
+    SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -3072,7 +3073,8 @@ impl App {
                     let file = &self.files[self.selected_index];
                     if file.name == ".." {
                         if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
-                            print_plugin.open_modal_error("Cannot print parent directory".to_string());
+                            print_plugin
+                                .open_modal_error("Cannot print parent directory".to_string());
                             self.plugin_manager.set_active_modal(Some("print"));
                             self.modal = Modal::Plugin("print".to_string());
                         }
@@ -3588,8 +3590,7 @@ impl App {
 
                     // Sync current search_spec to SearchSpecPlugin when it opens
                     if plugin_id == "searchspec" {
-                        if let Some(searchspec_plugin) =
-                            self.plugin_manager.searchspec_plugin_mut()
+                        if let Some(searchspec_plugin) = self.plugin_manager.searchspec_plugin_mut()
                         {
                             // Re-open with correct search spec (since it was opened with default)
                             searchspec_plugin.open_modal(&self.search_spec);
@@ -3671,8 +3672,7 @@ impl App {
 
                             // Save config to disk
                             if let Err(e) = self.save_config() {
-                                self.modal =
-                                    Modal::Error(format!("Failed to save config: {}", e));
+                                self.modal = Modal::Error(format!("Failed to save config: {}", e));
                                 return true;
                             }
 
@@ -3698,8 +3698,10 @@ impl App {
                                         };
                                         if !dest_dir.exists() {
                                             if let Err(e) = fs::create_dir_all(&dest_dir) {
-                                                self.modal =
-                                                    Modal::Error(format!("Failed to create directory: {}", e));
+                                                self.modal = Modal::Error(format!(
+                                                    "Failed to create directory: {}",
+                                                    e
+                                                ));
                                                 return true;
                                             }
                                         }
@@ -3726,10 +3728,8 @@ impl App {
                                         }
                                         self.tagged_files.clear();
                                         let _ = self.refresh_files();
-                                        self.modal = Modal::Success(format!(
-                                            "Copied {} file(s)",
-                                            count
-                                        ));
+                                        self.modal =
+                                            Modal::Success(format!("Copied {} file(s)", count));
                                     }
                                 }
                                 FileOperation::Move => {
@@ -3742,8 +3742,10 @@ impl App {
                                         };
                                         if !dest_dir.exists() {
                                             if let Err(e) = fs::create_dir_all(&dest_dir) {
-                                                self.modal =
-                                                    Modal::Error(format!("Failed to create directory: {}", e));
+                                                self.modal = Modal::Error(format!(
+                                                    "Failed to create directory: {}",
+                                                    e
+                                                ));
                                                 return true;
                                             }
                                         }
@@ -3763,10 +3765,8 @@ impl App {
                                         }
                                         self.tagged_files.clear();
                                         let _ = self.refresh_files();
-                                        self.modal = Modal::Success(format!(
-                                            "Moved {} file(s)",
-                                            count
-                                        ));
+                                        self.modal =
+                                            Modal::Success(format!("Moved {} file(s)", count));
                                     }
                                 }
                                 FileOperation::Erase => {
@@ -3788,10 +3788,8 @@ impl App {
                                     }
                                     self.tagged_files.clear();
                                     let _ = self.refresh_files();
-                                    self.modal = Modal::Success(format!(
-                                        "Erased {} file(s)",
-                                        count
-                                    ));
+                                    self.modal =
+                                        Modal::Success(format!("Erased {} file(s)", count));
                                 }
                                 FileOperation::Rename => {
                                     if let Some(new_name) = result.destination {

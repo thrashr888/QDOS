@@ -306,7 +306,12 @@ pub(super) fn draw_status_modal(
         status_text.push(Line::from(vec![
             Span::styled(format!("  {} ", id), label_style),
             Span::styled(format!("({}) ", name), value_style),
-            Span::styled(format!("- {}", description), Style::default().fg(COLOR_FG).add_modifier(ratatui::style::Modifier::DIM)),
+            Span::styled(
+                format!("- {}", description),
+                Style::default()
+                    .fg(COLOR_FG)
+                    .add_modifier(ratatui::style::Modifier::DIM),
+            ),
         ]));
     }
 
@@ -333,7 +338,9 @@ fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardState) {
 
     let label_style = Style::default().fg(COLOR_GREEN);
     let value_style = Style::default().fg(COLOR_FG);
-    let selected_style = Style::default().fg(COLOR_YELLOW).add_modifier(ratatui::style::Modifier::BOLD);
+    let selected_style = Style::default()
+        .fg(COLOR_YELLOW)
+        .add_modifier(ratatui::style::Modifier::BOLD);
 
     let mut lines = vec![Line::from("")];
 
@@ -364,9 +371,7 @@ fn draw_clipboard_modal(frame: &mut Frame, area: Rect, state: &ClipboardState) {
         Style::default().fg(COLOR_GREEN),
     )));
 
-    let paragraph = Paragraph::new(lines)
-        .block(block)
-        .wrap(Wrap { trim: true });
+    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);
 }

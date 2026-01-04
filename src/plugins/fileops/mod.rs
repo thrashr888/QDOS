@@ -305,9 +305,7 @@ impl Plugin for FileOpsPlugin {
                 lines.push(Line::from(""));
                 lines.push(Line::from(Span::styled(
                     "This action cannot be undone!",
-                    Style::default()
-                        .fg(COLOR_RED)
-                        .add_modifier(Modifier::BOLD),
+                    Style::default().fg(COLOR_RED).add_modifier(Modifier::BOLD),
                 )));
                 lines.push(Line::from(""));
                 lines.push(Line::from(vec![

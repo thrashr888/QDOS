@@ -211,11 +211,7 @@ impl Plugin for SpacePlugin {
             Line::from(vec![
                 Span::styled("Total used:       ", Style::default().fg(yellow)),
                 Span::styled(
-                    format!(
-                        "{} ({:.1}%)",
-                        Self::format_size_short(used),
-                        used_percent
-                    ),
+                    format!("{} ({:.1}%)", Self::format_size_short(used), used_percent),
                     Style::default().fg(cyan),
                 ),
             ]),

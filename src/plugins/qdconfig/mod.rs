@@ -511,9 +511,7 @@ impl Plugin for QdconfigPlugin {
         frame.render_widget(
             Paragraph::new(Span::styled(
                 title,
-                Style::default()
-                    .fg(COLOR_FG)
-                    .add_modifier(Modifier::BOLD),
+                Style::default().fg(COLOR_FG).add_modifier(Modifier::BOLD),
             )),
             chunks[0],
         );

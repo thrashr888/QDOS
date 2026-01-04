@@ -226,10 +226,7 @@ impl Plugin for ThemePlugin {
 
             lines.push(Line::from(vec![
                 Span::styled(marker, style),
-                Span::styled(
-                    format!("{}. ", i + 1),
-                    Style::default().fg(colors.cyan()),
-                ),
+                Span::styled(format!("{}. ", i + 1), Style::default().fg(colors.cyan())),
                 Span::styled(theme.name(), style),
                 Span::styled(
                     format!(" - {}", theme.description()),
@@ -246,7 +243,9 @@ impl Plugin for ThemePlugin {
             Style::default().fg(colors.green()),
         )));
 
-        let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, modal_area);
     }
 

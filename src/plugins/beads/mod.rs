@@ -200,52 +200,44 @@ impl BeadsPlugin {
                 state.kanban_column = 0;
                 state.kanban_row = 0;
             }
-            BeadsMenuItem::Sync => {
-                match ops::execute_beads_sync(cwd) {
-                    Ok(msg) => {
-                        state.success_message = Some(msg);
-                    }
-                    Err(e) => {
-                        state.error = Some(e);
-                    }
+            BeadsMenuItem::Sync => match ops::execute_beads_sync(cwd) {
+                Ok(msg) => {
+                    state.success_message = Some(msg);
                 }
-            }
-            BeadsMenuItem::Human => {
-                match ops::execute_beads_human(cwd) {
-                    Ok(lines) => {
-                        state.output_lines = lines;
-                        state.scroll_offset = 0;
-                        state.view = BeadsView::Human;
-                    }
-                    Err(e) => {
-                        state.error = Some(e);
-                    }
+                Err(e) => {
+                    state.error = Some(e);
                 }
-            }
-            BeadsMenuItem::Init => {
-                match ops::execute_beads_init(cwd) {
-                    Ok(msg) => {
-                        state.success_message = Some(msg);
-                        state.is_beads_project = true;
-                        state.menu_selected = 0;
-                    }
-                    Err(e) => {
-                        state.error = Some(e);
-                    }
+            },
+            BeadsMenuItem::Human => match ops::execute_beads_human(cwd) {
+                Ok(lines) => {
+                    state.output_lines = lines;
+                    state.scroll_offset = 0;
+                    state.view = BeadsView::Human;
                 }
-            }
-            BeadsMenuItem::Doctor => {
-                match ops::execute_beads_doctor(cwd) {
-                    Ok(lines) => {
-                        state.output_lines = lines;
-                        state.scroll_offset = 0;
-                        state.view = BeadsView::Doctor;
-                    }
-                    Err(e) => {
-                        state.error = Some(e);
-                    }
+                Err(e) => {
+                    state.error = Some(e);
                 }
-            }
+            },
+            BeadsMenuItem::Init => match ops::execute_beads_init(cwd) {
+                Ok(msg) => {
+                    state.success_message = Some(msg);
+                    state.is_beads_project = true;
+                    state.menu_selected = 0;
+                }
+                Err(e) => {
+                    state.error = Some(e);
+                }
+            },
+            BeadsMenuItem::Doctor => match ops::execute_beads_doctor(cwd) {
+                Ok(lines) => {
+                    state.output_lines = lines;
+                    state.scroll_offset = 0;
+                    state.view = BeadsView::Doctor;
+                }
+                Err(e) => {
+                    state.error = Some(e);
+                }
+            },
         }
     }
 
@@ -825,8 +817,7 @@ impl BeadsPlugin {
                     status,
                     priority,
                     cwd,
-                )
-                {
+                ) {
                     Ok(_) => {
                         // Reload detail
                         match ops::load_beads_issue_detail(&issue_id, cwd) {
@@ -868,11 +859,7 @@ impl BeadsPlugin {
             }
         };
 
-        let mut open_issues: Vec<_> = state
-            .issues
-            .iter()
-            .filter(|i| i.status == "open")
-            .collect();
+        let mut open_issues: Vec<_> = state.issues.iter().filter(|i| i.status == "open").collect();
         open_issues.sort_by(sort_fn);
 
         let mut in_progress_issues: Vec<_> = state
@@ -962,8 +949,13 @@ impl BeadsPlugin {
                         _ => None,
                     };
                     if let Some(status_idx) = new_status {
-                        match ops::execute_beads_update(&issue_id, None, Some(status_idx), None, cwd)
-                        {
+                        match ops::execute_beads_update(
+                            &issue_id,
+                            None,
+                            Some(status_idx),
+                            None,
+                            cwd,
+                        ) {
                             Ok(_) => {
                                 // Refresh kanban and stay in same column
                                 ops::load_beads_list(state, cwd, Some("all"));
@@ -989,8 +981,13 @@ impl BeadsPlugin {
                         _ => None,
                     };
                     if let Some(status_idx) = new_status {
-                        match ops::execute_beads_update(&issue_id, None, Some(status_idx), None, cwd)
-                        {
+                        match ops::execute_beads_update(
+                            &issue_id,
+                            None,
+                            Some(status_idx),
+                            None,
+                            cwd,
+                        ) {
                             Ok(_) => {
                                 // Refresh kanban and stay in same column
                                 ops::load_beads_list(state, cwd, Some("all"));

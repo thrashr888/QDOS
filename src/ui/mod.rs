@@ -170,7 +170,10 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
     let available_width = area.width as usize;
 
     // Calculate item widths and positions
-    let item_widths: Vec<usize> = NavItem::ALL.iter().map(|item| item.as_str().len() + 2).collect();
+    let item_widths: Vec<usize> = NavItem::ALL
+        .iter()
+        .map(|item| item.as_str().len() + 2)
+        .collect();
     let total_width: usize = item_widths.iter().sum();
 
     // Calculate item start positions
@@ -187,7 +190,11 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     // Use app's stored scroll offset, but adjust if selected item is not visible
     let mut scroll_offset = app.nav_scroll_offset;
-    let indicator_space = if scroll_offset > 0 || total_width > available_width { 2 } else { 0 };
+    let indicator_space = if scroll_offset > 0 || total_width > available_width {
+        2
+    } else {
+        0
+    };
     let visible_width = available_width.saturating_sub(indicator_space * 2);
 
     // Ensure selected item is visible (scroll when needed pattern)
