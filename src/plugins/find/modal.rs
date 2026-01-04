@@ -51,10 +51,12 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
     let content_area = chunks[2];
     match state.phase {
         FindPhase::SelectMode => {
-            let rg_status = if state.rg_available {
-                "✓ ripgrep available"
+            let resolved_tool = state.search_tool.resolve();
+            let tool_name = resolved_tool.name();
+            let tool_status = if state.search_tool_available {
+                format!("✓ {} available", tool_name)
             } else {
-                "✗ ripgrep not found"
+                format!("✗ {} not found", tool_name)
             };
 
             let mut lines = vec![
@@ -77,28 +79,28 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
                 name_style,
             )));
 
-            // Option 2: By content (requires rg)
-            if state.rg_available {
+            // Option 2: By content (requires configured tool)
+            if state.search_tool_available {
                 let content_style = if state.search_mode == SearchMode::ByContent {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
                 lines.push(Line::from(Span::styled(
-                    "  2. Search by content (ripgrep)",
+                    format!("  2. Search by content ({})", tool_name),
                     content_style,
                 )));
             } else {
                 lines.push(Line::from(Span::styled(
-                    "  2. Search by content (requires ripgrep)",
+                    format!("  2. Search by content (requires {})", tool_name),
                     Style::default().fg(colors.grey()),
                 )));
             }
 
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                rg_status,
-                Style::default().fg(if state.rg_available {
+                tool_status,
+                Style::default().fg(if state.search_tool_available {
                     colors.green()
                 } else {
                     colors.grey()
@@ -109,20 +111,22 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
         }
         FindPhase::InputPattern => {
             // Show different prompts based on search mode
+            let resolved_tool = state.search_tool.resolve();
+            let tool_name = resolved_tool.name();
             let (mode_label, examples) = match state.search_mode {
                 SearchMode::ByName => (
-                    "Find File (by name):",
-                    "Examples: *.txt, foo*.rs, config.*",
+                    "Find File (by name):".to_string(),
+                    "Examples: *.txt, foo*.rs, config.*".to_string(),
                 ),
                 SearchMode::ByContent => (
-                    "Find File (by content - ripgrep):",
-                    "Examples: TODO, fn main, error",
+                    format!("Find File (by content - {}):", tool_name),
+                    "Examples: TODO, fn main, error".to_string(),
                 ),
             };
 
             let mut lines = vec![
                 Line::from(""),
-                Line::from(Span::styled(mode_label, Style::default().fg(colors.green()))),
+                Line::from(Span::styled(&mode_label, Style::default().fg(colors.green()))),
                 Line::from(""),
                 Line::from(vec![
                     Span::styled("Pattern: ", Style::default().fg(colors.fg())),
@@ -133,7 +137,7 @@ pub fn draw_find_modal(frame: &mut Frame, area: Rect, state: &FindState, app: &A
                     Span::styled("█", Style::default().fg(colors.yellow()).bg(colors.red())),
                 ]),
                 Line::from(""),
-                Line::from(Span::styled(examples, Style::default().fg(colors.grey()))),
+                Line::from(Span::styled(&examples, Style::default().fg(colors.grey()))),
                 Line::from(Span::styled(
                     "Ctrl+R to recall last pattern",
                     Style::default().fg(colors.grey()),

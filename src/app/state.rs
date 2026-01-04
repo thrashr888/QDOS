@@ -194,11 +194,14 @@ pub struct FindState {
     pub last_pattern: String,
     pub search_complete: bool,
     pub search_mode: SearchMode,
-    pub rg_available: bool,
+    pub search_tool: crate::config::SearchTool,
+    pub search_tool_available: bool,
 }
 
 impl FindState {
-    pub fn new(last_pattern: String) -> Self {
+    pub fn new(last_pattern: String, search_tool: crate::config::SearchTool) -> Self {
+        let resolved = search_tool.resolve();
+        let available = resolved.is_available();
         Self {
             pattern: String::new(),
             pause_on_match: true,
@@ -209,7 +212,8 @@ impl FindState {
             last_pattern,
             search_complete: false,
             search_mode: SearchMode::ByName,
-            rg_available: crate::rg::is_available(),
+            search_tool,
+            search_tool_available: available,
         }
     }
 }

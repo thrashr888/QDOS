@@ -799,14 +799,14 @@ impl App {
                                 // Use current mode (default: ByName)
                                 state.phase = FindPhase::InputPattern;
                             }
-                            KeyCode::Char('2') if state.rg_available => {
+                            KeyCode::Char('2') if state.search_tool_available => {
                                 // Switch to content search
                                 state.search_mode = SearchMode::ByContent;
                                 state.phase = FindPhase::InputPattern;
                             }
                             KeyCode::Tab => {
-                                // Toggle between modes (if rg available)
-                                if state.rg_available {
+                                // Toggle between modes (if search tool available)
+                                if state.search_tool_available {
                                     state.search_mode = state.search_mode.toggle();
                                 }
                             }
@@ -855,10 +855,12 @@ impl App {
                                 state.phase = FindPhase::Searching;
                                 let root = self.current_path.clone();
 
-                                // Use appropriate search function based on mode
+                                // Use appropriate search function based on mode and tool
                                 state.matches = match state.search_mode {
                                     SearchMode::ByName => find_files_recursive(&root, &state.pattern),
-                                    SearchMode::ByContent => crate::rg::search_content(&root, &state.pattern),
+                                    SearchMode::ByContent => {
+                                        crate::rg::search_content_with_tool(&root, &state.pattern, state.search_tool)
+                                    }
                                 };
 
                                 self.last_find_pattern = state.pattern.clone();
@@ -877,10 +879,12 @@ impl App {
                                 state.phase = FindPhase::Searching;
                                 let root = self.current_path.clone();
 
-                                // Use appropriate search function based on mode
+                                // Use appropriate search function based on mode and tool
                                 state.matches = match state.search_mode {
                                     SearchMode::ByName => find_files_recursive(&root, &state.pattern),
-                                    SearchMode::ByContent => crate::rg::search_content(&root, &state.pattern),
+                                    SearchMode::ByContent => {
+                                        crate::rg::search_content_with_tool(&root, &state.pattern, state.search_tool)
+                                    }
                                 };
 
                                 self.last_find_pattern = state.pattern.clone();
@@ -1805,8 +1809,9 @@ impl App {
                 }
             }
             NavItem::Find => {
-                // Open Find dialog
-                let state = FindState::new(self.last_find_pattern.clone());
+                // Open Find dialog with configured search tool
+                let search_tool = self.config.general.search_tool;
+                let state = FindState::new(self.last_find_pattern.clone(), search_tool);
                 self.modal = Modal::Find(state);
             }
             NavItem::Attribute => {

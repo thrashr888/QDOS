@@ -1,7 +1,8 @@
-//! Ripgrep integration for content search
+//! Search tool integration for content search
 //!
-//! Uses ripgrep (rg) for fast content search when available.
+//! Supports multiple search tools: ripgrep, ag, grep, ack.
 
+use crate::config::SearchTool;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -139,6 +140,120 @@ pub fn search_files(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
                 .unwrap_or_default();
             let display = format!("{} - {}", name, parent);
             results.push((path, display));
+        }
+    }
+
+    results
+}
+
+/// Search for content using the specified search tool
+/// Returns a list of (file_path, display_string) tuples for compatibility with Find modal
+pub fn search_content_with_tool(
+    root: &PathBuf,
+    pattern: &str,
+    tool: SearchTool,
+) -> Vec<(PathBuf, String)> {
+    let resolved = tool.resolve();
+
+    match resolved {
+        SearchTool::Rg | SearchTool::Auto => search_content(root, pattern),
+        SearchTool::Ag => search_content_ag(root, pattern),
+        SearchTool::Grep => search_content_grep(root, pattern),
+        SearchTool::Ack => search_content_ack(root, pattern),
+        SearchTool::Basic => Vec::new(), // No content search for basic
+    }
+}
+
+/// Search using ag (The Silver Searcher)
+fn search_content_ag(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
+    let output = Command::new("ag")
+        .arg("--nogroup")
+        .arg("--nocolor")
+        .arg("--column")
+        .arg("-m")
+        .arg("10") // Max matches per file
+        .arg("--")
+        .arg(pattern)
+        .arg(root)
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_colon_output(&stdout)
+}
+
+/// Search using grep
+fn search_content_grep(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
+    let output = Command::new("grep")
+        .arg("-r")
+        .arg("-n")
+        .arg("-i")
+        .arg("--include=*")
+        .arg("-m")
+        .arg("10") // Max matches per file
+        .arg("--")
+        .arg(pattern)
+        .arg(root)
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_colon_output(&stdout)
+}
+
+/// Search using ack
+fn search_content_ack(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
+    let output = Command::new("ack")
+        .arg("--nogroup")
+        .arg("--nocolor")
+        .arg("-m")
+        .arg("10") // Max matches per file
+        .arg("--")
+        .arg(pattern)
+        .arg(root)
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_colon_output(&stdout)
+}
+
+/// Parse colon-separated output (path:line:content) from search tools
+fn parse_colon_output(stdout: &str) -> Vec<(PathBuf, String)> {
+    let mut results: Vec<(PathBuf, String)> = Vec::new();
+    let mut seen_files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+
+    for line in stdout.lines() {
+        if let Some(result) = parse_rg_line(line) {
+            // Show unique files only, with first match context
+            if !seen_files.contains(&result.path) {
+                seen_files.insert(result.path.clone());
+                let name = result
+                    .path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| result.path.to_string_lossy().to_string());
+                // Truncate line text for display
+                let context = if result.line_text.len() > 50 {
+                    format!("{}...", &result.line_text[..50])
+                } else {
+                    result.line_text.clone()
+                };
+                let display = format!("{}:{} - {}", name, result.line_num, context);
+                results.push((result.path, display));
+            }
         }
     }
 

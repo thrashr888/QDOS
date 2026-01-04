@@ -46,6 +46,9 @@ pub struct GeneralConfig {
     /// Auto-refresh interval in seconds (0 to disable, default: 5)
     #[serde(default = "default_auto_refresh")]
     pub auto_refresh_interval: u64,
+    /// Content search tool: auto, rg, ag, grep, ack (default: auto)
+    #[serde(default)]
+    pub search_tool: SearchTool,
 }
 
 impl Default for GeneralConfig {
@@ -58,6 +61,99 @@ impl Default for GeneralConfig {
             confirm_delete: true,
             mouse_support: false,
             auto_refresh_interval: default_auto_refresh(),
+            search_tool: SearchTool::default(),
+        }
+    }
+}
+
+/// Content search tool configuration
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SearchTool {
+    /// Auto-detect best available tool (rg > ag > grep)
+    #[default]
+    Auto,
+    /// ripgrep (rg) - fast, respects .gitignore
+    Rg,
+    /// The Silver Searcher (ag) - fast, similar to ack
+    Ag,
+    /// grep - available on all systems
+    Grep,
+    /// ack - Perl-based code search
+    Ack,
+    /// Basic built-in search (no external tool)
+    Basic,
+}
+
+impl SearchTool {
+    /// Get display name
+    pub fn name(&self) -> &str {
+        match self {
+            SearchTool::Auto => "Auto",
+            SearchTool::Rg => "ripgrep (rg)",
+            SearchTool::Ag => "ag (silver searcher)",
+            SearchTool::Grep => "grep",
+            SearchTool::Ack => "ack",
+            SearchTool::Basic => "Basic (built-in)",
+        }
+    }
+
+    /// Cycle to next tool
+    #[allow(dead_code)]
+    pub fn next(&self) -> Self {
+        match self {
+            SearchTool::Auto => SearchTool::Rg,
+            SearchTool::Rg => SearchTool::Ag,
+            SearchTool::Ag => SearchTool::Grep,
+            SearchTool::Grep => SearchTool::Ack,
+            SearchTool::Ack => SearchTool::Basic,
+            SearchTool::Basic => SearchTool::Auto,
+        }
+    }
+
+    /// Check if this tool is available on the system
+    pub fn is_available(&self) -> bool {
+        match self {
+            SearchTool::Auto => true, // Always available (will pick best)
+            SearchTool::Basic => true, // Built-in
+            SearchTool::Rg => crate::rg::is_available(),
+            SearchTool::Ag => std::process::Command::new("ag")
+                .arg("--version")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false),
+            SearchTool::Grep => std::process::Command::new("grep")
+                .arg("--version")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false),
+            SearchTool::Ack => std::process::Command::new("ack")
+                .arg("--version")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false),
+        }
+    }
+
+    /// Get the best available tool for auto mode
+    pub fn best_available() -> Self {
+        if SearchTool::Rg.is_available() {
+            SearchTool::Rg
+        } else if SearchTool::Ag.is_available() {
+            SearchTool::Ag
+        } else if SearchTool::Grep.is_available() {
+            SearchTool::Grep
+        } else {
+            SearchTool::Basic
+        }
+    }
+
+    /// Resolve auto to the actual tool
+    pub fn resolve(&self) -> Self {
+        if *self == SearchTool::Auto {
+            Self::best_available()
+        } else {
+            *self
         }
     }
 }
