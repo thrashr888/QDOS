@@ -401,6 +401,7 @@ pub struct SystemInfo {
 }
 
 /// Get system information
+#[allow(dead_code)] // Legacy - StatusPlugin now has its own implementation
 pub fn get_system_info() -> Result<SystemInfo> {
     let mut sys = System::new_all();
     sys.refresh_all();

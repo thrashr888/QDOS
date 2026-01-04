@@ -14,6 +14,7 @@
 
 pub mod beads;
 pub mod dirmap;
+pub mod fileops;
 pub mod git;
 pub mod help;
 pub mod print;
@@ -25,6 +26,7 @@ pub mod theme;
 
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
+pub use fileops::FileOpsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use print::PrintPlugin;
@@ -377,6 +379,13 @@ impl PluginManager {
         self.plugins
             .get_mut("qdconfig")
             .and_then(|p| p.as_any_mut().downcast_mut::<qdconfig::QdconfigPlugin>())
+    }
+
+    /// Get mutable reference to FileOpsPlugin
+    pub fn fileops_plugin_mut(&mut self) -> Option<&mut fileops::FileOpsPlugin> {
+        self.plugins
+            .get_mut("fileops")
+            .and_then(|p| p.as_any_mut().downcast_mut::<fileops::FileOpsPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

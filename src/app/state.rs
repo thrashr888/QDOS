@@ -366,6 +366,7 @@ pub struct DirectoryMapState {
     pub confirm_delete: Option<PathBuf>,
 }
 
+#[allow(dead_code)] // Legacy - DirMapPlugin now handles this
 impl DirectoryMapState {
     pub fn new(start_path: &PathBuf) -> Self {
         let root_path = if let Some(root) = start_path.ancestors().last() {
@@ -716,6 +717,7 @@ pub struct SearchSpecState {
     pub selected_attr: usize,
 }
 
+#[allow(dead_code)] // Legacy - SearchSpecPlugin now handles this
 impl SearchSpecState {
     pub fn new(current_spec: &str) -> Self {
         Self {
@@ -1449,6 +1451,7 @@ pub struct QdstartState {
     pub uppercase_names: bool,
 }
 
+#[allow(dead_code)] // Legacy - QdconfigPlugin now handles this
 impl QdstartState {
     pub fn new(
         search_spec: String,
@@ -1513,7 +1516,8 @@ impl QdstartState {
 // Both are re-exported above via `pub use crate::plugins::*`
 
 /// Modal dialog types
-#[allow(clippy::large_enum_variant)]
+// Note: Some variants are legacy (plugin migration in progress)
+#[allow(clippy::large_enum_variant, dead_code)]
 pub enum Modal {
     None,
     Help(HelpState),

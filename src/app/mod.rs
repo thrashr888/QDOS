@@ -29,9 +29,9 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    BeadsPlugin, DirMapPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager,
-    PluginMenuItem, PluginStatusInfo, PrintPlugin, QdconfigPlugin, SearchSpecPlugin, SpacePlugin,
-    StatusPlugin, ThemePlugin,
+    fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
+    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
+    QdconfigPlugin, SearchSpecPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -105,6 +105,7 @@ impl App {
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
+        plugin_manager.register(Box::new(FileOpsPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -2586,6 +2587,7 @@ impl App {
     }
 
     /// Create QDSTART state from current settings
+    #[allow(dead_code)] // Legacy - QdconfigPlugin now handles this
     pub fn create_qdstart_state(&self) -> QdstartState {
         // Convert current SortMode to method + direction
         let (sort_method, sort_asc) = match self.sort_mode {
@@ -2867,50 +2869,83 @@ impl App {
                 if !self.tagged_files.is_empty() {
                     // Copy tagged files
                     let dest = self.current_path.to_string_lossy().to_string();
-                    self.modal = Modal::CopyTo(dest);
+                    let files = self.tagged_files.clone();
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Copy, files, dest);
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
-                    // Copy the highlighted file - temporarily tag it
+                    // Copy the highlighted file
                     let file = &self.files[self.selected_index];
-                    self.tagged_files.push(file.path.clone());
+                    let files = vec![file.path.clone()];
                     let dest = self.current_path.to_string_lossy().to_string();
-                    self.modal = Modal::CopyTo(dest);
+                    // Temporarily tag for the operation
+                    self.tagged_files.push(file.path.clone());
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Copy, files, dest);
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 }
             }
             NavItem::Move => {
                 if !self.tagged_files.is_empty() {
                     // Move tagged files
                     let dest = self.current_path.to_string_lossy().to_string();
-                    self.modal = Modal::MoveTo(dest);
+                    let files = self.tagged_files.clone();
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Move, files, dest);
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
-                    // Move the highlighted file - temporarily tag it
+                    // Move the highlighted file
                     let file = &self.files[self.selected_index];
-                    self.tagged_files.push(file.path.clone());
+                    let files = vec![file.path.clone()];
                     let dest = self.current_path.to_string_lossy().to_string();
-                    self.modal = Modal::MoveTo(dest);
+                    // Temporarily tag for the operation
+                    self.tagged_files.push(file.path.clone());
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Move, files, dest);
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 }
             }
             NavItem::Erase => {
                 if !self.tagged_files.is_empty() {
                     // Erase tagged files
-                    self.modal = Modal::EraseConfirm;
+                    let files = self.tagged_files.clone();
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Erase, files, String::new());
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 } else if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else if self.files[self.selected_index].is_dir {
                     self.modal = Modal::Error(errors::file::CANNOT_ERASE_DIR.to_string());
                 } else {
-                    // Erase the highlighted file - temporarily tag it for the confirm dialog
+                    // Erase the highlighted file
                     let file = &self.files[self.selected_index];
+                    let files = vec![file.path.clone()];
+                    // Temporarily tag for the operation
                     self.tagged_files.push(file.path.clone());
-                    self.modal = Modal::EraseConfirm;
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Erase, files, String::new());
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 }
             }
             NavItem::Rename => {
                 if !self.tagged_files.is_empty() {
-                    // Batch rename for tagged files
+                    // Batch rename for tagged files (keep old modal for now)
                     let files = self.tagged_files.clone();
                     let state = BatchRenameState::new(files);
                     self.modal = Modal::BatchRename(state);
@@ -2918,14 +2953,20 @@ impl App {
                     self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
                 } else {
                     // Single file rename
-                    let current_name = self.files[self.selected_index].name.clone();
-                    let ext = &self.files[self.selected_index].extension;
+                    let file = &self.files[self.selected_index];
+                    let current_name = file.name.clone();
+                    let ext = &file.extension;
                     let full_name = if ext.is_empty() {
                         current_name
                     } else {
                         format!("{}.{}", current_name, ext.to_lowercase())
                     };
-                    self.modal = Modal::RenameInput(full_name);
+                    let files = vec![file.path.clone()];
+                    if let Some(plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        plugin.open_modal(FileOperation::Rename, files, full_name);
+                        self.plugin_manager.set_active_modal(Some("fileops"));
+                        self.modal = Modal::Plugin("fileops".to_string());
+                    }
                 }
             }
             NavItem::Git => {
@@ -3524,6 +3565,142 @@ impl App {
                             let _ = self.refresh_files();
                             self.modal =
                                 Modal::Success("Configuration saved successfully".to_string());
+                        }
+                    } else {
+                        self.modal = Modal::None;
+                    }
+                } else if msg.starts_with("fileops:") {
+                    // Handle file operations
+                    if let Some(fileops_plugin) = self.plugin_manager.fileops_plugin_mut() {
+                        if let Some(result) = fileops_plugin.take_result() {
+                            match result.operation {
+                                FileOperation::Copy => {
+                                    if let Some(dest_str) = result.destination {
+                                        let dest = PathBuf::from(dest_str);
+                                        let dest_dir = if dest.is_dir() {
+                                            dest.clone()
+                                        } else {
+                                            dest.parent().unwrap_or(&dest).to_path_buf()
+                                        };
+                                        if !dest_dir.exists() {
+                                            if let Err(e) = fs::create_dir_all(&dest_dir) {
+                                                self.modal =
+                                                    Modal::Error(format!("Failed to create directory: {}", e));
+                                                return true;
+                                            }
+                                        }
+                                        let mut count = 0;
+                                        for src_path in &result.files {
+                                            if let Some(file_name) = src_path.file_name() {
+                                                let dest_path = dest_dir.join(file_name);
+                                                let copy_result: Result<()> = if src_path.is_dir() {
+                                                    copy_dir_recursive(src_path, &dest_path)
+                                                } else {
+                                                    fs::copy(src_path, &dest_path)
+                                                        .map(|_| ())
+                                                        .map_err(|e| e.into())
+                                                };
+                                                if let Err(e) = copy_result {
+                                                    self.modal =
+                                                        Modal::Error(format!("Copy failed: {}", e));
+                                                    self.tagged_files.clear();
+                                                    let _ = self.refresh_files();
+                                                    return true;
+                                                }
+                                                count += 1;
+                                            }
+                                        }
+                                        self.tagged_files.clear();
+                                        let _ = self.refresh_files();
+                                        self.modal = Modal::Success(format!(
+                                            "Copied {} file(s)",
+                                            count
+                                        ));
+                                    }
+                                }
+                                FileOperation::Move => {
+                                    if let Some(dest_str) = result.destination {
+                                        let dest = PathBuf::from(dest_str);
+                                        let dest_dir = if dest.is_dir() {
+                                            dest.clone()
+                                        } else {
+                                            dest.parent().unwrap_or(&dest).to_path_buf()
+                                        };
+                                        if !dest_dir.exists() {
+                                            if let Err(e) = fs::create_dir_all(&dest_dir) {
+                                                self.modal =
+                                                    Modal::Error(format!("Failed to create directory: {}", e));
+                                                return true;
+                                            }
+                                        }
+                                        let mut count = 0;
+                                        for src_path in &result.files {
+                                            if let Some(file_name) = src_path.file_name() {
+                                                let dest_path = dest_dir.join(file_name);
+                                                if let Err(e) = fs::rename(src_path, &dest_path) {
+                                                    self.modal =
+                                                        Modal::Error(format!("Move failed: {}", e));
+                                                    self.tagged_files.clear();
+                                                    let _ = self.refresh_files();
+                                                    return true;
+                                                }
+                                                count += 1;
+                                            }
+                                        }
+                                        self.tagged_files.clear();
+                                        let _ = self.refresh_files();
+                                        self.modal = Modal::Success(format!(
+                                            "Moved {} file(s)",
+                                            count
+                                        ));
+                                    }
+                                }
+                                FileOperation::Erase => {
+                                    let mut count = 0;
+                                    for path in &result.files {
+                                        let remove_result = if path.is_dir() {
+                                            fs::remove_dir_all(path)
+                                        } else {
+                                            fs::remove_file(path)
+                                        };
+                                        if let Err(e) = remove_result {
+                                            self.modal =
+                                                Modal::Error(format!("Erase failed: {}", e));
+                                            self.tagged_files.clear();
+                                            let _ = self.refresh_files();
+                                            return true;
+                                        }
+                                        count += 1;
+                                    }
+                                    self.tagged_files.clear();
+                                    let _ = self.refresh_files();
+                                    self.modal = Modal::Success(format!(
+                                        "Erased {} file(s)",
+                                        count
+                                    ));
+                                }
+                                FileOperation::Rename => {
+                                    if let Some(new_name) = result.destination {
+                                        if let Some(old_path) = result.files.first() {
+                                            let new_path = old_path
+                                                .parent()
+                                                .unwrap_or(&self.current_path)
+                                                .join(&new_name);
+                                            if let Err(e) = fs::rename(old_path, &new_path) {
+                                                self.modal =
+                                                    Modal::Error(format!("Rename failed: {}", e));
+                                                let _ = self.refresh_files();
+                                                return true;
+                                            }
+                                            let _ = self.refresh_files();
+                                            self.modal = Modal::Success(format!(
+                                                "Renamed to \"{}\"",
+                                                new_name
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
                         self.modal = Modal::None;
