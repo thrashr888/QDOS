@@ -376,6 +376,22 @@ pub fn get_git_status_info(cwd: &PathBuf) -> Option<GitStatusInfo> {
     })
 }
 
+/// Get the current HEAD commit SHA (short form)
+/// Returns None if not in a git repo
+pub fn get_head_commit_sha(cwd: &PathBuf) -> Option<String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        None
+    }
+}
+
 /// Load git history for a specific file
 /// Returns commits from newest to oldest, but we store them oldest to newest
 /// so index 0 = oldest, last = newest (before working copy)

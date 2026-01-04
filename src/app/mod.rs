@@ -354,6 +354,17 @@ impl App {
 
     /// Handle keyboard input in modal dialogs
     fn handle_modal_key(&mut self, key: KeyEvent) -> Result<()> {
+        // Handle 'y' (yank/copy) in specific modals that should support clipboard
+        if matches!(key.code, KeyCode::Char('y') | KeyCode::Char('Y'))
+            && matches!(
+                self.modal,
+                Modal::Beads(_) | Modal::Git(_) | Modal::FileViewer(_)
+            )
+        {
+            self.open_clipboard_menu();
+            return Ok(());
+        }
+
         match &mut self.modal {
             Modal::Quit => {
                 match key.code {
@@ -3363,42 +3374,125 @@ impl App {
 
         let mut items = Vec::new();
 
-        // Current directory
-        items.push(ClipboardItem {
-            label: "Current Directory".to_string(),
-            value: self.current_path.to_string_lossy().to_string(),
-        });
-
-        // Selected file (if any)
-        if let Some(entry) = self.files.get(self.selected_index) {
-            if entry.name != ".." {
+        // Check modal context for specific items
+        match &self.modal {
+            Modal::Beads(state) => {
+                // In beads modal - prioritize issue ID
+                if let Some(issue) = &state.detail_issue {
+                    items.push(ClipboardItem {
+                        label: "Issue ID".to_string(),
+                        value: issue.id.clone(),
+                    });
+                    items.push(ClipboardItem {
+                        label: "Issue Title".to_string(),
+                        value: issue.title.clone(),
+                    });
+                } else if let Some(issue) = state.issues.get(state.selected_issue) {
+                    items.push(ClipboardItem {
+                        label: "Issue ID".to_string(),
+                        value: issue.id.clone(),
+                    });
+                    items.push(ClipboardItem {
+                        label: "Issue Title".to_string(),
+                        value: issue.title.clone(),
+                    });
+                }
+            }
+            Modal::Git(state) => {
+                // In git modal - prioritize commit hash if in log view
+                if !state.log_entries.is_empty() {
+                    if let Some(entry) = state.log_entries.get(state.selected_log) {
+                        items.push(ClipboardItem {
+                            label: "Commit SHA".to_string(),
+                            value: entry.hash.clone(),
+                        });
+                        items.push(ClipboardItem {
+                            label: "Commit Message".to_string(),
+                            value: entry.message.clone(),
+                        });
+                    }
+                }
+                // Add current branch
+                if !state.branches.is_empty() {
+                    if let Some(branch) = state.branches.get(state.selected_branch) {
+                        items.push(ClipboardItem {
+                            label: "Branch Name".to_string(),
+                            value: branch.name.clone(),
+                        });
+                    }
+                }
+            }
+            Modal::FileViewer(state) => {
+                // In file viewer - add file path and commit info if viewing history
                 items.push(ClipboardItem {
                     label: "File Path".to_string(),
-                    value: entry.path.to_string_lossy().to_string(),
+                    value: state.file_path.to_string_lossy().to_string(),
                 });
                 items.push(ClipboardItem {
                     label: "File Name".to_string(),
-                    value: entry.name.clone(),
+                    value: state.file_name.clone(),
                 });
+                if let Some(commit) = state.current_commit() {
+                    items.push(ClipboardItem {
+                        label: "Viewing Commit".to_string(),
+                        value: commit.hash.clone(),
+                    });
+                }
             }
-        }
-
-        // Git info (if in repo)
-        if self.is_git_repo() {
-            if let Some(ref git_info) = self.git_status_info {
+            _ => {
+                // Default: current directory and selected file
                 items.push(ClipboardItem {
-                    label: "Git Branch".to_string(),
-                    value: git_info.branch.clone(),
+                    label: "Current Directory".to_string(),
+                    value: self.current_path.to_string_lossy().to_string(),
                 });
+
+                // Selected file (if any)
+                if let Some(entry) = self.files.get(self.selected_index) {
+                    if entry.name != ".." {
+                        items.push(ClipboardItem {
+                            label: "File Path".to_string(),
+                            value: entry.path.to_string_lossy().to_string(),
+                        });
+                        items.push(ClipboardItem {
+                            label: "File Name".to_string(),
+                            value: entry.name.clone(),
+                        });
+                    }
+                }
+
+                // Git info (if in repo)
+                if self.is_git_repo() {
+                    if let Some(ref git_info) = self.git_status_info {
+                        items.push(ClipboardItem {
+                            label: "Git Branch".to_string(),
+                            value: git_info.branch.clone(),
+                        });
+                    }
+                    // Add HEAD commit SHA
+                    if let Some(sha) = git_ops::get_head_commit_sha(&self.current_path) {
+                        items.push(ClipboardItem {
+                            label: "HEAD Commit".to_string(),
+                            value: sha,
+                        });
+                    }
+                }
             }
         }
 
-        // If only one item (just directory), copy immediately
+        // If only one item, copy immediately
         if items.len() == 1 {
             if let Err(e) = copy_to_clipboard(&items[0].value) {
                 self.modal = Modal::Error(e);
             } else {
                 self.modal = Modal::Success(format!("Copied: {}", items[0].value));
+            }
+        } else if items.is_empty() {
+            // No items - just copy current directory
+            let dir = self.current_path.to_string_lossy().to_string();
+            if let Err(e) = copy_to_clipboard(&dir) {
+                self.modal = Modal::Error(e);
+            } else {
+                self.modal = Modal::Success(format!("Copied: {}", dir));
             }
         } else {
             self.modal = Modal::Clipboard(ClipboardState::new(items));
