@@ -29,8 +29,8 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    BeadsPlugin, GitPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo,
-    SpacePlugin, StatusPlugin,
+    BeadsPlugin, GitPlugin, HelpPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
+    PluginStatusInfo, SpacePlugin, StatusPlugin,
 };
 use crate::ui;
 use anyhow::Result;
@@ -94,6 +94,7 @@ impl App {
 
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
+        plugin_manager.register(Box::new(HelpPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));
@@ -257,10 +258,8 @@ impl App {
             KeyCode::Char('=') | KeyCode::Char('+') => {
                 let _ = self.go_forward();
             }
-            // Help
-            KeyCode::F(1) => {
-                self.modal = Modal::Help(HelpState::new());
-            }
+            // Help - handled by HelpPlugin via plugin system
+            // F1 key is intercepted by handle_plugin_key() before reaching here
             // Status - handled by StatusPlugin via plugin system
             // F2 key is intercepted by handle_plugin_key() before reaching here
             // Change drive (not applicable on Unix, show error)

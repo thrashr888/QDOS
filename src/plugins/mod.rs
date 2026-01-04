@@ -14,11 +14,13 @@
 
 pub mod beads;
 pub mod git;
+pub mod help;
 pub mod space;
 pub mod status;
 
 pub use beads::BeadsPlugin;
 pub use git::GitPlugin;
+pub use help::HelpPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
 
