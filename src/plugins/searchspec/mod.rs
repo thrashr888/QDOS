@@ -247,7 +247,10 @@ impl Plugin for SearchSpecPlugin {
             modal.render_row(
                 frame,
                 0,
-                vec![Span::styled("Enter file search specification:", label_style)],
+                vec![Span::styled(
+                    "Enter file search specification:",
+                    label_style,
+                )],
             );
             modal.render_row(frame, 1, vec![]);
             modal.render_row(

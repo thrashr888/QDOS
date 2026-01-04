@@ -204,11 +204,7 @@ impl Plugin for ThemePlugin {
 
         let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
 
-        modal.render_row(
-            frame,
-            0,
-            vec![Span::styled("Select a theme:", label_style)],
-        );
+        modal.render_row(frame, 0, vec![Span::styled("Select a theme:", label_style)]);
         modal.render_row(frame, 1, vec![]);
 
         for (i, theme) in ColorTheme::ALL.iter().enumerate() {

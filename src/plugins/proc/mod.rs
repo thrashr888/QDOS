@@ -387,7 +387,11 @@ impl ProcPlugin {
                 self.state.detail_info = Some(ProcessDetailInfo {
                     pid: proc.pid,
                     name: proc.name.clone(),
-                    cmd: process.cmd().iter().map(|s| s.to_string_lossy().to_string()).collect(),
+                    cmd: process
+                        .cmd()
+                        .iter()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .collect(),
                     cwd: process
                         .cwd()
                         .map(|p| p.to_string_lossy().to_string())
@@ -583,7 +587,10 @@ impl Plugin for ProcPlugin {
         let red = COLOR_RED;
 
         let border_style = Style::default().fg(fg).bg(bg);
-        let title_style = Style::default().fg(yellow).bg(bg).add_modifier(Modifier::BOLD);
+        let title_style = Style::default()
+            .fg(yellow)
+            .bg(bg)
+            .add_modifier(Modifier::BOLD);
         let header_style = Style::default().fg(blue).bg(bg);
         let normal_style = Style::default().fg(fg).bg(bg);
         let _highlight_style = Style::default().fg(yellow).bg(red);
@@ -601,7 +608,12 @@ impl Plugin for ProcPlugin {
 
         // Draw title row with view tabs
         let mut y = modal_area.y + 1;
-        let views = [ProcView::Cpu, ProcView::Memory, ProcView::Disk, ProcView::Network];
+        let views = [
+            ProcView::Cpu,
+            ProcView::Memory,
+            ProcView::Disk,
+            ProcView::Network,
+        ];
         let mut title_spans: Vec<Span> = vec![Span::styled("║ ", border_style)];
 
         for view in views.iter() {
@@ -629,10 +641,7 @@ impl Plugin for ProcPlugin {
             Style::default().fg(green).bg(bg),
         ));
         title_spans.push(Span::styled(
-            format!(
-                "Mem: {:.1}% ",
-                mem_pct
-            ),
+            format!("Mem: {:.1}% ", mem_pct),
             Style::default().fg(blue).bg(bg),
         ));
 
@@ -668,16 +677,44 @@ impl Plugin for ProcPlugin {
 
         match self.state.view {
             ProcView::Cpu => {
-                self.draw_cpu_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+                self.draw_cpu_view(
+                    frame,
+                    modal_area.x,
+                    y,
+                    modal_area.width,
+                    content_height,
+                    inner_width,
+                );
             }
             ProcView::Memory => {
-                self.draw_memory_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+                self.draw_memory_view(
+                    frame,
+                    modal_area.x,
+                    y,
+                    modal_area.width,
+                    content_height,
+                    inner_width,
+                );
             }
             ProcView::Disk => {
-                self.draw_disk_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+                self.draw_disk_view(
+                    frame,
+                    modal_area.x,
+                    y,
+                    modal_area.width,
+                    content_height,
+                    inner_width,
+                );
             }
             ProcView::Network => {
-                self.draw_network_view(frame, modal_area.x, y, modal_area.width, content_height, inner_width);
+                self.draw_network_view(
+                    frame,
+                    modal_area.x,
+                    y,
+                    modal_area.width,
+                    content_height,
+                    inner_width,
+                );
             }
         }
 
@@ -864,7 +901,10 @@ impl ProcPlugin {
 
             let mut spans = vec![Span::styled("║ ", border_style)];
             spans.push(Span::styled(format!("{:<30}  ", name), style));
-            spans.push(Span::styled(format!("{:>8.1}  ", proc.cpu_usage), cpu_style));
+            spans.push(Span::styled(
+                format!("{:>8.1}  ", proc.cpu_usage),
+                cpu_style,
+            ));
             spans.push(Span::styled(
                 format!("{:>10}  ", Self::format_cpu_time(proc.cpu_time_ms)),
                 style,
@@ -877,10 +917,7 @@ impl ProcPlugin {
             spans.push(Span::styled(" ".repeat(padding), style));
             spans.push(Span::styled("║", border_style));
 
-            frame.render_widget(
-                Paragraph::new(Line::from(spans)),
-                Rect::new(x, y, width, 1),
-            );
+            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
         }
 
         // Fill remaining lines
@@ -987,10 +1024,7 @@ impl ProcPlugin {
             spans.push(Span::styled(" ".repeat(padding), style));
             spans.push(Span::styled("║", border_style));
 
-            frame.render_widget(
-                Paragraph::new(Line::from(spans)),
-                Rect::new(x, y, width, 1),
-            );
+            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
         }
 
         // Fill remaining lines
@@ -1100,10 +1134,7 @@ impl ProcPlugin {
             spans.push(Span::styled(" ".repeat(padding), style));
             spans.push(Span::styled("║", border_style));
 
-            frame.render_widget(
-                Paragraph::new(Line::from(spans)),
-                Rect::new(x, y, width, 1),
-            );
+            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
         }
 
         // Fill remaining lines
@@ -1130,7 +1161,10 @@ impl ProcPlugin {
         let yellow = COLOR_YELLOW;
 
         let border_style = Style::default().fg(fg).bg(bg);
-        let title_style = Style::default().fg(yellow).bg(bg).add_modifier(Modifier::BOLD);
+        let title_style = Style::default()
+            .fg(yellow)
+            .bg(bg)
+            .add_modifier(Modifier::BOLD);
         let label_style = Style::default().fg(blue).bg(bg);
         let value_style = Style::default().fg(fg).bg(bg);
 
@@ -1152,14 +1186,8 @@ impl ProcPlugin {
             ("Name".to_string(), detail.name.clone()),
             ("Status".to_string(), detail.status.clone()),
             ("User".to_string(), detail.user.clone()),
-            (
-                "CPU Usage".to_string(),
-                format!("{:.1}%", detail.cpu_usage),
-            ),
-            (
-                "Memory".to_string(),
-                format_size(detail.memory, DECIMAL),
-            ),
+            ("CPU Usage".to_string(), format!("{:.1}%", detail.cpu_usage)),
+            ("Memory".to_string(), format_size(detail.memory, DECIMAL)),
             (
                 "Parent PID".to_string(),
                 detail
@@ -1374,10 +1402,7 @@ impl ProcPlugin {
             spans.push(Span::styled(" ".repeat(padding), style));
             spans.push(Span::styled("║", border_style));
 
-            frame.render_widget(
-                Paragraph::new(Line::from(spans)),
-                Rect::new(x, y, width, 1),
-            );
+            frame.render_widget(Paragraph::new(Line::from(spans)), Rect::new(x, y, width, 1));
         }
 
         // Fill remaining lines

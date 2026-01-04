@@ -99,5 +99,4 @@ impl DirWatcher {
         }
         Ok(())
     }
-
 }

@@ -171,8 +171,7 @@ impl Plugin for StatusPlugin {
         let popup_y = (area.height - popup_height) / 2;
         let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-        let modal = ModalFrame::new(modal_area, " System Status ")
-            .no_footer_separator();
+        let modal = ModalFrame::new(modal_area, " System Status ").no_footer_separator();
         modal.render_frame(frame);
 
         let label_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
@@ -199,10 +198,7 @@ impl Plugin for StatusPlugin {
             1,
             vec![
                 Span::styled("OS: ", label_style),
-                Span::styled(
-                    format!("{} {}", info.os_name, info.os_version),
-                    value_style,
-                ),
+                Span::styled(format!("{} {}", info.os_name, info.os_version), value_style),
             ],
         );
         modal.render_row(

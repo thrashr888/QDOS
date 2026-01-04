@@ -165,13 +165,21 @@ impl ModalFrame {
         }
 
         // Help row placeholder (empty, to be filled by render_help)
-        self.render_empty_row(frame, footer_y + if self.show_footer_separator { 1 } else { 0 });
+        self.render_empty_row(
+            frame,
+            footer_y + if self.show_footer_separator { 1 } else { 0 },
+        );
 
         // Bottom border
         let bottom = format!("╚{}╝", "═".repeat(self.inner_width));
         frame.render_widget(
             Paragraph::new(Span::styled(&bottom, self.border_style)),
-            Rect::new(self.area.x, self.area.y + self.area.height - 1, self.area.width, 1),
+            Rect::new(
+                self.area.x,
+                self.area.y + self.area.height - 1,
+                self.area.width,
+                1,
+            ),
         );
     }
 

@@ -280,7 +280,10 @@ impl HelpPlugin {
         modal.render_row(
             frame,
             0,
-            vec![Span::styled("Select a topic by pressing its key:", label_style)],
+            vec![Span::styled(
+                "Select a topic by pressing its key:",
+                label_style,
+            )],
         );
         modal.render_row(frame, 1, vec![]);
 

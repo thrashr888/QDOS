@@ -391,7 +391,8 @@ impl ShellPlugin {
                     self.state.output = vec![format!("[{}] Killed", id)];
                     self.state.exit_code = Some(0);
                 } else {
-                    self.state.output = vec![format!("Cannot kill task {}: not running or not found", id)];
+                    self.state.output =
+                        vec![format!("Cannot kill task {}: not running or not found", id)];
                     self.state.exit_code = Some(1);
                 }
             } else {
@@ -671,7 +672,11 @@ impl ShellPlugin {
                 }
                 KeyHandleResult::Handled
             }
-            KeyCode::Char('K') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+            KeyCode::Char('K')
+                if key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
+            {
                 // Ctrl+Shift+K to kill selected task
                 if let Some(task) = self.get_task_by_index(self.state.selected_task) {
                     let id = task.id;
@@ -685,7 +690,9 @@ impl ShellPlugin {
                     let id = task.id;
                     if task.status != TaskStatus::Running {
                         self.tasks.remove(&id);
-                        if self.state.selected_task > 0 && self.state.selected_task >= self.tasks.len() {
+                        if self.state.selected_task > 0
+                            && self.state.selected_task >= self.tasks.len()
+                        {
                             self.state.selected_task = self.tasks.len().saturating_sub(1);
                         }
                     } else {
@@ -730,7 +737,8 @@ impl ShellPlugin {
             KeyCode::PageDown => {
                 if let Some(task) = self.tasks.get(&task_id) {
                     let output_len = task.output.lock().unwrap().len();
-                    self.state.scroll_offset = (self.state.scroll_offset + 10).min(output_len.saturating_sub(1));
+                    self.state.scroll_offset =
+                        (self.state.scroll_offset + 10).min(output_len.saturating_sub(1));
                 }
                 KeyHandleResult::Handled
             }
@@ -779,22 +787,42 @@ impl ShellPlugin {
             vec![
                 Span::styled(&prompt[..prompt_len], prompt_style),
                 Span::styled(&self.state.input, input_style),
-                Span::styled("_", Style::default().fg(COLOR_CYAN).bg(COLOR_BG).add_modifier(Modifier::SLOW_BLINK)),
+                Span::styled(
+                    "_",
+                    Style::default()
+                        .fg(COLOR_CYAN)
+                        .bg(COLOR_BG)
+                        .add_modifier(Modifier::SLOW_BLINK),
+                ),
             ],
         );
 
         // Draw output
         let output_start = 2;
         let output_height = content_height.saturating_sub(3);
-        let scroll = self.state.scroll_offset.min(self.state.output.len().saturating_sub(output_height));
+        let scroll = self
+            .state
+            .scroll_offset
+            .min(self.state.output.len().saturating_sub(output_height));
 
-        for (i, line) in self.state.output.iter().skip(scroll).take(output_height).enumerate() {
+        for (i, line) in self
+            .state
+            .output
+            .iter()
+            .skip(scroll)
+            .take(output_height)
+            .enumerate()
+        {
             let style = if line.starts_with("stderr:") {
                 Style::default().fg(COLOR_YELLOW).bg(COLOR_BG)
             } else {
                 Style::default().fg(COLOR_FG).bg(COLOR_BG)
             };
-            modal.render_row(frame, (output_start + i) as u16, vec![Span::styled(line, style)]);
+            modal.render_row(
+                frame,
+                (output_start + i) as u16,
+                vec![Span::styled(line, style)],
+            );
         }
 
         // Draw status line
@@ -959,7 +987,10 @@ impl ShellPlugin {
 
         // Calculate scroll position
         let visible_height = content_height.saturating_sub(2);
-        let scroll = self.state.scroll_offset.min(output_len.saturating_sub(visible_height));
+        let scroll = self
+            .state
+            .scroll_offset
+            .min(output_len.saturating_sub(visible_height));
 
         // Draw output lines
         for (i, line) in output.iter().skip(scroll).take(visible_height).enumerate() {

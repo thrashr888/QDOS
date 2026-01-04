@@ -509,13 +509,15 @@ impl BeadsPlugin {
                             // Reload detail
                             if let Ok(updated) = ops::load_beads_issue_detail(&issue_id, cwd) {
                                 state.detail_issue = Some(updated);
-                                state.success_message =
-                                    Some(format!("Status updated to {}", match new_status {
+                                state.success_message = Some(format!(
+                                    "Status updated to {}",
+                                    match new_status {
                                         0 => "open",
                                         1 => "in_progress",
                                         2 => "closed",
                                         _ => "unknown",
-                                    }));
+                                    }
+                                ));
                             }
                         }
                         Err(e) => {

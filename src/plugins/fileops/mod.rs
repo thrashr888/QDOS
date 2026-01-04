@@ -330,10 +330,7 @@ impl Plugin for FileOpsPlugin {
                     frame,
                     3,
                     vec![
-                        Span::styled(
-                            format!("{} ", state.operation.prompt()),
-                            label_style,
-                        ),
+                        Span::styled(format!("{} ", state.operation.prompt()), label_style),
                         Span::styled(format!("{}█", state.input), input_style),
                     ],
                 );
