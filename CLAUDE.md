@@ -94,6 +94,78 @@ Before ending a session:
 4. Commit changes and run `bd sync`
 5. **Ask before pushing** - do not `git push` without user confirmation
 
+## Plugin Architecture
+
+Plugins are self-contained modules in `src/plugins/` that extend QDOS functionality. See `git/` and `beads/` for reference implementations.
+
+### Plugin Directory Structure
+
+```
+src/plugins/myplugin/
+├── mod.rs       # Plugin struct, Plugin trait impl, key handlers
+├── state.rs     # State types (views, menu items, data structs)
+└── ops.rs       # Operations (CLI commands, data parsing, actions)
+```
+
+### Plugin Trait Implementation
+
+```rust
+pub struct MyPlugin {
+    initialized: bool,
+    pub modal_state: Option<MyState>,  // Plugin owns its modal state
+}
+
+impl Plugin for MyPlugin {
+    fn id(&self) -> &str { "myplugin" }
+    fn name(&self) -> &str { "My Plugin" }
+
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities {
+            has_menu: true,   // Provides menu item
+            has_keys: true,   // Handles keyboard shortcuts
+            has_modal: true,  // Has modal UI
+            has_status: true, // Provides status bar content
+            has_cli: false,   // Provides CLI arguments
+            has_help: true,   // Provides help content
+        }
+    }
+
+    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        // Handle key when modal is NOT open
+        // Return OpenModal to open plugin's modal
+    }
+
+    fn handle_modal_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        // Handle key when modal IS open
+        // Return CloseModal to close
+    }
+
+    fn draw_modal(&self, frame: &mut Frame, area: Rect) {
+        // Draw plugin's modal UI
+    }
+}
+```
+
+### Key Patterns
+
+1. **State Ownership**: Plugins own their modal state via `modal_state: Option<State>`
+2. **State Re-export**: Re-export state types in `mod.rs` for external use
+3. **Ops Module**: Separate operations (CLI calls, parsing) from UI logic
+4. **Key Results**: Use `KeyHandleResult` enum for key handling outcomes:
+   - `NotHandled` - Let app handle the key
+   - `Handled` - Key processed, no further action
+   - `OpenModal` - Open plugin's modal
+   - `CloseModal` - Close plugin's modal
+   - `CloseWithSuccess(msg)` / `CloseWithError(msg)` - Close with message
+
+### Registration
+
+Register plugins in `App::new()`:
+
+```rust
+plugin_manager.register(Box::new(MyPlugin::new()));
+```
+
 ## Releasing
 
 1. Update version in `Cargo.toml`
