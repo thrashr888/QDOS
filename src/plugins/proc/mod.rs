@@ -123,6 +123,21 @@ pub struct NetworkInfo {
     pub packets_out: u64,
 }
 
+/// Extended process info for detail view
+#[derive(Debug, Clone, Default)]
+pub struct ProcessDetailInfo {
+    pub pid: u32,
+    pub name: String,
+    pub cmd: Vec<String>,
+    pub cwd: String,
+    pub parent_pid: Option<u32>,
+    pub start_time: u64,
+    pub cpu_usage: f32,
+    pub memory: u64,
+    pub status: String,
+    pub user: String,
+}
+
 /// Proc plugin state
 #[derive(Debug, Clone)]
 pub struct ProcState {
@@ -151,6 +166,12 @@ pub struct ProcState {
     pub last_refresh: std::time::Instant,
     /// Selected PID (for preserving selection across refreshes)
     pub selected_pid: Option<u32>,
+    /// Show process detail overlay
+    pub show_detail: bool,
+    /// Process detail info
+    pub detail_info: Option<ProcessDetailInfo>,
+    /// Detail scroll offset
+    pub detail_scroll: usize,
 }
 
 impl Default for ProcState {
@@ -170,6 +191,9 @@ impl Default for ProcState {
             auto_refresh: true,
             last_refresh: std::time::Instant::now(),
             selected_pid: None,
+            show_detail: false,
+            detail_info: None,
+            detail_scroll: 0,
         }
     }
 }
@@ -347,6 +371,47 @@ impl ProcPlugin {
         }
     }
 
+    /// Show process detail overlay
+    fn show_process_info(&mut self) {
+        // Only show detail for process views
+        if self.state.view != ProcView::Cpu
+            && self.state.view != ProcView::Memory
+            && self.state.view != ProcView::Disk
+        {
+            return;
+        }
+
+        if let Some(proc) = self.state.processes.get(self.state.selected) {
+            let pid = Pid::from_u32(proc.pid);
+            if let Some(process) = self.system.process(pid) {
+                self.state.detail_info = Some(ProcessDetailInfo {
+                    pid: proc.pid,
+                    name: proc.name.clone(),
+                    cmd: process.cmd().iter().map(|s| s.to_string_lossy().to_string()).collect(),
+                    cwd: process
+                        .cwd()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "-".to_string()),
+                    parent_pid: process.parent().map(|p| p.as_u32()),
+                    start_time: process.start_time(),
+                    cpu_usage: proc.cpu_usage,
+                    memory: proc.memory,
+                    status: proc.status.clone(),
+                    user: proc.user.clone(),
+                });
+                self.state.show_detail = true;
+                self.state.detail_scroll = 0;
+            }
+        }
+    }
+
+    /// Close process detail overlay
+    fn close_process_info(&mut self) {
+        self.state.show_detail = false;
+        self.state.detail_info = None;
+        self.state.detail_scroll = 0;
+    }
+
     /// Get current list length based on view
     fn current_list_len(&self) -> usize {
         match self.state.view {
@@ -414,10 +479,35 @@ impl Plugin for ProcPlugin {
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        // Handle detail overlay if open
+        if self.state.show_detail {
+            return match key.code {
+                KeyCode::Esc | KeyCode::Enter | KeyCode::Char('i') | KeyCode::Char('I') => {
+                    self.close_process_info();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if self.state.detail_scroll > 0 {
+                        self.state.detail_scroll -= 1;
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.state.detail_scroll += 1;
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            };
+        }
+
         match key.code {
             KeyCode::Esc | KeyCode::F(12) => {
                 self.close_modal();
                 KeyHandleResult::CloseModal
+            }
+            KeyCode::Enter | KeyCode::Char('i') | KeyCode::Char('I') => {
+                self.show_process_info();
+                KeyHandleResult::Handled
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 if self.state.selected > 0 {
@@ -610,6 +700,8 @@ impl Plugin for ProcPlugin {
             Span::styled(" view  ", normal_style),
             Span::styled("S", Style::default().fg(green).bg(bg)),
             Span::styled(" sort  ", normal_style),
+            Span::styled("i", Style::default().fg(green).bg(bg)),
+            Span::styled(" info  ", normal_style),
             Span::styled("R", Style::default().fg(green).bg(bg)),
             Span::styled(" refresh  ", normal_style),
             Span::styled("A", Style::default().fg(green).bg(bg)),
@@ -638,6 +730,11 @@ impl Plugin for ProcPlugin {
             Paragraph::new(Span::styled(&bottom_border, border_style)),
             Rect::new(modal_area.x, y, modal_area.width, 1),
         );
+
+        // Draw process detail overlay if open
+        if self.state.show_detail {
+            self.draw_detail_overlay(frame, modal_area);
+        }
     }
 
     fn help_content(&self) -> Vec<String> {
@@ -646,6 +743,7 @@ impl Plugin for ProcPlugin {
             "  ↑↓  Navigate list".to_string(),
             "  Tab Switch view (CPU/Memory/Disk/Network)".to_string(),
             "  S   Cycle sort mode (in process views)".to_string(),
+            "  i   Show process details".to_string(),
             "  R   Refresh data".to_string(),
             "  A   Toggle auto-refresh".to_string(),
             "  X   Kill selected process".to_string(),
@@ -1017,6 +1115,182 @@ impl ProcPlugin {
                 Rect::new(x, y, width, 1),
             );
         }
+    }
+
+    /// Draw process detail overlay
+    fn draw_detail_overlay(&self, frame: &mut Frame, parent_area: Rect) {
+        let Some(ref detail) = self.state.detail_info else {
+            return;
+        };
+
+        let bg = COLOR_BG;
+        let fg = Color::White;
+        let blue = COLOR_BLUE;
+        let green = COLOR_GREEN;
+        let yellow = COLOR_YELLOW;
+
+        let border_style = Style::default().fg(fg).bg(bg);
+        let title_style = Style::default().fg(yellow).bg(bg).add_modifier(Modifier::BOLD);
+        let label_style = Style::default().fg(blue).bg(bg);
+        let value_style = Style::default().fg(fg).bg(bg);
+
+        // Center overlay - 80% width, 60% height
+        let overlay_width = (parent_area.width as f32 * 0.8) as u16;
+        let overlay_height = (parent_area.height as f32 * 0.6) as u16;
+        let overlay_x = parent_area.x + (parent_area.width - overlay_width) / 2;
+        let overlay_y = parent_area.y + (parent_area.height - overlay_height) / 2;
+        let overlay_area = Rect::new(overlay_x, overlay_y, overlay_width, overlay_height);
+
+        // Clear overlay area
+        frame.render_widget(Clear, overlay_area);
+
+        let inner_width = overlay_width.saturating_sub(2) as usize;
+
+        // Build content lines
+        let mut content_lines: Vec<(String, String)> = vec![
+            ("PID".to_string(), detail.pid.to_string()),
+            ("Name".to_string(), detail.name.clone()),
+            ("Status".to_string(), detail.status.clone()),
+            ("User".to_string(), detail.user.clone()),
+            (
+                "CPU Usage".to_string(),
+                format!("{:.1}%", detail.cpu_usage),
+            ),
+            (
+                "Memory".to_string(),
+                format_size(detail.memory, DECIMAL),
+            ),
+            (
+                "Parent PID".to_string(),
+                detail
+                    .parent_pid
+                    .map(|p| p.to_string())
+                    .unwrap_or_else(|| "-".to_string()),
+            ),
+            (
+                "Start Time".to_string(),
+                chrono::DateTime::from_timestamp(detail.start_time as i64, 0)
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+                    .unwrap_or_else(|| "-".to_string()),
+            ),
+            ("Working Dir".to_string(), detail.cwd.clone()),
+        ];
+
+        // Add command line (may span multiple lines)
+        if !detail.cmd.is_empty() {
+            content_lines.push(("Command".to_string(), detail.cmd.join(" ")));
+        }
+
+        // Draw top border
+        let mut y = overlay_y;
+        let top_border = format!("╔{}╗", "═".repeat(inner_width));
+        frame.render_widget(
+            Paragraph::new(Span::styled(&top_border, border_style)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
+        y += 1;
+
+        // Draw title row
+        let mut title_spans = vec![Span::styled("║", border_style)];
+        title_spans.push(Span::styled(
+            format!(" Process Info: {} (PID {}) ", detail.name, detail.pid),
+            title_style,
+        ));
+        let title_content: usize = title_spans.iter().map(|s| s.width()).sum();
+        let title_pad = (overlay_width as usize).saturating_sub(title_content + 1);
+        title_spans.push(Span::styled(" ".repeat(title_pad), value_style));
+        title_spans.push(Span::styled("║", border_style));
+        frame.render_widget(
+            Paragraph::new(Line::from(title_spans)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
+        y += 1;
+
+        // Draw separator
+        let sep = format!("╠{}╣", "═".repeat(inner_width));
+        frame.render_widget(
+            Paragraph::new(Span::styled(&sep, border_style)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
+        y += 1;
+
+        // Content area height
+        let content_area_height = overlay_height.saturating_sub(5) as usize; // borders + title + sep + footer sep
+
+        // Draw content with scrolling
+        for (i, (label, value)) in content_lines
+            .iter()
+            .skip(self.state.detail_scroll)
+            .take(content_area_height)
+            .enumerate()
+        {
+            let line_y = y + i as u16;
+            let mut spans = vec![Span::styled("║ ", border_style)];
+            spans.push(Span::styled(format!("{:<12}: ", label), label_style));
+
+            // Truncate value if too long
+            let max_val_len = inner_width.saturating_sub(16);
+            let val_display = if value.len() > max_val_len {
+                format!("{}...", &value[..max_val_len.saturating_sub(3)])
+            } else {
+                value.clone()
+            };
+            spans.push(Span::styled(&val_display, value_style));
+
+            let content_width: usize = spans.iter().map(|s| s.width()).sum();
+            let padding = (overlay_width as usize).saturating_sub(content_width + 1);
+            spans.push(Span::styled(" ".repeat(padding), value_style));
+            spans.push(Span::styled("║", border_style));
+
+            frame.render_widget(
+                Paragraph::new(Line::from(spans)),
+                Rect::new(overlay_x, line_y, overlay_width, 1),
+            );
+        }
+
+        // Fill remaining content lines
+        for i in content_lines.len().min(content_area_height)..content_area_height {
+            let line_y = y + i as u16;
+            let empty_line = format!("║{:width$}║", "", width = inner_width);
+            frame.render_widget(
+                Paragraph::new(Span::styled(&empty_line, value_style)),
+                Rect::new(overlay_x, line_y, overlay_width, 1),
+            );
+        }
+        y += content_area_height as u16;
+
+        // Draw footer separator
+        let sep = format!("╠{}╣", "═".repeat(inner_width));
+        frame.render_widget(
+            Paragraph::new(Span::styled(&sep, border_style)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
+        y += 1;
+
+        // Draw footer
+        let mut footer_spans = vec![Span::styled("║ ", border_style)];
+        footer_spans.push(Span::styled("↑↓", Style::default().fg(green).bg(bg)));
+        footer_spans.push(Span::styled(" scroll  ", value_style));
+        footer_spans.push(Span::styled("Esc", Style::default().fg(green).bg(bg)));
+        footer_spans.push(Span::styled(" close", value_style));
+
+        let footer_width: usize = footer_spans.iter().map(|s| s.width()).sum();
+        let footer_padding = (overlay_width as usize).saturating_sub(footer_width + 1);
+        footer_spans.push(Span::styled(" ".repeat(footer_padding), value_style));
+        footer_spans.push(Span::styled("║", border_style));
+
+        frame.render_widget(
+            Paragraph::new(Line::from(footer_spans)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
+        y += 1;
+
+        // Draw bottom border
+        let bottom_border = format!("╚{}╝", "═".repeat(inner_width));
+        frame.render_widget(
+            Paragraph::new(Span::styled(&bottom_border, border_style)),
+            Rect::new(overlay_x, y, overlay_width, 1),
+        );
     }
 
     /// Draw network view
