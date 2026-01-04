@@ -2,9 +2,10 @@
 //!
 //! Reusable modal frame with double-line borders and consistent styling.
 
+use crate::app::ThemeColors;
 use crate::ui::{COLOR_BG, COLOR_FG, COLOR_GREEN, COLOR_YELLOW};
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
@@ -43,6 +44,8 @@ pub struct ModalFrame {
     pub title_style: Style,
     /// Normal content style
     pub content_style: Style,
+    /// Help key color (for keyboard shortcuts in help row)
+    pub help_key_color: Color,
     /// Whether to show a separator after the title
     pub show_title_separator: bool,
     /// Whether to show a separator before the help row
@@ -52,7 +55,8 @@ pub struct ModalFrame {
 }
 
 impl ModalFrame {
-    /// Create a new modal frame with default styling.
+    /// Create a new modal frame with default styling (hardcoded colors).
+    /// Prefer `themed()` for theme-aware modals.
     pub fn new(area: Rect, title: &str) -> Self {
         Self {
             area,
@@ -63,6 +67,26 @@ impl ModalFrame {
                 .bg(COLOR_BG)
                 .add_modifier(Modifier::BOLD),
             content_style: Style::default().fg(COLOR_FG).bg(COLOR_BG),
+            help_key_color: COLOR_GREEN,
+            show_title_separator: true,
+            show_footer_separator: true,
+            inner_width: area.width.saturating_sub(2) as usize,
+        }
+    }
+
+    /// Create a new modal frame with theme colors.
+    /// This is the preferred constructor for theme-aware modals.
+    pub fn themed(area: Rect, title: &str, colors: &ThemeColors) -> Self {
+        Self {
+            area,
+            title: title.to_string(),
+            border_style: Style::default().fg(colors.fg()).bg(colors.bg()),
+            title_style: Style::default()
+                .fg(colors.yellow())
+                .bg(colors.bg())
+                .add_modifier(Modifier::BOLD),
+            content_style: Style::default().fg(colors.fg()).bg(colors.bg()),
+            help_key_color: colors.green(),
             show_title_separator: true,
             show_footer_separator: true,
             inner_width: area.width.saturating_sub(2) as usize,
@@ -235,7 +259,8 @@ impl ModalFrame {
     /// Takes pairs of (key, description).
     pub fn render_help(&self, frame: &mut Frame, hints: Vec<(&str, &str)>) {
         let y = self.area.y + self.area.height - 2;
-        let key_style = Style::default().fg(COLOR_GREEN).bg(COLOR_BG);
+        // Use help_key_color with the same background as content
+        let key_style = self.content_style.fg(self.help_key_color);
 
         let mut spans: Vec<Span> = Vec::new();
         for (i, (key, desc)) in hints.iter().enumerate() {

@@ -890,7 +890,8 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
 
 /// Draw copy modal using ModalFrame for consistent styling
 pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    let modal = ModalFrame::new(area, " COPY FILES ");
+    let colors = app.colors();
+    let modal = ModalFrame::themed(area, " COPY FILES ", &colors);
     modal.render_frame(frame);
 
     // Row 0: Copy count
@@ -899,7 +900,7 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         0,
         vec![Span::styled(
             format!("Copying {} tagged file(s)", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+            Style::default().fg(colors.yellow()).bg(colors.bg()),
         )],
     );
 
@@ -912,7 +913,7 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         2,
         vec![Span::styled(
             "Destination (Tab to complete):",
-            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+            Style::default().fg(colors.green()).bg(colors.bg()),
         )],
     );
 
@@ -922,7 +923,7 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         3,
         vec![Span::styled(
             format!("{}_", dest),
-            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+            Style::default().fg(colors.fg()).bg(colors.bg()),
         )],
     );
 
@@ -935,7 +936,8 @@ pub(super) fn draw_copy_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
 /// Draw move modal using ModalFrame for consistent styling
 pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &App) {
-    let modal = ModalFrame::new(area, " MOVE FILES ");
+    let colors = app.colors();
+    let modal = ModalFrame::themed(area, " MOVE FILES ", &colors);
     modal.render_frame(frame);
 
     // Row 0: Move count
@@ -944,7 +946,7 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         0,
         vec![Span::styled(
             format!("Moving {} tagged file(s)", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+            Style::default().fg(colors.yellow()).bg(colors.bg()),
         )],
     );
 
@@ -957,7 +959,7 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         2,
         vec![Span::styled(
             "Destination (Tab to complete):",
-            Style::default().fg(COLOR_GREEN).bg(COLOR_BG),
+            Style::default().fg(colors.green()).bg(colors.bg()),
         )],
     );
 
@@ -967,7 +969,7 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
         3,
         vec![Span::styled(
             format!("{}_", dest),
-            Style::default().fg(COLOR_FG).bg(COLOR_BG),
+            Style::default().fg(colors.fg()).bg(colors.bg()),
         )],
     );
 
@@ -980,10 +982,11 @@ pub(super) fn draw_move_modal(frame: &mut Frame, area: Rect, dest: &str, app: &A
 
 /// Draw erase confirmation modal using ModalFrame for consistent styling
 pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
-    let modal = ModalFrame::new(area, " ERASE FILES ").title_style(
+    let colors = app.colors();
+    let modal = ModalFrame::themed(area, " ERASE FILES ", &colors).title_style(
         Style::default()
-            .fg(COLOR_RED)
-            .bg(COLOR_BG)
+            .fg(colors.red())
+            .bg(colors.bg())
             .add_modifier(Modifier::BOLD),
     );
     modal.render_frame(frame);
@@ -994,7 +997,7 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
         0,
         vec![Span::styled(
             format!("Delete {} tagged file(s)?", app.tagged_files.len()),
-            Style::default().fg(COLOR_YELLOW).bg(COLOR_BG),
+            Style::default().fg(colors.yellow()).bg(colors.bg()),
         )],
     );
 
@@ -1007,7 +1010,7 @@ pub(super) fn draw_erase_modal(frame: &mut Frame, area: Rect, app: &App) {
         2,
         vec![Span::styled(
             "This cannot be undone!",
-            Style::default().fg(COLOR_RED).bg(COLOR_BG),
+            Style::default().fg(colors.red()).bg(colors.bg()),
         )],
     );
 
