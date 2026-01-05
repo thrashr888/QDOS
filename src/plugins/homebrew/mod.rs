@@ -1,6 +1,7 @@
-//! Homebrew plugin (F7)
+//! Homebrew plugin
 //!
 //! Browse and install Homebrew packages on macOS.
+//! Accessible via F12 Apps launcher.
 
 mod modal;
 pub mod state;
@@ -204,6 +205,15 @@ impl HomebrewPlugin {
     pub fn take_install_package(&mut self) -> Option<String> {
         self.install_package.take()
     }
+
+    /// Open the Homebrew modal (called from Apps launcher)
+    pub fn open_modal(&mut self) {
+        self.refresh_packages();
+        self.state.selected_index = 0;
+        self.state.view = HomebrewView::List;
+        self.state.clear_search();
+        self.install_package = None;
+    }
 }
 
 impl Plugin for HomebrewPlugin {
@@ -242,31 +252,16 @@ impl Plugin for HomebrewPlugin {
     }
 
     fn menu_item(&self) -> Option<PluginMenuItem> {
-        Some(PluginMenuItem {
-            name: "Homebrew".to_string(),
-            key: '7', // F7 key mapping
-            description: "Browse Homebrew packages".to_string(),
-            priority: 70,
-        })
+        None // Accessed via F12 Apps launcher, not plugin menu
     }
 
     fn status_info(&self, _cwd: &PathBuf) -> Option<PluginStatusInfo> {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        match key.code {
-            KeyCode::F(7) => {
-                // Refresh and open modal
-                self.refresh_packages();
-                self.state.selected_index = 0;
-                self.state.view = HomebrewView::List;
-                self.state.clear_search();
-                self.install_package = None;
-                KeyHandleResult::OpenModal
-            }
-            _ => KeyHandleResult::NotHandled,
-        }
+    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        // No global key - accessed via F12 Apps launcher
+        KeyHandleResult::NotHandled
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {

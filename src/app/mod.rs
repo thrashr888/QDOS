@@ -2984,6 +2984,14 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("space"));
                 self.modal = Modal::Plugin("space".to_string());
             }
+            "homebrew" => {
+                // Open Homebrew plugin
+                if let Some(homebrew_plugin) = self.plugin_manager.homebrew_plugin_mut() {
+                    homebrew_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("homebrew"));
+                self.modal = Modal::Plugin("homebrew".to_string());
+            }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
             }
