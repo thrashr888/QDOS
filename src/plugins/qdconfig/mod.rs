@@ -178,19 +178,21 @@ impl Plugin for QdconfigPlugin {
             match key.code {
                 KeyCode::Enter => {
                     // Apply the edited value
-                    let current_field = state.current_field();
-                    match current_field {
-                        QdconfigField::SearchSpec => {
-                            state.search_spec = state.input_buffer.clone();
-                        }
-                        QdconfigField::Editor => {
-                            if state.input_buffer.is_empty() || state.input_buffer == "$EDITOR" {
-                                state.editor = None;
-                            } else {
-                                state.editor = Some(state.input_buffer.clone());
+                    if let Some(current_field) = state.current_field() {
+                        match current_field {
+                            QdconfigField::SearchSpec => {
+                                state.search_spec = state.input_buffer.clone();
                             }
+                            QdconfigField::Editor => {
+                                if state.input_buffer.is_empty() || state.input_buffer == "$EDITOR"
+                                {
+                                    state.editor = None;
+                                } else {
+                                    state.editor = Some(state.input_buffer.clone());
+                                }
+                            }
+                            _ => {}
                         }
-                        _ => {}
                     }
                     state.editing = false;
                     state.input_buffer.clear();
@@ -235,52 +237,54 @@ impl Plugin for QdconfigPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Enter | KeyCode::Char(' ') => {
-                    // Toggle or edit based on field type
-                    let current_field = state.current_field();
-                    match current_field {
-                        QdconfigField::SearchSpec | QdconfigField::Editor => {
-                            // Enter editing mode
-                            state.editing = true;
-                            match current_field {
-                                QdconfigField::SearchSpec => {
-                                    state.input_buffer = state.search_spec.clone();
+                    // Toggle or edit based on field type (plugins are info-only)
+                    if let Some(current_field) = state.current_field() {
+                        match current_field {
+                            QdconfigField::SearchSpec | QdconfigField::Editor => {
+                                // Enter editing mode
+                                state.editing = true;
+                                match current_field {
+                                    QdconfigField::SearchSpec => {
+                                        state.input_buffer = state.search_spec.clone();
+                                    }
+                                    QdconfigField::Editor => {
+                                        state.input_buffer = state
+                                            .editor
+                                            .clone()
+                                            .unwrap_or_else(|| "$EDITOR".to_string());
+                                    }
+                                    _ => {}
                                 }
-                                QdconfigField::Editor => {
-                                    state.input_buffer = state
-                                        .editor
-                                        .clone()
-                                        .unwrap_or_else(|| "$EDITOR".to_string());
-                                }
-                                _ => {}
+                            }
+                            QdconfigField::SortMethod => {
+                                state.cycle_sort_method();
+                            }
+                            QdconfigField::SortDirection => {
+                                state.toggle_sort_direction();
+                            }
+                            QdconfigField::ShowHidden => {
+                                state.show_hidden = !state.show_hidden;
+                            }
+                            QdconfigField::ConfirmDelete => {
+                                state.confirm_delete = !state.confirm_delete;
+                            }
+                            QdconfigField::ColorTheme => {
+                                state.cycle_theme();
+                                // Live preview handled by returning Handled
+                                // App checks preview_theme() in handle_plugin_result
+                            }
+                            QdconfigField::MouseSupport => {
+                                state.mouse_support = !state.mouse_support;
+                            }
+                            QdconfigField::UppercaseNames => {
+                                state.uppercase_names = !state.uppercase_names;
+                            }
+                            QdconfigField::AutoRefresh => {
+                                state.cycle_auto_refresh();
                             }
                         }
-                        QdconfigField::SortMethod => {
-                            state.cycle_sort_method();
-                        }
-                        QdconfigField::SortDirection => {
-                            state.toggle_sort_direction();
-                        }
-                        QdconfigField::ShowHidden => {
-                            state.show_hidden = !state.show_hidden;
-                        }
-                        QdconfigField::ConfirmDelete => {
-                            state.confirm_delete = !state.confirm_delete;
-                        }
-                        QdconfigField::ColorTheme => {
-                            state.cycle_theme();
-                            // Live preview handled by returning Handled
-                            // App checks preview_theme() in handle_plugin_result
-                        }
-                        QdconfigField::MouseSupport => {
-                            state.mouse_support = !state.mouse_support;
-                        }
-                        QdconfigField::UppercaseNames => {
-                            state.uppercase_names = !state.uppercase_names;
-                        }
-                        QdconfigField::AutoRefresh => {
-                            state.cycle_auto_refresh();
-                        }
                     }
+                    // Plugins are info-only, pressing Enter does nothing
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('s') | KeyCode::Char('S') => {

@@ -148,8 +148,13 @@ impl QdconfigState {
         };
     }
 
-    pub fn current_field(&self) -> QdconfigField {
-        QdconfigField::ALL[self.selected]
+    /// Get the currently selected config field, or None if a plugin is selected
+    pub fn current_field(&self) -> Option<QdconfigField> {
+        if self.selected < QdconfigField::ALL.len() {
+            Some(QdconfigField::ALL[self.selected])
+        } else {
+            None // A plugin is selected, not a config field
+        }
     }
 
     pub fn sort_method_name(&self) -> &'static str {
