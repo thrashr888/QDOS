@@ -57,6 +57,12 @@ notify = "8.0"
 # Terminal light/dark mode detection
 terminal-light = "1.8"
 
+# PTY for interactive shell
+portable-pty = "0.8"
+
+# Terminal widget for PTY rendering
+tui-term = "0.2"
+
 [profile.release]
 lto = true
 codegen-units = 1

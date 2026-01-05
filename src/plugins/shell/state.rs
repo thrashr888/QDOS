@@ -2,6 +2,8 @@
 //!
 //! State types for shell/DOS command execution.
 
+use super::pty::PtySession;
+#[allow(unused_imports)]
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -74,12 +76,64 @@ impl BackgroundTask {
     }
 }
 
+/// Menu items for shell plugin
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ShellMenuItem {
+    /// Single command execution
+    #[default]
+    Command,
+    /// Interactive shell (PTY)
+    Interactive,
+    /// Background jobs list
+    Jobs,
+}
+
+impl ShellMenuItem {
+    /// All menu items in order
+    pub const ALL: [ShellMenuItem; 3] = [
+        ShellMenuItem::Command,
+        ShellMenuItem::Interactive,
+        ShellMenuItem::Jobs,
+    ];
+
+    /// Get display name
+    pub fn name(&self) -> &'static str {
+        match self {
+            ShellMenuItem::Command => "Command",
+            ShellMenuItem::Interactive => "Interactive Shell",
+            ShellMenuItem::Jobs => "Background Jobs",
+        }
+    }
+
+    /// Get keyboard shortcut
+    pub fn key(&self) -> char {
+        match self {
+            ShellMenuItem::Command => 'C',
+            ShellMenuItem::Interactive => 'I',
+            ShellMenuItem::Jobs => 'J',
+        }
+    }
+
+    /// Get description
+    pub fn description(&self) -> &'static str {
+        match self {
+            ShellMenuItem::Command => "Execute a single shell command",
+            ShellMenuItem::Interactive => "Launch interactive shell (bash/zsh)",
+            ShellMenuItem::Jobs => "View and manage background tasks",
+        }
+    }
+}
+
 /// View mode for the shell modal
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ShellView {
-    /// Command input mode (default)
+    /// Menu selection (default entry point)
     #[default]
+    Menu,
+    /// Command input mode
     Command,
+    /// Interactive shell (PTY)
+    Interactive,
     /// Task list view
     TaskList,
     /// Attached to a specific task (watching output)
@@ -97,8 +151,20 @@ pub struct ShellState {
     pub history_index: Option<usize>,
     /// Current view mode
     pub view: ShellView,
+    /// Selected menu item (for Menu view)
+    pub menu_selected: usize,
     /// Selected task in task list
     pub selected_task: usize,
     /// Last output length for attached view (for auto-scroll)
     pub last_output_len: usize,
+    /// Last terminal size for interactive view
+    pub last_size: (u16, u16),
+}
+
+/// Interactive shell state (separate because PtySession is not Clone)
+pub struct InteractiveState {
+    /// The PTY session
+    pub session: PtySession,
+    /// Terminal size
+    pub size: (u16, u16),
 }

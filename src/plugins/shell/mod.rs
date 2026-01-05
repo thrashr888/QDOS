@@ -6,8 +6,10 @@
 //! - Built-in commands: jobs, fg, kill
 //! - Task list view with live output
 //! - Command history
+//! - Interactive shell mode (PTY)
 
 mod modal;
+pub mod pty;
 mod state;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
@@ -24,7 +26,9 @@ use std::thread;
 use std::time::Instant;
 
 // Re-export state types for external use
-pub use state::{BackgroundTask, ShellState, ShellView, TaskStatus};
+pub use state::{
+    BackgroundTask, InteractiveState, ShellMenuItem, ShellState, ShellView, TaskStatus,
+};
 
 /// Shell plugin that provides DOS command functionality
 pub struct ShellPlugin {
@@ -34,6 +38,8 @@ pub struct ShellPlugin {
     /// Background tasks
     tasks: HashMap<u64, BackgroundTask>,
     next_task_id: u64,
+    /// Interactive PTY session (if active)
+    interactive: Option<InteractiveState>,
 }
 
 impl ShellPlugin {
@@ -44,6 +50,7 @@ impl ShellPlugin {
             current_cwd: PathBuf::new(),
             tasks: HashMap::new(),
             next_task_id: 1,
+            interactive: None,
         }
     }
 
@@ -420,6 +427,9 @@ impl Plugin for ShellPlugin {
             KeyCode::F(6) => {
                 self.current_cwd = cwd.clone();
                 self.modal_open = true;
+                // Always start at Menu view when opening
+                self.state.view = ShellView::Menu;
+                self.state.menu_selected = 0;
                 KeyHandleResult::OpenModal
             }
             _ => KeyHandleResult::NotHandled,
@@ -431,7 +441,9 @@ impl Plugin for ShellPlugin {
 
         // Handle keys based on current view
         match self.state.view {
+            ShellView::Menu => self.handle_menu_key(key),
             ShellView::Command => self.handle_command_key(key),
+            ShellView::Interactive => self.handle_interactive_key(key),
             ShellView::TaskList => self.handle_task_list_key(key),
             ShellView::Attached(id) => self.handle_attached_key(key, id),
         }
@@ -439,10 +451,20 @@ impl Plugin for ShellPlugin {
 
     fn tick(&mut self) {
         self.poll_tasks();
+        // Poll interactive PTY if active
+        if let Some(ref mut interactive) = self.interactive {
+            let _ = interactive.session.try_read();
+            // Check if shell exited
+            if !interactive.session.is_running() {
+                self.interactive = None;
+                self.state.view = ShellView::Menu;
+            }
+        }
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         match self.state.view {
+            ShellView::Menu => modal::draw_menu_view(frame, area, &self.state, colors),
             ShellView::Command => modal::draw_command_view(
                 frame,
                 area,
@@ -451,6 +473,9 @@ impl Plugin for ShellPlugin {
                 &self.tasks,
                 colors,
             ),
+            ShellView::Interactive => {
+                modal::draw_interactive_view(frame, area, &self.interactive, colors)
+            }
             ShellView::TaskList => {
                 modal::draw_task_list_view(frame, area, &self.state, &self.tasks, colors)
             }
@@ -475,14 +500,24 @@ impl Plugin for ShellPlugin {
     fn help_content(&self) -> Vec<String> {
         vec![
             "F6 - DOS Command".to_string(),
-            "  Execute shell commands".to_string(),
-            "  cmd &     - Run command in background".to_string(),
-            "  jobs      - Open task list view".to_string(),
-            "  fg <id>   - Attach to task output".to_string(),
-            "  kill <id> - Terminate a task".to_string(),
-            "  clear     - Clear finished tasks".to_string(),
-            "  Tab       - Path completion".to_string(),
-            "  Up/Down   - Command history".to_string(),
+            "".to_string(),
+            "  Menu Options:".to_string(),
+            "    C - Command mode (single commands)".to_string(),
+            "    I - Interactive shell (bash/zsh)".to_string(),
+            "    J - Background jobs list".to_string(),
+            "".to_string(),
+            "  Command Mode:".to_string(),
+            "    cmd &     - Run command in background".to_string(),
+            "    jobs      - Open task list view".to_string(),
+            "    fg <id>   - Attach to task output".to_string(),
+            "    kill <id> - Terminate a task".to_string(),
+            "    clear     - Clear finished tasks".to_string(),
+            "    Tab       - Path completion".to_string(),
+            "    Up/Down   - Command history".to_string(),
+            "".to_string(),
+            "  Interactive Mode:".to_string(),
+            "    Ctrl+D    - Exit interactive shell".to_string(),
+            "    Full PTY  - Run vim, htop, etc.".to_string(),
         ]
     }
 
@@ -497,11 +532,97 @@ impl Plugin for ShellPlugin {
 
 // Helper methods for key handling and drawing
 impl ShellPlugin {
-    fn handle_command_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+    fn handle_menu_key(&mut self, key: KeyEvent) -> KeyHandleResult {
         match key.code {
             KeyCode::Esc => {
                 self.modal_open = false;
                 KeyHandleResult::CloseModal
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.state.menu_selected > 0 {
+                    self.state.menu_selected -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if self.state.menu_selected < ShellMenuItem::ALL.len() - 1 {
+                    self.state.menu_selected += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                let item = ShellMenuItem::ALL[self.state.menu_selected];
+                self.launch_menu_item(item)
+            }
+            KeyCode::Char(c) => {
+                // Check for menu item shortcut
+                let c_upper = c.to_ascii_uppercase();
+                for item in ShellMenuItem::ALL {
+                    if item.key() == c_upper {
+                        return self.launch_menu_item(item);
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn launch_menu_item(&mut self, item: ShellMenuItem) -> KeyHandleResult {
+        match item {
+            ShellMenuItem::Command => {
+                self.state.view = ShellView::Command;
+                KeyHandleResult::Handled
+            }
+            ShellMenuItem::Interactive => {
+                // Launch interactive shell
+                match pty::PtySession::spawn(None, &self.current_cwd, 80, 24) {
+                    Ok(session) => {
+                        self.interactive = Some(InteractiveState {
+                            session,
+                            size: (80, 24),
+                        });
+                        self.state.view = ShellView::Interactive;
+                    }
+                    Err(e) => {
+                        self.state.output = vec![format!("Failed to start shell: {}", e)];
+                        self.state.view = ShellView::Command;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            ShellMenuItem::Jobs => {
+                self.state.view = ShellView::TaskList;
+                self.state.selected_task = 0;
+                KeyHandleResult::Handled
+            }
+        }
+    }
+
+    fn handle_interactive_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        use crossterm::event::KeyModifiers;
+
+        // Ctrl+D exits interactive mode
+        if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.interactive = None;
+            self.state.view = ShellView::Menu;
+            return KeyHandleResult::Handled;
+        }
+
+        // Forward all other keys to PTY
+        if let Some(ref mut interactive) = self.interactive {
+            if let Some(bytes) = pty::key_to_bytes(key) {
+                let _ = interactive.session.write(&bytes);
+            }
+        }
+        KeyHandleResult::Handled
+    }
+
+    fn handle_command_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.view = ShellView::Menu;
+                KeyHandleResult::Handled
             }
             KeyCode::Enter => {
                 self.execute_command();
@@ -563,7 +684,7 @@ impl ShellPlugin {
         let task_count = self.tasks.len();
         match key.code {
             KeyCode::Esc => {
-                self.state.view = ShellView::Command;
+                self.state.view = ShellView::Menu;
                 KeyHandleResult::Handled
             }
             KeyCode::Up | KeyCode::Char('k') => {
@@ -630,7 +751,7 @@ impl ShellPlugin {
     fn handle_attached_key(&mut self, key: KeyEvent, task_id: u64) -> KeyHandleResult {
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => {
-                self.state.view = ShellView::Command;
+                self.state.view = ShellView::Menu;
                 KeyHandleResult::Handled
             }
             KeyCode::Up | KeyCode::Char('k') => {

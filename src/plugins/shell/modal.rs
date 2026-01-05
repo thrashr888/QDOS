@@ -2,7 +2,7 @@
 //!
 //! Rendering functions for shell/DOS command views.
 
-use super::state::{BackgroundTask, ShellState, TaskStatus};
+use super::state::{BackgroundTask, InteractiveState, ShellMenuItem, ShellState, TaskStatus};
 use crate::app::ThemeColors;
 use crate::ui::components::ModalFrame;
 use ratatui::layout::Rect;
@@ -12,6 +12,112 @@ use ratatui::widgets::Clear;
 use ratatui::Frame;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use tui_term::widget::PseudoTerminal;
+
+/// Draw the menu view
+pub fn draw_menu_view(frame: &mut Frame, area: Rect, state: &ShellState, colors: &ThemeColors) {
+    frame.render_widget(Clear, area);
+
+    let modal = ModalFrame::themed(area, " DOS Command ", colors);
+    modal.render_frame(frame);
+
+    let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
+
+    modal.render_row(
+        frame,
+        0,
+        vec![Span::styled("Select an option:", label_style)],
+    );
+    modal.render_row(frame, 1, vec![]);
+
+    for (i, item) in ShellMenuItem::ALL.iter().enumerate() {
+        let is_selected = i == state.menu_selected;
+        let bg = if is_selected {
+            colors.red()
+        } else {
+            colors.bg()
+        };
+        let fg = if is_selected {
+            colors.yellow()
+        } else {
+            colors.fg()
+        };
+
+        let marker = if is_selected { "> " } else { "  " };
+
+        modal.render_row(
+            frame,
+            (i + 2) as u16,
+            vec![
+                Span::styled(marker, Style::default().fg(fg).bg(bg)),
+                Span::styled(
+                    format!("{} ", item.key()),
+                    Style::default().fg(colors.cyan()).bg(bg),
+                ),
+                Span::styled(
+                    format!("{:<20}", item.name()),
+                    Style::default().fg(fg).bg(bg).add_modifier(if is_selected {
+                        Modifier::BOLD
+                    } else {
+                        Modifier::empty()
+                    }),
+                ),
+                Span::styled(
+                    item.description(),
+                    Style::default().fg(colors.grey()).bg(bg),
+                ),
+            ],
+        );
+    }
+
+    modal.render_help(
+        frame,
+        vec![
+            ("↑↓", "select"),
+            ("Enter", "open"),
+            ("C/I/J", "shortcut"),
+            ("Esc", "close"),
+        ],
+    );
+}
+
+/// Draw the interactive shell view
+pub fn draw_interactive_view(
+    frame: &mut Frame,
+    area: Rect,
+    interactive: &Option<InteractiveState>,
+    colors: &ThemeColors,
+) {
+    frame.render_widget(Clear, area);
+
+    let modal = ModalFrame::themed(area, " Interactive Shell ", colors);
+    modal.render_frame(frame);
+
+    if let Some(ref state) = interactive {
+        // Get the terminal content area
+        let content_area = modal.content_area();
+
+        // Get the screen from the parser
+        let parser = state.session.screen();
+        let parser_guard = parser.lock().unwrap();
+        let screen = parser_guard.screen();
+
+        // Render the pseudo terminal widget
+        let pseudo_term = PseudoTerminal::new(screen);
+        frame.render_widget(pseudo_term, content_area);
+    } else {
+        modal.render_row(
+            frame,
+            1,
+            vec![Span::styled(
+                "Shell not running",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+    }
+
+    modal.render_help(frame, vec![("Ctrl+D", "exit shell")]);
+}
 
 /// Draw the command input view
 pub fn draw_command_view(
