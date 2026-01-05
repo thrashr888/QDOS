@@ -1117,11 +1117,32 @@ impl Plugin for GitPlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "G - Open Git menu".to_string(),
-            "  Status - View file changes".to_string(),
-            "  Log - View commit history".to_string(),
-            "  Branches - Manage branches".to_string(),
-            "  Stash - Manage stashed changes".to_string(),
+            "        G -- GIT VERSION CONTROL".to_string(),
+            "".to_string(),
+            "Purpose:   Git integration for version control operations.".to_string(),
+            "           View changes, commit, push/pull, and manage branches.".to_string(),
+            "".to_string(),
+            "To use:    Press G to open the Git menu. Only available in".to_string(),
+            "           directories with a .git folder (git repositories).".to_string(),
+            "".to_string(),
+            "Status bar shows: branch name, ↑ahead/↓behind counts,".to_string(),
+            "                  +staged and !modified file counts.".to_string(),
+            "".to_string(),
+            "Navigation:".to_string(),
+            "  Tab       Switch between views".to_string(),
+            "  Enter     Select item or confirm".to_string(),
+            "  Esc       Go back or close".to_string(),
+            "  ↑/↓       Navigate lists".to_string(),
+            "  Space     Stage/unstage files (in Status)".to_string(),
+            "".to_string(),
+            "Common workflow:".to_string(),
+            "  1. Check Status to see changes".to_string(),
+            "  2. Stage files with Space".to_string(),
+            "  3. Select Commit, enter message".to_string(),
+            "  4. Push to share with remote".to_string(),
+            "".to_string(),
+            "Views: Status, Log, Diff, Commit, Push, Pull, Fetch,".to_string(),
+            "       Branches, Stash, Remotes, Submodules".to_string(),
         ]
     }
 

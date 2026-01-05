@@ -1430,11 +1430,33 @@ impl Plugin for BeadsPlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "B - Open Beads menu".to_string(),
-            "  Issues - View and manage issues".to_string(),
-            "  Create - Create new issue".to_string(),
-            "  Ready - Show issues ready to work".to_string(),
-            "  Stats - View project statistics".to_string(),
+            "        B -- BEADS ISSUE TRACKER".to_string(),
+            "".to_string(),
+            "Purpose:   Git-native issue tracking stored in .beads/ folder.".to_string(),
+            "           Issues sync with your repository automatically.".to_string(),
+            "".to_string(),
+            "To use:    Press B to open Beads menu. Only available in".to_string(),
+            "           directories with a .beads folder (beads projects).".to_string(),
+            "".to_string(),
+            "Status bar shows: open issue count when in a beads project.".to_string(),
+            "".to_string(),
+            "Navigation:".to_string(),
+            "  Tab       Switch between views".to_string(),
+            "  Enter     View issue details or confirm".to_string(),
+            "  Esc       Go back or close".to_string(),
+            "  ↑/↓       Navigate issue list".to_string(),
+            "  C         Create new issue".to_string(),
+            "".to_string(),
+            "Issue workflow:".to_string(),
+            "  1. Use Ready to find available work".to_string(),
+            "  2. Update status to in_progress".to_string(),
+            "  3. Complete work, close issue".to_string(),
+            "  4. Sync to push changes".to_string(),
+            "".to_string(),
+            "Views: List, Ready, Blocked, Create, Show, Kanban, Stats".to_string(),
+            "".to_string(),
+            "Tip: Issues support dependencies - use Blocked view to see".to_string(),
+            "     which issues are waiting on others.".to_string(),
         ]
     }
 
