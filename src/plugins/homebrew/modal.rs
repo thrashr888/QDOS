@@ -413,10 +413,18 @@ fn draw_info_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: 
     if info.installed {
         modal.render_help(
             frame,
-            vec![("g", "upgrade"), ("x", "uninstall"), ("Esc", "back")],
+            vec![
+                ("h", "homepage"),
+                ("g", "upgrade"),
+                ("x", "uninstall"),
+                ("Esc", "back"),
+            ],
         );
     } else {
-        modal.render_help(frame, vec![("Enter", "install"), ("Esc", "back")]);
+        modal.render_help(
+            frame,
+            vec![("Enter", "install"), ("h", "homepage"), ("Esc", "back")],
+        );
     }
 }
 

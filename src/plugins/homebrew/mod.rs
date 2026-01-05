@@ -732,6 +732,17 @@ impl HomebrewPlugin {
                 }
                 KeyHandleResult::Handled
             }
+            // Open homepage
+            KeyCode::Char('h') => {
+                if let Some(ref info) = self.state.package_info {
+                    // Use brew home to open the homepage URL
+                    let _ = std::process::Command::new("brew")
+                        .arg("home")
+                        .arg(&info.name)
+                        .spawn();
+                }
+                KeyHandleResult::Handled
+            }
             _ => KeyHandleResult::Handled,
         }
     }
