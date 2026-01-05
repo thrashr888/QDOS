@@ -590,9 +590,7 @@ impl Homebrew {
 
     /// Open package homepage in browser
     pub fn home(&self, name: &str) -> Result<()> {
-        Command::new(self.brew_cmd())
-            .args(["home", name])
-            .spawn()?;
+        Command::new(self.brew_cmd()).args(["home", name]).spawn()?;
         Ok(())
     }
 
@@ -703,7 +701,10 @@ impl Homebrew {
     fn parse_formula(&self, pkg: &serde_json::Value) -> Option<Package> {
         let name = pkg.get("name")?.as_str()?.to_string();
 
-        let full_name = pkg.get("full_name").and_then(|n| n.as_str()).map(String::from);
+        let full_name = pkg
+            .get("full_name")
+            .and_then(|n| n.as_str())
+            .map(String::from);
 
         let version = pkg
             .get("versions")
@@ -787,7 +788,10 @@ impl Homebrew {
             .and_then(|n| n.as_str())?
             .to_string();
 
-        let full_name = pkg.get("full_token").and_then(|n| n.as_str()).map(String::from);
+        let full_name = pkg
+            .get("full_token")
+            .and_then(|n| n.as_str())
+            .map(String::from);
 
         let version = pkg
             .get("version")
@@ -807,10 +811,7 @@ impl Homebrew {
             .unwrap_or("")
             .to_string();
 
-        let installed = pkg
-            .get("installed")
-            .and_then(|i| i.as_str())
-            .is_some();
+        let installed = pkg.get("installed").and_then(|i| i.as_str()).is_some();
 
         let installed_version = pkg
             .get("installed")

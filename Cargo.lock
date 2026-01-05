@@ -170,6 +170,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "beads-cli"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,6 +828,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
+name = "homebrew"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "humansize"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -997,6 +1016,15 @@ name = "itoa"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+
+[[package]]
+name = "jj-cli"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
 
 [[package]]
 name = "jobserver"
@@ -1863,6 +1891,7 @@ dependencies = [
  "chrono",
  "crossterm 0.28.1",
  "dirs",
+ "homebrew",
  "humansize",
  "image",
  "jumprs",
@@ -1999,6 +2028,13 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "search-tools"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.17",
+]
 
 [[package]]
 name = "semver"
