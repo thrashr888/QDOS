@@ -110,7 +110,10 @@ pub fn draw_cpu_view(
             vec![
                 Span::styled(format!(" {:<30}  ", name), style),
                 Span::styled(format!("{:>8.1}  ", proc.cpu_usage), cpu_style),
-                Span::styled(format!("{:>10}  ", format_cpu_time(proc.cpu_time_ms)), style),
+                Span::styled(
+                    format!("{:>10}  ", format_cpu_time(proc.cpu_time_ms)),
+                    style,
+                ),
                 Span::styled(format!("{:>7}  ", proc.pid), style),
                 Span::styled(format!("{:<12}", user), style),
             ],
@@ -388,7 +391,12 @@ pub fn draw_network_view(
 }
 
 /// Draw process detail overlay
-pub fn draw_detail_overlay(frame: &mut Frame, parent_area: Rect, state: &ProcState, colors: &ThemeColors) {
+pub fn draw_detail_overlay(
+    frame: &mut Frame,
+    parent_area: Rect,
+    state: &ProcState,
+    colors: &ThemeColors,
+) {
     let Some(ref detail) = state.detail_info else {
         return;
     };

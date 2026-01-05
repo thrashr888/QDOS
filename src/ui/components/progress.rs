@@ -216,10 +216,7 @@ impl ProgressBar {
         let line = Line::from(vec![
             Span::styled(&self.message, Style::default().fg(colors.fg())),
             Span::styled(" ", Style::default()),
-            Span::styled(
-                spinner.to_string(),
-                Style::default().fg(colors.yellow()),
-            ),
+            Span::styled(spinner.to_string(), Style::default().fg(colors.yellow())),
         ]);
 
         frame.render_widget(Paragraph::new(line), area);

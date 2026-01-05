@@ -3,12 +3,7 @@
 //! Provides a reusable modal for displaying messages (error, success, info).
 
 use crate::app::ThemeColors;
-use ratatui::{
-    layout::Rect,
-    style::Style,
-    text::Span,
-    Frame,
-};
+use ratatui::{layout::Rect, style::Style, text::Span, Frame};
 
 use super::ModalFrame;
 
@@ -160,7 +155,10 @@ impl MessageModal {
         modal.render_row(
             frame,
             3,
-            vec![Span::styled(&self.hint, Style::default().fg(colors.green()))],
+            vec![Span::styled(
+                &self.hint,
+                Style::default().fg(colors.green()),
+            )],
         );
     }
 }

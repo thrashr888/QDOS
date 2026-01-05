@@ -86,7 +86,10 @@ pub fn draw_command_view(
         None => String::new(),
     };
 
-    let running_count = tasks.values().filter(|t| t.status == TaskStatus::Running).count();
+    let running_count = tasks
+        .values()
+        .filter(|t| t.status == TaskStatus::Running)
+        .count();
     let tasks_str = if running_count > 0 {
         format!(" | {} bg", running_count)
     } else {
@@ -123,7 +126,10 @@ pub fn draw_task_list_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let running = tasks.values().filter(|t| t.status == TaskStatus::Running).count();
+    let running = tasks
+        .values()
+        .filter(|t| t.status == TaskStatus::Running)
+        .count();
     let total = tasks.len();
     let title = format!(" Task List ({} running / {} total) ", running, total);
     let modal = ModalFrame::themed(area, &title, colors);

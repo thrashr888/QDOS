@@ -16,7 +16,7 @@ use sysinfo::{Disks, Networks, Pid, ProcessStatus, System};
 
 // Re-export state types for external use
 pub use state::{
-    DiskInfo, NetworkInfo, ProcessDetailInfo, ProcessInfo, ProcSort, ProcState, ProcView,
+    DiskInfo, NetworkInfo, ProcSort, ProcState, ProcView, ProcessDetailInfo, ProcessInfo,
 };
 
 /// Proc plugin for system/process monitoring

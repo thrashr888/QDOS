@@ -443,9 +443,14 @@ impl Plugin for ShellPlugin {
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
         match self.state.view {
-            ShellView::Command => {
-                modal::draw_command_view(frame, area, &self.state, &self.current_cwd, &self.tasks, colors)
-            }
+            ShellView::Command => modal::draw_command_view(
+                frame,
+                area,
+                &self.state,
+                &self.current_cwd,
+                &self.tasks,
+                colors,
+            ),
             ShellView::TaskList => {
                 modal::draw_task_list_view(frame, area, &self.state, &self.tasks, colors)
             }

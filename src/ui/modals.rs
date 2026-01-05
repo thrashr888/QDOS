@@ -8,12 +8,7 @@
 //\! - Error, Success, Progress modals
 
 use crate::app::{App, Modal, ProgressState};
-use ratatui::{
-    layout::Rect,
-    style::Style,
-    text::Span,
-    Frame,
-};
+use ratatui::{layout::Rect, style::Style, text::Span, Frame};
 
 /// Create a centered rectangle with fixed width and height
 /// All modals should use this instead of percentage-based sizing
@@ -293,7 +288,10 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     modal.render_row(
         frame,
         3,
-        vec![Span::styled(&progress_bar, Style::default().fg(colors.blue()))],
+        vec![Span::styled(
+            &progress_bar,
+            Style::default().fg(colors.blue()),
+        )],
     );
     modal.render_row(
         frame,
@@ -307,7 +305,10 @@ pub(super) fn draw_progress_modal(frame: &mut Frame, area: Rect, state: &Progres
     modal.render_row(
         frame,
         6,
-        vec![Span::styled(&current_file, Style::default().fg(colors.yellow()))],
+        vec![Span::styled(
+            &current_file,
+            Style::default().fg(colors.yellow()),
+        )],
     );
 
     let mut row = 7;

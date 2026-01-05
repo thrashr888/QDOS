@@ -69,24 +69,24 @@ mod confirm;
 mod input;
 #[allow(dead_code)]
 mod list;
-mod modal;
-#[allow(dead_code)]
-mod screen;
 #[allow(dead_code)]
 mod message;
+mod modal;
 #[allow(dead_code)]
 mod progress;
+#[allow(dead_code)]
+mod screen;
 #[allow(dead_code)]
 mod table;
 
 #[allow(unused_imports)]
 pub use confirm::{ConfirmDialog, ConfirmResult};
 #[allow(unused_imports)]
-pub use message::{MessageModal, MessageType};
-#[allow(unused_imports)]
 pub use input::InputField;
 #[allow(unused_imports)]
 pub use list::{truncate_with_ellipsis, ListState, ScrollableList};
+#[allow(unused_imports)]
+pub use message::{MessageModal, MessageType};
 pub use modal::ModalFrame;
 #[allow(unused_imports)]
 pub use progress::{ProgressBar, ProgressStyle};
