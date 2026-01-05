@@ -2814,15 +2814,12 @@ impl App {
     fn launch_plugin_modal(&mut self, plugin_id: &str) {
         match plugin_id {
             "ai" => {
-                // Initialize and open AI plugin - refresh status on open
+                // Initialize and open AI plugin - use lazy loading to avoid hang
                 if let Some(ai_plugin) = self.plugin_manager.ai_plugin_mut() {
                     ai_plugin.state.view = crate::plugins::ai::state::AIView::Overview;
                     ai_plugin.state.menu_index = 0;
-                    // Refresh status from config files
-                    let (claude, codex, gemini) = crate::plugins::ai::ops::refresh_all_status();
-                    ai_plugin.state.claude = claude;
-                    ai_plugin.state.codex = codex;
-                    ai_plugin.state.gemini = gemini;
+                    // Start loading - data will be fetched on first tick
+                    ai_plugin.start_loading();
                 }
                 self.plugin_manager.set_active_modal(Some("ai"));
                 self.modal = Modal::Plugin("ai".to_string());

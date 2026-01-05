@@ -47,7 +47,8 @@
       "WebFetch(domain:docs.rs)",
       "WebFetch(domain:crates.io)",
       "Skill(beads:epic)",
-      "Bash(bd epic:*)"
+      "Bash(bd epic:*)",
+      "Bash(gh auth:*)"
     ]
   }
 }

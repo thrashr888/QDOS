@@ -18,12 +18,14 @@ use std::path::PathBuf;
 
 // Re-export types for external use
 #[allow(unused_imports)]
-pub use state::{AIProvider, ClaudeStatus, CodexStatus, GeminiStatus};
+pub use state::{AIProvider, ClaudeStatus, CodexStatus, CopilotStatus, CursorStatus, GeminiStatus};
 
 /// AI Assistant plugin for monitoring AI CLI tools
 pub struct AIPlugin {
     initialized: bool,
     pub state: AIState,
+    /// Whether data is currently being loaded (for lazy loading)
+    loading: bool,
 }
 
 impl Default for AIPlugin {
@@ -37,15 +39,29 @@ impl AIPlugin {
         Self {
             initialized: false,
             state: AIState::new(),
+            loading: false,
         }
+    }
+
+    /// Start loading - sets loading flag for lazy load on next tick
+    pub fn start_loading(&mut self) {
+        self.loading = true;
+    }
+
+    /// Check if currently loading
+    pub fn is_loading(&self) -> bool {
+        self.loading
     }
 
     /// Refresh status from all providers
     fn refresh_status(&mut self) {
-        let (claude, codex, gemini) = ops::refresh_all_status();
+        let (claude, codex, gemini, cursor, copilot) = ops::refresh_all_status();
         self.state.claude = claude;
         self.state.codex = codex;
         self.state.gemini = gemini;
+        self.state.cursor = cursor;
+        self.state.copilot = copilot;
+        self.loading = false;
     }
 }
 
@@ -126,6 +142,24 @@ impl Plugin for AIPlugin {
             });
         }
 
+        if self.state.cursor.available {
+            let text = if self.state.cursor.code_generations > 0 {
+                format!("Cursor {} gens", self.state.cursor.code_generations)
+            } else {
+                "Cursor ✓".to_string()
+            };
+            return Some(PluginStatusInfo { text, active: true });
+        }
+
+        if self.state.copilot.available {
+            let text = if let Some(ref user) = self.state.copilot.github_user {
+                format!("Copilot @{}", user)
+            } else {
+                "Copilot ✓".to_string()
+            };
+            return Some(PluginStatusInfo { text, active: true });
+        }
+
         // No AI tools installed
         None
     }
@@ -155,15 +189,12 @@ impl Plugin for AIPlugin {
                 KeyCode::Enter => {
                     // Navigate to selected view
                     self.state.view = match AIMenuItem::ALL[self.state.menu_index] {
-                        AIMenuItem::Overview => AIView::Overview,
                         AIMenuItem::Claude => AIView::Claude,
                         AIMenuItem::Codex => AIView::Codex,
                         AIMenuItem::Gemini => AIView::Gemini,
+                        AIMenuItem::Cursor => AIView::Cursor,
+                        AIMenuItem::Copilot => AIView::Copilot,
                     };
-                    KeyHandleResult::Handled
-                }
-                KeyCode::Char('o') | KeyCode::Char('O') => {
-                    self.state.view = AIView::Overview;
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('c') | KeyCode::Char('C') => {
@@ -178,15 +209,12 @@ impl Plugin for AIPlugin {
                     self.state.view = AIView::Gemini;
                     KeyHandleResult::Handled
                 }
-                KeyCode::Char('r') | KeyCode::Char('R') => {
-                    self.refresh_status();
+                KeyCode::Char('u') | KeyCode::Char('U') => {
+                    self.state.view = AIView::Cursor;
                     KeyHandleResult::Handled
                 }
-                _ => KeyHandleResult::Handled,
-            },
-            AIView::Claude | AIView::Codex | AIView::Gemini => match key.code {
-                KeyCode::Esc => {
-                    self.state.view = AIView::Overview;
+                KeyCode::Char('p') | KeyCode::Char('P') => {
+                    self.state.view = AIView::Copilot;
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
@@ -195,11 +223,31 @@ impl Plugin for AIPlugin {
                 }
                 _ => KeyHandleResult::Handled,
             },
+            AIView::Claude | AIView::Codex | AIView::Gemini | AIView::Cursor | AIView::Copilot => {
+                match key.code {
+                    KeyCode::Esc => {
+                        self.state.view = AIView::Overview;
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                        self.refresh_status();
+                        KeyHandleResult::Handled
+                    }
+                    _ => KeyHandleResult::Handled,
+                }
+            }
         }
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
-        modal::draw_ai_modal(frame, area, &self.state, colors);
+        modal::draw_ai_modal(frame, area, &self.state, self.loading, colors);
+    }
+
+    fn tick(&mut self) {
+        // Lazy load data on first tick after modal opens
+        if self.loading {
+            self.refresh_status();
+        }
     }
 
     fn help_content(&self) -> Vec<String> {
@@ -210,13 +258,15 @@ impl Plugin for AIPlugin {
             "  Claude Code (~/.claude/)".to_string(),
             "  OpenAI Codex (~/.codex/)".to_string(),
             "  Gemini CLI   (~/.gemini/)".to_string(),
+            "  Cursor IDE   (~/.cursor/)".to_string(),
+            "  GitHub Copilot (gh auth)".to_string(),
             "".to_string(),
             "Keys:".to_string(),
-            "  A       Open AI Assistant".to_string(),
-            "  O       Overview".to_string(),
             "  C       Claude Code status".to_string(),
             "  X       Codex status".to_string(),
             "  G       Gemini status".to_string(),
+            "  U       Cursor status".to_string(),
+            "  P       Copilot status".to_string(),
             "  R       Refresh status".to_string(),
             "  Esc     Close/Back".to_string(),
         ]

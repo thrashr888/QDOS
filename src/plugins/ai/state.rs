@@ -11,16 +11,26 @@ pub enum AIProvider {
     Claude,
     Codex,
     Gemini,
+    Cursor,
+    Copilot,
 }
 
 impl AIProvider {
-    pub const ALL: [AIProvider; 3] = [AIProvider::Claude, AIProvider::Codex, AIProvider::Gemini];
+    pub const ALL: [AIProvider; 5] = [
+        AIProvider::Claude,
+        AIProvider::Codex,
+        AIProvider::Gemini,
+        AIProvider::Cursor,
+        AIProvider::Copilot,
+    ];
 
     pub fn as_str(&self) -> &'static str {
         match self {
             AIProvider::Claude => "Claude Code",
             AIProvider::Codex => "OpenAI Codex",
             AIProvider::Gemini => "Gemini CLI",
+            AIProvider::Cursor => "Cursor",
+            AIProvider::Copilot => "GitHub Copilot",
         }
     }
 
@@ -29,6 +39,8 @@ impl AIProvider {
             AIProvider::Claude => "Claude",
             AIProvider::Codex => "Codex",
             AIProvider::Gemini => "Gemini",
+            AIProvider::Cursor => "Cursor",
+            AIProvider::Copilot => "Copilot",
         }
     }
 
@@ -38,6 +50,8 @@ impl AIProvider {
             AIProvider::Claude => home.join(".claude"),
             AIProvider::Codex => home.join(".codex"),
             AIProvider::Gemini => home.join(".gemini"),
+            AIProvider::Cursor => home.join(".cursor"),
+            AIProvider::Copilot => home, // Copilot uses gh CLI auth
         })
     }
 }
@@ -50,6 +64,8 @@ pub enum AIView {
     Claude,
     Codex,
     Gemini,
+    Cursor,
+    Copilot,
 }
 
 impl AIView {
@@ -59,6 +75,8 @@ impl AIView {
             AIView::Claude => "Claude Code Status",
             AIView::Codex => "OpenAI Codex Status",
             AIView::Gemini => "Gemini CLI Status",
+            AIView::Cursor => "Cursor Status",
+            AIView::Copilot => "GitHub Copilot Status",
         }
     }
 }
@@ -66,35 +84,39 @@ impl AIView {
 /// Menu items for the AI modal
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AIMenuItem {
-    Overview,
     Claude,
     Codex,
     Gemini,
+    Cursor,
+    Copilot,
 }
 
 impl AIMenuItem {
-    pub const ALL: [AIMenuItem; 4] = [
-        AIMenuItem::Overview,
+    pub const ALL: [AIMenuItem; 5] = [
         AIMenuItem::Claude,
         AIMenuItem::Codex,
         AIMenuItem::Gemini,
+        AIMenuItem::Cursor,
+        AIMenuItem::Copilot,
     ];
 
     pub fn key(&self) -> char {
         match self {
-            AIMenuItem::Overview => 'O',
             AIMenuItem::Claude => 'C',
             AIMenuItem::Codex => 'X',
             AIMenuItem::Gemini => 'G',
+            AIMenuItem::Cursor => 'U',
+            AIMenuItem::Copilot => 'P',
         }
     }
 
     pub fn label(&self) -> &'static str {
         match self {
-            AIMenuItem::Overview => "Overview",
             AIMenuItem::Claude => "Claude Code",
             AIMenuItem::Codex => "Codex",
             AIMenuItem::Gemini => "Gemini",
+            AIMenuItem::Cursor => "Cursor",
+            AIMenuItem::Copilot => "Copilot",
         }
     }
 }
@@ -108,6 +130,16 @@ pub struct ClaudeDailyStats {
     pub tool_call_count: u64,
 }
 
+/// Claude token usage from session JSONL files
+#[derive(Debug, Clone, Default)]
+pub struct ClaudeTokenUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cache_read_tokens: u64,
+    pub cache_creation_tokens: u64,
+    pub total_cost_usd: f64,
+}
+
 /// Claude Code status
 #[derive(Debug, Clone, Default)]
 pub struct ClaudeStatus {
@@ -115,6 +147,20 @@ pub struct ClaudeStatus {
     pub today: Option<ClaudeDailyStats>,
     pub recent_days: Vec<ClaudeDailyStats>,
     pub last_computed: Option<String>,
+    /// Token usage from session logs (last 30 days)
+    pub token_usage: ClaudeTokenUsage,
+    /// Number of session files found
+    pub session_count: usize,
+}
+
+/// Codex token usage from session JSONL files
+#[derive(Debug, Clone, Default)]
+pub struct CodexTokenUsage {
+    pub input_tokens: u64,
+    pub cached_input_tokens: u64,
+    pub output_tokens: u64,
+    pub reasoning_tokens: u64,
+    pub total_cost_usd: f64,
 }
 
 /// Codex CLI status
@@ -126,6 +172,10 @@ pub struct CodexStatus {
     pub trusted_projects: Vec<String>,
     pub latest_version: Option<String>,
     pub last_checked: Option<String>,
+    /// Token usage from session logs
+    pub token_usage: CodexTokenUsage,
+    /// Number of session files found
+    pub session_count: usize,
 }
 
 /// Gemini CLI status
@@ -138,6 +188,28 @@ pub struct GeminiStatus {
     pub preview_features: bool,
 }
 
+/// Cursor IDE status
+#[derive(Debug, Clone, Default)]
+pub struct CursorStatus {
+    pub available: bool,
+    pub model: Option<String>,
+    pub vim_mode: bool,
+    /// Total AI code generations tracked
+    pub code_generations: u64,
+    /// Generations by source (composer, tab, etc.)
+    pub generations_by_source: Vec<(String, u64)>,
+}
+
+/// GitHub Copilot status
+#[derive(Debug, Clone, Default)]
+pub struct CopilotStatus {
+    pub available: bool,
+    /// GitHub username if authenticated
+    pub github_user: Option<String>,
+    /// Whether gh CLI is authenticated
+    pub gh_authenticated: bool,
+}
+
 /// Overall AI plugin state
 #[derive(Debug, Clone, Default)]
 pub struct AIState {
@@ -147,6 +219,8 @@ pub struct AIState {
     pub claude: ClaudeStatus,
     pub codex: CodexStatus,
     pub gemini: GeminiStatus,
+    pub cursor: CursorStatus,
+    pub copilot: CopilotStatus,
     pub scroll_offset: usize,
 }
 
@@ -165,6 +239,12 @@ impl AIState {
             count += 1;
         }
         if self.gemini.available {
+            count += 1;
+        }
+        if self.cursor.available {
+            count += 1;
+        }
+        if self.copilot.available {
             count += 1;
         }
         count

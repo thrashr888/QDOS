@@ -633,17 +633,18 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         Rect::new(area.x, y, left_width - 1, 1),
     );
 
-    // ROWS 20-21: Git and Beads status indicators (only when applicable)
+    // ROWS 21-22: Git and Beads status indicators (only when applicable)
+    // Row 20 is blank (spacing after version/author info)
     // NOTE: These rows are only rendered if they fit within the area bounds
     let green_style = Style::default().fg(colors.green());
     let cyan_style = Style::default().fg(colors.cyan());
     let status_width = (left_width as usize).saturating_sub(1);
     let max_y = area.y + area.height; // Maximum valid y (exclusive)
 
-    // Row 20: Git status (only if in git repo and row fits)
+    // Row 21: Git status (only if in git repo and row fits)
     // Format: " ↑0↓5 +3 !2 branch-name..."
     if let Some(ref info) = app.git_status_info {
-        let y = area.y + 20;
+        let y = area.y + 21;
         if y < max_y {
             // Build compact status: ↑ahead↓behind +staged !modified branch
             let mut parts = Vec::new();
@@ -678,10 +679,10 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
         }
     }
 
-    // Row 21: Beads status (only if in beads project and row fits)
+    // Row 22: Beads status (only if in beads project and row fits)
     // Format: " bd: ○19 ●3 ✓12" (open, in-progress, ready)
     if let Some(ref info) = app.beads_status_info {
-        let y = area.y + 21;
+        let y = area.y + 22;
         if y < max_y {
             let mut parts = Vec::new();
             if info.open > 0 {
