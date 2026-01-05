@@ -223,10 +223,6 @@ impl Plugin for QdconfigPlugin {
                 KeyCode::Up | KeyCode::Char('k') => {
                     if state.selected > 0 {
                         state.selected -= 1;
-                        // Adjust scroll to keep selection visible
-                        if state.selected < state.scroll_offset {
-                            state.scroll_offset = state.selected;
-                        }
                     }
                     KeyHandleResult::Handled
                 }

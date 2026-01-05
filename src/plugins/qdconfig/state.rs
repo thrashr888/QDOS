@@ -52,10 +52,8 @@ impl QdconfigField {
 /// Configuration state
 #[derive(Debug, Clone)]
 pub struct QdconfigState {
-    /// Currently selected field
+    /// Currently selected field (index into selectable items only)
     pub selected: usize,
-    /// Scroll offset for list view
-    pub scroll_offset: usize,
     /// Editing mode (for text input fields)
     pub editing: bool,
     /// Input buffer for text fields
@@ -120,7 +118,6 @@ impl QdconfigState {
 
         Self {
             selected: 0,
-            scroll_offset: 0,
             editing: false,
             input_buffer: String::new(),
             search_spec,

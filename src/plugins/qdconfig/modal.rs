@@ -17,6 +17,8 @@ struct DisplayItem {
     value: String,
     is_header: bool,
     is_info: bool,
+    /// Selectable index (None for non-selectable items like headers/spacers)
+    selectable_idx: Option<usize>,
 }
 
 /// Draw the configuration modal
@@ -94,6 +96,7 @@ pub fn draw_config_modal(
             value,
             is_header: false,
             is_info: false,
+            selectable_idx: Some(i),
         });
     }
 
@@ -104,18 +107,20 @@ pub fn draw_config_modal(
             value: String::new(),
             is_header: false,
             is_info: true,
+            selectable_idx: None, // Spacer - not selectable
         });
         items.push(DisplayItem {
             name: "Registered Plugins:".to_string(),
             value: String::new(),
             is_header: true,
             is_info: false,
+            selectable_idx: None, // Header - not selectable
         });
 
         for (i, (id, name, description)) in state.plugins.iter().enumerate() {
-            // +2 to account for blank line and "Registered Plugins:" header row
-            let plugin_idx = QdconfigField::ALL.len() + 2 + i;
-            let is_selected = plugin_idx == state.selected;
+            // Plugin selectable index = config fields count + plugin index
+            let selectable_idx = QdconfigField::ALL.len() + i;
+            let is_selected = selectable_idx == state.selected;
             items.push(DisplayItem {
                 name: format!(
                     "{} {} ({}) - {}",
@@ -127,6 +132,7 @@ pub fn draw_config_modal(
                 value: String::new(),
                 is_header: false,
                 is_info: true,
+                selectable_idx: Some(selectable_idx),
             });
         }
 
@@ -136,6 +142,7 @@ pub fn draw_config_modal(
             value: String::new(),
             is_header: false,
             is_info: true,
+            selectable_idx: None, // Spacer - not selectable
         });
     }
 
@@ -145,21 +152,30 @@ pub fn draw_config_modal(
         value: String::new(),
         is_header: false,
         is_info: true,
+        selectable_idx: None, // Info - not selectable
     });
 
-    // Calculate scroll to keep selection visible
-    let scroll = if state.selected >= state.scroll_offset + visible_height {
-        state.selected.saturating_sub(visible_height - 1)
-    } else if state.selected < state.scroll_offset {
-        state.selected
+    // Find the display index of the currently selected item
+    let selected_display_idx = items
+        .iter()
+        .position(|item| item.selectable_idx == Some(state.selected))
+        .unwrap_or(0);
+
+    // Calculate scroll to keep selection visible (center selection in view when possible)
+    let scroll = if selected_display_idx >= visible_height {
+        selected_display_idx.saturating_sub(visible_height / 2)
     } else {
-        state.scroll_offset
-    };
+        0
+    }
+    .min(items.len().saturating_sub(visible_height));
 
     // Build visible lines
     let mut lines: Vec<Line> = vec![Line::from("")];
 
-    for (item_idx, item) in items.iter().enumerate().skip(scroll).take(visible_height) {
+    for item in items.iter().skip(scroll).take(visible_height) {
+        // Check if this item is selected using its selectable index
+        let is_selected = item.selectable_idx == Some(state.selected);
+
         if item.is_header {
             lines.push(Line::from(Span::styled(
                 &item.name,
@@ -168,12 +184,8 @@ pub fn draw_config_modal(
                     .add_modifier(Modifier::BOLD),
             )));
         } else if item.is_info {
-            // Plugin item or info line
-            // Plugins start after config fields (10) + blank line (1) + header (1), so index 12+
-            let is_plugin_selected = item_idx > QdconfigField::ALL.len() + 1
-                && item_idx <= QdconfigField::ALL.len() + 1 + state.plugins.len()
-                && item_idx == state.selected;
-            let style = if is_plugin_selected {
+            // Plugin item or info/spacer line
+            let style = if is_selected {
                 Style::default().fg(colors.yellow()).bg(colors.red())
             } else {
                 Style::default().fg(colors.grey())
@@ -181,7 +193,6 @@ pub fn draw_config_modal(
             lines.push(Line::from(Span::styled(&item.name, style)));
         } else {
             // Config field
-            let is_selected = item_idx == state.selected;
             let is_editing = is_selected && state.editing;
 
             let line_style = if is_selected {
