@@ -14,12 +14,13 @@ A comprehensive guide for developing plugins that extend R-DOS functionality whi
 6. [Key Handling](#6-key-handling)
 7. [Modal Rendering](#7-modal-rendering)
 8. [Status Bar Integration](#8-status-bar-integration)
-9. [Menu Integration](#9-menu-integration)
-10. [Lifecycle Hooks](#10-lifecycle-hooks)
-11. [Background Jobs](#11-background-jobs)
-12. [Testing](#12-testing)
-13. [Configuration](#13-configuration)
-14. [Future: Dynamic Loading](#14-future-dynamic-loading)
+9. [Help System Integration](#9-help-system-integration)
+10. [Menu Integration](#10-menu-integration)
+11. [Lifecycle Hooks](#11-lifecycle-hooks)
+12. [Background Jobs](#12-background-jobs)
+13. [Testing](#13-testing)
+14. [Configuration](#14-configuration)
+15. [Future: Dynamic Loading](#15-future-dynamic-loading)
 
 ---
 
@@ -757,9 +758,63 @@ fn status_info(&self, cwd: &PathBuf) -> Option<PluginStatusInfo> {
 
 ---
 
-## 9. Menu Integration
+## 9. Help System Integration
 
-### 9.1 Providing Menu Items
+### 9.1 Providing Help Content
+
+Plugins can contribute help topics to the Help system (F1). When a plugin has `has_help: true`, its `help_content()` is automatically collected and displayed in the Help menu.
+
+```rust
+fn capabilities(&self) -> PluginCapabilities {
+    PluginCapabilities {
+        has_help: true,
+        ..Default::default()
+    }
+}
+
+fn help_content(&self) -> Vec<String> {
+    vec![
+        "G - Open Git menu".to_string(),
+        "  Status - View file changes".to_string(),
+        "  Log - View commit history".to_string(),
+        "  Branches - Manage branches".to_string(),
+    ]
+}
+```
+
+### 9.2 Help Content Guidelines
+
+- **First line**: Plugin shortcut and name (e.g., `"G - Git Integration"`)
+- **Subsequent lines**: Indented feature descriptions (2 spaces)
+- **Keep concise**: Help topics should fit on one screen
+- **Focus on actions**: Describe what users can do, not implementation
+
+**Example help content structure:**
+```
+J - Jujutsu VCS
+  Status: View working copy status
+  Log: View revision history
+  Diff: Show changes
+  Describe: Update change description
+  New: Create a new change
+  Bookmark: Manage bookmarks
+  Operations: View/undo operations
+  Git: Push/fetch from remotes
+```
+
+### 9.3 How It Works
+
+1. During app initialization, `PluginManager.collect_plugin_help()` gathers content from all plugins with `has_help: true`
+2. The collected content is passed to `HelpPlugin.load_plugin_help()`
+3. Each plugin's help becomes a selectable topic in the Help menu
+4. Topics are assigned keyboard shortcuts automatically (J, L, N, O, P, Q, S, T, U, W, X, Y, Z)
+5. Plugins with existing hardcoded topics (Git, Beads) are not duplicated
+
+---
+
+## 10. Menu Integration
+
+### 10.1 Providing Menu Items
 
 ```rust
 fn capabilities(&self) -> PluginCapabilities {
@@ -779,7 +834,7 @@ fn menu_item(&self) -> Option<PluginMenuItem> {
 }
 ```
 
-### 9.2 Priority Guidelines
+### 10.2 Priority Guidelines
 
 | Priority | Plugins |
 |----------|---------|
@@ -794,9 +849,9 @@ fn menu_item(&self) -> Option<PluginMenuItem> {
 
 ---
 
-## 10. Lifecycle Hooks
+## 11. Lifecycle Hooks
 
-### 10.1 Initialization
+### 11.1 Initialization
 
 Called when the app starts:
 
@@ -817,7 +872,7 @@ fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
 }
 ```
 
-### 10.2 Shutdown
+### 11.2 Shutdown
 
 Called when the app exits:
 
@@ -835,7 +890,7 @@ fn shutdown(&mut self) -> Result<(), String> {
 }
 ```
 
-### 10.3 Availability Check
+### 11.3 Availability Check
 
 Called to determine if plugin is relevant:
 
@@ -852,7 +907,7 @@ fn is_available(&self, cwd: &PathBuf) -> bool {
 }
 ```
 
-### 10.4 Tick (Auto-refresh)
+### 11.4 Tick (Auto-refresh)
 
 Called ~every 100ms when modal is open:
 
@@ -871,9 +926,9 @@ fn tick(&mut self) {
 
 ---
 
-## 11. Background Jobs
+## 12. Background Jobs
 
-### 11.1 Long-Running Operations
+### 12.1 Long-Running Operations
 
 For operations that take time, show progress:
 
@@ -897,7 +952,7 @@ fn tick(&mut self) {
 }
 ```
 
-### 11.2 Async Operations (Future)
+### 12.2 Async Operations (Future)
 
 Currently, plugins run synchronously. Future versions may support:
 
@@ -911,7 +966,7 @@ async fn execute_async(&mut self, cwd: &PathBuf) -> Result<(), String> {
 }
 ```
 
-### 11.3 External Process Execution
+### 12.3 External Process Execution
 
 For running external commands:
 
@@ -935,15 +990,15 @@ pub fn run_tool(args: &[&str], cwd: &Path) -> Result<String, String> {
 
 ---
 
-## 12. Testing
+## 13. Testing
 
-### 12.1 Test File Location
+### 13.1 Test File Location
 
 ```
 src/plugins/myplugin/tests.rs
 ```
 
-### 12.2 Unit Tests
+### 13.2 Unit Tests
 
 ```rust
 // src/plugins/myplugin/tests.rs
@@ -978,7 +1033,7 @@ mod tests {
 }
 ```
 
-### 12.3 Integration Tests
+### 13.3 Integration Tests
 
 For testing with real external tools:
 
@@ -1000,9 +1055,9 @@ fn test_with_real_tool() {
 
 ---
 
-## 13. Configuration
+## 14. Configuration
 
-### 13.1 Plugin Enable/Disable
+### 14.1 Plugin Enable/Disable
 
 Users can enable/disable plugins in `~/.config/rdos/config.toml`:
 
@@ -1015,7 +1070,7 @@ disable = ["print", "attribute"]
 # enable = ["git", "beads", "help"]
 ```
 
-### 13.2 Plugin-Specific Config
+### 14.2 Plugin-Specific Config
 
 If your plugin needs configuration:
 
@@ -1040,9 +1095,9 @@ fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
 
 ---
 
-## 14. Future: Dynamic Loading
+## 15. Future: Dynamic Loading
 
-### 14.1 Preparation
+### 15.1 Preparation
 
 Plugins are being designed for future dynamic loading:
 
@@ -1051,7 +1106,7 @@ Plugins are being designed for future dynamic loading:
 3. **Stable trait** - Plugin trait is the contract
 4. **Serializable config** - Use TOML/JSON for settings
 
-### 14.2 Future Plugin Distribution
+### 15.2 Future Plugin Distribution
 
 ```bash
 # Future: Install from registry
@@ -1064,7 +1119,7 @@ rdos plugin install github.com/user/rdos-myplugin
 rdos plugin list
 ```
 
-### 14.3 Plugin Manifest (Future)
+### 15.3 Plugin Manifest (Future)
 
 ```toml
 # plugin.toml

@@ -143,6 +143,12 @@ impl App {
         plugin_manager.register(Box::new(ThemePlugin::new()));
         plugin_manager.register(Box::new(ViewerPlugin::new()));
 
+        // Collect help content from plugins and pass to HelpPlugin
+        let plugin_help = plugin_manager.collect_plugin_help();
+        if let Some(help_plugin) = plugin_manager.help_plugin_mut() {
+            help_plugin.load_plugin_help(plugin_help);
+        }
+
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
         let watcher = DirWatcher::new(&current_path).ok();

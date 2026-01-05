@@ -121,6 +121,12 @@ impl HelpPlugin {
         self.state.current_topic = 0;
         self.state.scroll_offset = 0;
     }
+
+    /// Load help topics from plugins
+    /// Call this after all plugins are registered
+    pub fn load_plugin_help(&mut self, plugin_help: Vec<(String, String, Vec<String>)>) {
+        self.state.add_plugin_topics(plugin_help);
+    }
 }
 
 impl Default for HelpPlugin {

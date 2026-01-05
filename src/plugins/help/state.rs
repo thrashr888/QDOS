@@ -32,6 +32,42 @@ impl HelpState {
         }
     }
 
+    /// Add plugin-provided help topics
+    /// Each plugin gets converted to a HelpTopic with an auto-assigned key
+    pub fn add_plugin_topics(&mut self, plugin_help: Vec<(String, String, Vec<String>)>) {
+        // Available keys for plugin topics (avoiding conflicts with hardcoded topics)
+        // Hardcoded uses: I, A, C, D, E, F, G, B, M, R, V, K
+        let available_keys = ['J', 'L', 'N', 'O', 'P', 'Q', 'S', 'T', 'U', 'W', 'X', 'Y', 'Z'];
+        let mut key_index = 0;
+
+        for (plugin_id, plugin_name, content) in plugin_help {
+            if content.is_empty() || key_index >= available_keys.len() {
+                continue;
+            }
+
+            // Skip if we already have a topic for this plugin (hardcoded ones)
+            // Check by looking at content - if first line matches plugin pattern
+            let already_exists = self.topics.iter().any(|t| {
+                t.title.to_lowercase().contains(&plugin_id.to_lowercase())
+                    || t.title.to_lowercase().contains(&plugin_name.to_lowercase())
+            });
+
+            if already_exists {
+                continue;
+            }
+
+            let key = available_keys[key_index];
+            key_index += 1;
+
+            let content_str = content.join("\n");
+            self.topics.push(HelpTopic {
+                key,
+                title: plugin_name,
+                content: content_str,
+            });
+        }
+    }
+
     fn load_topics() -> Vec<HelpTopic> {
         vec![
             HelpTopic {

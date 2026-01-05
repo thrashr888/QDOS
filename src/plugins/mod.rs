@@ -392,6 +392,29 @@ impl PluginManager {
             .and_then(|p| p.as_any_mut().downcast_mut::<space::SpacePlugin>())
     }
 
+    /// Collect help content from all plugins with has_help capability
+    /// Returns (plugin_id, plugin_name, help_lines) for each plugin
+    pub fn collect_plugin_help(&self) -> Vec<(String, String, Vec<String>)> {
+        self.plugins()
+            .filter(|p| p.capabilities().has_help)
+            .map(|p| {
+                (
+                    p.id().to_string(),
+                    p.name().to_string(),
+                    p.help_content(),
+                )
+            })
+            .filter(|(_, _, content)| !content.is_empty())
+            .collect()
+    }
+
+    /// Get mutable reference to HelpPlugin
+    pub fn help_plugin_mut(&mut self) -> Option<&mut help::HelpPlugin> {
+        self.plugins
+            .get_mut("help")
+            .and_then(|p| p.as_any_mut().downcast_mut::<help::HelpPlugin>())
+    }
+
     /// Get mutable reference to PrintPlugin
     pub fn print_plugin_mut(&mut self) -> Option<&mut print::PrintPlugin> {
         self.plugins
