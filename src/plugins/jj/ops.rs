@@ -352,7 +352,7 @@ pub fn load_operations(cwd: &Path) -> Result<Vec<JjOperation>, String> {
             "operation",
             "log",
             "-T",
-            r#"self.id().shortest(8) ++ "\t" ++ if(self == @, "true", "false") ++ "\t" ++ self.time().ago() ++ "\t" ++ description ++ "\n""#,
+            r#"id.short(8) ++ "\t" ++ if(current_operation, "true", "false") ++ "\t" ++ time.start().ago() ++ "\t" ++ description ++ "\n""#,
             "--limit",
             "20",
         ])
