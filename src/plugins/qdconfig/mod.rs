@@ -579,8 +579,14 @@ impl Plugin for QdconfigPlugin {
             });
         }
 
-        // Add plugins header and items
+        // Add plugins header and items (with blank line before)
         if !state.plugins.is_empty() {
+            items.push(DisplayItem {
+                name: String::new(),
+                value: String::new(),
+                is_header: false,
+                is_info: true,
+            });
             items.push(DisplayItem {
                 name: "Registered Plugins:".to_string(),
                 value: String::new(),
@@ -589,7 +595,8 @@ impl Plugin for QdconfigPlugin {
             });
 
             for (i, (id, name, description)) in state.plugins.iter().enumerate() {
-                let plugin_idx = QdconfigField::ALL.len() + i;
+                // +2 to account for blank line and "Registered Plugins:" header row
+                let plugin_idx = QdconfigField::ALL.len() + 2 + i;
                 let is_selected = plugin_idx == state.selected;
                 items.push(DisplayItem {
                     name: format!(
@@ -604,6 +611,14 @@ impl Plugin for QdconfigPlugin {
                     is_info: true,
                 });
             }
+
+            // Blank line after plugins
+            items.push(DisplayItem {
+                name: String::new(),
+                value: String::new(),
+                is_header: false,
+                is_info: true,
+            });
         }
 
         // Add info line
@@ -636,8 +651,9 @@ impl Plugin for QdconfigPlugin {
                 )));
             } else if item.is_info {
                 // Plugin item or info line
-                let is_plugin_selected = item_idx >= QdconfigField::ALL.len()
-                    && item_idx < QdconfigField::ALL.len() + state.plugins.len()
+                // Plugins start after config fields (10) + blank line (1) + header (1), so index 12+
+                let is_plugin_selected = item_idx > QdconfigField::ALL.len() + 1
+                    && item_idx <= QdconfigField::ALL.len() + 1 + state.plugins.len()
                     && item_idx == state.selected;
                 let style = if is_plugin_selected {
                     Style::default().fg(colors.yellow()).bg(colors.red())
