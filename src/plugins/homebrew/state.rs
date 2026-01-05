@@ -127,6 +127,8 @@ pub enum HomebrewView {
     Info,
     /// Confirm action (install/uninstall/upgrade)
     Confirm,
+    /// Show command output
+    Output,
 }
 
 /// Action to confirm
@@ -203,6 +205,12 @@ pub struct HomebrewState {
     pub outdated_count: usize,
     /// Filter to show only outdated packages
     pub show_outdated_only: bool,
+    /// Command that was run (for output view)
+    pub last_command: Option<String>,
+    /// Output from last command (for output view)
+    pub command_output: Option<String>,
+    /// Scroll position in output view
+    pub output_scroll: usize,
 }
 
 impl HomebrewState {

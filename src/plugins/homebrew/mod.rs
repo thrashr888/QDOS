@@ -303,31 +303,79 @@ impl HomebrewPlugin {
         Some(info)
     }
 
-    /// Run brew update and refresh the package list
+    /// Run brew update and show output
     fn run_brew_update(&mut self) {
         self.state.set_loading("Running brew update...");
+        self.state.last_command = Some("brew update".to_string());
 
-        // Run brew update
-        let _ = Command::new("brew").arg("update").output();
+        // Run brew update and capture output
+        match Command::new("brew").arg("update").output() {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let mut result = String::new();
+                if !stdout.is_empty() {
+                    result.push_str(&stdout);
+                }
+                if !stderr.is_empty() {
+                    if !result.is_empty() {
+                        result.push('\n');
+                    }
+                    result.push_str(&stderr);
+                }
+                if result.is_empty() {
+                    result = "Already up-to-date.".to_string();
+                }
+                self.state.command_output = Some(result);
+            }
+            Err(e) => {
+                self.state.command_output = Some(format!("Error: {}", e));
+            }
+        }
 
-        // Refresh packages to get new outdated info
-        self.refresh_packages();
+        self.state.clear_loading();
+        self.state.output_scroll = 0;
+        self.state.view = HomebrewView::Output;
     }
 
-    /// Run a brew command (install/uninstall/upgrade) and refresh
+    /// Run a brew command (install/uninstall/upgrade) and show output
     fn run_brew_command(&mut self, args: &[&str]) {
         if args.is_empty() {
             return;
         }
 
-        let action = args[0];
-        self.state.set_loading(&format!("Running brew {}...", action));
+        let cmd_str = format!("brew {}", args.join(" "));
+        self.state.set_loading(&format!("Running {}...", cmd_str));
+        self.state.last_command = Some(cmd_str);
 
-        // Run the command
-        let _ = Command::new("brew").args(args).output();
+        // Run the command and capture output
+        match Command::new("brew").args(args).output() {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let mut result = String::new();
+                if !stdout.is_empty() {
+                    result.push_str(&stdout);
+                }
+                if !stderr.is_empty() {
+                    if !result.is_empty() {
+                        result.push('\n');
+                    }
+                    result.push_str(&stderr);
+                }
+                if result.is_empty() {
+                    result = "Command completed successfully.".to_string();
+                }
+                self.state.command_output = Some(result);
+            }
+            Err(e) => {
+                self.state.command_output = Some(format!("Error: {}", e));
+            }
+        }
 
-        // Refresh packages
-        self.refresh_packages();
+        self.state.clear_loading();
+        self.state.output_scroll = 0;
+        self.state.view = HomebrewView::Output;
     }
 
     /// Search for packages
@@ -459,6 +507,7 @@ impl Plugin for HomebrewPlugin {
             HomebrewView::SearchInput => self.handle_search_input_key(key),
             HomebrewView::Info => self.handle_info_key(key),
             HomebrewView::Confirm => self.handle_confirm_key(key),
+            HomebrewView::Output => self.handle_output_key(key),
         }
     }
 
@@ -692,7 +741,7 @@ impl HomebrewPlugin {
             }
             KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
                 if let Some(action) = self.state.confirm_action.take() {
-                    // Run the command inline and stay open
+                    // Run the command - it will switch to Output view
                     match action {
                         ConfirmAction::Install(pkg) => {
                             self.run_brew_command(&["install", &pkg]);
@@ -710,11 +759,36 @@ impl HomebrewPlugin {
                             self.run_brew_update();
                         }
                     }
-                    self.state.view = HomebrewView::List;
+                    // View is now Output, not List
                 }
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_output_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            // Scroll up
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.state.output_scroll > 0 {
+                    self.state.output_scroll -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            // Scroll down
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.state.output_scroll += 1;
+                KeyHandleResult::Handled
+            }
+            // Any other key: refresh packages and go back to list
+            _ => {
+                self.state.command_output = None;
+                self.state.last_command = None;
+                self.refresh_packages();
+                self.state.view = HomebrewView::List;
+                KeyHandleResult::Handled
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ pub fn draw_homebrew_modal(
         HomebrewView::List | HomebrewView::SearchInput => draw_list_view(frame, area, state, colors),
         HomebrewView::Info => draw_info_view(frame, area, state, colors),
         HomebrewView::Confirm => draw_confirm_view(frame, area, state, colors),
+        HomebrewView::Output => draw_output_view(frame, area, state, colors),
     }
 }
 
@@ -455,4 +456,67 @@ fn draw_confirm_view(frame: &mut Frame, area: Rect, state: &HomebrewState, color
     }
 
     modal.render_help(frame, vec![("y", "yes"), ("n", "no")]);
+}
+
+/// Draw the command output view
+fn draw_output_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: &ThemeColors) {
+    let popup_width = 76u16.min(area.width.saturating_sub(4));
+    let popup_height = 20u16.min(area.height.saturating_sub(4));
+    let popup_x = (area.width - popup_width) / 2;
+    let popup_y = (area.height - popup_height) / 2;
+    let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
+
+    let title = state
+        .last_command
+        .as_ref()
+        .map(|c| format!(" $ {} ", c))
+        .unwrap_or_else(|| " Output ".to_string());
+
+    let modal = ModalFrame::themed(modal_area, &title, colors);
+    modal.render_frame(frame);
+
+    let bg = colors.bg();
+    let fg = colors.fg();
+    let grey = colors.grey();
+
+    let visible_height = modal.content_height() as usize;
+
+    // Get output lines
+    let output = state.command_output.as_deref().unwrap_or("No output");
+    let lines: Vec<&str> = output.lines().collect();
+    let total_lines = lines.len();
+
+    // Clamp scroll position
+    let max_scroll = total_lines.saturating_sub(visible_height);
+    let scroll = state.output_scroll.min(max_scroll);
+
+    // Render visible lines
+    for (i, line) in lines.iter().skip(scroll).take(visible_height).enumerate() {
+        let display_line = if line.len() > (popup_width - 4) as usize {
+            format!("{}...", &line[..(popup_width - 7) as usize])
+        } else {
+            line.to_string()
+        };
+
+        modal.render_row(
+            frame,
+            i as u16,
+            vec![Span::styled(
+                format!(" {}", display_line),
+                Style::default().fg(fg).bg(bg),
+            )],
+        );
+    }
+
+    // Show scroll indicator if needed
+    if total_lines > visible_height {
+        let indicator = format!(" [{}/{}] ", scroll + 1, total_lines.saturating_sub(visible_height - 1).max(1));
+        modal.render_row(
+            frame,
+            visible_height as u16,
+            vec![Span::styled(indicator, Style::default().fg(grey).bg(bg))],
+        );
+    }
+
+    modal.render_help(frame, vec![("↑↓", "scroll"), ("any key", "continue")]);
 }
