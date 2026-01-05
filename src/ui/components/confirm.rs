@@ -145,7 +145,11 @@ impl ConfirmDialog {
         let command_len = self.command.as_ref().map_or(0, |c| c.len() + 2); // +2 for "$ " prefix
         let buttons_len = self.yes_label.len() + self.no_label.len() + 10; // [Yes]  [No] + padding
 
-        (message_len.max(warning_len).max(command_len).max(buttons_len) + 6) as u16
+        (message_len
+            .max(warning_len)
+            .max(command_len)
+            .max(buttons_len)
+            + 6) as u16
     }
 
     /// Render the dialog inside a centered modal.

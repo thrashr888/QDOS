@@ -25,8 +25,6 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
     ("git", "Distributed version control system"),
     ("ripgrep", "Search tool like grep but faster"),
     ("fd", "Fast and user-friendly find alternative"),
-    ("bat", "Cat clone with syntax highlighting"),
-    ("eza", "Modern replacement for ls"),
     ("fzf", "Fuzzy finder for command line"),
     ("jq", "JSON processor"),
     ("tree", "Display directory tree"),
@@ -46,9 +44,8 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
 ];
 
 /// Packages from custom taps (format: tap, formula, description)
-const TAP_PACKAGES: &[(&str, &str, &str)] = &[
-    ("thrashr888/qdos", "beads", "Git-native issue tracker"),
-];
+const TAP_PACKAGES: &[(&str, &str, &str)] =
+    &[("thrashr888/qdos", "beads", "Git-native issue tracker")];
 
 /// Homebrew plugin for package management
 pub struct HomebrewPlugin {
@@ -159,9 +156,12 @@ impl HomebrewPlugin {
         // Add all installed packages to Installed tab
         for (name, version) in &installed {
             // Skip if already in recommended
-            if self.state.packages.iter().any(|p| {
-                p.name == *name || p.name.ends_with(&format!("/{}", name))
-            }) {
+            if self
+                .state
+                .packages
+                .iter()
+                .any(|p| p.name == *name || p.name.ends_with(&format!("/{}", name)))
+            {
                 continue;
             }
 
@@ -206,7 +206,10 @@ impl HomebrewPlugin {
 
     /// Get list of outdated packages
     fn get_outdated_packages(&self) -> Vec<String> {
-        if let Ok(output) = Command::new("brew").args(["outdated", "--formula"]).output() {
+        if let Ok(output) = Command::new("brew")
+            .args(["outdated", "--formula"])
+            .output()
+        {
             if output.status.success() {
                 return String::from_utf8_lossy(&output.stdout)
                     .lines()
@@ -394,7 +397,8 @@ impl HomebrewPlugin {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let installed = self.get_installed_packages_with_versions();
-                let installed_names: Vec<&str> = installed.iter().map(|(n, _)| n.as_str()).collect();
+                let installed_names: Vec<&str> =
+                    installed.iter().map(|(n, _)| n.as_str()).collect();
 
                 // Clear search results but keep recommended and installed
                 self.state
@@ -616,10 +620,10 @@ impl HomebrewPlugin {
             // Upgrade selected package
             KeyCode::Char('g') => {
                 if let Some(pkg) = self.state.selected_package() {
-                    if pkg.status == PackageStatus::Outdated || pkg.status == PackageStatus::Installed
+                    if pkg.status == PackageStatus::Outdated
+                        || pkg.status == PackageStatus::Installed
                     {
-                        self.state.confirm_action =
-                            Some(ConfirmAction::Upgrade(pkg.name.clone()));
+                        self.state.confirm_action = Some(ConfirmAction::Upgrade(pkg.name.clone()));
                         self.state.view = HomebrewView::Confirm;
                     }
                 }
@@ -673,6 +677,8 @@ impl HomebrewPlugin {
                 // Execute search
                 let query = self.state.search_query.clone();
                 self.search_packages(&query);
+                // Clear search query after search (results are in SearchResults category)
+                self.state.search_query.clear();
                 self.state.view = HomebrewView::List;
                 KeyHandleResult::Handled
             }
@@ -699,8 +705,7 @@ impl HomebrewPlugin {
             KeyCode::Enter => {
                 if let Some(ref info) = self.state.package_info {
                     if !info.installed {
-                        self.state.confirm_action =
-                            Some(ConfirmAction::Install(info.name.clone()));
+                        self.state.confirm_action = Some(ConfirmAction::Install(info.name.clone()));
                         self.state.view = HomebrewView::Confirm;
                     }
                 }
@@ -710,8 +715,7 @@ impl HomebrewPlugin {
             KeyCode::Char('g') => {
                 if let Some(ref info) = self.state.package_info {
                     if info.installed {
-                        self.state.confirm_action =
-                            Some(ConfirmAction::Upgrade(info.name.clone()));
+                        self.state.confirm_action = Some(ConfirmAction::Upgrade(info.name.clone()));
                         self.state.view = HomebrewView::Confirm;
                     }
                 }

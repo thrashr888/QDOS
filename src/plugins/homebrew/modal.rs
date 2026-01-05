@@ -18,7 +18,9 @@ pub fn draw_homebrew_modal(
     colors: &ThemeColors,
 ) {
     match state.view {
-        HomebrewView::List | HomebrewView::SearchInput => draw_list_view(frame, area, state, colors),
+        HomebrewView::List | HomebrewView::SearchInput => {
+            draw_list_view(frame, area, state, colors)
+        }
         HomebrewView::Info => draw_info_view(frame, area, state, colors),
         HomebrewView::Confirm => draw_confirm_view(frame, area, state, colors),
         HomebrewView::Output => draw_output_view(frame, area, state, colors),
@@ -68,10 +70,7 @@ fn draw_list_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: 
 
     // Loading state
     if state.loading {
-        let msg = state
-            .loading_message
-            .as_deref()
-            .unwrap_or("Loading...");
+        let msg = state.loading_message.as_deref().unwrap_or("Loading...");
         modal.render_row(
             frame,
             1,
@@ -412,7 +411,10 @@ fn draw_info_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: 
 
     // Help based on install status
     if info.installed {
-        modal.render_help(frame, vec![("g", "upgrade"), ("x", "uninstall"), ("Esc", "back")]);
+        modal.render_help(
+            frame,
+            vec![("g", "upgrade"), ("x", "uninstall"), ("Esc", "back")],
+        );
     } else {
         modal.render_help(frame, vec![("Enter", "install"), ("Esc", "back")]);
     }
@@ -510,7 +512,11 @@ fn draw_output_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors
 
     // Show scroll indicator if needed
     if total_lines > visible_height {
-        let indicator = format!(" [{}/{}] ", scroll + 1, total_lines.saturating_sub(visible_height - 1).max(1));
+        let indicator = format!(
+            " [{}/{}] ",
+            scroll + 1,
+            total_lines.saturating_sub(visible_height - 1).max(1)
+        );
         modal.render_row(
             frame,
             visible_height as u16,

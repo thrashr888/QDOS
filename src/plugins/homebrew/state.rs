@@ -234,7 +234,9 @@ impl HomebrewState {
             HomebrewTab::Installed => self
                 .packages
                 .iter()
-                .filter(|p| p.status == PackageStatus::Installed || p.status == PackageStatus::Outdated)
+                .filter(|p| {
+                    p.status == PackageStatus::Installed || p.status == PackageStatus::Outdated
+                })
                 .collect(),
             HomebrewTab::Search => self
                 .packages
@@ -286,12 +288,20 @@ impl HomebrewState {
     pub fn next_tab(&mut self) {
         self.tab = self.tab.next();
         self.selected_index = 0;
+        // Clear search when switching tabs (except to Search tab)
+        if self.tab != HomebrewTab::Search {
+            self.search_query.clear();
+        }
     }
 
     /// Switch to previous tab
     pub fn prev_tab(&mut self) {
         self.tab = self.tab.prev();
         self.selected_index = 0;
+        // Clear search when switching tabs (except to Search tab)
+        if self.tab != HomebrewTab::Search {
+            self.search_query.clear();
+        }
     }
 
     /// Clear search
