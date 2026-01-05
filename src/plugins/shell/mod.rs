@@ -11,6 +11,7 @@
 mod modal;
 pub mod pty;
 mod state;
+mod telnet;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crossterm::event::{KeyCode, KeyEvent};
@@ -28,7 +29,9 @@ use std::time::Instant;
 // Re-export state types for external use
 pub use state::{
     BackgroundTask, InteractiveState, ShellMenuItem, ShellState, ShellView, TaskStatus,
+    TelnetHistoryEntry, TelnetMenuItem, TelnetState,
 };
+use telnet::TelnetSession;
 
 /// Shell plugin that provides DOS command functionality
 pub struct ShellPlugin {
@@ -40,6 +43,10 @@ pub struct ShellPlugin {
     next_task_id: u64,
     /// Interactive PTY session (if active)
     interactive: Option<InteractiveState>,
+    /// Telnet session (if connected)
+    telnet_session: Option<TelnetSession>,
+    /// Telnet-specific state
+    telnet_state: TelnetState,
 }
 
 impl ShellPlugin {
@@ -51,6 +58,8 @@ impl ShellPlugin {
             tasks: HashMap::new(),
             next_task_id: 1,
             interactive: None,
+            telnet_session: None,
+            telnet_state: TelnetState::default(),
         }
     }
 
@@ -446,6 +455,13 @@ impl Plugin for ShellPlugin {
             ShellView::Interactive => self.handle_interactive_key(key),
             ShellView::TaskList => self.handle_task_list_key(key),
             ShellView::Attached(id) => self.handle_attached_key(key, id),
+            // Telnet views
+            ShellView::TelnetMenu => self.handle_telnet_menu_key(key),
+            ShellView::TelnetForm => self.handle_telnet_form_key(key),
+            ShellView::TelnetConnecting => self.handle_telnet_connecting_key(key),
+            ShellView::TelnetConnected => self.handle_telnet_connected_key(key),
+            ShellView::TelnetHistory => self.handle_telnet_history_key(key),
+            ShellView::TelnetError => self.handle_telnet_error_key(key),
         }
     }
 
@@ -458,6 +474,15 @@ impl Plugin for ShellPlugin {
             if !interactive.session.is_running() {
                 self.interactive = None;
                 self.state.view = ShellView::Menu;
+            }
+        }
+        // Poll telnet session if connected
+        if let Some(ref session) = self.telnet_session {
+            let _ = session.try_read();
+            // Check if disconnected
+            if !session.is_connected() {
+                self.telnet_session = None;
+                self.state.view = ShellView::TelnetMenu;
             }
         }
     }
@@ -482,6 +507,25 @@ impl Plugin for ShellPlugin {
             ShellView::Attached(id) => {
                 modal::draw_attached_view(frame, area, id, &self.state, &self.tasks, colors)
             }
+            // Telnet views
+            ShellView::TelnetMenu => {
+                modal::draw_telnet_menu_view(frame, area, &self.telnet_state, colors)
+            }
+            ShellView::TelnetForm => {
+                modal::draw_telnet_form_view(frame, area, &self.telnet_state, colors)
+            }
+            ShellView::TelnetConnecting => {
+                modal::draw_telnet_connecting_view(frame, area, &self.telnet_state, colors)
+            }
+            ShellView::TelnetConnected => {
+                modal::draw_telnet_connected_view(frame, area, &self.telnet_session, colors)
+            }
+            ShellView::TelnetHistory => {
+                modal::draw_telnet_history_view(frame, area, &self.telnet_state, colors)
+            }
+            ShellView::TelnetError => {
+                modal::draw_telnet_error_view(frame, area, &self.telnet_state, colors)
+            }
         }
     }
 
@@ -505,6 +549,7 @@ impl Plugin for ShellPlugin {
             "    C - Command mode (single commands)".to_string(),
             "    I - Interactive shell (bash/zsh)".to_string(),
             "    J - Background jobs list".to_string(),
+            "    T - Telnet client".to_string(),
             "".to_string(),
             "  Command Mode:".to_string(),
             "    cmd &     - Run command in background".to_string(),
@@ -518,6 +563,11 @@ impl Plugin for ShellPlugin {
             "  Interactive Mode:".to_string(),
             "    Ctrl+D    - Exit interactive shell".to_string(),
             "    Full PTY  - Run vim, htop, etc.".to_string(),
+            "".to_string(),
+            "  Telnet Mode:".to_string(),
+            "    C - Connect to a server".to_string(),
+            "    H - View connection history".to_string(),
+            "    Ctrl+]   - Disconnect from server".to_string(),
         ]
     }
 
@@ -594,6 +644,11 @@ impl ShellPlugin {
             ShellMenuItem::Jobs => {
                 self.state.view = ShellView::TaskList;
                 self.state.selected_task = 0;
+                KeyHandleResult::Handled
+            }
+            ShellMenuItem::Telnet => {
+                self.state.view = ShellView::TelnetMenu;
+                self.telnet_state.menu_selected = 0;
                 KeyHandleResult::Handled
             }
         }
@@ -801,6 +856,238 @@ impl ShellPlugin {
             }
             _ => KeyHandleResult::Handled,
         }
+    }
+
+    // =========================================================================
+    // Telnet key handlers
+    // =========================================================================
+
+    fn handle_telnet_menu_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.view = ShellView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.telnet_state.menu_selected > 0 {
+                    self.telnet_state.menu_selected -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if self.telnet_state.menu_selected < TelnetMenuItem::ALL.len() - 1 {
+                    self.telnet_state.menu_selected += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                let item = TelnetMenuItem::ALL[self.telnet_state.menu_selected];
+                match item {
+                    TelnetMenuItem::Connect => {
+                        self.telnet_state.host_input.clear();
+                        self.telnet_state.port_input = "23".to_string();
+                        self.telnet_state.input_field = 0;
+                        self.state.view = ShellView::TelnetForm;
+                    }
+                    TelnetMenuItem::History => {
+                        self.telnet_state.history_selected = 0;
+                        self.state.view = ShellView::TelnetHistory;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                let c_upper = c.to_ascii_uppercase();
+                for item in TelnetMenuItem::ALL {
+                    if item.key() == c_upper {
+                        match item {
+                            TelnetMenuItem::Connect => {
+                                self.telnet_state.host_input.clear();
+                                self.telnet_state.port_input = "23".to_string();
+                                self.telnet_state.input_field = 0;
+                                self.state.view = ShellView::TelnetForm;
+                            }
+                            TelnetMenuItem::History => {
+                                self.telnet_state.history_selected = 0;
+                                self.state.view = ShellView::TelnetHistory;
+                            }
+                        }
+                        return KeyHandleResult::Handled;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_telnet_form_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.view = ShellView::TelnetMenu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Tab => {
+                // Toggle between host and port fields
+                self.telnet_state.input_field = (self.telnet_state.input_field + 1) % 2;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                // Attempt connection
+                let host = self.telnet_state.host_input.trim().to_string();
+                let port: u16 = self
+                    .telnet_state
+                    .port_input
+                    .parse()
+                    .unwrap_or(23);
+
+                if host.is_empty() {
+                    self.telnet_state.error_message = Some("Host cannot be empty".to_string());
+                    self.state.view = ShellView::TelnetError;
+                    return KeyHandleResult::Handled;
+                }
+
+                self.state.view = ShellView::TelnetConnecting;
+
+                // Try to connect
+                match TelnetSession::connect(&host, port, 80, 24) {
+                    Ok(session) => {
+                        // Add to history
+                        self.telnet_state.history.push(TelnetHistoryEntry {
+                            host: host.clone(),
+                            port,
+                            connected_at: std::time::SystemTime::now(),
+                        });
+                        self.telnet_session = Some(session);
+                        self.state.view = ShellView::TelnetConnected;
+                    }
+                    Err(e) => {
+                        self.telnet_state.error_message = Some(format!("Connection failed: {}", e));
+                        self.state.view = ShellView::TelnetError;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                if self.telnet_state.input_field == 0 {
+                    self.telnet_state.host_input.pop();
+                } else {
+                    self.telnet_state.port_input.pop();
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                if self.telnet_state.input_field == 0 {
+                    self.telnet_state.host_input.push(c);
+                } else if c.is_ascii_digit() {
+                    self.telnet_state.port_input.push(c);
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_telnet_connecting_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        // Allow canceling with Esc during connection attempt
+        if key.code == KeyCode::Esc {
+            self.state.view = ShellView::TelnetForm;
+        }
+        KeyHandleResult::Handled
+    }
+
+    fn handle_telnet_connected_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        use crossterm::event::KeyModifiers;
+
+        // Ctrl+] is the traditional telnet escape sequence
+        if key.code == KeyCode::Char(']') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.telnet_session = None;
+            self.state.view = ShellView::TelnetMenu;
+            return KeyHandleResult::Handled;
+        }
+
+        // Forward all other keys to the telnet session
+        if let Some(ref session) = self.telnet_session {
+            if let Some(bytes) = telnet::key_to_bytes(key) {
+                let _ = session.write(&bytes);
+            }
+        }
+        KeyHandleResult::Handled
+    }
+
+    fn handle_telnet_history_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.view = ShellView::TelnetMenu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.telnet_state.history_selected > 0 {
+                    self.telnet_state.history_selected -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if !self.telnet_state.history.is_empty()
+                    && self.telnet_state.history_selected < self.telnet_state.history.len() - 1
+                {
+                    self.telnet_state.history_selected += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                // Connect to selected history entry
+                if let Some(entry) = self
+                    .telnet_state
+                    .history
+                    .get(self.telnet_state.history_selected)
+                {
+                    let host = entry.host.clone();
+                    let port = entry.port;
+
+                    self.state.view = ShellView::TelnetConnecting;
+
+                    match TelnetSession::connect(&host, port, 80, 24) {
+                        Ok(session) => {
+                            self.telnet_session = Some(session);
+                            self.state.view = ShellView::TelnetConnected;
+                        }
+                        Err(e) => {
+                            self.telnet_state.error_message =
+                                Some(format!("Connection failed: {}", e));
+                            self.state.view = ShellView::TelnetError;
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                // Delete history entry
+                if !self.telnet_state.history.is_empty() {
+                    self.telnet_state.history.remove(self.telnet_state.history_selected);
+                    if self.telnet_state.history_selected > 0
+                        && self.telnet_state.history_selected >= self.telnet_state.history.len()
+                    {
+                        self.telnet_state.history_selected =
+                            self.telnet_state.history.len().saturating_sub(1);
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_telnet_error_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        // Any key returns to form
+        match key.code {
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(_) => {
+                self.telnet_state.error_message = None;
+                self.state.view = ShellView::TelnetForm;
+            }
+            _ => {}
+        }
+        KeyHandleResult::Handled
     }
 }
 
