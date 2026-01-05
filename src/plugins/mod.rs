@@ -18,10 +18,12 @@ pub mod attribute;
 pub mod beads;
 pub mod clipboard;
 pub mod dirmap;
+pub mod drives;
 pub mod fileops;
 pub mod find;
 pub mod git;
 pub mod help;
+pub mod homebrew;
 pub mod jj;
 pub mod print;
 pub mod proc;
@@ -38,9 +40,11 @@ pub use ai::AIPlugin;
 pub use apps::AppsPlugin;
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
+pub use drives::DrivesPlugin;
 pub use fileops::FileOpsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
+pub use homebrew::HomebrewPlugin;
 pub use jj::JjPlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
@@ -489,6 +493,27 @@ impl PluginManager {
         self.plugins
             .get_mut("jj")
             .and_then(|p| p.as_any_mut().downcast_mut::<jj::JjPlugin>())
+    }
+
+    /// Get mutable reference to AppsPlugin
+    pub fn apps_plugin_mut(&mut self) -> Option<&mut apps::AppsPlugin> {
+        self.plugins
+            .get_mut("apps")
+            .and_then(|p| p.as_any_mut().downcast_mut::<apps::AppsPlugin>())
+    }
+
+    /// Get mutable reference to DrivesPlugin
+    pub fn drives_plugin_mut(&mut self) -> Option<&mut drives::DrivesPlugin> {
+        self.plugins
+            .get_mut("drives")
+            .and_then(|p| p.as_any_mut().downcast_mut::<drives::DrivesPlugin>())
+    }
+
+    /// Get mutable reference to HomebrewPlugin
+    pub fn homebrew_plugin_mut(&mut self) -> Option<&mut homebrew::HomebrewPlugin> {
+        self.plugins
+            .get_mut("homebrew")
+            .and_then(|p| p.as_any_mut().downcast_mut::<homebrew::HomebrewPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

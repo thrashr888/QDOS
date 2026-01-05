@@ -8,7 +8,7 @@ pub mod state;
 use crate::plugins::{
     KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
 };
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
 use state::{AppEntry, AppsState, PluginCategory};
 use std::any::Any;
@@ -20,6 +20,8 @@ pub struct AppsPlugin {
     pub state: AppsState,
     /// ID of plugin to launch after closing Apps modal
     pub launch_plugin: Option<String>,
+    /// Plugin ID that was toggled (enabled/disabled)
+    pub toggled_plugin: Option<(String, bool)>,
 }
 
 impl Default for AppsPlugin {
@@ -34,44 +36,121 @@ impl AppsPlugin {
             initialized: false,
             state: AppsState::new(),
             launch_plugin: None,
+            toggled_plugin: None,
         }
+    }
+
+    /// Toggle the enabled status of the selected app
+    fn toggle_selected(&mut self) -> Option<(String, bool)> {
+        if let Some(app) = self.state.selected_app() {
+            let id = app.id.clone();
+            let new_enabled = !app.enabled;
+            // Update local state
+            for app in &mut self.state.apps {
+                if app.id == id {
+                    app.enabled = new_enabled;
+                    break;
+                }
+            }
+            return Some((id, new_enabled));
+        }
+        None
     }
 
     /// Build the list of available apps/plugins
     fn build_app_list(&mut self) {
         self.state.apps = vec![
-            // Tools category
+            // Files category
             AppEntry {
-                id: "ai".to_string(),
-                name: "AI Assistant".to_string(),
-                description: "Monitor AI coding tools".to_string(),
+                id: "dirmap".to_string(),
+                name: "Dir Map".to_string(),
+                description: "Directory tree view".to_string(),
+                category: PluginCategory::Files,
+                key: 'D',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "space".to_string(),
+                name: "Disk Space".to_string(),
+                description: "Disk usage analyzer".to_string(),
+                category: PluginCategory::Files,
+                key: 'U',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "find".to_string(),
+                name: "Find".to_string(),
+                description: "Search for files".to_string(),
+                category: PluginCategory::Files,
+                key: 'F',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "searchspec".to_string(),
+                name: "Search Spec".to_string(),
+                description: "File filter pattern".to_string(),
+                category: PluginCategory::Files,
+                key: 'W',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "fileops".to_string(),
+                name: "File Ops".to_string(),
+                description: "Copy, move, delete files".to_string(),
+                category: PluginCategory::Files,
+                key: 'O',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "viewer".to_string(),
+                name: "Viewer".to_string(),
+                description: "File content viewer".to_string(),
+                category: PluginCategory::Files,
+                key: 'V',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "qedit".to_string(),
+                name: "Editor".to_string(),
+                description: "Built-in text editor".to_string(),
+                category: PluginCategory::Files,
+                key: 'E',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "print".to_string(),
+                name: "Print".to_string(),
+                description: "Print file contents".to_string(),
+                category: PluginCategory::Files,
+                key: 'R',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "drives".to_string(),
+                name: "Drives".to_string(),
+                description: "Browse mounted volumes".to_string(),
+                category: PluginCategory::Files,
+                key: 'N',
+                available: true,
+                enabled: true,
+            },
+            // Tools category (additional)
+            AppEntry {
+                id: "homebrew".to_string(),
+                name: "Homebrew".to_string(),
+                description: "Browse Homebrew packages".to_string(),
                 category: PluginCategory::Tools,
-                key: 'A',
-                available: true,
-            },
-            AppEntry {
-                id: "proc".to_string(),
-                name: "Processes".to_string(),
-                description: "System process monitor".to_string(),
-                category: PluginCategory::System,
-                key: 'P',
-                available: true,
-            },
-            AppEntry {
-                id: "theme".to_string(),
-                name: "Theme".to_string(),
-                description: "Color theme settings".to_string(),
-                category: PluginCategory::System,
-                key: 'T',
-                available: true,
-            },
-            AppEntry {
-                id: "qdconfig".to_string(),
-                name: "Config".to_string(),
-                description: "QDOS configuration".to_string(),
-                category: PluginCategory::System,
-                key: 'C',
-                available: true,
+                key: 'Y',
+                available: cfg!(target_os = "macos"),
+                enabled: true,
             },
             // VCS category
             AppEntry {
@@ -81,6 +160,7 @@ impl AppsPlugin {
                 category: PluginCategory::Vcs,
                 key: 'G',
                 available: true,
+                enabled: true,
             },
             AppEntry {
                 id: "jj".to_string(),
@@ -89,33 +169,99 @@ impl AppsPlugin {
                 category: PluginCategory::Vcs,
                 key: 'J',
                 available: true,
+                enabled: true,
             },
             AppEntry {
                 id: "beads".to_string(),
                 name: "Beads".to_string(),
                 description: "Issue tracker".to_string(),
-                category: PluginCategory::Tools,
+                category: PluginCategory::Vcs,
                 key: 'B',
                 available: true,
+                enabled: true,
             },
-            // Files category
+            // Tools category
             AppEntry {
-                id: "dirmap".to_string(),
-                name: "Dir Map".to_string(),
-                description: "Directory tree view".to_string(),
-                category: PluginCategory::Files,
-                key: 'D',
+                id: "ai".to_string(),
+                name: "AI Assistant".to_string(),
+                description: "Monitor AI coding tools".to_string(),
+                category: PluginCategory::Tools,
+                key: 'A',
                 available: true,
+                enabled: true,
             },
             AppEntry {
-                id: "space".to_string(),
-                name: "Disk Space".to_string(),
-                description: "Disk usage info".to_string(),
-                category: PluginCategory::Files,
+                id: "shell".to_string(),
+                name: "Shell".to_string(),
+                description: "Interactive shell".to_string(),
+                category: PluginCategory::Tools,
                 key: 'S',
                 available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "clipboard".to_string(),
+                name: "Clipboard".to_string(),
+                description: "Clipboard manager".to_string(),
+                category: PluginCategory::Tools,
+                key: 'L',
+                available: true,
+                enabled: true,
+            },
+            // System category
+            AppEntry {
+                id: "proc".to_string(),
+                name: "Processes".to_string(),
+                description: "System process monitor".to_string(),
+                category: PluginCategory::System,
+                key: 'P',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "theme".to_string(),
+                name: "Theme".to_string(),
+                description: "Color theme settings".to_string(),
+                category: PluginCategory::System,
+                key: 'T',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "qdconfig".to_string(),
+                name: "Config".to_string(),
+                description: "RDOS configuration".to_string(),
+                category: PluginCategory::System,
+                key: 'C',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "help".to_string(),
+                name: "Help".to_string(),
+                description: "Help and documentation".to_string(),
+                category: PluginCategory::System,
+                key: 'H',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
+                id: "status".to_string(),
+                name: "Status".to_string(),
+                description: "Status bar plugin".to_string(),
+                category: PluginCategory::System,
+                key: 'X',
+                available: true,
+                enabled: true,
             },
         ];
+    }
+
+    /// Update enabled status for all apps from config
+    pub fn update_enabled_status(&mut self, config: &crate::config::PluginsConfig) {
+        for app in &mut self.state.apps {
+            app.enabled = config.is_plugin_enabled(&app.id);
+        }
     }
 
     /// Find app by key character
@@ -191,6 +337,7 @@ impl Plugin for AppsPlugin {
         match key.code {
             KeyCode::Esc => {
                 self.state.clear_filter();
+                self.toggled_plugin = None;
                 KeyHandleResult::CloseModal
             }
             KeyCode::Up | KeyCode::Char('k') => {
@@ -202,14 +349,38 @@ impl Plugin for AppsPlugin {
                 KeyHandleResult::Handled
             }
             KeyCode::Enter => {
-                // Launch selected app - clone id first to avoid borrow issues
-                if let Some(app_id) = self.state.selected_app().map(|a| a.id.clone()) {
-                    self.launch_plugin = Some(app_id.clone());
+                // Check if there's a pending toggle - if so, save and close
+                if self.toggled_plugin.is_some() {
+                    let toggled = self.toggled_plugin.take();
                     self.state.clear_filter();
-                    KeyHandleResult::CloseWithSuccess(format!("launch:{}", app_id))
+                    if let Some((id, enabled)) = toggled {
+                        return KeyHandleResult::CloseWithSuccess(format!(
+                            "plugin_toggle:{}:{}",
+                            id, enabled
+                        ));
+                    }
+                }
+                // Launch selected app - clone id first to avoid borrow issues
+                if let Some(app) = self.state.selected_app() {
+                    if app.enabled && app.available {
+                        let app_id = app.id.clone();
+                        self.launch_plugin = Some(app_id.clone());
+                        self.state.clear_filter();
+                        KeyHandleResult::CloseWithSuccess(format!("launch:{}", app_id))
+                    } else {
+                        // Can't launch disabled or unavailable apps
+                        KeyHandleResult::Handled
+                    }
                 } else {
                     KeyHandleResult::Handled
                 }
+            }
+            KeyCode::Char(' ') => {
+                // Space toggles enable/disable for selected plugin
+                if let Some((id, enabled)) = self.toggle_selected() {
+                    self.toggled_plugin = Some((id, enabled));
+                }
+                KeyHandleResult::Handled
             }
             KeyCode::Backspace => {
                 self.state.filter.pop();
@@ -217,14 +388,20 @@ impl Plugin for AppsPlugin {
                 KeyHandleResult::Handled
             }
             KeyCode::Char(c) => {
-                // Check for direct key launch first - clone id to avoid borrow issues
-                if self.state.filter.is_empty() {
-                    if let Some(app_id) = self.find_app_by_key(c).map(|a| a.id.clone()) {
-                        self.launch_plugin = Some(app_id.clone());
-                        return KeyHandleResult::CloseWithSuccess(format!("launch:{}", app_id));
+                // SHIFT+letter = quick launch by key
+                if key.modifiers.contains(KeyModifiers::SHIFT) {
+                    if let Some(app) = self.find_app_by_key(c) {
+                        if app.enabled && app.available {
+                            let app_id = app.id.clone();
+                            self.launch_plugin = Some(app_id.clone());
+                            self.state.clear_filter();
+                            return KeyHandleResult::CloseWithSuccess(format!("launch:{}", app_id));
+                        }
                     }
+                    // SHIFT+letter that doesn't match any app - ignore
+                    return KeyHandleResult::Handled;
                 }
-                // Otherwise add to filter
+                // Regular letter = add to filter
                 self.state.filter.push(c);
                 self.state.selected_index = 0;
                 KeyHandleResult::Handled
@@ -244,12 +421,14 @@ impl Plugin for AppsPlugin {
             "Quick access to QDOS plugins and tools.".to_string(),
             "".to_string(),
             "Keys:".to_string(),
-            "  F12     Open Apps launcher".to_string(),
-            "  ↑↓      Navigate list".to_string(),
-            "  Enter   Open selected app".to_string(),
-            "  A-Z     Quick launch by key".to_string(),
-            "  Type    Filter apps by name".to_string(),
-            "  Esc     Close".to_string(),
+            "  F12       Open Apps launcher".to_string(),
+            "  ↑↓        Navigate list".to_string(),
+            "  Enter     Open selected app".to_string(),
+            "  Shift+Key Quick launch by key".to_string(),
+            "  Space     Toggle enable/disable".to_string(),
+            "  Type      Filter apps by name".to_string(),
+            "  Bksp      Clear filter".to_string(),
+            "  Esc       Close".to_string(),
         ]
     }
 

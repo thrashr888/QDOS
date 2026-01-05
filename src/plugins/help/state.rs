@@ -14,6 +14,8 @@ pub struct HelpState {
     pub topics: Vec<HelpTopic>,
     pub current_topic: usize, // 0 = index page, 1+ = topic pages
     pub scroll_offset: usize,
+    /// Filter string for searching topics
+    pub filter: String,
 }
 
 impl Default for HelpState {
@@ -29,7 +31,31 @@ impl HelpState {
             topics,
             current_topic: 0,
             scroll_offset: 0,
+            filter: String::new(),
         }
+    }
+
+    /// Get filtered topics based on search filter
+    pub fn filtered_topics(&self) -> Vec<(usize, &HelpTopic)> {
+        if self.filter.is_empty() {
+            self.topics.iter().enumerate().collect()
+        } else {
+            let filter_lower = self.filter.to_lowercase();
+            self.topics
+                .iter()
+                .enumerate()
+                .filter(|(_, topic)| {
+                    topic.title.to_lowercase().contains(&filter_lower)
+                        || topic.content.to_lowercase().contains(&filter_lower)
+                })
+                .collect()
+        }
+    }
+
+    /// Clear the filter
+    pub fn clear_filter(&mut self) {
+        self.filter.clear();
+        self.scroll_offset = 0;
     }
 
     /// Add plugin-provided help topics

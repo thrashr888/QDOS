@@ -29,10 +29,10 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    fileops::FileOperation, AIPlugin, AppsPlugin, BeadsPlugin, DirMapPlugin, FileOpsPlugin,
-    GitPlugin, HelpPlugin, JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
-    PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin,
-    ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
+    fileops::FileOperation, AIPlugin, AppsPlugin, BeadsPlugin, DirMapPlugin, DrivesPlugin,
+    FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult, PluginManager,
+    PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin,
+    SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -133,9 +133,11 @@ impl App {
         plugin_manager.register(Box::new(AppsPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
+        plugin_manager.register(Box::new(DrivesPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(HelpPlugin::new()));
+        plugin_manager.register(Box::new(HomebrewPlugin::new()));
         plugin_manager.register(Box::new(JjPlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
@@ -439,11 +441,8 @@ impl App {
             // F1 key is intercepted by handle_plugin_key() before reaching here
             // Status - handled by StatusPlugin via plugin system
             // F2 key is intercepted by handle_plugin_key() before reaching here
-            // Change drive (not applicable on Unix, show error)
-            KeyCode::F(3) => {
-                self.modal =
-                    Modal::Error("Drive selection not available on this platform".to_string());
-            }
+            // Change drive - handled by DrivesPlugin via plugin system
+            // F3 key is intercepted by handle_plugin_key() before reaching here
             // Previous directory
             KeyCode::F(4) => {
                 self.go_to_parent()?;
@@ -2596,6 +2595,14 @@ impl App {
                         }
                     }
 
+                    // Sync plugin enabled status to AppsPlugin when it opens
+                    if plugin_id == "apps" {
+                        let plugins_config = self.config.plugins.clone();
+                        if let Some(apps_plugin) = self.plugin_manager.apps_plugin_mut() {
+                            apps_plugin.update_enabled_status(&plugins_config);
+                        }
+                    }
+
                     self.modal = Modal::Plugin(plugin_id);
                 }
                 true
@@ -2620,6 +2627,19 @@ impl App {
                             let _ = self.navigate_to(&path);
                         }
                     }
+                    self.modal = Modal::None;
+                } else if msg == "drives:navigate" {
+                    // Handle drives navigation
+                    if let Some(drives_plugin) = self.plugin_manager.drives_plugin_mut() {
+                        if let Some(path) = drives_plugin.take_navigate_path() {
+                            let _ = self.navigate_to(&path);
+                        }
+                    }
+                    self.modal = Modal::None;
+                } else if msg.starts_with("homebrew:install:") {
+                    // Handle Homebrew package install
+                    // For now, just close the modal - user can run brew install manually
+                    // Future: could integrate with shell plugin to run the command
                     self.modal = Modal::None;
                 } else if msg == "searchspec:applied" {
                     // Handle search spec update
@@ -2801,6 +2821,41 @@ impl App {
                 } else if let Some(plugin_id) = msg.strip_prefix("launch:") {
                     // Launch a plugin modal from Apps launcher
                     self.launch_plugin_modal(plugin_id);
+                } else if let Some(toggle_info) = msg.strip_prefix("plugin_toggle:") {
+                    // Handle plugin enable/disable toggle from Apps launcher
+                    // Format: "plugin_toggle:plugin_id:true/false"
+                    let parts: Vec<&str> = toggle_info.split(':').collect();
+                    if parts.len() == 2 {
+                        let plugin_id = parts[0];
+                        let enabled = parts[1] == "true";
+
+                        // Update config
+                        if enabled {
+                            // Remove from disabled list
+                            self.config.plugins.disabled.retain(|id| id != plugin_id);
+                        } else {
+                            // Add to disabled list if not already there
+                            if !self
+                                .config
+                                .plugins
+                                .disabled
+                                .contains(&plugin_id.to_string())
+                            {
+                                self.config.plugins.disabled.push(plugin_id.to_string());
+                            }
+                        }
+
+                        // Save config to disk
+                        if let Err(e) = self.save_config() {
+                            self.modal = Modal::Error(format!("Failed to save config: {}", e));
+                            return true;
+                        }
+
+                        let status = if enabled { "enabled" } else { "disabled" };
+                        self.modal = Modal::Success(format!("Plugin '{}' {}", plugin_id, status));
+                    } else {
+                        self.modal = Modal::None;
+                    }
                 } else {
                     self.modal = Modal::Success(msg);
                 }

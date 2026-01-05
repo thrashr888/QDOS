@@ -14,7 +14,7 @@ use crate::plugins::git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };
 use crate::plugins::git::{BlameLine, FileHistoryEntry};
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -489,12 +489,12 @@ impl Plugin for ViewerPlugin {
             version_str
         );
 
-        // Create modal frame
-        let modal = ModalFrame::themed(area, &title, colors);
-        modal.render_frame(frame);
+        // Create full screen view
+        let view = FullScreenView::new(area, &title, colors);
+        view.render_frame(frame);
 
         // Content area
-        let content_area = modal.content_area();
+        let content_area = view.content_area();
         let content_height = content_area.height as usize;
         match state.mode {
             ViewMode::Normal => {
@@ -538,7 +538,7 @@ impl Plugin for ViewerPlugin {
 
         help_hints.push(("Esc", "exit"));
 
-        modal.render_help(frame, help_hints);
+        view.render_help(frame, help_hints);
     }
 
     fn help_content(&self) -> Vec<String> {

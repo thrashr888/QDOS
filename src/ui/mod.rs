@@ -3,6 +3,7 @@ mod modals;
 
 use crate::app::{App, Modal, NavItem, SortMode};
 use crate::file_ops::GitStatus;
+use chrono::Local;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -622,19 +623,31 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let y = area.y + 18;
     frame.render_widget(
         Paragraph::new(Span::styled(
-            format!(" R-DOS — Version {}       ", env!("CARGO_PKG_VERSION")),
+            format!("   R-DOS — Version {}       ", env!("CARGO_PKG_VERSION")),
             blue_style,
         )),
         Rect::new(area.x, y, left_width - 1, 1),
     );
     let y = area.y + 19;
     frame.render_widget(
-        Paragraph::new(Span::styled(" Paul Thrasher - SF, CA      ", blue_style)),
+        Paragraph::new(Span::styled("   Paul Thrasher - SF, CA      ", blue_style)),
+        Rect::new(area.x, y, left_width - 1, 1),
+    );
+
+    // ROW 20: Date and time (Q-DOS style)
+    let now = Local::now();
+    let datetime_str = format!(
+        " {}   {}",
+        now.format("%b %d, %Y"),
+        now.format("%l:%M:%S %P")
+    );
+    let y = area.y + 20;
+    frame.render_widget(
+        Paragraph::new(Span::styled(datetime_str, blue_style)),
         Rect::new(area.x, y, left_width - 1, 1),
     );
 
     // ROWS 21-22: Git and Beads status indicators (only when applicable)
-    // Row 20 is blank (spacing after version/author info)
     // NOTE: These rows are only rendered if they fit within the area bounds
     let green_style = Style::default().fg(colors.green());
     let cyan_style = Style::default().fg(colors.cyan());
@@ -642,7 +655,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let max_y = area.y + area.height; // Maximum valid y (exclusive)
 
     // Row 21: Git status (only if in git repo and row fits)
-    // Format: " git: ↑0↓5 +3 !2 branch-name..."
+    // Format: " ⎇ ↑0↓5 +3 !2 branch-name..."
     if let Some(ref info) = app.git_status_info {
         let y = area.y + 21;
         if y < max_y {
@@ -670,16 +683,16 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 info.branch.clone()
             };
-            let git_status = format!(" git: {}{}", status_prefix, branch_display);
+            let git_status = format!("   ⎇ {}{}", status_prefix, branch_display);
             let padded = format!("{:<width$}", git_status, width = status_width);
             frame.render_widget(
-                Paragraph::new(Span::styled(padded, cyan_style)),
+                Paragraph::new(Span::styled(padded, green_style)),
                 Rect::new(area.x, y, left_width - 1, 1),
             );
         }
     } else if let Some(ref info) = app.jj_status_info {
         // Row 21: JJ status (only if in jj repo WITHOUT git, and row fits)
-        // Format: " jj: !3 ukknozoo master" (modified, change_id, bookmark)
+        // Format: " jj !3 ukknozoo master" (modified, change_id, bookmark)
         let y = area.y + 21;
         if y < max_y {
             let mut parts = Vec::new();
@@ -709,7 +722,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 jj_info
             };
-            let jj_status = format!(" jj: {}{}", status_prefix, info_display);
+            let jj_status = format!("  jj {}{}", status_prefix, info_display);
             let padded = format!("{:<width$}", jj_status, width = status_width);
             frame.render_widget(
                 Paragraph::new(Span::styled(padded, cyan_style)),
@@ -719,7 +732,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     // Row 22: Beads status (only if in beads project and row fits)
-    // Format: " bd: ○19 ●3 ✓12" (open, in-progress, ready)
+    // Format: " ⚬⚬⚬ ○19 ●3 ✓12" (open, in-progress, ready)
     if let Some(ref info) = app.beads_status_info {
         let y = area.y + 22;
         if y < max_y {
@@ -734,9 +747,9 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 parts.push(format!("✓{}", info.ready));
             }
             let status = if parts.is_empty() {
-                " bd: ✓".to_string() // All clear
+                " ⚬⚬⚬ ✓".to_string() // All clear
             } else {
-                format!(" bd: {}", parts.join(" "))
+                format!(" ⚬⚬⚬ {}", parts.join(" "))
             };
             let padded = format!("{:<width$}", status, width = status_width);
             frame.render_widget(

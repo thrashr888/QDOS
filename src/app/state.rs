@@ -539,7 +539,7 @@ impl ColorTheme {
                 red: (157, 31, 20),
                 yellow: (232, 218, 89),
                 grey: (128, 128, 128),
-                cyan: (0, 170, 170),
+                cyan: (105, 195, 186),
                 magenta: (170, 0, 170),
             },
             ColorTheme::Monochrome => ThemeColors {

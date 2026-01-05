@@ -7,7 +7,7 @@ mod state;
 pub use state::HelpState;
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -41,6 +41,7 @@ impl HelpPlugin {
     pub fn open_modal(&mut self) {
         self.state.current_topic = 0;
         self.state.scroll_offset = 0;
+        self.state.filter.clear();
         self.modal_open = true;
     }
 
@@ -117,15 +118,28 @@ impl HelpPlugin {
         self.state.scroll_offset = 0;
     }
 
-    /// Navigate to topic by key
+    /// Navigate to topic by key (works with filtered topics)
     fn navigate_to_topic(&mut self, key: char) -> bool {
         let key_upper = key.to_ascii_uppercase();
-        for (i, topic) in self.state.topics.iter().enumerate() {
+        // If filtering is active, only search in filtered topics
+        let filtered = self.state.filtered_topics();
+        for (original_idx, topic) in filtered {
             if topic.key == key_upper {
-                self.state.current_topic = i + 1;
+                self.state.current_topic = original_idx + 1;
                 self.state.scroll_offset = 0;
                 return true;
             }
+        }
+        false
+    }
+
+    /// Navigate to topic by filtered index (for Enter key selection)
+    fn navigate_to_filtered_topic(&mut self, filtered_idx: usize) -> bool {
+        let filtered = self.state.filtered_topics();
+        if let Some((original_idx, _)) = filtered.get(filtered_idx) {
+            self.state.current_topic = original_idx + 1;
+            self.state.scroll_offset = 0;
+            return true;
         }
         false
     }
@@ -134,6 +148,7 @@ impl HelpPlugin {
     fn go_to_index(&mut self) {
         self.state.current_topic = 0;
         self.state.scroll_offset = 0;
+        self.state.clear_filter();
     }
 
     /// Load help topics from plugins
@@ -207,9 +222,16 @@ impl Plugin for HelpPlugin {
         match key.code {
             KeyCode::Esc => {
                 if self.state.current_topic == 0 {
-                    // On index page, close help
-                    self.close_modal();
-                    KeyHandleResult::CloseModal
+                    // On index page
+                    if !self.state.filter.is_empty() {
+                        // Clear filter first
+                        self.state.clear_filter();
+                        KeyHandleResult::Handled
+                    } else {
+                        // Close help
+                        self.close_modal();
+                        KeyHandleResult::CloseModal
+                    }
                 } else {
                     // On topic page, go back to index
                     self.go_to_index();
@@ -237,7 +259,10 @@ impl Plugin for HelpPlugin {
                 KeyHandleResult::Handled
             }
             KeyCode::Enter => {
-                if self.state.current_topic > 0 {
+                if self.state.current_topic == 0 && !self.state.filter.is_empty() {
+                    // Navigate to first filtered topic
+                    self.navigate_to_filtered_topic(self.state.scroll_offset);
+                } else if self.state.current_topic > 0 {
                     // On topic page, go back to index
                     self.go_to_index();
                 }
@@ -247,10 +272,28 @@ impl Plugin for HelpPlugin {
                 self.close_modal();
                 KeyHandleResult::CloseModal
             }
+            KeyCode::Backspace => {
+                if self.state.current_topic == 0 {
+                    self.state.filter.pop();
+                    self.state.scroll_offset = 0;
+                }
+                KeyHandleResult::Handled
+            }
             KeyCode::Char(c) => {
                 if self.state.current_topic == 0 {
-                    // On index page, navigate to topic
-                    self.navigate_to_topic(c);
+                    // On index page
+                    if self.state.filter.is_empty() {
+                        // Try to navigate to topic by key first
+                        if !self.navigate_to_topic(c) {
+                            // If no match, start filtering
+                            self.state.filter.push(c);
+                            self.state.scroll_offset = 0;
+                        }
+                    } else {
+                        // Already filtering, add to filter
+                        self.state.filter.push(c);
+                        self.state.scroll_offset = 0;
+                    }
                 }
                 KeyHandleResult::Handled
             }
@@ -286,8 +329,8 @@ impl Plugin for HelpPlugin {
 
 impl HelpPlugin {
     fn draw_index(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
-        let modal = ModalFrame::themed(area, " R-DOS Help ", colors).no_footer_separator();
-        modal.render_frame(frame);
+        let view = FullScreenView::new(area, " R-DOS Help ", colors);
+        view.render_frame(frame);
 
         let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
         let key_style = Style::default()
@@ -295,35 +338,44 @@ impl HelpPlugin {
             .bg(colors.bg())
             .add_modifier(Modifier::BOLD);
         let title_style = Style::default().fg(colors.fg()).bg(colors.bg());
+        let grey_style = Style::default().fg(colors.grey()).bg(colors.bg());
 
-        modal.render_row(
-            frame,
-            0,
-            vec![Span::styled(
-                "Select a topic by pressing its key:",
-                label_style,
-            )],
-        );
-        modal.render_row(frame, 1, vec![]);
+        // Show filter if active, otherwise show instruction
+        if !self.state.filter.is_empty() {
+            view.render_row(
+                frame,
+                0,
+                vec![Span::styled(
+                    format!("Filter: {}_ ", self.state.filter),
+                    label_style,
+                )],
+            );
+        } else {
+            view.render_row(
+                frame,
+                0,
+                vec![Span::styled(
+                    "Select a topic by pressing its key or type to filter:",
+                    label_style,
+                )],
+            );
+        }
+        view.render_row(frame, 1, vec![]);
 
-        // Calculate visible height for topics (modal height - borders - title - instruction rows - help)
-        let visible_height = (area.height as usize).saturating_sub(8); // 2 border + 1 title sep + 2 instruction + 1 help sep + 2 help
-        let total_topics = self.state.topics.len();
+        // Calculate visible height for topics
+        let visible_height = view.content_height().saturating_sub(4) as usize;
+
+        // Use filtered topics
+        let filtered = self.state.filtered_topics();
+        let total_topics = filtered.len();
 
         // Calculate scroll range
         let start = self.state.scroll_offset;
         let end = (start + visible_height).min(total_topics);
 
-        for (i, topic) in self
-            .state
-            .topics
-            .iter()
-            .enumerate()
-            .skip(start)
-            .take(end - start)
-        {
-            let row = (i - start) as u16 + 2;
-            modal.render_row(
+        for (display_idx, (_, topic)) in filtered.iter().enumerate().skip(start).take(end - start) {
+            let row = (display_idx - start) as u16 + 2;
+            view.render_row(
                 frame,
                 row,
                 vec![
@@ -333,20 +385,42 @@ impl HelpPlugin {
             );
         }
 
+        // Show "no results" if filter returns empty
+        if total_topics == 0 && !self.state.filter.is_empty() {
+            view.render_row(
+                frame,
+                2,
+                vec![Span::styled("  No matching topics found", grey_style)],
+            );
+        }
+
         // Show scroll indicator if needed
         let scroll_info = if total_topics > visible_height {
-            format!(" [{}-{}/{}]", start + 1, end, total_topics)
+            format!("scroll [{}-{}/{}]", start + 1, end, total_topics)
         } else {
-            String::new()
+            "scroll".to_string()
         };
 
-        modal.render_help(
-            frame,
-            vec![
-                ("↑↓", &format!("scroll{}", scroll_info)),
-                ("ESC", "close help"),
-            ],
-        );
+        if !self.state.filter.is_empty() {
+            view.render_help(
+                frame,
+                vec![
+                    ("Enter", "go to topic"),
+                    ("ESC", "clear filter"),
+                    ("↑↓", &scroll_info),
+                ],
+            );
+        } else {
+            view.render_help(
+                frame,
+                vec![
+                    ("A-Z", "go to topic"),
+                    ("Type", "filter"),
+                    ("↑↓", &scroll_info),
+                    ("ESC", "close"),
+                ],
+            );
+        }
     }
 
     fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
@@ -354,19 +428,19 @@ impl HelpPlugin {
         let topic = &self.state.topics[topic_idx];
 
         let title = format!(" {} ", topic.title);
-        let modal = ModalFrame::themed(area, &title, colors).no_footer_separator();
-        modal.render_frame(frame);
+        let view = FullScreenView::new(area, &title, colors);
+        view.render_frame(frame);
 
         let content_style = Style::default().fg(colors.fg()).bg(colors.bg());
 
         // Get content lines
         let content_lines: Vec<&str> = topic.content.lines().collect();
-        let visible_height = (area.height as usize).saturating_sub(6); // Account for border, title, separator, help
+        let visible_height = view.content_height().saturating_sub(2) as usize;
         let start = self.state.scroll_offset;
         let end = (start + visible_height).min(content_lines.len());
 
         for (i, line) in content_lines[start..end].iter().enumerate() {
-            modal.render_row(frame, i as u16, vec![Span::styled(*line, content_style)]);
+            view.render_row(frame, i as u16, vec![Span::styled(*line, content_style)]);
         }
 
         // Show scroll indicator if needed
@@ -377,7 +451,7 @@ impl HelpPlugin {
             String::new()
         };
 
-        modal.render_help(
+        view.render_help(
             frame,
             vec![
                 ("ESC/Enter", "back to index"),

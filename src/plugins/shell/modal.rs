@@ -8,7 +8,7 @@ use super::state::{
 };
 use super::telnet::TelnetSession;
 use crate::app::ThemeColors;
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
@@ -22,17 +22,17 @@ use tui_term::widget::PseudoTerminal;
 pub fn draw_menu_view(frame: &mut Frame, area: Rect, state: &ShellState, colors: &ThemeColors) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " DOS Command ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " DOS Command ", colors);
+    view.render_frame(frame);
 
     let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
 
-    modal.render_row(
+    view.render_row(
         frame,
         0,
         vec![Span::styled("Select an option:", label_style)],
     );
-    modal.render_row(frame, 1, vec![]);
+    view.render_row(frame, 1, vec![]);
 
     for (i, item) in ShellMenuItem::ALL.iter().enumerate() {
         let is_selected = i == state.menu_selected;
@@ -49,7 +49,7 @@ pub fn draw_menu_view(frame: &mut Frame, area: Rect, state: &ShellState, colors:
 
         let marker = if is_selected { "> " } else { "  " };
 
-        modal.render_row(
+        view.render_row(
             frame,
             (i + 2) as u16,
             vec![
@@ -74,7 +74,7 @@ pub fn draw_menu_view(frame: &mut Frame, area: Rect, state: &ShellState, colors:
         );
     }
 
-    modal.render_help(
+    view.render_help(
         frame,
         vec![
             ("↑↓", "select"),
@@ -94,12 +94,12 @@ pub fn draw_interactive_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " Interactive Shell ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Interactive Shell ", colors);
+    view.render_frame(frame);
 
     if let Some(ref state) = interactive {
         // Get the terminal content area
-        let content_area = modal.content_area();
+        let content_area = view.content_area();
 
         // Get the screen from the parser
         let parser = state.session.screen();
@@ -110,7 +110,7 @@ pub fn draw_interactive_view(
         let pseudo_term = PseudoTerminal::new(screen);
         frame.render_widget(pseudo_term, content_area);
     } else {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -120,7 +120,7 @@ pub fn draw_interactive_view(
         );
     }
 
-    modal.render_help(frame, vec![("Ctrl+D", "exit shell")]);
+    view.render_help(frame, vec![("Ctrl+D", "exit shell")]);
 }
 
 /// Draw the command input view
@@ -134,10 +134,10 @@ pub fn draw_command_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " DOS Command ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " DOS Command ", colors);
+    view.render_frame(frame);
 
-    let content_height = modal.content_height() as usize;
+    let content_height = view.content_height() as usize;
 
     // Draw prompt and input
     let prompt_style = Style::default().fg(colors.green()).bg(colors.bg());
@@ -146,7 +146,7 @@ pub fn draw_command_view(
     let prompt = format!("{}> ", current_cwd.display());
     let prompt_len = prompt.len().min(area.width.saturating_sub(4) as usize);
 
-    modal.render_row(
+    view.render_row(
         frame,
         0,
         vec![
@@ -181,7 +181,7 @@ pub fn draw_command_view(
         } else {
             Style::default().fg(colors.fg()).bg(colors.bg())
         };
-        modal.render_row(
+        view.render_row(
             frame,
             (output_start + i) as u16,
             vec![Span::styled(line, style)],
@@ -206,7 +206,7 @@ pub fn draw_command_view(
         String::new()
     };
 
-    modal.render_row(
+    view.render_row(
         frame,
         status_row,
         vec![
@@ -242,13 +242,13 @@ pub fn draw_task_list_view(
         .count();
     let total = tasks.len();
     let title = format!(" Task List ({} running / {} total) ", running, total);
-    let modal = ModalFrame::themed(area, &title, colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, &title, colors);
+    view.render_frame(frame);
 
-    let content_height = modal.content_height() as usize;
+    let content_height = view.content_height() as usize;
 
     if tasks.is_empty() {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -258,7 +258,7 @@ pub fn draw_task_list_view(
         );
     } else {
         // Header
-        modal.render_row(
+        view.render_row(
             frame,
             0,
             vec![
@@ -321,7 +321,7 @@ pub fn draw_task_list_view(
                     task.command.clone()
                 };
 
-                modal.render_row(
+                view.render_row(
                     frame,
                     (i + 1) as u16,
                     vec![
@@ -338,7 +338,7 @@ pub fn draw_task_list_view(
 
     // Help line
     let status_row = content_height.saturating_sub(1) as u16;
-    modal.render_row(
+    view.render_row(
         frame,
         status_row,
         vec![
@@ -394,10 +394,10 @@ pub fn draw_attached_view(
         title
     };
 
-    let modal = ModalFrame::themed(area, &title_truncated, colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, &title_truncated, colors);
+    view.render_frame(frame);
 
-    let content_height = modal.content_height() as usize;
+    let content_height = view.content_height() as usize;
     let output = task.output.lock().unwrap();
     let output_len = output.len();
 
@@ -416,7 +416,7 @@ pub fn draw_attached_view(
         } else {
             Style::default().fg(colors.fg()).bg(colors.bg())
         };
-        modal.render_row(frame, i as u16, vec![Span::styled(line, style)]);
+        view.render_row(frame, i as u16, vec![Span::styled(line, style)]);
     }
 
     // Status line
@@ -435,7 +435,7 @@ pub fn draw_attached_view(
 
     let scroll_str = format!(" [{}/{}]", scroll + 1, output_len.max(1));
 
-    modal.render_row(
+    view.render_row(
         frame,
         status_row,
         vec![
@@ -489,17 +489,17 @@ pub fn draw_telnet_menu_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " Telnet ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Telnet ", colors);
+    view.render_frame(frame);
 
     let label_style = Style::default().fg(colors.yellow()).bg(colors.bg());
 
-    modal.render_row(
+    view.render_row(
         frame,
         0,
         vec![Span::styled("Select an option:", label_style)],
     );
-    modal.render_row(frame, 1, vec![]);
+    view.render_row(frame, 1, vec![]);
 
     for (i, item) in TelnetMenuItem::ALL.iter().enumerate() {
         let is_selected = i == state.menu_selected;
@@ -516,7 +516,7 @@ pub fn draw_telnet_menu_view(
 
         let marker = if is_selected { "> " } else { "  " };
 
-        modal.render_row(
+        view.render_row(
             frame,
             (i + 2) as u16,
             vec![
@@ -541,7 +541,7 @@ pub fn draw_telnet_menu_view(
         );
     }
 
-    modal.render_help(
+    view.render_help(
         frame,
         vec![
             ("↑↓", "select"),
@@ -561,8 +561,8 @@ pub fn draw_telnet_form_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " Connect to Server ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Connect to Server ", colors);
+    view.render_frame(frame);
 
     let label_style = Style::default().fg(colors.cyan()).bg(colors.bg());
     let input_style = Style::default().fg(colors.fg()).bg(colors.bg());
@@ -573,7 +573,7 @@ pub fn draw_telnet_form_view(
 
     // Host field
     let host_active = state.input_field == 0;
-    modal.render_row(
+    view.render_row(
         frame,
         1,
         vec![
@@ -589,7 +589,7 @@ pub fn draw_telnet_form_view(
 
     // Port field
     let port_active = state.input_field == 1;
-    modal.render_row(
+    view.render_row(
         frame,
         3,
         vec![
@@ -604,7 +604,7 @@ pub fn draw_telnet_form_view(
     );
 
     // Instructions
-    modal.render_row(
+    view.render_row(
         frame,
         5,
         vec![Span::styled(
@@ -613,7 +613,7 @@ pub fn draw_telnet_form_view(
         )],
     );
 
-    modal.render_help(
+    view.render_help(
         frame,
         vec![("Tab", "next field"), ("Enter", "connect"), ("Esc", "back")],
     );
@@ -633,10 +633,10 @@ pub fn draw_telnet_connecting_view(
         state.host_input,
         state.port_input.parse::<u16>().unwrap_or(23)
     );
-    let modal = ModalFrame::themed(area, &title, colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, &title, colors);
+    view.render_frame(frame);
 
-    modal.render_row(
+    view.render_row(
         frame,
         2,
         vec![Span::styled(
@@ -645,7 +645,7 @@ pub fn draw_telnet_connecting_view(
         )],
     );
 
-    modal.render_help(frame, vec![("Esc", "cancel")]);
+    view.render_help(frame, vec![("Esc", "cancel")]);
 }
 
 /// Draw the connected telnet session
@@ -659,11 +659,11 @@ pub fn draw_telnet_connected_view(
 
     if let Some(ref sess) = session {
         let title = format!(" Telnet - {} ", sess.connection_string());
-        let modal = ModalFrame::themed(area, &title, colors);
-        modal.render_frame(frame);
+        let view = FullScreenView::new(area, &title, colors);
+        view.render_frame(frame);
 
         // Get the terminal content area
-        let content_area = modal.content_area();
+        let content_area = view.content_area();
 
         // Get the screen from the parser
         let parser = sess.screen();
@@ -674,12 +674,12 @@ pub fn draw_telnet_connected_view(
         let pseudo_term = PseudoTerminal::new(screen);
         frame.render_widget(pseudo_term, content_area);
 
-        modal.render_help(frame, vec![("Ctrl+]", "disconnect")]);
+        view.render_help(frame, vec![("Ctrl+]", "disconnect")]);
     } else {
-        let modal = ModalFrame::themed(area, " Telnet ", colors);
-        modal.render_frame(frame);
+        let view = FullScreenView::new(area, " Telnet ", colors);
+        view.render_frame(frame);
 
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -688,7 +688,7 @@ pub fn draw_telnet_connected_view(
             )],
         );
 
-        modal.render_help(frame, vec![("Esc", "back")]);
+        view.render_help(frame, vec![("Esc", "back")]);
     }
 }
 
@@ -702,13 +702,13 @@ pub fn draw_telnet_history_view(
     frame.render_widget(Clear, area);
 
     let title = format!(" Connection History ({}) ", state.history.len());
-    let modal = ModalFrame::themed(area, &title, colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, &title, colors);
+    view.render_frame(frame);
 
-    let content_height = modal.content_height() as usize;
+    let content_height = view.content_height() as usize;
 
     if state.history.is_empty() {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -718,7 +718,7 @@ pub fn draw_telnet_history_view(
         );
     } else {
         // Header
-        modal.render_row(
+        view.render_row(
             frame,
             0,
             vec![
@@ -774,7 +774,7 @@ pub fn draw_telnet_history_view(
                 format!("{:<24}", entry.host)
             };
 
-            modal.render_row(
+            view.render_row(
                 frame,
                 (i + 1) as u16,
                 vec![
@@ -791,7 +791,7 @@ pub fn draw_telnet_history_view(
     }
 
     let status_row = content_height.saturating_sub(1) as u16;
-    modal.render_row(
+    view.render_row(
         frame,
         status_row,
         vec![
@@ -820,12 +820,12 @@ pub fn draw_telnet_error_view(
 ) {
     frame.render_widget(Clear, area);
 
-    let modal = ModalFrame::themed(area, " Connection Error ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Connection Error ", colors);
+    view.render_frame(frame);
 
     let error_msg = state.error_message.as_deref().unwrap_or("Unknown error");
 
-    modal.render_row(
+    view.render_row(
         frame,
         2,
         vec![Span::styled(
@@ -834,5 +834,5 @@ pub fn draw_telnet_error_view(
         )],
     );
 
-    modal.render_help(frame, vec![("Any key", "continue")]);
+    view.render_help(frame, vec![("Any key", "continue")]);
 }
