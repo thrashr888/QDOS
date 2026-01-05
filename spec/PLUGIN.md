@@ -784,23 +784,43 @@ fn help_content(&self) -> Vec<String> {
 
 ### 9.2 Help Content Guidelines
 
-- **First line**: Plugin shortcut and name (e.g., `"G - Git Integration"`)
-- **Subsequent lines**: Indented feature descriptions (2 spaces)
-- **Keep concise**: Help topics should fit on one screen
-- **Focus on actions**: Describe what users can do, not implementation
+Follow the Q-DOS II help format (see `spec/help.txt`):
 
-**Example help content structure:**
+- **Title line**: Centered command name (e.g., `"        G -- GIT VERSION CONTROL"`)
+- **Purpose**: Brief description of what it does
+- **To use**: How to access the feature
+- **Key concepts**: Important terms or status bar info
+- **Navigation**: Keyboard shortcuts within the modal
+- **Common workflow**: Step-by-step usage guide
+- **Tip**: Helpful hints (optional)
+
+**Example help content:**
+```rust
+fn help_content(&self) -> Vec<String> {
+    vec![
+        "           J -- JUJUTSU VCS".to_string(),
+        "".to_string(),
+        "Purpose:   Jujutsu (jj) is a modern version control system that".to_string(),
+        "           tracks changes automatically without staging.".to_string(),
+        "".to_string(),
+        "To use:    Press J to open the Jujutsu menu. Only available in".to_string(),
+        "           directories with a .jj folder (jj repositories).".to_string(),
+        "".to_string(),
+        "Key concepts:".to_string(),
+        "  - Changes: Like commits, but mutable until pushed".to_string(),
+        "  - Working copy (@): Your current change, auto-updated".to_string(),
+        "".to_string(),
+        "Navigation:".to_string(),
+        "  Tab       Switch between views".to_string(),
+        "  Enter     Select item or confirm action".to_string(),
+        "  Esc       Go back or close".to_string(),
+        "".to_string(),
+        "Tip: Use Operations > Undo to reverse any jj action.".to_string(),
+    ]
+}
 ```
-J - Jujutsu VCS
-  Status: View working copy status
-  Log: View revision history
-  Diff: Show changes
-  Describe: Update change description
-  New: Create a new change
-  Bookmark: Manage bookmarks
-  Operations: View/undo operations
-  Git: Push/fetch from remotes
-```
+
+**Don't** just list menu items - that duplicates the modal UI.
 
 ### 9.3 How It Works
 
