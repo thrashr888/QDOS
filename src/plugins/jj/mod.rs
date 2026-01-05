@@ -3,7 +3,7 @@
 //! Provides integration with the Jujutsu version control system.
 
 mod modal;
-mod ops;
+pub mod ops;
 mod state;
 
 pub use state::{JjMenuItem, JjState, JjView};

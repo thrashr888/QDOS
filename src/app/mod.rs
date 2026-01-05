@@ -3,6 +3,7 @@ mod state;
 // Re-export plugin ops for backwards compatibility within this module
 use crate::plugins::beads::ops as beads_ops;
 use crate::plugins::git::ops as git_ops;
+use crate::plugins::jj::ops as jj_ops;
 
 // Re-export state types for external use (non-plugin types)
 pub use state::{
@@ -100,6 +101,8 @@ pub struct App {
     pub beads_status_info: Option<beads_ops::BeadsStatusInfo>,
     /// Git status bar info - None if not in git repo
     pub git_status_info: Option<git_ops::GitStatusInfo>,
+    /// JJ status bar info - None if not in jj repo
+    pub jj_status_info: Option<jj_ops::JjStatusInfo>,
     /// Plugin manager for extensibility
     pub plugin_manager: PluginManager,
     /// Last time the file list was refreshed (for auto-refresh)
@@ -178,6 +181,7 @@ impl App {
             show_hidden,
             beads_status_info: None,
             git_status_info: None,
+            jj_status_info: None,
             plugin_manager,
             last_refresh: std::time::Instant::now(),
             dir_watcher: watcher,
@@ -2319,6 +2323,21 @@ impl App {
         false
     }
 
+    /// Check if current directory is in a jj repository
+    pub fn is_jj_repo(&self) -> bool {
+        // Walk up the directory tree looking for .jj
+        let mut path = self.current_path.clone();
+        loop {
+            if path.join(".jj").is_dir() {
+                return true;
+            }
+            if !path.pop() {
+                break;
+            }
+        }
+        false
+    }
+
     /// Check if current directory is in a beads-enabled project
     pub fn is_beads_project(&self) -> bool {
         // Walk up the directory tree looking for .beads
@@ -2469,7 +2488,7 @@ impl App {
         }
     }
 
-    /// Refresh status bar info (beads and git)
+    /// Refresh status bar info (beads, git, and jj)
     pub fn refresh_status_bar(&mut self) {
         // Refresh beads status
         if self.is_beads_project() {
@@ -2483,6 +2502,13 @@ impl App {
             self.git_status_info = git_ops::get_git_status_info(&self.current_path);
         } else {
             self.git_status_info = None;
+        }
+
+        // Refresh jj status
+        if self.is_jj_repo() {
+            self.jj_status_info = jj_ops::get_jj_status_bar_info(&self.current_path);
+        } else {
+            self.jj_status_info = None;
         }
     }
 

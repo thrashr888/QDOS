@@ -642,7 +642,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let max_y = area.y + area.height; // Maximum valid y (exclusive)
 
     // Row 21: Git status (only if in git repo and row fits)
-    // Format: " ↑0↓5 +3 !2 branch-name..."
+    // Format: " git: ↑0↓5 +3 !2 branch-name..."
     if let Some(ref info) = app.git_status_info {
         let y = area.y + 21;
         if y < max_y {
@@ -672,6 +672,45 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             };
             let git_status = format!(" git: {}{}", status_prefix, branch_display);
             let padded = format!("{:<width$}", git_status, width = status_width);
+            frame.render_widget(
+                Paragraph::new(Span::styled(padded, cyan_style)),
+                Rect::new(area.x, y, left_width - 1, 1),
+            );
+        }
+    } else if let Some(ref info) = app.jj_status_info {
+        // Row 21: JJ status (only if in jj repo WITHOUT git, and row fits)
+        // Format: " jj: !3 ukknozoo master" (modified, change_id, bookmark)
+        let y = area.y + 21;
+        if y < max_y {
+            let mut parts = Vec::new();
+            if info.modified > 0 {
+                parts.push(format!("!{}", info.modified));
+            }
+            if info.is_empty {
+                parts.push("∅".to_string()); // Empty indicator
+            }
+            let status_prefix = if parts.is_empty() {
+                String::new()
+            } else {
+                format!("{} ", parts.join(" "))
+            };
+            // Show change_id and bookmark
+            let bookmark_display = info.bookmark.as_deref().unwrap_or("");
+            let jj_info = if bookmark_display.is_empty() {
+                info.change_id.clone()
+            } else {
+                format!("{} {}", info.change_id, bookmark_display)
+            };
+            // Calculate remaining space
+            let prefix_len = status_prefix.len() + 5; // " jj: "
+            let info_space = status_width.saturating_sub(prefix_len);
+            let info_display = if jj_info.len() > info_space {
+                format!("{}…", &jj_info[..info_space.saturating_sub(1)])
+            } else {
+                jj_info
+            };
+            let jj_status = format!(" jj: {}{}", status_prefix, info_display);
+            let padded = format!("{:<width$}", jj_status, width = status_width);
             frame.render_widget(
                 Paragraph::new(Span::styled(padded, cyan_style)),
                 Rect::new(area.x, y, left_width - 1, 1),

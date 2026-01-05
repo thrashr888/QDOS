@@ -6,6 +6,19 @@ use super::state::{JjBookmark, JjChange, JjFileStatus, JjOperation};
 use std::path::Path;
 use std::process::Command;
 
+/// JJ status info for status bar display (similar to GitStatusInfo)
+#[derive(Debug, Clone)]
+pub struct JjStatusInfo {
+    /// Short change ID (e.g., "ukknozoo")
+    pub change_id: String,
+    /// Bookmark name from parent (if any)
+    pub bookmark: Option<String>,
+    /// Number of modified files
+    pub modified: usize,
+    /// Whether working copy is empty
+    pub is_empty: bool,
+}
+
 /// Check if jj is available on the system
 pub fn is_jj_available() -> bool {
     Command::new("jj")
@@ -20,7 +33,7 @@ pub fn is_jj_repo(cwd: &Path) -> bool {
     cwd.join(".jj").is_dir()
 }
 
-/// Get status info for the status bar
+/// Get status info for the status bar (legacy - returns change_id and has_changes)
 pub fn get_jj_status_info(cwd: &Path) -> Option<(String, bool)> {
     if !is_jj_repo(cwd) {
         return None;
@@ -57,6 +70,78 @@ pub fn get_jj_status_info(cwd: &Path) -> Option<(String, bool)> {
         !String::from_utf8_lossy(&status_output.stdout).contains("The working copy has no changes");
 
     Some((change_id, has_changes))
+}
+
+/// Get rich status info for status bar display
+pub fn get_jj_status_bar_info(cwd: &Path) -> Option<JjStatusInfo> {
+    if !is_jj_repo(cwd) {
+        return None;
+    }
+
+    // Get working copy info: change_id, empty
+    let wc_output = Command::new("jj")
+        .args([
+            "log",
+            "-r",
+            "@",
+            "-T",
+            r#"change_id.shortest(8) ++ "\t" ++ if(empty, "true", "false")"#,
+            "--no-graph",
+        ])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+
+    if !wc_output.status.success() {
+        return None;
+    }
+
+    let wc_line = String::from_utf8_lossy(&wc_output.stdout);
+    let wc_parts: Vec<&str> = wc_line.trim().split('\t').collect();
+    let change_id = wc_parts.first().map(|s| s.to_string()).unwrap_or_default();
+    let is_empty = wc_parts.get(1).map(|s| *s == "true").unwrap_or(true);
+
+    // Get parent bookmark
+    let bookmark_output = Command::new("jj")
+        .args(["log", "-r", "@-", "-T", "bookmarks", "--no-graph"])
+        .current_dir(cwd)
+        .output()
+        .ok();
+
+    let bookmark = bookmark_output
+        .filter(|o| o.status.success())
+        .and_then(|o| {
+            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            // Take first bookmark if multiple (remove * indicator)
+            s.split_whitespace()
+                .next()
+                .map(|b| b.trim_end_matches('*').to_string())
+        })
+        .filter(|s| !s.is_empty());
+
+    // Count modified files from diff --summary
+    let diff_output = Command::new("jj")
+        .args(["diff", "--summary"])
+        .current_dir(cwd)
+        .output()
+        .ok();
+
+    let modified = diff_output
+        .filter(|o| o.status.success())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .count()
+        })
+        .unwrap_or(0);
+
+    Some(JjStatusInfo {
+        change_id,
+        bookmark,
+        modified,
+        is_empty,
+    })
 }
 
 /// Load jj status (working copy info and file changes)
