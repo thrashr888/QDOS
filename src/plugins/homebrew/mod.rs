@@ -241,48 +241,93 @@ impl HomebrewPlugin {
             ..Default::default()
         };
 
-        // Extract version
-        if let Some(start) = json.find("\"versions\"") {
-            if let Some(stable_start) = json[start..].find("\"stable\":") {
-                let after = &json[start + stable_start + 10..];
-                if let Some(end) = after.find('"') {
-                    info.version = after[..end].to_string();
+        // Extract version from "stable": "x.x.x"
+        if let Some(start) = json.find("\"stable\":") {
+            let after = &json[start + 10..];
+            // Skip whitespace and find the opening quote
+            let trimmed = after.trim_start();
+            if trimmed.starts_with('"') {
+                if let Some(end) = trimmed[1..].find('"') {
+                    info.version = trimmed[1..end + 1].to_string();
                 }
             }
         }
 
-        // Extract description
+        // Extract description from "desc": "..."
         if let Some(start) = json.find("\"desc\":") {
-            let after = &json[start + 8..];
-            if let Some(end) = after.find('"') {
-                info.description = after[..end].to_string();
+            let after = &json[start + 7..];
+            let trimmed = after.trim_start();
+            if trimmed.starts_with('"') {
+                if let Some(end) = trimmed[1..].find('"') {
+                    info.description = trimmed[1..end + 1].to_string();
+                }
             }
         }
 
-        // Extract homepage
+        // Extract homepage from "homepage": "..."
         if let Some(start) = json.find("\"homepage\":") {
-            let after = &json[start + 12..];
-            if let Some(end) = after.find('"') {
-                info.homepage = after[..end].to_string();
+            let after = &json[start + 11..];
+            let trimmed = after.trim_start();
+            if trimmed.starts_with('"') {
+                if let Some(end) = trimmed[1..].find('"') {
+                    info.homepage = trimmed[1..end + 1].to_string();
+                }
             }
         }
 
-        // Check if installed
-        info.installed = json.contains("\"installed\":[{");
+        // Check if installed - look for "installed": [ followed by { (non-empty array)
+        // The pattern "installed": [\n        { indicates installed
+        if let Some(start) = json.find("\"installed\":") {
+            let after = &json[start + 12..];
+            let trimmed = after.trim_start();
+            // Check if array is non-empty (starts with [ and has content before ])
+            if trimmed.starts_with('[') {
+                let array_content = &trimmed[1..].trim_start();
+                info.installed = array_content.starts_with('{');
 
-        // Extract installed version if present
-        if info.installed {
-            if let Some(start) = json.find("\"installed\":[{") {
-                if let Some(ver_start) = json[start..].find("\"version\":") {
-                    let after = &json[start + ver_start + 11..];
-                    if let Some(end) = after.find('"') {
-                        info.installed_version = Some(after[..end].to_string());
+                // Extract installed version if present
+                if info.installed {
+                    if let Some(ver_start) = array_content.find("\"version\":") {
+                        let ver_after = &array_content[ver_start + 10..];
+                        let ver_trimmed = ver_after.trim_start();
+                        if ver_trimmed.starts_with('"') {
+                            if let Some(end) = ver_trimmed[1..].find('"') {
+                                info.installed_version = Some(ver_trimmed[1..end + 1].to_string());
+                            }
+                        }
                     }
                 }
             }
         }
 
         Some(info)
+    }
+
+    /// Run brew update and refresh the package list
+    fn run_brew_update(&mut self) {
+        self.state.set_loading("Running brew update...");
+
+        // Run brew update
+        let _ = Command::new("brew").arg("update").output();
+
+        // Refresh packages to get new outdated info
+        self.refresh_packages();
+    }
+
+    /// Run a brew command (install/uninstall/upgrade) and refresh
+    fn run_brew_command(&mut self, args: &[&str]) {
+        if args.is_empty() {
+            return;
+        }
+
+        let action = args[0];
+        self.state.set_loading(&format!("Running brew {}...", action));
+
+        // Run the command
+        let _ = Command::new("brew").args(args).output();
+
+        // Refresh packages
+        self.refresh_packages();
     }
 
     /// Search for packages
@@ -514,10 +559,9 @@ impl HomebrewPlugin {
                 self.refresh_packages();
                 KeyHandleResult::Handled
             }
-            // Update homebrew
+            // Update homebrew (runs synchronously and refreshes)
             KeyCode::Char('u') => {
-                self.state.confirm_action = Some(ConfirmAction::Update);
-                self.state.view = HomebrewView::Confirm;
+                self.run_brew_update();
                 KeyHandleResult::Handled
             }
             // Upgrade selected package
@@ -551,6 +595,12 @@ impl HomebrewPlugin {
                         self.state.view = HomebrewView::Confirm;
                     }
                 }
+                KeyHandleResult::Handled
+            }
+            // Filter to outdated only
+            KeyCode::Char('o') => {
+                self.state.show_outdated_only = !self.state.show_outdated_only;
+                self.state.selected_index = 0;
                 KeyHandleResult::Handled
             }
             // Quick filter (just type)
@@ -642,10 +692,25 @@ impl HomebrewPlugin {
             }
             KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
                 if let Some(action) = self.state.confirm_action.take() {
-                    let command = action.command();
+                    // Run the command inline and stay open
+                    match action {
+                        ConfirmAction::Install(pkg) => {
+                            self.run_brew_command(&["install", &pkg]);
+                        }
+                        ConfirmAction::Uninstall(pkg) => {
+                            self.run_brew_command(&["uninstall", &pkg]);
+                        }
+                        ConfirmAction::Upgrade(pkg) => {
+                            self.run_brew_command(&["upgrade", &pkg]);
+                        }
+                        ConfirmAction::UpgradeAll => {
+                            self.run_brew_command(&["upgrade"]);
+                        }
+                        ConfirmAction::Update => {
+                            self.run_brew_update();
+                        }
+                    }
                     self.state.view = HomebrewView::List;
-                    // Return the command to execute
-                    return KeyHandleResult::CloseWithSuccess(format!("homebrew:exec:{}", command));
                 }
                 KeyHandleResult::Handled
             }

@@ -6,6 +6,7 @@
 //! ```ignore
 //! let dialog = ConfirmDialog::new("Delete 5 files?")
 //!     .with_warning("This cannot be undone.")
+//!     .with_command("rm -rf ./files")  // Shows "$ rm -rf ./files"
 //!     .yes_label("Delete")
 //!     .no_label("Cancel");
 //!
@@ -37,6 +38,8 @@ pub struct ConfirmDialog {
     message: String,
     /// Optional warning or details (shown in yellow)
     warning: Option<String>,
+    /// Optional command preview (shown in yellow with $ prefix)
+    command: Option<String>,
     /// Label for the "yes" action
     yes_label: String,
     /// Label for the "no" action
@@ -53,6 +56,7 @@ impl ConfirmDialog {
         Self {
             message: message.to_string(),
             warning: None,
+            command: None,
             yes_label: "Yes".to_string(),
             no_label: "No".to_string(),
             yes_selected: false, // Default to "No" for safety
@@ -69,6 +73,13 @@ impl ConfirmDialog {
     /// Add a warning message (shown in yellow).
     pub fn with_warning(mut self, warning: &str) -> Self {
         self.warning = Some(warning.to_string());
+        self
+    }
+
+    /// Add a command preview (shown in yellow with $ prefix).
+    /// Use this to show the user what command will be executed.
+    pub fn with_command(mut self, command: &str) -> Self {
+        self.command = Some(command.to_string());
         self
     }
 
@@ -121,6 +132,9 @@ impl ConfirmDialog {
         if self.warning.is_some() {
             height += 2; // Warning line + spacing
         }
+        if self.command.is_some() {
+            height += 2; // Command line + spacing
+        }
         height
     }
 
@@ -128,9 +142,10 @@ impl ConfirmDialog {
     pub fn required_width(&self) -> u16 {
         let message_len = self.message.len();
         let warning_len = self.warning.as_ref().map_or(0, |w| w.len());
+        let command_len = self.command.as_ref().map_or(0, |c| c.len() + 2); // +2 for "$ " prefix
         let buttons_len = self.yes_label.len() + self.no_label.len() + 10; // [Yes]  [No] + padding
 
-        (message_len.max(warning_len).max(buttons_len) + 6) as u16
+        (message_len.max(warning_len).max(command_len).max(buttons_len) + 6) as u16
     }
 
     /// Render the dialog inside a centered modal.
@@ -151,7 +166,7 @@ impl ConfirmDialog {
         self.render_content(frame, content_area, colors);
     }
 
-    /// Render just the content (message, warning, buttons) within a given area.
+    /// Render just the content (message, warning, command, buttons) within a given area.
     pub fn render_content(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let mut y = area.y;
 
@@ -172,6 +187,19 @@ impl ConfirmDialog {
             frame.render_widget(
                 Paragraph::new(Span::styled(warning, warn_style)),
                 Rect::new(warn_x, y, warning.len() as u16, 1),
+            );
+            y += 1;
+        }
+
+        // Render command preview if present
+        if let Some(ref command) = self.command {
+            y += 1; // Empty line
+            let cmd_text = format!("$ {}", command);
+            let cmd_style = Style::default().fg(colors.yellow()).bg(colors.bg());
+            let cmd_x = area.x + (area.width.saturating_sub(cmd_text.len() as u16)) / 2;
+            frame.render_widget(
+                Paragraph::new(Span::styled(&cmd_text, cmd_style)),
+                Rect::new(cmd_x, y, cmd_text.len() as u16, 1),
             );
             y += 1;
         }

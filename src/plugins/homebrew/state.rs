@@ -201,6 +201,8 @@ pub struct HomebrewState {
     pub confirm_action: Option<ConfirmAction>,
     /// Outdated packages count
     pub outdated_count: usize,
+    /// Filter to show only outdated packages
+    pub show_outdated_only: bool,
 }
 
 impl HomebrewState {
@@ -233,12 +235,22 @@ impl HomebrewState {
                 .collect(),
         };
 
+        // Apply outdated filter if enabled
+        let filtered: Vec<&PackageEntry> = if self.show_outdated_only {
+            base.into_iter()
+                .filter(|p| p.status == PackageStatus::Outdated)
+                .collect()
+        } else {
+            base
+        };
+
         // Apply search filter if present
         if self.search_query.is_empty() {
-            base
+            filtered
         } else {
             let query = self.search_query.to_lowercase();
-            base.into_iter()
+            filtered
+                .into_iter()
                 .filter(|p| {
                     p.name.to_lowercase().contains(&query)
                         || p.description.to_lowercase().contains(&query)

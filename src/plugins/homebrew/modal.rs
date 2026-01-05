@@ -129,8 +129,13 @@ fn draw_list_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: 
 
     // Add outdated count if any
     if state.outdated_count > 0 {
+        let outdated_text = if state.show_outdated_only {
+            format!("  [{}] outdated (o=all)", state.outdated_count)
+        } else {
+            format!("  {} outdated (o=filter)", state.outdated_count)
+        };
         tab_spans.push(Span::styled(
-            format!("  {} outdated", state.outdated_count),
+            outdated_text,
             Style::default().fg(cyan).bg(bg),
         ));
     }
@@ -198,10 +203,21 @@ fn draw_list_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: 
             };
 
             // Format: > S Name                         Version     Description
-            let name_truncated = if pkg.name.len() > 26 {
-                format!("{}...", &pkg.name[..23])
+            // For outdated packages, show a shorter name to make room for "(outdated)"
+            let name_display = if pkg.status == PackageStatus::Outdated {
+                if pkg.name.len() > 16 {
+                    format!("{}... ^", &pkg.name[..13])
+                } else {
+                    format!("{} ^", pkg.name)
+                }
             } else {
-                format!("{:<26}", pkg.name)
+                pkg.name.clone()
+            };
+
+            let name_truncated = if name_display.len() > 26 {
+                format!("{}...", &name_display[..23])
+            } else {
+                format!("{:<26}", name_display)
             };
 
             let version = pkg
