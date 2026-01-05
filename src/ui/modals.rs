@@ -79,6 +79,10 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
             let modal_area = centered_fixed(50, height, area);
             crate::plugins::clipboard::modal::draw_clipboard_modal(frame, modal_area, state, app);
         }
+        Modal::MkDirInput(name) => {
+            let modal_area = centered_fixed(50, 10, area);
+            draw_mkdir_modal(frame, modal_area, name, app);
+        }
         Modal::None => {}
     }
 }
@@ -126,6 +130,47 @@ pub(super) fn draw_quit_modal(frame: &mut Frame, area: Rect, app: &App) {
 pub(super) fn draw_error_modal(frame: &mut Frame, area: Rect, message: &str, app: &App) {
     use crate::ui::components::MessageModal;
     MessageModal::error(message).render(frame, area, &app.colors());
+}
+
+/// Draw mkdir input modal
+pub(super) fn draw_mkdir_modal(frame: &mut Frame, area: Rect, name: &str, app: &App) {
+    use crate::ui::components::ModalFrame;
+
+    let colors = app.colors();
+
+    let modal = ModalFrame::themed(area, " Make Directory ", &colors)
+        .no_title_separator()
+        .no_footer_separator();
+    modal.render_frame(frame);
+
+    // Content rows
+    modal.render_row(frame, 0, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        1,
+        vec![Span::styled(
+            "Enter new directory name:",
+            Style::default().fg(colors.green()).bg(colors.bg()),
+        )],
+    );
+    modal.render_row(frame, 2, vec![]); // Empty row
+    modal.render_row(
+        frame,
+        3,
+        vec![Span::styled(
+            format!("{}_", name),
+            Style::default().fg(colors.fg()).bg(colors.bg()),
+        )],
+    );
+    modal.render_row(frame, 4, vec![]); // Spacer
+    modal.render_row(
+        frame,
+        5,
+        vec![Span::styled(
+            format!("In: {}", app.current_path.display()),
+            Style::default().fg(colors.grey()).bg(colors.bg()),
+        )],
+    );
 }
 
 /// Draw path input modal with z suggestions

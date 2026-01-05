@@ -22,6 +22,7 @@ pub enum NavItem {
     Open,
     Copy,
     Move,
+    MkDir,
     Find,
     Erase,
     Rename,
@@ -34,13 +35,14 @@ pub enum NavItem {
 }
 
 impl NavItem {
-    pub const ALL: [NavItem; 15] = [
+    pub const ALL: [NavItem; 16] = [
         NavItem::Directory,
         NavItem::Tag,
         NavItem::View,
         NavItem::Open,
         NavItem::Copy,
         NavItem::Move,
+        NavItem::MkDir,
         NavItem::Find,
         NavItem::Erase,
         NavItem::Rename,
@@ -60,6 +62,7 @@ impl NavItem {
             NavItem::Open => "Open",
             NavItem::Copy => "Copy",
             NavItem::Move => "Move",
+            NavItem::MkDir => "MkDir",
             NavItem::Find => "Find",
             NavItem::Erase => "Erase",
             NavItem::Rename => "Rename",
@@ -75,7 +78,7 @@ impl NavItem {
     pub fn description(&self) -> &'static str {
         match self {
             NavItem::Directory => {
-                "Change current directory, make or remove directory, see directory tree"
+                "Change current directory, remove directory, see directory tree"
             }
             NavItem::Tag => {
                 "Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file"
@@ -86,6 +89,7 @@ impl NavItem {
             NavItem::Open => "Open file in its default application (macOS/Linux)",
             NavItem::Copy => "Copy one or several files to another disk or directory",
             NavItem::Move => "Move one or several files from this directory to another directory",
+            NavItem::MkDir => "Create a new directory in the current location",
             NavItem::Find => "Search all directories on the disk to find specified file(s)",
             NavItem::Erase => "Erase one or several files from this directory",
             NavItem::Rename => "Rename one or several files in this directory",
@@ -750,6 +754,7 @@ pub enum Modal {
     MoveTo(String),
     EraseConfirm,
     RenameInput(String),
+    MkDirInput(String),
     Find(FindState),
     BatchRename(BatchRenameState),
     Attribute(AttributeState),

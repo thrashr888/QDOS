@@ -564,6 +564,14 @@ impl App {
                     .unwrap_or(0);
                 self.execute_action()?;
             }
+            KeyCode::Char('K') => {
+                // MkDir (uppercase K only - lowercase k is vim-up)
+                self.nav_index = NavItem::ALL
+                    .iter()
+                    .position(|n| *n == NavItem::MkDir)
+                    .unwrap_or(0);
+                self.execute_action()?;
+            }
             KeyCode::Char('f') | KeyCode::Char('F') => {
                 // Find
                 self.nav_index = NavItem::ALL
@@ -808,6 +816,35 @@ impl App {
                 }
                 KeyCode::Char(c) => {
                     new_name.push(c);
+                }
+                _ => {}
+            },
+            Modal::MkDirInput(ref mut dir_name) => match key.code {
+                KeyCode::Enter => {
+                    let name = dir_name.trim().to_string();
+                    if name.is_empty() {
+                        self.modal = Modal::Error("Directory name cannot be empty".to_string());
+                    } else {
+                        let new_dir = self.current_path.join(&name);
+                        match std::fs::create_dir(&new_dir) {
+                            Ok(()) => {
+                                self.modal = Modal::Success(format!("Created directory: {}", name));
+                                let _ = self.refresh_files();
+                            }
+                            Err(e) => {
+                                self.modal = Modal::Error(format!("Failed to create directory: {}", e));
+                            }
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    self.modal = Modal::None;
+                }
+                KeyCode::Backspace => {
+                    dir_name.pop();
+                }
+                KeyCode::Char(c) => {
+                    dir_name.push(c);
                 }
                 _ => {}
             },
@@ -1741,6 +1778,10 @@ impl App {
                         self.modal = Modal::Plugin("fileops".to_string());
                     }
                 }
+            }
+            NavItem::MkDir => {
+                // Open MkDir dialog to create a new directory
+                self.modal = Modal::MkDirInput(String::new());
             }
             NavItem::Erase => {
                 if !self.tagged_files.is_empty() {
