@@ -1,0 +1,11 @@
+[package]
+name = "search-tools"
+version = "0.1.0"
+edition = "2021"
+description = "Unified Rust wrapper for search tools (ripgrep, ag, grep, ack)"
+authors = ["thrashr888"]
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+thiserror = "2.0"
