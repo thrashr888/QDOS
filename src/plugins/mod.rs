@@ -13,6 +13,7 @@
 #![allow(dead_code)]
 
 pub mod ai;
+pub mod apps;
 pub mod attribute;
 pub mod beads;
 pub mod clipboard;
@@ -34,6 +35,7 @@ pub mod theme;
 pub mod viewer;
 
 pub use ai::AIPlugin;
+pub use apps::AppsPlugin;
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
 pub use fileops::FileOpsPlugin;
@@ -359,6 +361,13 @@ impl PluginManager {
         }
     }
 
+    /// Get mutable reference to AIPlugin
+    pub fn ai_plugin_mut(&mut self) -> Option<&mut ai::AIPlugin> {
+        self.plugins
+            .get_mut("ai")
+            .and_then(|p| p.as_any_mut().downcast_mut::<ai::AIPlugin>())
+    }
+
     /// Get mutable reference to BeadsPlugin for key handling delegation
     pub fn beads_plugin_mut(&mut self) -> Option<&mut beads::BeadsPlugin> {
         self.plugins
@@ -392,6 +401,13 @@ impl PluginManager {
         self.plugins
             .get_mut("space")
             .and_then(|p| p.as_any_mut().downcast_mut::<space::SpacePlugin>())
+    }
+
+    /// Get mutable reference to ProcPlugin
+    pub fn proc_plugin_mut(&mut self) -> Option<&mut proc::ProcPlugin> {
+        self.plugins
+            .get_mut("proc")
+            .and_then(|p| p.as_any_mut().downcast_mut::<proc::ProcPlugin>())
     }
 
     /// Collect help content from all plugins with has_help capability

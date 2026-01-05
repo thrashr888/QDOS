@@ -3,8 +3,8 @@
 //! UI components for displaying AI CLI tool status.
 
 use super::state::{AIMenuItem, AIState, AIView};
-use crate::ui::components::ModalFrame;
 use crate::app::ThemeColors;
+use crate::ui::components::ModalFrame;
 use ratatui::{layout::Rect, style::Style, text::Span, Frame};
 
 /// Draw the AI Assistant modal
@@ -57,13 +57,21 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeC
     };
 
     let codex_status = if state.codex.available {
-        state.codex.model.clone().unwrap_or_else(|| "Ready".to_string())
+        state
+            .codex
+            .model
+            .clone()
+            .unwrap_or_else(|| "Ready".to_string())
     } else {
         "Not installed".to_string()
     };
 
     let gemini_status = if state.gemini.available {
-        state.gemini.auth_type.clone().unwrap_or_else(|| "Ready".to_string())
+        state
+            .gemini
+            .auth_type
+            .clone()
+            .unwrap_or_else(|| "Ready".to_string())
     } else {
         "Not installed".to_string()
     };
@@ -72,10 +80,7 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeC
         frame,
         6,
         vec![Span::styled(
-            format!(
-                "Claude: {}",
-                if state.claude.available { "✓" } else { "✗" }
-            ),
+            format!("Claude: {}", if state.claude.available { "✓" } else { "✗" }),
             Style::default()
                 .fg(if state.claude.available {
                     colors.green()
@@ -98,10 +103,7 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeC
         frame,
         9,
         vec![Span::styled(
-            format!(
-                "Codex: {}",
-                if state.codex.available { "✓" } else { "✗" }
-            ),
+            format!("Codex: {}", if state.codex.available { "✓" } else { "✗" }),
             Style::default()
                 .fg(if state.codex.available {
                     colors.green()
@@ -124,10 +126,7 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeC
         frame,
         12,
         vec![Span::styled(
-            format!(
-                "Gemini: {}",
-                if state.gemini.available { "✓" } else { "✗" }
-            ),
+            format!("Gemini: {}", if state.gemini.available { "✓" } else { "✗" }),
             Style::default()
                 .fg(if state.gemini.available {
                     colors.green()

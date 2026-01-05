@@ -4,7 +4,7 @@
 //! Displays usage stats and configuration from local data files.
 
 mod modal;
-mod ops;
+pub mod ops;
 pub mod state;
 
 use crate::plugins::{
@@ -88,7 +88,7 @@ impl Plugin for AIPlugin {
     fn menu_item(&self) -> Option<PluginMenuItem> {
         Some(PluginMenuItem {
             name: "AI".to_string(),
-            key: 'A',
+            key: 'I',
             description: "Monitor AI coding assistant CLI tools".to_string(),
             priority: 55,
         })
@@ -130,17 +130,10 @@ impl Plugin for AIPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        match key.code {
-            KeyCode::Char('a') | KeyCode::Char('A') => {
-                // Open AI modal
-                self.refresh_status();
-                self.state.view = AIView::Overview;
-                self.state.menu_index = 0;
-                KeyHandleResult::OpenModal
-            }
-            _ => KeyHandleResult::NotHandled,
-        }
+    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        // No global key - AI plugin is accessed through plugin menu system
+        // TODO: Add to F-key menu when Plugin Launcher (QDOS-f5ap) is implemented
+        KeyHandleResult::NotHandled
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {

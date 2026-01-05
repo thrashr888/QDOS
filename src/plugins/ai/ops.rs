@@ -2,9 +2,7 @@
 //!
 //! Functions to read status from AI CLI tool config/data files.
 
-use super::state::{
-    AIProvider, ClaudeDailyStats, ClaudeStatus, CodexStatus, GeminiStatus,
-};
+use super::state::{AIProvider, ClaudeDailyStats, ClaudeStatus, CodexStatus, GeminiStatus};
 use std::fs;
 
 /// Read Claude Code status from ~/.claude/
@@ -173,7 +171,11 @@ pub fn read_gemini_status() -> GeminiStatus {
             }
 
             // Get UI theme
-            if let Some(theme) = json.get("ui").and_then(|v| v.get("theme")).and_then(|v| v.as_str()) {
+            if let Some(theme) = json
+                .get("ui")
+                .and_then(|v| v.get("theme"))
+                .and_then(|v| v.as_str())
+            {
                 status.theme = Some(theme.to_string());
             }
         }
@@ -184,5 +186,9 @@ pub fn read_gemini_status() -> GeminiStatus {
 
 /// Refresh all provider statuses
 pub fn refresh_all_status() -> (ClaudeStatus, CodexStatus, GeminiStatus) {
-    (read_claude_status(), read_codex_status(), read_gemini_status())
+    (
+        read_claude_status(),
+        read_codex_status(),
+        read_gemini_status(),
+    )
 }

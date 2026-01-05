@@ -2772,6 +2772,9 @@ impl App {
                     } else {
                         self.modal = Modal::None;
                     }
+                } else if let Some(plugin_id) = msg.strip_prefix("launch:") {
+                    // Launch a plugin modal from Apps launcher
+                    self.launch_plugin_modal(plugin_id);
                 } else {
                     self.modal = Modal::Success(msg);
                 }
@@ -2805,6 +2808,108 @@ impl App {
             .into_iter()
             .map(|(plugin, info)| (plugin.id().to_string(), info))
             .collect()
+    }
+
+    /// Launch a plugin modal by ID (from Apps launcher)
+    fn launch_plugin_modal(&mut self, plugin_id: &str) {
+        match plugin_id {
+            "ai" => {
+                // Initialize and open AI plugin - refresh status on open
+                if let Some(ai_plugin) = self.plugin_manager.ai_plugin_mut() {
+                    ai_plugin.state.view = crate::plugins::ai::state::AIView::Overview;
+                    ai_plugin.state.menu_index = 0;
+                    // Refresh status from config files
+                    let (claude, codex, gemini) = crate::plugins::ai::ops::refresh_all_status();
+                    ai_plugin.state.claude = claude;
+                    ai_plugin.state.codex = codex;
+                    ai_plugin.state.gemini = gemini;
+                }
+                self.plugin_manager.set_active_modal(Some("ai"));
+                self.modal = Modal::Plugin("ai".to_string());
+            }
+            "proc" => {
+                // Initialize and open Proc plugin - refresh process data
+                if let Some(proc_plugin) = self.plugin_manager.proc_plugin_mut() {
+                    proc_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("proc"));
+                self.modal = Modal::Plugin("proc".to_string());
+            }
+            "theme" => {
+                // Initialize Theme plugin with current theme
+                if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
+                    theme_plugin.open_modal(self.color_theme);
+                }
+                self.plugin_manager.set_active_modal(Some("theme"));
+                self.modal = Modal::Plugin("theme".to_string());
+            }
+            "qdconfig" => {
+                // Initialize Config plugin with current settings
+                let plugins = self.plugin_manager.plugin_list();
+                if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
+                    qdconfig_plugin.open_modal(
+                        self.search_spec.clone(),
+                        self.sort_mode,
+                        self.show_hidden,
+                        self.config.general.confirm_delete,
+                        self.config.editor.command.clone(),
+                        self.color_theme,
+                        self.config.general.mouse_support,
+                        self.config.display.uppercase_names,
+                        self.config.general.auto_refresh_interval,
+                        plugins,
+                    );
+                }
+                self.plugin_manager.set_active_modal(Some("qdconfig"));
+                self.modal = Modal::Plugin("qdconfig".to_string());
+            }
+            "git" => {
+                if self.is_git_repo() {
+                    let state = GitState::new(true);
+                    self.modal = Modal::Git(state);
+                } else {
+                    self.modal = Modal::Error("Not a Git repository".to_string());
+                }
+            }
+            "jj" => {
+                // Initialize JJ plugin - will show error if not in a jj repo
+                let path = self.current_path.clone();
+                if let Some(jj_plugin) = self.plugin_manager.jj_plugin_mut() {
+                    jj_plugin.open_modal(&path);
+                }
+                self.plugin_manager.set_active_modal(Some("jj"));
+                self.modal = Modal::Plugin("jj".to_string());
+            }
+            "beads" => {
+                if self.is_beads_project() {
+                    let state = BeadsState::new(true);
+                    self.modal = Modal::Beads(state);
+                } else {
+                    self.modal = Modal::Error("Beads not initialized in this project".to_string());
+                }
+            }
+            "dirmap" => {
+                // Initialize Dir Map plugin with current path
+                let path = self.current_path.clone();
+                if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
+                    dirmap_plugin.open_modal(&path);
+                }
+                self.plugin_manager.set_active_modal(Some("dirmap"));
+                self.modal = Modal::Plugin("dirmap".to_string());
+            }
+            "space" => {
+                // Initialize Space plugin with current path
+                let path = self.current_path.clone();
+                if let Some(space_plugin) = self.plugin_manager.space_plugin_mut() {
+                    space_plugin.open_modal(&path);
+                }
+                self.plugin_manager.set_active_modal(Some("space"));
+                self.modal = Modal::Plugin("space".to_string());
+            }
+            _ => {
+                self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
+            }
+        }
     }
 }
 

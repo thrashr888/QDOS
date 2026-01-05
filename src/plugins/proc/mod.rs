@@ -167,7 +167,7 @@ impl ProcPlugin {
     }
 
     /// Open the modal
-    fn open_modal(&mut self) {
+    pub fn open_modal(&mut self) {
         self.modal_open = true;
         self.refresh();
     }
@@ -293,14 +293,9 @@ impl Plugin for ProcPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        match key.code {
-            KeyCode::F(12) => {
-                self.open_modal();
-                KeyHandleResult::OpenModal
-            }
-            _ => KeyHandleResult::NotHandled,
-        }
+    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        // Proc is accessed via F12 Apps launcher, no direct global key
+        KeyHandleResult::NotHandled
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
@@ -326,7 +321,7 @@ impl Plugin for ProcPlugin {
         }
 
         match key.code {
-            KeyCode::Esc | KeyCode::F(12) => {
+            KeyCode::Esc => {
                 self.close_modal();
                 KeyHandleResult::CloseModal
             }
@@ -403,7 +398,7 @@ impl Plugin for ProcPlugin {
             "Purpose:   View and manage system processes, memory usage, disk".to_string(),
             "           space, and network activity. Similar to top or htop.".to_string(),
             "".to_string(),
-            "To use:    Press F12 to open the Process Monitor. Use Tab to".to_string(),
+            "To use:    Press F12 for Apps, then P for Processes. Use Tab to".to_string(),
             "           switch between views.".to_string(),
             "".to_string(),
             "Views:".to_string(),
@@ -422,7 +417,7 @@ impl Plugin for ProcPlugin {
             "  R        - Refresh data manually".to_string(),
             "  A        - Toggle auto-refresh (every 3 seconds)".to_string(),
             "  X        - Kill selected process".to_string(),
-            "  Esc/F12  - Close monitor".to_string(),
+            "  Esc      - Close monitor".to_string(),
             "".to_string(),
             "Tip:       Process detail view shows command line, working".to_string(),
             "           directory, parent process, and runtime info.".to_string(),

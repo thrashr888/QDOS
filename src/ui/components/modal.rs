@@ -1,6 +1,10 @@
 //! Modal Frame Component
 //!
 //! Reusable modal frame with double-line borders and consistent styling.
+//!
+//! **Note**: This component is designed for small, centered dialog boxes (e.g., confirm dialogs,
+//! input prompts). For full-screen plugin modals, use [`FullScreenView`](super::FullScreenView)
+//! instead, which provides a cleaner layout with title bar and separators.
 
 #[cfg(test)]
 use crate::app::ColorTheme;
