@@ -466,9 +466,8 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                 let priorities = ["P0", "P1", "P2", "P3", "P4"];
                 let visible_height = content_area.height as usize;
                 let label_width = 15; // "  Description: " length
-                let max_text_width = content_area
-                    .width
-                    .saturating_sub(label_width as u16 + 2) as usize; // -2 for cursor
+                let max_text_width =
+                    content_area.width.saturating_sub(label_width as u16 + 2) as usize; // -2 for cursor
 
                 // Helper to wrap text into lines
                 let wrap_text = |text: &str, width: usize| -> Vec<String> {
@@ -487,11 +486,7 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                                 current.push_str(word);
                             } else if current.is_empty() {
                                 // Word is longer than width, break it
-                                for chunk in word
-                                    .chars()
-                                    .collect::<Vec<_>>()
-                                    .chunks(width.max(1))
-                                {
+                                for chunk in word.chars().collect::<Vec<_>>().chunks(width.max(1)) {
                                     wrapped.push(chunk.iter().collect());
                                 }
                             } else {
@@ -534,7 +529,11 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                 let title_len = title_wrapped.len();
                 for (i, line_text) in title_wrapped.into_iter().enumerate() {
                     let is_last = i == title_len - 1;
-                    let label = if i == 0 { "  Title:       " } else { "               " };
+                    let label = if i == 0 {
+                        "  Title:       "
+                    } else {
+                        "               "
+                    };
                     lines.push(Line::from(vec![
                         Span::styled(label, Style::default().fg(colors.green())),
                         Span::styled(line_text, title_style),
@@ -655,7 +654,9 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                     if target_line < state.create_scroll {
                         target_line
                     } else if target_line >= state.create_scroll + visible_height {
-                        (target_line + 1).saturating_sub(visible_height).min(max_scroll)
+                        (target_line + 1)
+                            .saturating_sub(visible_height)
+                            .min(max_scroll)
                     } else {
                         state.create_scroll.min(max_scroll)
                     }

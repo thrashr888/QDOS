@@ -126,21 +126,21 @@ impl App {
 
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
-        plugin_manager.register(Box::new(HelpPlugin::new()));
-        plugin_manager.register(Box::new(DirMapPlugin::new()));
-        plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
-        plugin_manager.register(Box::new(StatusPlugin::new()));
-        plugin_manager.register(Box::new(SpacePlugin::new()));
-        plugin_manager.register(Box::new(ThemePlugin::new()));
+        plugin_manager.register(Box::new(DirMapPlugin::new()));
+        plugin_manager.register(Box::new(FileOpsPlugin::new()));
+        plugin_manager.register(Box::new(GitPlugin::new()));
+        plugin_manager.register(Box::new(HelpPlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
-        plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
-        plugin_manager.register(Box::new(FileOpsPlugin::new()));
-        plugin_manager.register(Box::new(ShellPlugin::new()));
-        plugin_manager.register(Box::new(ViewerPlugin::new()));
         plugin_manager.register(Box::new(QEditPlugin::new()));
+        plugin_manager.register(Box::new(SearchSpecPlugin::new()));
+        plugin_manager.register(Box::new(ShellPlugin::new()));
+        plugin_manager.register(Box::new(SpacePlugin::new()));
+        plugin_manager.register(Box::new(StatusPlugin::new()));
+        plugin_manager.register(Box::new(ThemePlugin::new()));
+        plugin_manager.register(Box::new(ViewerPlugin::new()));
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
