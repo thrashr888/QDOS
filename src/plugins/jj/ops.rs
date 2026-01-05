@@ -3,8 +3,8 @@
 //! CLI operations for the jj (Jujutsu) VCS plugin.
 
 use super::state::{JjBookmark, JjChange, JjFileStatus, JjOperation};
+use jj_cli::Jj;
 use std::path::Path;
-use std::process::Command;
 
 /// JJ status info for status bar display (similar to GitStatusInfo)
 #[derive(Debug, Clone)]
@@ -21,11 +21,7 @@ pub struct JjStatusInfo {
 
 /// Check if jj is available on the system
 pub fn is_jj_available() -> bool {
-    Command::new("jj")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Jj::new().is_ok()
 }
 
 /// Check if the given directory is a jj repository
@@ -39,9 +35,11 @@ pub fn get_jj_status_info(cwd: &Path) -> Option<(String, bool)> {
         return None;
     }
 
+    let jj = Jj::with_workdir(cwd);
+
     // Get working copy change ID
-    let output = Command::new("jj")
-        .args([
+    let output = jj
+        .run(&[
             "log",
             "-r",
             "@",
@@ -49,25 +47,18 @@ pub fn get_jj_status_info(cwd: &Path) -> Option<(String, bool)> {
             r#"change_id.shortest(8)"#,
             "--no-graph",
         ])
-        .current_dir(cwd)
-        .output()
         .ok()?;
 
-    if !output.status.success() {
+    if !output.success {
         return None;
     }
 
-    let change_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let change_id = output.stdout.trim().to_string();
 
     // Check if there are changes
-    let status_output = Command::new("jj")
-        .args(["status"])
-        .current_dir(cwd)
-        .output()
-        .ok()?;
+    let status_output = jj.run(&["status"]).ok()?;
 
-    let has_changes =
-        !String::from_utf8_lossy(&status_output.stdout).contains("The working copy has no changes");
+    let has_changes = !status_output.stdout.contains("The working copy has no changes");
 
     Some((change_id, has_changes))
 }
@@ -78,9 +69,11 @@ pub fn get_jj_status_bar_info(cwd: &Path) -> Option<JjStatusInfo> {
         return None;
     }
 
+    let jj = Jj::with_workdir(cwd);
+
     // Get working copy info: change_id, empty
-    let wc_output = Command::new("jj")
-        .args([
+    let wc_output = jj
+        .run(&[
             "log",
             "-r",
             "@",
@@ -88,52 +81,38 @@ pub fn get_jj_status_bar_info(cwd: &Path) -> Option<JjStatusInfo> {
             r#"change_id.shortest(8) ++ "\t" ++ if(empty, "true", "false")"#,
             "--no-graph",
         ])
-        .current_dir(cwd)
-        .output()
         .ok()?;
 
-    if !wc_output.status.success() {
+    if !wc_output.success {
         return None;
     }
 
-    let wc_line = String::from_utf8_lossy(&wc_output.stdout);
-    let wc_parts: Vec<&str> = wc_line.trim().split('\t').collect();
+    let wc_parts: Vec<&str> = wc_output.stdout.trim().split('\t').collect();
     let change_id = wc_parts.first().map(|s| s.to_string()).unwrap_or_default();
     let is_empty = wc_parts.get(1).map(|s| *s == "true").unwrap_or(true);
 
     // Get parent bookmark
-    let bookmark_output = Command::new("jj")
-        .args(["log", "-r", "@-", "-T", "bookmarks", "--no-graph"])
-        .current_dir(cwd)
-        .output()
+    let bookmark_output = jj
+        .run(&["log", "-r", "@-", "-T", "bookmarks", "--no-graph"])
         .ok();
 
     let bookmark = bookmark_output
-        .filter(|o| o.status.success())
+        .filter(|o| o.success)
         .and_then(|o| {
-            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
             // Take first bookmark if multiple (remove * indicator)
-            s.split_whitespace()
+            o.stdout
+                .split_whitespace()
                 .next()
                 .map(|b| b.trim_end_matches('*').to_string())
         })
         .filter(|s| !s.is_empty());
 
     // Count modified files from diff --summary
-    let diff_output = Command::new("jj")
-        .args(["diff", "--summary"])
-        .current_dir(cwd)
-        .output()
-        .ok();
+    let diff_output = jj.run(&["diff", "--summary"]).ok();
 
     let modified = diff_output
-        .filter(|o| o.status.success())
-        .map(|o| {
-            String::from_utf8_lossy(&o.stdout)
-                .lines()
-                .filter(|l| !l.is_empty())
-                .count()
-        })
+        .filter(|o| o.success)
+        .map(|o| o.stdout.lines().filter(|l| !l.is_empty()).count())
         .unwrap_or(0);
 
     Some(JjStatusInfo {
@@ -149,9 +128,11 @@ pub fn get_jj_status_bar_info(cwd: &Path) -> Option<JjStatusInfo> {
 pub fn load_jj_status(
     cwd: &Path,
 ) -> Result<(Option<JjChange>, Option<JjChange>, Vec<JjFileStatus>), String> {
+    let jj = Jj::with_workdir(cwd);
+
     // Get working copy info
-    let wc_output = Command::new("jj")
-        .args([
+    let wc_output = jj
+        .run(&[
             "log",
             "-r",
             "@",
@@ -159,19 +140,17 @@ pub fn load_jj_status(
             r#"change_id.shortest(8) ++ "\t" ++ commit_id.shortest(8) ++ "\t" ++ author.email() ++ "\t" ++ committer.timestamp().ago() ++ "\t" ++ if(empty, "true", "false") ++ "\t" ++ if(description, description.first_line(), "(no description set)")"#,
             "--no-graph",
         ])
-        .current_dir(cwd)
-        .output()
         .map_err(|e| format!("Failed to run jj: {}", e))?;
 
-    let working_copy = if wc_output.status.success() {
-        parse_change_line(&String::from_utf8_lossy(&wc_output.stdout), true)
+    let working_copy = if wc_output.success {
+        parse_change_line(&wc_output.stdout, true)
     } else {
         None
     };
 
     // Get parent info
-    let parent_output = Command::new("jj")
-        .args([
+    let parent_output = jj
+        .run(&[
             "log",
             "-r",
             "@-",
@@ -179,25 +158,21 @@ pub fn load_jj_status(
             r#"change_id.shortest(8) ++ "\t" ++ commit_id.shortest(8) ++ "\t" ++ author.email() ++ "\t" ++ committer.timestamp().ago() ++ "\t" ++ if(empty, "true", "false") ++ "\t" ++ if(description, description.first_line(), "(no description set)")"#,
             "--no-graph",
         ])
-        .current_dir(cwd)
-        .output()
         .map_err(|e| format!("Failed to run jj: {}", e))?;
 
-    let parent = if parent_output.status.success() {
-        parse_change_line(&String::from_utf8_lossy(&parent_output.stdout), false)
+    let parent = if parent_output.success {
+        parse_change_line(&parent_output.stdout, false)
     } else {
         None
     };
 
     // Get file changes
-    let diff_output = Command::new("jj")
-        .args(["diff", "--stat"])
-        .current_dir(cwd)
-        .output()
+    let diff_output = jj
+        .run(&["diff", "--stat"])
         .map_err(|e| format!("Failed to run jj diff: {}", e))?;
 
-    let files = if diff_output.status.success() {
-        parse_diff_stat(&String::from_utf8_lossy(&diff_output.stdout))
+    let files = if diff_output.success {
+        parse_diff_stat(&diff_output.stdout)
     } else {
         Vec::new()
     };
@@ -250,8 +225,9 @@ fn parse_diff_stat(output: &str) -> Vec<JjFileStatus> {
 
 /// Load jj log (revision history)
 pub fn load_jj_log(cwd: &Path) -> Result<Vec<JjChange>, String> {
-    let output = Command::new("jj")
-        .args([
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&[
             "log",
             "-r",
             "ancestors(@, 20)",
@@ -259,16 +235,14 @@ pub fn load_jj_log(cwd: &Path) -> Result<Vec<JjChange>, String> {
             r#"change_id.shortest(8) ++ "\t" ++ commit_id.shortest(8) ++ "\t" ++ author.email() ++ "\t" ++ committer.timestamp().ago() ++ "\t" ++ if(empty, "true", "false") ++ "\t" ++ if(current_working_copy, "true", "false") ++ "\t" ++ if(description, description.first_line(), "(no description set)") ++ "\n""#,
             "--no-graph",
         ])
-        .current_dir(cwd)
-        .output()
         .map_err(|e| format!("Failed to run jj log: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     let mut changes = Vec::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
+    for line in output.stdout.lines() {
         let parts: Vec<&str> = line.trim().split('\t').collect();
         if parts.len() >= 7 {
             changes.push(JjChange {
@@ -288,46 +262,41 @@ pub fn load_jj_log(cwd: &Path) -> Result<Vec<JjChange>, String> {
 
 /// Load jj diff
 pub fn load_jj_diff(cwd: &Path) -> Result<Vec<String>, String> {
-    let output = Command::new("jj")
-        .args(["diff", "--git"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["diff", "--git"])
         .map_err(|e| format!("Failed to run jj diff: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
-    let content = String::from_utf8_lossy(&output.stdout);
-    Ok(content.lines().map(|s| s.to_string()).collect())
+    Ok(output.stdout.lines().map(|s| s.to_string()).collect())
 }
 
 /// Load diff for a specific change
 pub fn load_change_diff(cwd: &Path, change_id: &str) -> Result<Vec<String>, String> {
-    let output = Command::new("jj")
-        .args(["diff", "-r", change_id, "--git"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["diff", "-r", change_id, "--git"])
         .map_err(|e| format!("Failed to run jj diff: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
-    let content = String::from_utf8_lossy(&output.stdout);
-    Ok(content.lines().map(|s| s.to_string()).collect())
+    Ok(output.stdout.lines().map(|s| s.to_string()).collect())
 }
 
 /// Update change description
 pub fn describe_change(cwd: &Path, description: &str) -> Result<(), String> {
-    let output = Command::new("jj")
-        .args(["describe", "-m", description])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["describe", "-m", description])
         .map_err(|e| format!("Failed to run jj describe: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     Ok(())
@@ -335,14 +304,13 @@ pub fn describe_change(cwd: &Path, description: &str) -> Result<(), String> {
 
 /// Create a new change
 pub fn create_new_change(cwd: &Path) -> Result<(), String> {
-    let output = Command::new("jj")
-        .args(["new"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["new"])
         .map_err(|e| format!("Failed to run jj new: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     Ok(())
@@ -350,18 +318,17 @@ pub fn create_new_change(cwd: &Path) -> Result<(), String> {
 
 /// Load bookmarks
 pub fn load_bookmarks(cwd: &Path) -> Result<Vec<JjBookmark>, String> {
-    let output = Command::new("jj")
-        .args(["bookmark", "list", "--all-remotes"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["bookmark", "list", "--all-remotes"])
         .map_err(|e| format!("Failed to run jj bookmark list: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     let mut bookmarks = Vec::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
+    for line in output.stdout.lines() {
         if let Some(bookmark) = parse_bookmark_line(line) {
             bookmarks.push(bookmark);
         }
@@ -402,14 +369,13 @@ fn parse_bookmark_line(line: &str) -> Option<JjBookmark> {
 
 /// Create a new bookmark
 pub fn create_bookmark(cwd: &Path, name: &str) -> Result<(), String> {
-    let output = Command::new("jj")
-        .args(["bookmark", "create", name])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["bookmark", "create", name])
         .map_err(|e| format!("Failed to run jj bookmark create: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     Ok(())
@@ -417,14 +383,13 @@ pub fn create_bookmark(cwd: &Path, name: &str) -> Result<(), String> {
 
 /// Delete a bookmark
 pub fn delete_bookmark(cwd: &Path, name: &str) -> Result<(), String> {
-    let output = Command::new("jj")
-        .args(["bookmark", "delete", name])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["bookmark", "delete", name])
         .map_err(|e| format!("Failed to run jj bookmark delete: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     Ok(())
@@ -432,8 +397,9 @@ pub fn delete_bookmark(cwd: &Path, name: &str) -> Result<(), String> {
 
 /// Load operation log
 pub fn load_operations(cwd: &Path) -> Result<Vec<JjOperation>, String> {
-    let output = Command::new("jj")
-        .args([
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&[
             "operation",
             "log",
             "-T",
@@ -441,16 +407,14 @@ pub fn load_operations(cwd: &Path) -> Result<Vec<JjOperation>, String> {
             "--limit",
             "20",
         ])
-        .current_dir(cwd)
-        .output()
         .map_err(|e| format!("Failed to run jj operation log: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     let mut operations = Vec::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
+    for line in output.stdout.lines() {
         let parts: Vec<&str> = line.trim().split('\t').collect();
         if parts.len() >= 4 {
             operations.push(JjOperation {
@@ -467,14 +431,13 @@ pub fn load_operations(cwd: &Path) -> Result<Vec<JjOperation>, String> {
 
 /// Undo the last operation
 pub fn undo_operation(cwd: &Path) -> Result<(), String> {
-    let output = Command::new("jj")
-        .args(["undo"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["undo"])
         .map_err(|e| format!("Failed to run jj undo: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
     Ok(())
@@ -482,30 +445,28 @@ pub fn undo_operation(cwd: &Path) -> Result<(), String> {
 
 /// Git fetch
 pub fn git_fetch(cwd: &Path) -> Result<String, String> {
-    let output = Command::new("jj")
-        .args(["git", "fetch"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["git", "fetch"])
         .map_err(|e| format!("Failed to run jj git fetch: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    Ok(output.stdout)
 }
 
 /// Git push
 pub fn git_push(cwd: &Path) -> Result<String, String> {
-    let output = Command::new("jj")
-        .args(["git", "push"])
-        .current_dir(cwd)
-        .output()
+    let jj = Jj::with_workdir(cwd);
+    let output = jj
+        .run(&["git", "push"])
         .map_err(|e| format!("Failed to run jj git push: {}", e))?;
 
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    if !output.success {
+        return Err(output.stderr);
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    Ok(output.stdout)
 }

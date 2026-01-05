@@ -1894,6 +1894,7 @@ dependencies = [
  "homebrew",
  "humansize",
  "image",
+ "jj-cli",
  "jumprs",
  "notify",
  "portable-pty",
