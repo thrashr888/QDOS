@@ -1,8 +1,8 @@
 //! Homebrew modal rendering
 //!
-//! UI for the Homebrew modal using ModalFrame.
+//! UI for the Homebrew modal with tabs, info view, and confirm dialogs.
 
-use super::state::{HomebrewState, HomebrewView, PackageStatus};
+use super::state::{HomebrewState, HomebrewTab, HomebrewView, PackageStatus};
 use crate::app::ThemeColors;
 use crate::ui::components::ModalFrame;
 use ratatui::layout::Rect;
@@ -17,17 +17,26 @@ pub fn draw_homebrew_modal(
     state: &HomebrewState,
     colors: &ThemeColors,
 ) {
+    match state.view {
+        HomebrewView::List | HomebrewView::SearchInput => draw_list_view(frame, area, state, colors),
+        HomebrewView::Info => draw_info_view(frame, area, state, colors),
+        HomebrewView::Confirm => draw_confirm_view(frame, area, state, colors),
+    }
+}
+
+/// Draw the main list view with tabs
+fn draw_list_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: &ThemeColors) {
     // Calculate centered modal area
-    let popup_width = 75u16.min(area.width.saturating_sub(4));
+    let popup_width = 78u16.min(area.width.saturating_sub(4));
     let popup_height = 22u16.min(area.height.saturating_sub(4));
     let popup_x = (area.width - popup_width) / 2;
     let popup_y = (area.height - popup_height) / 2;
     let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
 
-    let title = if state.search_query.is_empty() {
-        " Homebrew Packages ".to_string()
+    let title = if state.view == HomebrewView::SearchInput {
+        format!(" Search: {} ", state.search_query)
     } else {
-        format!(" Homebrew: {} ", state.search_query)
+        " Homebrew Packages ".to_string()
     };
 
     let modal = ModalFrame::themed(modal_area, &title, colors);
@@ -40,8 +49,7 @@ pub fn draw_homebrew_modal(
     let yellow = colors.yellow();
     let red = colors.red();
     let cyan = colors.cyan();
-
-    let visible_height = modal.content_height() as usize;
+    let blue = colors.blue();
 
     // Check if Homebrew is available
     if !state.homebrew_available {
@@ -59,12 +67,16 @@ pub fn draw_homebrew_modal(
 
     // Loading state
     if state.loading {
+        let msg = state
+            .loading_message
+            .as_deref()
+            .unwrap_or("Loading...");
         modal.render_row(
             frame,
             1,
             vec![Span::styled(
-                " Loading packages...",
-                Style::default().fg(grey).bg(bg),
+                format!(" {} ", msg),
+                Style::default().fg(yellow).bg(bg),
             )],
         );
         return;
@@ -80,14 +92,55 @@ pub fn draw_homebrew_modal(
                 Style::default().fg(red).bg(bg),
             )],
         );
-        modal.render_help(frame, vec![("R", "retry"), ("Esc", "close")]);
+        modal.render_help(frame, vec![("r", "retry"), ("Esc", "close")]);
         return;
     }
+
+    // Tab bar (row 0)
+    let mut tab_spans = vec![Span::styled(" ", Style::default().fg(fg).bg(bg))];
+    for tab in HomebrewTab::all() {
+        let is_active = *tab == state.tab;
+        let style = if is_active {
+            Style::default().fg(yellow).bg(blue)
+        } else {
+            Style::default().fg(grey).bg(bg)
+        };
+
+        let label = match tab {
+            HomebrewTab::Recommended => "Recommended",
+            HomebrewTab::Installed => {
+                // Show count
+                &format!("Installed ({})", state.count_installed())
+            }
+            HomebrewTab::Search => "Search",
+        };
+
+        // For Installed tab, we need to handle differently
+        if matches!(tab, HomebrewTab::Installed) {
+            tab_spans.push(Span::styled(
+                format!(" Installed ({}) ", state.count_installed()),
+                style,
+            ));
+        } else {
+            tab_spans.push(Span::styled(format!(" {} ", label), style));
+        }
+        tab_spans.push(Span::styled(" ", Style::default().fg(fg).bg(bg)));
+    }
+
+    // Add outdated count if any
+    if state.outdated_count > 0 {
+        tab_spans.push(Span::styled(
+            format!("  {} outdated", state.outdated_count),
+            Style::default().fg(cyan).bg(bg),
+        ));
+    }
+
+    modal.render_row(frame, 0, tab_spans);
 
     // Header row
     modal.render_row(
         frame,
-        0,
+        1,
         vec![Span::styled(
             " S Name                         Version     Description",
             Style::default().fg(grey).bg(bg),
@@ -96,21 +149,21 @@ pub fn draw_homebrew_modal(
 
     // Package list
     let filtered = state.filtered_packages();
+    let visible_height = modal.content_height() as usize;
+
     if filtered.is_empty() {
+        let msg = match state.tab {
+            HomebrewTab::Recommended => " No recommended packages loaded. Press r to refresh.",
+            HomebrewTab::Installed => " No packages installed.",
+            HomebrewTab::Search => " No search results. Press / to search.",
+        };
         modal.render_row(
             frame,
-            2,
-            vec![Span::styled(
-                if state.search_query.is_empty() {
-                    " No packages loaded. Press R to refresh."
-                } else {
-                    " No matching packages found"
-                },
-                Style::default().fg(grey).bg(bg),
-            )],
+            3,
+            vec![Span::styled(msg, Style::default().fg(grey).bg(bg))],
         );
     } else {
-        let max_visible = visible_height.saturating_sub(2);
+        let max_visible = visible_height.saturating_sub(3);
         let scroll_offset = if state.selected_index >= max_visible {
             state.selected_index - max_visible + 1
         } else {
@@ -170,7 +223,7 @@ pub fn draw_homebrew_modal(
                 pkg.description.clone()
             };
 
-            let row = 1 + i as u16;
+            let row = 2 + i as u16;
             modal.render_row(
                 frame,
                 row,
@@ -187,25 +240,203 @@ pub fn draw_homebrew_modal(
 
     // Help footer based on view
     match state.view {
-        HomebrewView::List => {
+        HomebrewView::SearchInput => {
+            modal.render_help(frame, vec![("Enter", "search"), ("Esc", "cancel")]);
+        }
+        _ => {
             modal.render_help(
                 frame,
                 vec![
-                    ("Enter", "install"),
+                    ("Tab", "switch"),
+                    ("i", "info"),
                     ("/", "search"),
-                    ("R", "refresh"),
-                    ("Esc", "close"),
+                    ("u", "update"),
+                    ("g", "upgrade"),
+                    ("x", "uninstall"),
                 ],
             );
         }
-        HomebrewView::Search => {
-            modal.render_help(frame, vec![("Enter", "search"), ("Esc", "cancel")]);
-        }
-        HomebrewView::Details => {
-            modal.render_help(
-                frame,
-                vec![("i", "install"), ("u", "uninstall"), ("Esc", "back")],
-            );
-        }
     }
+}
+
+/// Draw the package info view
+fn draw_info_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: &ThemeColors) {
+    let popup_width = 70u16.min(area.width.saturating_sub(4));
+    let popup_height = 18u16.min(area.height.saturating_sub(4));
+    let popup_x = (area.width - popup_width) / 2;
+    let popup_y = (area.height - popup_height) / 2;
+    let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
+
+    let bg = colors.bg();
+    let fg = colors.fg();
+    let grey = colors.grey();
+    let green = colors.green();
+    let cyan = colors.cyan();
+
+    let info = match &state.package_info {
+        Some(info) => info,
+        None => {
+            let modal = ModalFrame::themed(modal_area, " Package Info ", colors);
+            modal.render_frame(frame);
+            modal.render_row(
+                frame,
+                1,
+                vec![Span::styled(
+                    " No package info available",
+                    Style::default().fg(grey).bg(bg),
+                )],
+            );
+            modal.render_help(frame, vec![("Esc", "back")]);
+            return;
+        }
+    };
+
+    let title = format!(" {} ", info.name);
+    let modal = ModalFrame::themed(modal_area, &title, colors);
+    modal.render_frame(frame);
+
+    let mut row = 0u16;
+
+    // Version
+    let version_text = if info.installed {
+        if let Some(ref inst_ver) = info.installed_version {
+            if inst_ver != &info.version && !info.version.is_empty() {
+                format!("{} (installed: {})", info.version, inst_ver)
+            } else {
+                inst_ver.clone()
+            }
+        } else {
+            info.version.clone()
+        }
+    } else {
+        info.version.clone()
+    };
+
+    modal.render_row(
+        frame,
+        row,
+        vec![
+            Span::styled(" Version: ", Style::default().fg(grey).bg(bg)),
+            Span::styled(version_text, Style::default().fg(fg).bg(bg)),
+        ],
+    );
+    row += 1;
+
+    // Status
+    let (status_text, status_color) = if info.installed {
+        ("Installed", green)
+    } else {
+        ("Not installed", grey)
+    };
+    modal.render_row(
+        frame,
+        row,
+        vec![
+            Span::styled(" Status:  ", Style::default().fg(grey).bg(bg)),
+            Span::styled(status_text, Style::default().fg(status_color).bg(bg)),
+        ],
+    );
+    row += 2;
+
+    // Description
+    if !info.description.is_empty() {
+        modal.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                " Description:",
+                Style::default().fg(grey).bg(bg),
+            )],
+        );
+        row += 1;
+
+        // Word wrap description
+        let max_width = (popup_width - 4) as usize;
+        let words: Vec<&str> = info.description.split_whitespace().collect();
+        let mut line = String::from(" ");
+        for word in words {
+            if line.len() + word.len() + 1 > max_width {
+                modal.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(&line, Style::default().fg(fg).bg(bg))],
+                );
+                row += 1;
+                line = format!(" {}", word);
+            } else {
+                if line.len() > 1 {
+                    line.push(' ');
+                }
+                line.push_str(word);
+            }
+        }
+        if line.len() > 1 {
+            modal.render_row(
+                frame,
+                row,
+                vec![Span::styled(line, Style::default().fg(fg).bg(bg))],
+            );
+            row += 1;
+        }
+        row += 1;
+    }
+
+    // Homepage
+    if !info.homepage.is_empty() {
+        modal.render_row(
+            frame,
+            row,
+            vec![
+                Span::styled(" Homepage: ", Style::default().fg(grey).bg(bg)),
+                Span::styled(&info.homepage, Style::default().fg(cyan).bg(bg)),
+            ],
+        );
+    }
+
+    // Help based on install status
+    if info.installed {
+        modal.render_help(frame, vec![("g", "upgrade"), ("x", "uninstall"), ("Esc", "back")]);
+    } else {
+        modal.render_help(frame, vec![("Enter", "install"), ("Esc", "back")]);
+    }
+}
+
+/// Draw the confirm dialog
+fn draw_confirm_view(frame: &mut Frame, area: Rect, state: &HomebrewState, colors: &ThemeColors) {
+    let popup_width = 50u16.min(area.width.saturating_sub(4));
+    let popup_height = 8u16.min(area.height.saturating_sub(4));
+    let popup_x = (area.width - popup_width) / 2;
+    let popup_y = (area.height - popup_height) / 2;
+    let modal_area = Rect::new(popup_x, popup_y, popup_width, popup_height);
+
+    let modal = ModalFrame::themed(modal_area, " Confirm ", colors);
+    modal.render_frame(frame);
+
+    let bg = colors.bg();
+    let fg = colors.fg();
+    let yellow = colors.yellow();
+
+    if let Some(ref action) = state.confirm_action {
+        // Message
+        modal.render_row(
+            frame,
+            1,
+            vec![Span::styled(
+                format!(" {}", action.message()),
+                Style::default().fg(fg).bg(bg),
+            )],
+        );
+
+        // Command preview
+        modal.render_row(
+            frame,
+            3,
+            vec![Span::styled(
+                format!(" $ {}", action.command()),
+                Style::default().fg(yellow).bg(bg),
+            )],
+        );
+    }
+
+    modal.render_help(frame, vec![("y", "yes"), ("n", "no")]);
 }

@@ -11,13 +11,18 @@ use crate::plugins::{
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
-use state::{HomebrewState, HomebrewView, PackageCategory, PackageEntry, PackageStatus};
+use state::{
+    ConfirmAction, HomebrewState, HomebrewTab, HomebrewView, PackageCategory, PackageEntry,
+    PackageInfo, PackageStatus,
+};
 use std::any::Any;
 use std::path::PathBuf;
 use std::process::Command;
 
 /// Recommended packages for QDOS users
 const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
+    // Essential tools
+    ("git", "Distributed version control system"),
     ("ripgrep", "Search tool like grep but faster"),
     ("fd", "Fast and user-friendly find alternative"),
     ("bat", "Cat clone with syntax highlighting"),
@@ -25,16 +30,24 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
     ("fzf", "Fuzzy finder for command line"),
     ("jq", "JSON processor"),
     ("tree", "Display directory tree"),
+    // System tools
     ("htop", "Interactive process viewer"),
     ("ncdu", "NCurses disk usage analyzer"),
     ("tmux", "Terminal multiplexer"),
+    // Development tools
     ("neovim", "Vim-fork focused on extensibility"),
     ("git-delta", "Syntax highlighting for git diffs"),
     ("lazygit", "Terminal UI for git commands"),
     ("jujutsu", "Git-compatible VCS"),
+    // Retro/DOS tools
     ("dosbox-x", "DOS emulator with enhancements"),
     ("basic256", "BASIC programming for beginners"),
     ("basicterminal", "Terminal BASIC interpreter"),
+];
+
+/// Packages from custom taps (format: tap, formula, description)
+const TAP_PACKAGES: &[(&str, &str, &str)] = &[
+    ("thrashr888/qdos", "beads", "Git-native issue tracker"),
 ];
 
 /// Homebrew plugin for package management
@@ -71,23 +84,34 @@ impl HomebrewPlugin {
 
     /// Refresh the package list
     fn refresh_packages(&mut self) {
-        self.state.loading = true;
+        self.state.set_loading("Checking Homebrew...");
         self.state.error = None;
         self.state.packages.clear();
 
         // Check Homebrew availability
         self.state.homebrew_available = self.check_homebrew();
         if !self.state.homebrew_available {
-            self.state.loading = false;
+            self.state.clear_loading();
             return;
         }
 
-        // Get installed packages
-        let installed = self.get_installed_packages();
+        self.state.set_loading("Loading installed packages...");
+
+        // Get installed packages with versions
+        let installed = self.get_installed_packages_with_versions();
+
+        // Get outdated packages
+        self.state.set_loading("Checking for updates...");
+        let outdated = self.get_outdated_packages();
+        self.state.outdated_count = outdated.len();
 
         // Add recommended packages
         for (name, desc) in RECOMMENDED_PACKAGES {
-            let status = if installed.contains(&name.to_string()) {
+            let is_installed = installed.iter().any(|(n, _)| n == name);
+            let is_outdated = outdated.contains(&name.to_string());
+            let status = if is_outdated {
+                PackageStatus::Outdated
+            } else if is_installed {
                 PackageStatus::Installed
             } else {
                 PackageStatus::Available
@@ -97,45 +121,168 @@ impl HomebrewPlugin {
                 name: name.to_string(),
                 description: desc.to_string(),
                 version: None,
-                installed_version: if status == PackageStatus::Installed {
-                    self.get_package_version(name)
-                } else {
-                    None
-                },
+                installed_version: installed
+                    .iter()
+                    .find(|(n, _)| n == name)
+                    .map(|(_, v)| v.clone()),
                 category: PackageCategory::Recommended,
                 status,
             });
         }
 
-        self.state.loading = false;
+        // Add tap packages (like beads)
+        for (tap, formula, desc) in TAP_PACKAGES {
+            let full_name = format!("{}/{}", tap, formula);
+            let is_installed = installed.iter().any(|(n, _)| n == *formula);
+            let is_outdated = outdated.contains(&formula.to_string());
+            let status = if is_outdated {
+                PackageStatus::Outdated
+            } else if is_installed {
+                PackageStatus::Installed
+            } else {
+                PackageStatus::Available
+            };
+
+            self.state.packages.push(PackageEntry {
+                name: full_name,
+                description: desc.to_string(),
+                version: None,
+                installed_version: installed
+                    .iter()
+                    .find(|(n, _)| n == *formula)
+                    .map(|(_, v)| v.clone()),
+                category: PackageCategory::Recommended,
+                status,
+            });
+        }
+
+        // Add all installed packages to Installed tab
+        for (name, version) in &installed {
+            // Skip if already in recommended
+            if self.state.packages.iter().any(|p| {
+                p.name == *name || p.name.ends_with(&format!("/{}", name))
+            }) {
+                continue;
+            }
+
+            let is_outdated = outdated.contains(name);
+            self.state.packages.push(PackageEntry {
+                name: name.clone(),
+                description: String::new(),
+                version: None,
+                installed_version: Some(version.clone()),
+                category: PackageCategory::Installed,
+                status: if is_outdated {
+                    PackageStatus::Outdated
+                } else {
+                    PackageStatus::Installed
+                },
+            });
+        }
+
+        self.state.clear_loading();
     }
 
-    /// Get list of installed packages
-    fn get_installed_packages(&self) -> Vec<String> {
-        if let Ok(output) = Command::new("brew").args(["list", "--formula"]).output() {
+    /// Get list of installed packages with versions
+    fn get_installed_packages_with_versions(&self) -> Vec<(String, String)> {
+        if let Ok(output) = Command::new("brew")
+            .args(["list", "--versions", "--formula"])
+            .output()
+        {
             if output.status.success() {
                 return String::from_utf8_lossy(&output.stdout)
                     .lines()
-                    .map(|s| s.to_string())
+                    .filter_map(|line| {
+                        let mut parts = line.split_whitespace();
+                        let name = parts.next()?.to_string();
+                        let version = parts.next().unwrap_or("").to_string();
+                        Some((name, version))
+                    })
                     .collect();
             }
         }
         Vec::new()
     }
 
-    /// Get version of an installed package
-    fn get_package_version(&self, name: &str) -> Option<String> {
-        if let Ok(output) = Command::new("brew")
-            .args(["list", "--versions", name])
-            .output()
-        {
+    /// Get list of outdated packages
+    fn get_outdated_packages(&self) -> Vec<String> {
+        if let Ok(output) = Command::new("brew").args(["outdated", "--formula"]).output() {
             if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                // Format is "package version"
-                return stdout.split_whitespace().nth(1).map(|s| s.to_string());
+                return String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .map(|s| s.split_whitespace().next().unwrap_or(s).to_string())
+                    .collect();
             }
         }
-        None
+        Vec::new()
+    }
+
+    /// Get detailed info for a package
+    fn get_package_info(&self, name: &str) -> Option<PackageInfo> {
+        let output = Command::new("brew")
+            .args(["info", "--json=v2", name])
+            .output()
+            .ok()?;
+
+        if !output.status.success() {
+            return None;
+        }
+
+        let json_str = String::from_utf8_lossy(&output.stdout);
+        // Parse JSON manually (avoiding serde dependency)
+        self.parse_package_info(&json_str, name)
+    }
+
+    /// Parse package info from brew info JSON output
+    fn parse_package_info(&self, json: &str, name: &str) -> Option<PackageInfo> {
+        // Simple JSON parsing without serde
+        let mut info = PackageInfo {
+            name: name.to_string(),
+            ..Default::default()
+        };
+
+        // Extract version
+        if let Some(start) = json.find("\"versions\"") {
+            if let Some(stable_start) = json[start..].find("\"stable\":") {
+                let after = &json[start + stable_start + 10..];
+                if let Some(end) = after.find('"') {
+                    info.version = after[..end].to_string();
+                }
+            }
+        }
+
+        // Extract description
+        if let Some(start) = json.find("\"desc\":") {
+            let after = &json[start + 8..];
+            if let Some(end) = after.find('"') {
+                info.description = after[..end].to_string();
+            }
+        }
+
+        // Extract homepage
+        if let Some(start) = json.find("\"homepage\":") {
+            let after = &json[start + 12..];
+            if let Some(end) = after.find('"') {
+                info.homepage = after[..end].to_string();
+            }
+        }
+
+        // Check if installed
+        info.installed = json.contains("\"installed\":[{");
+
+        // Extract installed version if present
+        if info.installed {
+            if let Some(start) = json.find("\"installed\":[{") {
+                if let Some(ver_start) = json[start..].find("\"version\":") {
+                    let after = &json[start + ver_start + 11..];
+                    if let Some(end) = after.find('"') {
+                        info.installed_version = Some(after[..end].to_string());
+                    }
+                }
+            }
+        }
+
+        Some(info)
     }
 
     /// Search for packages
@@ -144,7 +291,7 @@ impl HomebrewPlugin {
             return;
         }
 
-        self.state.loading = true;
+        self.state.set_loading("Searching...");
         self.state.error = None;
 
         if let Ok(output) = Command::new("brew")
@@ -153,30 +300,21 @@ impl HomebrewPlugin {
         {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                let installed = self.get_installed_packages();
+                let installed = self.get_installed_packages_with_versions();
+                let installed_names: Vec<&str> = installed.iter().map(|(n, _)| n.as_str()).collect();
 
-                // Clear search results but keep recommended
+                // Clear search results but keep recommended and installed
                 self.state
                     .packages
-                    .retain(|p| p.category == PackageCategory::Recommended);
+                    .retain(|p| p.category != PackageCategory::SearchResults);
 
-                for name in stdout.lines().take(20) {
+                for name in stdout.lines().take(30) {
                     let name = name.trim();
                     if name.is_empty() || name.contains("==>") {
                         continue;
                     }
 
-                    // Skip if already in recommended
-                    if self
-                        .state
-                        .packages
-                        .iter()
-                        .any(|p| p.name == name && p.category == PackageCategory::Recommended)
-                    {
-                        continue;
-                    }
-
-                    let status = if installed.contains(&name.to_string()) {
+                    let status = if installed_names.contains(&name) {
                         PackageStatus::Installed
                     } else {
                         PackageStatus::Available
@@ -184,13 +322,19 @@ impl HomebrewPlugin {
 
                     self.state.packages.push(PackageEntry {
                         name: name.to_string(),
-                        description: "".to_string(),
+                        description: String::new(),
                         version: None,
-                        installed_version: None,
+                        installed_version: installed
+                            .iter()
+                            .find(|(n, _)| n == name)
+                            .map(|(_, v)| v.clone()),
                         category: PackageCategory::SearchResults,
                         status,
                     });
                 }
+
+                // Switch to Search tab to show results
+                self.state.tab = HomebrewTab::Search;
             } else {
                 self.state.error = Some("Search failed".to_string());
             }
@@ -198,7 +342,7 @@ impl HomebrewPlugin {
             self.state.error = Some("Could not run brew search".to_string());
         }
 
-        self.state.loading = false;
+        self.state.clear_loading();
     }
 
     /// Take the package to install (consumes it)
@@ -267,8 +411,9 @@ impl Plugin for HomebrewPlugin {
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         match self.state.view {
             HomebrewView::List => self.handle_list_key(key),
-            HomebrewView::Search => self.handle_search_key(key),
-            HomebrewView::Details => self.handle_details_key(key),
+            HomebrewView::SearchInput => self.handle_search_input_key(key),
+            HomebrewView::Info => self.handle_info_key(key),
+            HomebrewView::Confirm => self.handle_confirm_key(key),
         }
     }
 
@@ -278,26 +423,34 @@ impl Plugin for HomebrewPlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "F7 - Homebrew Packages".to_string(),
+            "Homebrew Packages".to_string(),
             "".to_string(),
-            "Browse and install Homebrew packages.".to_string(),
+            "Browse, search, and manage Homebrew packages.".to_string(),
+            "Access via F12 Apps launcher.".to_string(),
             "".to_string(),
-            "Keys:".to_string(),
-            "  F7        Open Homebrew modal".to_string(),
-            "  ↑↓/jk     Navigate list".to_string(),
-            "  Enter     Install selected package".to_string(),
-            "  /         Search packages".to_string(),
-            "  R         Refresh package list".to_string(),
-            "  Esc       Close".to_string(),
+            "Navigation:".to_string(),
+            "  ↑↓/jk     Navigate package list".to_string(),
+            "  Tab/←→    Switch tabs (Recommended/Installed/Search)".to_string(),
+            "  Enter/i   View package info".to_string(),
+            "  Esc       Close/back".to_string(),
+            "".to_string(),
+            "Actions:".to_string(),
+            "  /         Search Homebrew packages".to_string(),
+            "  r         Refresh package list".to_string(),
+            "  u         Update Homebrew (brew update)".to_string(),
+            "  g         Upgrade selected package".to_string(),
+            "  G         Upgrade ALL outdated packages".to_string(),
+            "  x/d       Uninstall selected package".to_string(),
             "".to_string(),
             "Status Icons:".to_string(),
             "  *         Installed".to_string(),
             "  ^         Update available".to_string(),
             "  ~         Installing".to_string(),
             "".to_string(),
-            "Recommended tools for QDOS:".to_string(),
-            "  ripgrep, fd, bat, eza, fzf".to_string(),
-            "  jq, tree, htop, ncdu, tmux".to_string(),
+            "Tabs:".to_string(),
+            "  Recommended - QDOS essentials".to_string(),
+            "  Installed   - All installed packages".to_string(),
+            "  Search      - Search results".to_string(),
         ]
     }
 
@@ -317,6 +470,7 @@ impl HomebrewPlugin {
                 self.state.clear_search();
                 KeyHandleResult::CloseModal
             }
+            // Navigation
             KeyCode::Up | KeyCode::Char('k') => {
                 self.state.select_prev();
                 KeyHandleResult::Handled
@@ -325,36 +479,83 @@ impl HomebrewPlugin {
                 self.state.select_next();
                 KeyHandleResult::Handled
             }
-            KeyCode::Enter => {
-                // Install selected package
+            // Tab switching
+            KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
+                self.state.next_tab();
+                KeyHandleResult::Handled
+            }
+            KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
+                self.state.prev_tab();
+                KeyHandleResult::Handled
+            }
+            // Info view
+            KeyCode::Enter | KeyCode::Char('i') => {
                 if let Some(pkg) = self.state.selected_package() {
-                    if pkg.status == PackageStatus::Available {
-                        self.install_package = Some(pkg.name.clone());
-                        return KeyHandleResult::CloseWithSuccess(format!(
-                            "homebrew:install:{}",
-                            pkg.name
-                        ));
-                    }
+                    let pkg_name = pkg.name.clone();
+                    // Get just the formula name for tap packages
+                    let lookup_name = if pkg_name.contains('/') {
+                        pkg_name.split('/').next_back().unwrap_or(&pkg_name)
+                    } else {
+                        &pkg_name
+                    };
+                    self.state.package_info = self.get_package_info(lookup_name);
+                    self.state.view = HomebrewView::Info;
                 }
                 KeyHandleResult::Handled
             }
+            // Search
             KeyCode::Char('/') => {
-                self.state.view = HomebrewView::Search;
+                self.state.view = HomebrewView::SearchInput;
                 self.state.search_query.clear();
                 KeyHandleResult::Handled
             }
+            // Refresh
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 self.refresh_packages();
                 KeyHandleResult::Handled
             }
-            KeyCode::Backspace => {
-                self.state.search_query.pop();
-                self.state.selected_index = 0;
+            // Update homebrew
+            KeyCode::Char('u') => {
+                self.state.confirm_action = Some(ConfirmAction::Update);
+                self.state.view = HomebrewView::Confirm;
                 KeyHandleResult::Handled
             }
-            KeyCode::Char(c) => {
-                // Type to filter
-                self.state.search_query.push(c);
+            // Upgrade selected package
+            KeyCode::Char('g') => {
+                if let Some(pkg) = self.state.selected_package() {
+                    if pkg.status == PackageStatus::Outdated || pkg.status == PackageStatus::Installed
+                    {
+                        self.state.confirm_action =
+                            Some(ConfirmAction::Upgrade(pkg.name.clone()));
+                        self.state.view = HomebrewView::Confirm;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Upgrade all (Shift+G)
+            KeyCode::Char('G') => {
+                if self.state.outdated_count > 0 {
+                    self.state.confirm_action = Some(ConfirmAction::UpgradeAll);
+                    self.state.view = HomebrewView::Confirm;
+                }
+                KeyHandleResult::Handled
+            }
+            // Uninstall
+            KeyCode::Char('x') | KeyCode::Char('d') => {
+                if let Some(pkg) = self.state.selected_package() {
+                    if pkg.status == PackageStatus::Installed
+                        || pkg.status == PackageStatus::Outdated
+                    {
+                        self.state.confirm_action =
+                            Some(ConfirmAction::Uninstall(pkg.name.clone()));
+                        self.state.view = HomebrewView::Confirm;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Quick filter (just type)
+            KeyCode::Backspace => {
+                self.state.search_query.pop();
                 self.state.selected_index = 0;
                 KeyHandleResult::Handled
             }
@@ -362,7 +563,7 @@ impl HomebrewPlugin {
         }
     }
 
-    fn handle_search_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+    fn handle_search_input_key(&mut self, key: KeyEvent) -> KeyHandleResult {
         match key.code {
             KeyCode::Esc => {
                 self.state.view = HomebrewView::List;
@@ -388,22 +589,63 @@ impl HomebrewPlugin {
         }
     }
 
-    fn handle_details_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+    fn handle_info_key(&mut self, key: KeyEvent) -> KeyHandleResult {
         match key.code {
-            KeyCode::Esc => {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                self.state.view = HomebrewView::List;
+                self.state.package_info = None;
+                KeyHandleResult::Handled
+            }
+            // Install from info view
+            KeyCode::Enter => {
+                if let Some(ref info) = self.state.package_info {
+                    if !info.installed {
+                        self.state.confirm_action =
+                            Some(ConfirmAction::Install(info.name.clone()));
+                        self.state.view = HomebrewView::Confirm;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Upgrade from info view
+            KeyCode::Char('g') => {
+                if let Some(ref info) = self.state.package_info {
+                    if info.installed {
+                        self.state.confirm_action =
+                            Some(ConfirmAction::Upgrade(info.name.clone()));
+                        self.state.view = HomebrewView::Confirm;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            // Uninstall from info view
+            KeyCode::Char('x') | KeyCode::Char('d') => {
+                if let Some(ref info) = self.state.package_info {
+                    if info.installed {
+                        self.state.confirm_action =
+                            Some(ConfirmAction::Uninstall(info.name.clone()));
+                        self.state.view = HomebrewView::Confirm;
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_confirm_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
+                self.state.confirm_action = None;
                 self.state.view = HomebrewView::List;
                 KeyHandleResult::Handled
             }
-            KeyCode::Char('i') => {
-                // Install
-                if let Some(pkg) = self.state.selected_package() {
-                    if pkg.status == PackageStatus::Available {
-                        self.install_package = Some(pkg.name.clone());
-                        return KeyHandleResult::CloseWithSuccess(format!(
-                            "homebrew:install:{}",
-                            pkg.name
-                        ));
-                    }
+            KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
+                if let Some(action) = self.state.confirm_action.take() {
+                    let command = action.command();
+                    self.state.view = HomebrewView::List;
+                    // Return the command to execute
+                    return KeyHandleResult::CloseWithSuccess(format!("homebrew:exec:{}", command));
                 }
                 KeyHandleResult::Handled
             }
