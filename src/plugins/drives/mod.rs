@@ -15,6 +15,7 @@ use state::{DrivesState, VolumeEntry, VolumeType};
 use std::any::Any;
 use std::fs;
 use std::path::PathBuf;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 
 /// Drives plugin for browsing mounted volumes
