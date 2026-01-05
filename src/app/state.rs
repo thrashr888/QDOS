@@ -27,13 +27,14 @@ pub enum NavItem {
     Rename,
     Git,
     Beads,
+    Jj,
     Space,
     Attribute,
     Print,
 }
 
 impl NavItem {
-    pub const ALL: [NavItem; 14] = [
+    pub const ALL: [NavItem; 15] = [
         NavItem::Directory,
         NavItem::Tag,
         NavItem::View,
@@ -45,6 +46,7 @@ impl NavItem {
         NavItem::Rename,
         NavItem::Git,
         NavItem::Beads,
+        NavItem::Jj,
         NavItem::Space,
         NavItem::Attribute,
         NavItem::Print,
@@ -63,6 +65,7 @@ impl NavItem {
             NavItem::Rename => "Rename",
             NavItem::Git => "Git",
             NavItem::Beads => "Beads",
+            NavItem::Jj => "Jj",
             NavItem::Space => "Space",
             NavItem::Attribute => "Attribute",
             NavItem::Print => "Print",
@@ -88,6 +91,7 @@ impl NavItem {
             NavItem::Rename => "Rename one or several files in this directory",
             NavItem::Git => "Git integration: status, log, diff, commit, push, pull",
             NavItem::Beads => "Beads issue tracker: list, create, manage issues",
+            NavItem::Jj => "Jujutsu VCS: status, log, diff, describe, bookmarks",
             NavItem::Space => "Show the total, used, and free space on any disk",
             NavItem::Attribute => "Change/view file attributes",
             NavItem::Print => "Print one or several files on the printer",

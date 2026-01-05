@@ -294,6 +294,13 @@ impl Plugin for QdconfigPlugin {
                     self.close_modal();
                     KeyHandleResult::CloseWithSuccess("qdconfig:saved".to_string())
                 }
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    // Reload configuration from disk
+                    if let Ok(config) = crate::config::Config::load() {
+                        state.reload_from_config(&config);
+                    }
+                    KeyHandleResult::Handled
+                }
                 _ => KeyHandleResult::Handled,
             }
         }

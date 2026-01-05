@@ -20,6 +20,7 @@ pub mod fileops;
 pub mod find;
 pub mod git;
 pub mod help;
+pub mod jj;
 pub mod print;
 pub mod proc;
 pub mod qdconfig;
@@ -36,6 +37,7 @@ pub use dirmap::DirMapPlugin;
 pub use fileops::FileOpsPlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
+pub use jj::JjPlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
@@ -445,6 +447,13 @@ impl PluginManager {
         self.plugins
             .get_mut("qedit")
             .and_then(|p| p.as_any_mut().downcast_mut::<qedit::QEditPlugin>())
+    }
+
+    /// Get mutable reference to JjPlugin
+    pub fn jj_plugin_mut(&mut self) -> Option<&mut jj::JjPlugin> {
+        self.plugins
+            .get_mut("jj")
+            .and_then(|p| p.as_any_mut().downcast_mut::<jj::JjPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

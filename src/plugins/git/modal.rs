@@ -2,7 +2,7 @@
 
 use crate::app::App;
 use crate::plugins::git::{GitMenuItem, GitState, GitView, RemoteAction};
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -34,12 +34,12 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
         GitView::Submodules => " GIT SUBMODULES ",
     };
 
-    // Create modal frame
-    let modal = ModalFrame::themed(area, title, &colors);
-    modal.render_frame(frame);
+    // Create full screen view
+    let view = FullScreenView::new(area, title, &colors);
+    view.render_frame(frame);
 
     // Content area
-    let content_area = modal.content_area();
+    let content_area = view.content_area();
 
     if !state.is_repo {
         // Not a git repo
@@ -1007,5 +1007,5 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
             ],
         }
     };
-    modal.render_help(frame, help_hints);
+    view.render_help(frame, help_hints);
 }

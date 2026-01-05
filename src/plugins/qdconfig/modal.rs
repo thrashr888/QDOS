@@ -264,6 +264,7 @@ pub fn draw_config_modal(
                 ("↑↓", "select"),
                 ("Enter/Space", "toggle"),
                 ("S", "save"),
+                ("R", "reload"),
                 ("ESC", "close"),
             ],
         );

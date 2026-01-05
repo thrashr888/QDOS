@@ -29,9 +29,9 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
-    KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    ThemePlugin, ViewerPlugin,
+    JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
+    ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin,
+    StatusPlugin, ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -131,6 +131,7 @@ impl App {
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(HelpPlugin::new()));
+        plugin_manager.register(Box::new(JjPlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
@@ -436,8 +437,20 @@ impl App {
                 self.go_to_parent()?;
             }
             // Change directory - start with empty input for z jumper style
+            // Shift+F5 = reload config
             KeyCode::F(5) => {
-                self.modal = Modal::PathInput(String::new());
+                if key.modifiers.contains(KeyModifiers::SHIFT) {
+                    match self.reload_config() {
+                        Ok(msg) => {
+                            self.modal = Modal::Success(msg);
+                        }
+                        Err(e) => {
+                            self.modal = Modal::Error(format!("Config reload failed: {}", e));
+                        }
+                    }
+                } else {
+                    self.modal = Modal::PathInput(String::new());
+                }
             }
             // Shell Command - handled by ShellPlugin via plugin system
             // Search spec - handled by SearchSpecPlugin via plugin system
@@ -1777,6 +1790,14 @@ impl App {
                 let is_beads = self.is_beads_project();
                 self.modal = Modal::Beads(BeadsState::new(is_beads));
             }
+            NavItem::Jj => {
+                // Open jj modal via plugin
+                if let Some(jj_plugin) = self.plugin_manager.jj_plugin_mut() {
+                    jj_plugin.open_modal(&self.current_path);
+                    self.plugin_manager.set_active_modal(Some("jj"));
+                    self.modal = Modal::Plugin("jj".to_string());
+                }
+            }
             NavItem::View => {
                 if self.files.is_empty() || self.files[self.selected_index].name == ".." {
                     self.modal = Modal::Error(errors::command::NO_FILES_FOR_COMMAND.to_string());
@@ -1903,6 +1924,59 @@ impl App {
             .filter(|f| !f.is_dir)
             .map(|f| f.size)
             .sum()
+    }
+
+    /// Reload configuration from disk
+    /// Returns a message describing what was reloaded
+    pub fn reload_config(&mut self) -> Result<String> {
+        let config = Config::load().unwrap_or_default();
+
+        // Track what changed
+        let mut changes = Vec::new();
+
+        // Update sort mode
+        let new_sort_mode = config.to_sort_mode();
+        if self.sort_mode != new_sort_mode {
+            self.sort_mode = new_sort_mode;
+            changes.push("sort");
+            // Re-sort files
+            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+        }
+
+        // Update theme
+        let new_theme: ColorTheme = config.display.theme.clone().into();
+        if self.color_theme != new_theme {
+            self.color_theme = new_theme;
+            changes.push("theme");
+        }
+
+        // Update search spec
+        if self.search_spec != config.general.search_spec {
+            self.search_spec = config.general.search_spec.clone();
+            changes.push("search_spec");
+        }
+
+        // Update show hidden
+        if self.show_hidden != config.general.show_hidden {
+            self.show_hidden = config.general.show_hidden;
+            changes.push("show_hidden");
+            // Refresh file list
+            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+        }
+
+        // Update plugin config
+        self.plugin_manager.set_config(config.plugins.clone());
+
+        // Store updated config
+        self.config = config;
+
+        let msg = if changes.is_empty() {
+            "Config reloaded (no changes)".to_string()
+        } else {
+            format!("Config reloaded: {}", changes.join(", "))
+        };
+
+        Ok(msg)
     }
 
     /// Tab completion for paths
