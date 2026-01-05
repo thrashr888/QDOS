@@ -23,6 +23,7 @@
       "Bash(cargo update:*)",
       "Bash(gh auth:*)",
       "Bash(gh release download:*)",
+      "Bash(gh release list:*)",
       "Bash(gh release view:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
