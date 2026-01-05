@@ -2,9 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(./target/debug/rdos:*)",
+      "Bash(bd blocked)",
       "Bash(bd close:*)",
       "Bash(bd create:*)",
+      "Bash(bd dep:*)",
       "Bash(bd list:*)",
+      "Bash(bd ready:*)",
       "Bash(bd show:*)",
       "Bash(bd update:*)",
       "Bash(cargo build:*)",
@@ -27,6 +30,13 @@
       "Bash(git status:*)",
       "Bash(grep:*)",
       "Bash(head:*)",
+      "Bash(jj --version:*)",
+      "Bash(jj bookmark list:*)",
+      "Bash(jj diff:*)",
+      "Bash(jj help:*)",
+      "Bash(jj log:*)",
+      "Bash(jj operation:*)",
+      "Bash(jj status:*)",
       "Bash(rdos --help:*)",
       "Bash(rdos --version:*)",
       "Bash(shasum:*)",
@@ -34,9 +44,7 @@
       "Bash(wc:*)",
       "Skill(beads:create)",
       "Skill(beads:list)",
-      "WebFetch(domain:docs.rs)",
-      "Bash(bd blocked)",
-      "Bash(bd dep:*)"
+      "WebFetch(domain:docs.rs)"
     ]
   }
 }
