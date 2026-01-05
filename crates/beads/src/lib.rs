@@ -105,7 +105,7 @@ pub struct Issue {
     pub id: String,
     pub title: String,
     pub status: String,
-    #[serde(rename = "type")]
+    #[serde(rename = "issue_type", alias = "type")]
     pub issue_type: String,
     #[serde(default)]
     pub priority: Option<u8>,
@@ -117,9 +117,11 @@ pub struct Issue {
     pub parent: Option<String>,
     #[serde(default)]
     pub labels: Vec<String>,
-    #[serde(default)]
+    /// Issues this depends on (blockers)
+    #[serde(default, alias = "blocked_by")]
     pub depends_on: Vec<String>,
-    #[serde(default)]
+    /// Issues blocked by this (dependents)
+    #[serde(default, alias = "dependents")]
     pub blocks: Vec<String>,
     #[serde(default)]
     pub created_at: Option<String>,

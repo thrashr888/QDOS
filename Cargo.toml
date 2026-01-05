@@ -78,6 +78,7 @@ jumprs = "0.1"
 # Workspace crates
 homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
+beads-cli = { path = "crates/beads" }
 
 [profile.release]
 lto = true

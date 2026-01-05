@@ -10,7 +10,7 @@ use crate::plugins::git::GitState;
 
 // Import Beads types from plugins/beads/state.rs for Modal enum
 pub use crate::plugins::beads::{
-    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsSubIssue, BeadsView,
+    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsView,
 };
 
 /// Navigation menu items

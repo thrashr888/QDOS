@@ -22,7 +22,7 @@ pub use crate::plugins::git::{
 };
 
 // Re-export types used by beads plugin ops (will move to beads plugin later)
-pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsSubIssue};
+pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue};
 
 use crate::config::Config;
 use crate::errors;

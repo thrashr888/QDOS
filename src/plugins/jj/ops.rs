@@ -58,7 +58,9 @@ pub fn get_jj_status_info(cwd: &Path) -> Option<(String, bool)> {
     // Check if there are changes
     let status_output = jj.run(&["status"]).ok()?;
 
-    let has_changes = !status_output.stdout.contains("The working copy has no changes");
+    let has_changes = !status_output
+        .stdout
+        .contains("The working copy has no changes");
 
     Some((change_id, has_changes))
 }
