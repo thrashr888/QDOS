@@ -314,9 +314,35 @@ impl Plugin for QdconfigPlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "Ctrl+S - Configuration".to_string(),
-            "  Configure startup options".to_string(),
-            "  S: Save settings to config file".to_string(),
+            "           S -- CONFIGURATION".to_string(),
+            "".to_string(),
+            "Purpose:   Configure R-DOS startup options and preferences.".to_string(),
+            "           Changes can be applied for current session or saved".to_string(),
+            "           permanently to the config file.".to_string(),
+            "".to_string(),
+            "To use:    Press Ctrl+S to open the configuration dialog.".to_string(),
+            "".to_string(),
+            "Settings:".to_string(),
+            "  Search Spec     - Default file pattern (e.g., *.*)".to_string(),
+            "  Sort Method     - Name, Extension, Size, or Date".to_string(),
+            "  Sort Direction  - Ascending or Descending".to_string(),
+            "  Show Hidden     - Display hidden files".to_string(),
+            "  Confirm Delete  - Prompt before file deletion".to_string(),
+            "  Editor          - External editor command ($EDITOR)".to_string(),
+            "  Color Theme     - Visual theme selection".to_string(),
+            "  Mouse Support   - Enable/disable mouse interaction".to_string(),
+            "  Uppercase Names - Display filenames in uppercase".to_string(),
+            "  Auto Refresh    - Directory refresh interval".to_string(),
+            "".to_string(),
+            "Navigation:".to_string(),
+            "  ↑↓       - Navigate settings list".to_string(),
+            "  Enter    - Toggle or edit setting".to_string(),
+            "  S        - Save settings to config file".to_string(),
+            "  R        - Reload settings from config file".to_string(),
+            "  Esc      - Cancel and close".to_string(),
+            "".to_string(),
+            "Tip:       Config is stored in ~/.config/rdos/config.toml".to_string(),
+            "           Plugins section shows installed plugins.".to_string(),
         ]
     }
 

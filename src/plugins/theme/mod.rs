@@ -236,9 +236,29 @@ impl Plugin for ThemePlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "Ctrl+T - Open Color Theme".to_string(),
-            "  Select from available color themes".to_string(),
-            "  Use Up/Down or 1-5 to select".to_string(),
+            "           T -- COLOR THEME".to_string(),
+            "".to_string(),
+            "Purpose:   Change the visual color scheme of R-DOS. Themes".to_string(),
+            "           affect all UI elements including the file list,".to_string(),
+            "           menus, dialogs, and status bar.".to_string(),
+            "".to_string(),
+            "To use:    Press Ctrl+T to open the theme selector.".to_string(),
+            "".to_string(),
+            "Available Themes:".to_string(),
+            "  Default    - Classic blue-white Q-DOS II colors".to_string(),
+            "  Dark       - Muted colors for low-light environments".to_string(),
+            "  Amber      - Warm amber tones (vintage CRT style)".to_string(),
+            "  Green      - Monochrome green terminal look".to_string(),
+            "  High Con.  - High contrast for accessibility".to_string(),
+            "".to_string(),
+            "Navigation:".to_string(),
+            "  ↑↓       - Navigate theme list".to_string(),
+            "  1-5      - Quick select by number".to_string(),
+            "  Enter    - Apply selected theme".to_string(),
+            "  Esc      - Cancel and restore original theme".to_string(),
+            "".to_string(),
+            "Tip:       Theme changes preview live as you navigate.".to_string(),
+            "           Use Config (Ctrl+S) to save theme permanently.".to_string(),
         ]
     }
 
