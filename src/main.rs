@@ -19,7 +19,6 @@ mod plugins;
 mod rg;
 mod ui;
 mod watcher;
-mod z;
 
 use anyhow::Result;
 use app::App;

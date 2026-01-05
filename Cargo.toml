@@ -63,6 +63,9 @@ portable-pty = "0.8"
 # Terminal widget for PTY rendering
 tui-term = "0.2"
 
+# Directory jumper database support
+jumprs = "0.1"
+
 [profile.release]
 lto = true
 codegen-units = 1

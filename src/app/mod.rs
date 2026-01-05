@@ -35,7 +35,7 @@ use crate::plugins::{
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
-use crate::z::ZDatabase;
+use jumprs::Database as JumpDatabase;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use crossterm::execute;
@@ -109,8 +109,8 @@ pub struct App {
     /// Terminal background luma (0.0 = black, 1.0 = white)
     /// Used for light/dark mode detection
     pub terminal_luma: Option<f32>,
-    /// Z database for directory jumping
-    pub z_db: ZDatabase,
+    /// Directory jump database (zoxide, z, autojump, fasd)
+    pub z_db: Option<JumpDatabase>,
 }
 
 impl App {
@@ -153,8 +153,8 @@ impl App {
         let files = get_directory_contents(&current_path, sort_mode)?;
         let watcher = DirWatcher::new(&current_path).ok();
 
-        // Load z database for directory jumping
-        let z_db = ZDatabase::load();
+        // Load directory jump database (auto-detects zoxide, z, autojump, fasd)
+        let z_db = JumpDatabase::detect().ok();
 
         let mut app = Self {
             current_path,
@@ -657,7 +657,7 @@ impl App {
                         !input.contains('/') && !input.contains('\\') && input.len() < 50;
 
                     if is_z_query {
-                        if let Some(entry) = self.z_db.best_match(&input) {
+                        if let Some(entry) = self.z_db.as_ref().and_then(|db| db.best_match(&input)) {
                             let z_path = entry.path.clone();
                             self.modal = Modal::None;
                             if let Err(e) = self.navigate_to(&z_path) {
@@ -685,7 +685,7 @@ impl App {
                     let is_z_query = !path.contains('/') && !path.contains('\\') && path.len() < 50;
 
                     if is_z_query {
-                        if let Some(entry) = self.z_db.best_match(path) {
+                        if let Some(entry) = self.z_db.as_ref().and_then(|db| db.best_match(path)) {
                             *path = entry.path.to_string_lossy().to_string();
                             return Ok(());
                         }
@@ -1597,6 +1597,12 @@ impl App {
 
         // Refresh git/beads status for new directory
         self.refresh_status_bar();
+
+        // Record visit to jump database for frecency tracking
+        if let Some(ref mut db) = self.z_db {
+            db.add_visit(canonical);
+            let _ = db.save(); // Best effort save
+        }
 
         Ok(())
     }

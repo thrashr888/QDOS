@@ -1019,6 +1019,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "jumprs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f34f7ddf49f9f0cb9b3dd2bca282451ad068c4028367357d7419a8cea66910af"
+dependencies = [
+ "dirs",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "kqueue"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1855,6 +1865,7 @@ dependencies = [
  "dirs",
  "humansize",
  "image",
+ "jumprs",
  "notify",
  "portable-pty",
  "ratatui",

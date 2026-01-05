@@ -140,26 +140,24 @@ pub(super) fn draw_path_input_modal(frame: &mut Frame, area: Rect, path: &str, a
     modal.render_frame(frame);
 
     // Build instruction text
-    let z_count = app.z_db.len();
+    let z_count = app.z_db.as_ref().map(|db| db.len()).unwrap_or(0);
     let instruction = if z_count > 0 {
-        "Enter path or type to search z directories:".to_string()
+        "Enter path or type to search directories:".to_string()
     } else {
         "Enter path (Tab to complete):".to_string()
     };
 
-    // Get z suggestions based on current input
-    let suggestions: Vec<String> = if z_count > 0 {
+    // Get jump suggestions based on current input
+    let suggestions: Vec<String> = if let Some(db) = app.z_db.as_ref() {
         if path.is_empty() {
             // Show top directories when empty
-            app.z_db
-                .top_dirs(5)
+            db.top_dirs(5)
                 .iter()
                 .map(|e| e.path.to_string_lossy().to_string())
                 .collect()
         } else if !path.contains('/') && !path.contains('\\') {
-            // Search z database for matching dirs
-            app.z_db
-                .search(path)
+            // Search jump database for matching dirs
+            db.search(path)
                 .iter()
                 .take(5)
                 .map(|e| e.path.to_string_lossy().to_string())
