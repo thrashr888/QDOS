@@ -79,6 +79,7 @@ jumprs = "0.1"
 homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
 beads-cli = { path = "crates/beads" }
+search-tools = { path = "crates/search" }
 
 [profile.release]
 lto = true

@@ -1,21 +1,19 @@
 //! Search tool integration for content search
 //!
-//! Supports multiple search tools: ripgrep, ag, grep, ack.
+//! Uses the search-tools crate for unified search across multiple tools:
+//! ripgrep, ag, grep, and ack.
 
-use crate::config::SearchTool;
+use crate::config::SearchTool as ConfigSearchTool;
+use search_tools::{Search, SearchOptions, SearchTool};
 use std::path::PathBuf;
-use std::process::Command;
 
 /// Check if ripgrep is available
 pub fn is_available() -> bool {
-    Command::new("rg")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    SearchTool::Ripgrep.is_available()
 }
 
 /// A search result from ripgrep
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct RgMatch {
     /// File path
@@ -26,60 +24,160 @@ pub struct RgMatch {
     pub line_text: String,
 }
 
+/// Convert config SearchTool to search-tools SearchTool
+fn config_to_search_tool(tool: ConfigSearchTool) -> Option<SearchTool> {
+    match tool.resolve() {
+        ConfigSearchTool::Rg | ConfigSearchTool::Auto => Some(SearchTool::Ripgrep),
+        ConfigSearchTool::Ag => Some(SearchTool::Ag),
+        ConfigSearchTool::Grep => Some(SearchTool::Grep),
+        ConfigSearchTool::Ack => Some(SearchTool::Ack),
+        ConfigSearchTool::Basic => None,
+    }
+}
+
+/// Create a Search instance from config tool
+fn search_from_config(tool: ConfigSearchTool) -> Option<Search> {
+    if let Some(search_tool) = config_to_search_tool(tool) {
+        Search::new(search_tool).ok()
+    } else {
+        // For Auto, use auto-detection
+        if tool == ConfigSearchTool::Auto {
+            Search::auto().ok()
+        } else {
+            None
+        }
+    }
+}
+
 /// Search for content in files using ripgrep
 /// Returns a list of (file_path, display_string) tuples for compatibility with Find modal
+#[allow(dead_code)]
 pub fn search_content(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
-    if !is_available() {
-        return Vec::new();
-    }
-
-    let output = Command::new("rg")
-        .arg("--line-number")
-        .arg("--no-heading")
-        .arg("--color=never")
-        .arg("--max-count=10") // Limit matches per file
-        .arg("--max-columns=200") // Truncate long lines
-        .arg("--ignore-case")
-        .arg("--") // Separator for pattern
-        .arg(pattern)
-        .arg(root)
-        .output();
-
-    let output = match output {
-        Ok(o) => o,
+    let search = match Search::auto() {
+        Ok(s) => s,
         Err(_) => return Vec::new(),
     };
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    search_content_with_search(&search, root, pattern)
+}
+
+/// Search for content using the specified search tool
+/// Returns a list of (file_path, display_string) tuples for compatibility with Find modal
+pub fn search_content_with_tool(
+    root: &PathBuf,
+    pattern: &str,
+    tool: ConfigSearchTool,
+) -> Vec<(PathBuf, String)> {
+    let resolved = tool.resolve();
+
+    // Handle Basic tool (no content search)
+    if resolved == ConfigSearchTool::Basic {
+        return Vec::new();
+    }
+
+    let search = match search_from_config(tool) {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+
+    search_content_with_search(&search, root, pattern)
+}
+
+/// Internal search implementation using the Search instance
+fn search_content_with_search(
+    search: &Search,
+    root: &PathBuf,
+    pattern: &str,
+) -> Vec<(PathBuf, String)> {
+    let options = SearchOptions {
+        line_numbers: true,
+        ignore_case: true,
+        max_count: Some(10), // Limit matches per file
+        ..Default::default()
+    };
+
+    let result = match search.search_with_options(pattern, Some(&root.to_string_lossy()), &options)
+    {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+
     let mut results: Vec<(PathBuf, String)> = Vec::new();
     let mut seen_files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
 
-    for line in stdout.lines() {
-        if let Some(result) = parse_rg_line(line) {
-            // Show unique files only, with first match context
-            if !seen_files.contains(&result.path) {
-                seen_files.insert(result.path.clone());
-                let name = result
-                    .path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| result.path.to_string_lossy().to_string());
-                // Truncate line text for display
-                let context = if result.line_text.len() > 50 {
-                    format!("{}...", &result.line_text[..50])
-                } else {
-                    result.line_text.clone()
-                };
-                let display = format!("{}:{} - {}", name, result.line_num, context);
-                results.push((result.path, display));
-            }
+    for m in result.matches {
+        let path = m.path();
+
+        // Show unique files only, with first match context
+        if !seen_files.contains(&path) {
+            seen_files.insert(path.clone());
+
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.to_string_lossy().to_string());
+
+            // Truncate line text for display
+            let context = if m.line.len() > 50 {
+                format!("{}...", &m.line[..50])
+            } else {
+                m.line.clone()
+            };
+
+            let line_num = m.line_number.unwrap_or(0);
+            let display = format!("{}:{} - {}", name, line_num, context);
+            results.push((path, display));
         }
     }
 
     results
 }
 
+/// Search for files matching a pattern using ripgrep's glob feature
+/// This is faster than recursive dir walking for large directories
+#[allow(dead_code)]
+pub fn search_files(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
+    let search = match Search::auto() {
+        Ok(s) => s,
+        Err(_) => return Vec::new(),
+    };
+
+    // Use files_only mode with glob pattern
+    let glob_pattern = format!("**/{}*", pattern.replace('*', ""));
+    let options = SearchOptions {
+        files_only: true,
+        glob: Some(glob_pattern),
+        ..Default::default()
+    };
+
+    // Search for empty pattern with glob filter to list matching files
+    let result = match search.search_with_options(".", Some(&root.to_string_lossy()), &options) {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+
+    result
+        .matches
+        .into_iter()
+        .map(|m| {
+            let path = m.path();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.to_string_lossy().to_string());
+            let parent = path
+                .parent()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let display = format!("{} - {}", name, parent);
+            (path, display)
+        })
+        .collect()
+}
+
 /// Parse a line from ripgrep output in format: path:line:content
+/// Kept for backwards compatibility and testing
+#[allow(dead_code)]
 fn parse_rg_line(line: &str) -> Option<RgMatch> {
     // Format: path:line_num:line_text
     // Need to handle paths with colons (rare but possible)
@@ -98,166 +196,6 @@ fn parse_rg_line(line: &str) -> Option<RgMatch> {
         line_num,
         line_text,
     })
-}
-
-/// Search for files matching a pattern using ripgrep's glob feature
-/// This is faster than recursive dir walking for large directories
-#[allow(dead_code)]
-pub fn search_files(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
-    if !is_available() {
-        return Vec::new();
-    }
-
-    // Use rg --files with glob pattern
-    let glob_pattern = format!("**/{}*", pattern.replace('*', ""));
-
-    let output = Command::new("rg")
-        .arg("--files")
-        .arg("--glob")
-        .arg(&glob_pattern)
-        .arg("--color=never")
-        .arg(root)
-        .output();
-
-    let output = match output {
-        Ok(o) => o,
-        Err(_) => return Vec::new(),
-    };
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut results: Vec<(PathBuf, String)> = Vec::new();
-
-    for line in stdout.lines() {
-        if !line.is_empty() {
-            let path = PathBuf::from(line);
-            let name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| path.to_string_lossy().to_string());
-            let parent = path
-                .parent()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default();
-            let display = format!("{} - {}", name, parent);
-            results.push((path, display));
-        }
-    }
-
-    results
-}
-
-/// Search for content using the specified search tool
-/// Returns a list of (file_path, display_string) tuples for compatibility with Find modal
-pub fn search_content_with_tool(
-    root: &PathBuf,
-    pattern: &str,
-    tool: SearchTool,
-) -> Vec<(PathBuf, String)> {
-    let resolved = tool.resolve();
-
-    match resolved {
-        SearchTool::Rg | SearchTool::Auto => search_content(root, pattern),
-        SearchTool::Ag => search_content_ag(root, pattern),
-        SearchTool::Grep => search_content_grep(root, pattern),
-        SearchTool::Ack => search_content_ack(root, pattern),
-        SearchTool::Basic => Vec::new(), // No content search for basic
-    }
-}
-
-/// Search using ag (The Silver Searcher)
-fn search_content_ag(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
-    let output = Command::new("ag")
-        .arg("--nogroup")
-        .arg("--nocolor")
-        .arg("--column")
-        .arg("-m")
-        .arg("10") // Max matches per file
-        .arg("--")
-        .arg(pattern)
-        .arg(root)
-        .output();
-
-    let output = match output {
-        Ok(o) => o,
-        Err(_) => return Vec::new(),
-    };
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_colon_output(&stdout)
-}
-
-/// Search using grep
-fn search_content_grep(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
-    let output = Command::new("grep")
-        .arg("-r")
-        .arg("-n")
-        .arg("-i")
-        .arg("--include=*")
-        .arg("-m")
-        .arg("10") // Max matches per file
-        .arg("--")
-        .arg(pattern)
-        .arg(root)
-        .output();
-
-    let output = match output {
-        Ok(o) => o,
-        Err(_) => return Vec::new(),
-    };
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_colon_output(&stdout)
-}
-
-/// Search using ack
-fn search_content_ack(root: &PathBuf, pattern: &str) -> Vec<(PathBuf, String)> {
-    let output = Command::new("ack")
-        .arg("--nogroup")
-        .arg("--nocolor")
-        .arg("-m")
-        .arg("10") // Max matches per file
-        .arg("--")
-        .arg(pattern)
-        .arg(root)
-        .output();
-
-    let output = match output {
-        Ok(o) => o,
-        Err(_) => return Vec::new(),
-    };
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_colon_output(&stdout)
-}
-
-/// Parse colon-separated output (path:line:content) from search tools
-fn parse_colon_output(stdout: &str) -> Vec<(PathBuf, String)> {
-    let mut results: Vec<(PathBuf, String)> = Vec::new();
-    let mut seen_files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
-
-    for line in stdout.lines() {
-        if let Some(result) = parse_rg_line(line) {
-            // Show unique files only, with first match context
-            if !seen_files.contains(&result.path) {
-                seen_files.insert(result.path.clone());
-                let name = result
-                    .path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| result.path.to_string_lossy().to_string());
-                // Truncate line text for display
-                let context = if result.line_text.len() > 50 {
-                    format!("{}...", &result.line_text[..50])
-                } else {
-                    result.line_text.clone()
-                };
-                let display = format!("{}:{} - {}", name, result.line_num, context);
-                results.push((result.path, display));
-            }
-        }
-    }
-
-    results
 }
 
 #[cfg(test)]
@@ -286,5 +224,26 @@ mod tests {
         assert_eq!(result.path, PathBuf::from("/path/to/file.rs"));
         assert_eq!(result.line_num, 10);
         assert_eq!(result.line_text, "let x: i32 = 0;");
+    }
+
+    #[test]
+    fn test_config_to_search_tool() {
+        assert_eq!(
+            config_to_search_tool(ConfigSearchTool::Rg),
+            Some(SearchTool::Ripgrep)
+        );
+        assert_eq!(
+            config_to_search_tool(ConfigSearchTool::Ag),
+            Some(SearchTool::Ag)
+        );
+        assert_eq!(
+            config_to_search_tool(ConfigSearchTool::Grep),
+            Some(SearchTool::Grep)
+        );
+        assert_eq!(
+            config_to_search_tool(ConfigSearchTool::Ack),
+            Some(SearchTool::Ack)
+        );
+        assert_eq!(config_to_search_tool(ConfigSearchTool::Basic), None);
     }
 }
