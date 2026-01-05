@@ -79,8 +79,13 @@ impl HelpPlugin {
 
     /// Scroll down
     fn scroll_down(&mut self, visible_height: usize) {
-        let content_lines = self.current_content_lines();
-        let max_scroll = content_lines.len().saturating_sub(visible_height);
+        let max_scroll = if self.state.current_topic == 0 {
+            // Index page - scroll through topics
+            self.state.topics.len().saturating_sub(visible_height)
+        } else {
+            // Topic page - scroll through content
+            self.current_content_lines().len().saturating_sub(visible_height)
+        };
         if self.state.scroll_offset < max_scroll {
             self.state.scroll_offset += 1;
         }
@@ -93,8 +98,13 @@ impl HelpPlugin {
 
     /// Page down
     fn page_down(&mut self, visible_height: usize) {
-        let content_lines = self.current_content_lines();
-        let max_scroll = content_lines.len().saturating_sub(visible_height);
+        let max_scroll = if self.state.current_topic == 0 {
+            // Index page - scroll through topics
+            self.state.topics.len().saturating_sub(visible_height)
+        } else {
+            // Topic page - scroll through content
+            self.current_content_lines().len().saturating_sub(visible_height)
+        };
         self.state.scroll_offset = (self.state.scroll_offset + visible_height).min(max_scroll);
     }
 
@@ -292,10 +302,19 @@ impl HelpPlugin {
         );
         modal.render_row(frame, 1, vec![]);
 
-        for (i, topic) in self.state.topics.iter().enumerate() {
+        // Calculate visible height for topics (modal height - borders - title - instruction rows - help)
+        let visible_height = (area.height as usize).saturating_sub(8); // 2 border + 1 title sep + 2 instruction + 1 help sep + 2 help
+        let total_topics = self.state.topics.len();
+
+        // Calculate scroll range
+        let start = self.state.scroll_offset;
+        let end = (start + visible_height).min(total_topics);
+
+        for (i, topic) in self.state.topics.iter().enumerate().skip(start).take(end - start) {
+            let row = (i - start) as u16 + 2;
             modal.render_row(
                 frame,
-                2 + i as u16,
+                row,
                 vec![
                     Span::styled(format!("  {} ", topic.key), key_style),
                     Span::styled(&topic.title, title_style),
@@ -303,7 +322,14 @@ impl HelpPlugin {
             );
         }
 
-        modal.render_help(frame, vec![("ESC", "close help")]);
+        // Show scroll indicator if needed
+        let scroll_info = if total_topics > visible_height {
+            format!(" [{}-{}/{}]", start + 1, end, total_topics)
+        } else {
+            String::new()
+        };
+
+        modal.render_help(frame, vec![("↑↓", &format!("scroll{}", scroll_info)), ("ESC", "close help")]);
     }
 
     fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
