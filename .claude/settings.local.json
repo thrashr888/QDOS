@@ -45,7 +45,9 @@
       "Skill(beads:create)",
       "Skill(beads:list)",
       "WebFetch(domain:docs.rs)",
-      "WebFetch(domain:crates.io)"
+      "WebFetch(domain:crates.io)",
+      "Skill(beads:epic)",
+      "Bash(bd epic:*)"
     ]
   }
 }
