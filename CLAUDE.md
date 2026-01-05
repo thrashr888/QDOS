@@ -73,6 +73,26 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Version Control
+
+This project uses **jj** (Jujutsu) colocated with git. jj provides:
+- Automatic change tracking (no staging area)
+- Undo any operation with `jj undo`
+- Stable change IDs that survive rebases
+- First-class conflict handling
+
+```bash
+jj status            # Show working copy status
+jj log               # View change history
+jj diff              # Show current changes
+jj describe -m "..."  # Update change description
+jj new               # Start new change
+jj undo              # Undo last operation
+jj git push          # Push to git remote
+```
+
+Use git for remote operations (`git push`, `git pull`) or jj equivalents (`jj git push/fetch`).
+
 ## Code Quality
 
 Write code that is already `cargo fmt` and `cargo clippy` compliant - don't fix formatting after the fact. Before committing, verify with:

@@ -171,7 +171,7 @@ pub fn load_jj_log(cwd: &Path) -> Result<Vec<JjChange>, String> {
             "-r",
             "ancestors(@, 20)",
             "-T",
-            r#"change_id.shortest(8) ++ "\t" ++ commit_id.shortest(8) ++ "\t" ++ author.email() ++ "\t" ++ committer.timestamp().ago() ++ "\t" ++ if(empty, "true", "false") ++ "\t" ++ if(self == @, "true", "false") ++ "\t" ++ if(description, description.first_line(), "(no description set)") ++ "\n""#,
+            r#"change_id.shortest(8) ++ "\t" ++ commit_id.shortest(8) ++ "\t" ++ author.email() ++ "\t" ++ committer.timestamp().ago() ++ "\t" ++ if(empty, "true", "false") ++ "\t" ++ if(current_working_copy, "true", "false") ++ "\t" ++ if(description, description.first_line(), "(no description set)") ++ "\n""#,
             "--no-graph",
         ])
         .current_dir(cwd)
