@@ -5,8 +5,8 @@
 
 use super::state::{
     BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
-    GitConfigEntry, GitFileStatus, GitLogEntry, GitReflogEntry, GitRemote, GitStashEntry,
-    GitState, GitSubmodule, GitTag, GitWorktree, SubmoduleStatus,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitReflogEntry, GitRemote, GitStashEntry, GitState,
+    GitSubmodule, GitTag, GitWorktree, SubmoduleStatus,
 };
 use std::path::PathBuf;
 use std::process::Command;
