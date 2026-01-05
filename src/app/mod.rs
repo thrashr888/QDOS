@@ -28,10 +28,10 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    fileops::FileOperation, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
-    JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
-    ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin,
-    StatusPlugin, ThemePlugin, ViewerPlugin,
+    fileops::FileOperation, AIPlugin, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin,
+    HelpPlugin, JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo,
+    PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin,
+    SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -126,6 +126,7 @@ impl App {
 
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
+        plugin_manager.register(Box::new(AIPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));

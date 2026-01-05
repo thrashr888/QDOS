@@ -12,6 +12,7 @@
 // Allow dead code until plugins are fully integrated
 #![allow(dead_code)]
 
+pub mod ai;
 pub mod attribute;
 pub mod beads;
 pub mod clipboard;
@@ -32,6 +33,7 @@ pub mod status;
 pub mod theme;
 pub mod viewer;
 
+pub use ai::AIPlugin;
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
 pub use fileops::FileOpsPlugin;
