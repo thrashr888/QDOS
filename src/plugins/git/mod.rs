@@ -7,10 +7,12 @@ pub mod ops;
 pub mod state;
 
 // Re-export state types for external use
+#[allow(unused_imports)]
 pub use state::{
     BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
-    GitConfigEntry, GitFileStatus, GitLogEntry, GitMenuItem, GitRemote, GitStashEntry, GitState,
-    GitSubmodule, GitTag, GitView, RemoteAction, SubmoduleStatus,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitMenuItem, GitReflogEntry, GitRemote,
+    GitStashEntry, GitState, GitSubmodule, GitTag, GitView, GitWorktree, RemoteAction,
+    SubmoduleStatus,
 };
 
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
@@ -240,6 +242,18 @@ impl GitPlugin {
                 self.activate_menu_item(GitMenuItem::Submodules, cwd);
                 KeyHandleResult::Handled
             }
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                self.activate_menu_item(GitMenuItem::Reflog, cwd);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                self.activate_menu_item(GitMenuItem::Remotes, cwd);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('w') | KeyCode::Char('W') => {
+                self.activate_menu_item(GitMenuItem::Worktrees, cwd);
+                KeyHandleResult::Handled
+            }
             _ => KeyHandleResult::Handled,
         }
     }
@@ -300,6 +314,18 @@ impl GitPlugin {
             GitMenuItem::Submodules => {
                 state.view = GitView::Submodules;
                 ops::load_submodules(state, cwd);
+            }
+            GitMenuItem::Reflog => {
+                state.view = GitView::Reflog;
+                ops::load_reflog(state, cwd);
+            }
+            GitMenuItem::Remotes => {
+                ops::load_remotes(state, cwd);
+                state.view = GitView::Remote;
+            }
+            GitMenuItem::Worktrees => {
+                state.view = GitView::Worktrees;
+                ops::load_worktrees(state, cwd);
             }
         }
     }
@@ -989,6 +1015,148 @@ impl GitPlugin {
             _ => KeyHandleResult::Handled,
         }
     }
+
+    fn handle_reflog_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = GitView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_reflog > 0 {
+                    state.selected_reflog -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.selected_reflog < state.reflog_entries.len().saturating_sub(1) {
+                    state.selected_reflog += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                // View diff for selected reflog entry
+                if let Some(entry) = state.reflog_entries.get(state.selected_reflog) {
+                    let hash = entry.hash.clone();
+                    state.prev_view = Some(GitView::Reflog);
+                    state.view = GitView::Diff;
+                    ops::load_commit_diff(state, cwd, &hash);
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                // Checkout this reflog entry
+                if let Some(entry) = state.reflog_entries.get(state.selected_reflog) {
+                    let selector = entry.selector.clone();
+                    match ops::checkout_reflog_entry(&selector, cwd) {
+                        Ok(msg) => {
+                            self.close_modal();
+                            return KeyHandleResult::CloseWithSuccess(msg);
+                        }
+                        Err(e) => {
+                            state.error = Some(e);
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_worktrees_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+        let state = match self.modal_state.as_mut() {
+            Some(s) => s,
+            None => return KeyHandleResult::NotHandled,
+        };
+
+        match key.code {
+            KeyCode::Esc => {
+                state.view = GitView::Menu;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if state.selected_worktree > 0 {
+                    state.selected_worktree -= 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.selected_worktree < state.worktrees.len().saturating_sub(1) {
+                    state.selected_worktree += 1;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('l') | KeyCode::Char('L') => {
+                // Lock/unlock worktree
+                if let Some(worktree) = state.worktrees.get(state.selected_worktree) {
+                    if worktree.is_main {
+                        state.error = Some("Cannot lock main worktree".to_string());
+                    } else {
+                        let path = worktree.path.clone();
+                        let result = if worktree.is_locked {
+                            ops::unlock_worktree(&path, cwd)
+                        } else {
+                            ops::lock_worktree(&path, cwd)
+                        };
+                        match result {
+                            Ok(msg) => {
+                                ops::load_worktrees(state, cwd);
+                                state.error = Some(msg);
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                // Remove worktree
+                if let Some(worktree) = state.worktrees.get(state.selected_worktree) {
+                    if worktree.is_main {
+                        state.error = Some("Cannot remove main worktree".to_string());
+                    } else {
+                        let path = worktree.path.clone();
+                        match ops::remove_worktree(&path, false, cwd) {
+                            Ok(msg) => {
+                                ops::load_worktrees(state, cwd);
+                                if state.selected_worktree >= state.worktrees.len() {
+                                    state.selected_worktree =
+                                        state.worktrees.len().saturating_sub(1);
+                                }
+                                state.error = Some(msg);
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => {
+                // Prune stale worktrees
+                match ops::prune_worktrees(cwd) {
+                    Ok(msg) => {
+                        ops::load_worktrees(state, cwd);
+                        state.error = Some(msg);
+                    }
+                    Err(e) => {
+                        state.error = Some(e);
+                    }
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
 }
 
 impl Default for GitPlugin {
@@ -1104,7 +1272,9 @@ impl Plugin for GitPlugin {
             GitView::Branch => self.handle_branch_key(key, cwd),
             GitView::Stash => self.handle_stash_key(key, cwd),
             GitView::Tag => self.handle_tag_key(key, cwd),
+            GitView::Reflog => self.handle_reflog_key(key, cwd),
             GitView::Remote => self.handle_remote_key(key, cwd),
+            GitView::Worktrees => self.handle_worktrees_key(key, cwd),
             GitView::Config => self.handle_config_key(key),
             GitView::Conflicts => self.handle_conflicts_key(key, cwd),
             GitView::Submodules => self.handle_submodules_key(key, cwd),

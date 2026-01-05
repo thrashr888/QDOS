@@ -15,13 +15,16 @@ pub enum GitMenuItem {
     Branch,
     Stash,
     Tag,
+    Reflog,
+    Remotes,
+    Worktrees,
     Config,
     Conflicts,
     Submodules,
 }
 
 impl GitMenuItem {
-    pub const ALL: [GitMenuItem; 12] = [
+    pub const ALL: [GitMenuItem; 15] = [
         GitMenuItem::Status,
         GitMenuItem::Log,
         GitMenuItem::Diff,
@@ -31,6 +34,9 @@ impl GitMenuItem {
         GitMenuItem::Branch,
         GitMenuItem::Stash,
         GitMenuItem::Tag,
+        GitMenuItem::Reflog,
+        GitMenuItem::Remotes,
+        GitMenuItem::Worktrees,
         GitMenuItem::Config,
         GitMenuItem::Conflicts,
         GitMenuItem::Submodules,
@@ -47,6 +53,9 @@ impl GitMenuItem {
             GitMenuItem::Branch => "Branch",
             GitMenuItem::Stash => "Stash",
             GitMenuItem::Tag => "Tag",
+            GitMenuItem::Reflog => "Reflog",
+            GitMenuItem::Remotes => "Remotes",
+            GitMenuItem::Worktrees => "Worktrees",
             GitMenuItem::Config => "Config",
             GitMenuItem::Submodules => "Submodules",
             GitMenuItem::Conflicts => "Conflicts",
@@ -64,6 +73,9 @@ impl GitMenuItem {
             GitMenuItem::Branch => "List, switch, create, delete branches",
             GitMenuItem::Stash => "Stash and restore changes",
             GitMenuItem::Tag => "Manage git tags",
+            GitMenuItem::Reflog => "View reference log history",
+            GitMenuItem::Remotes => "Manage remote repositories",
+            GitMenuItem::Worktrees => "Manage linked working trees",
             GitMenuItem::Config => "View git configuration",
             GitMenuItem::Conflicts => "Resolve merge conflicts",
             GitMenuItem::Submodules => "Manage git submodules",
@@ -83,7 +95,9 @@ pub enum GitView {
     Branch,
     Stash,
     Tag,
+    Reflog,
     Remote,
+    Worktrees,
     Config,
     Conflicts,
     Submodules,
@@ -218,6 +232,28 @@ pub struct BlameLine {
     pub line_content: String,
 }
 
+/// Git reflog entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitReflogEntry {
+    pub hash: String,
+    pub selector: String, // e.g., "HEAD@{0}"
+    pub action: String,   // e.g., "commit", "checkout", "reset"
+    pub message: String,
+    pub time_ago: String,
+}
+
+/// Git worktree entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitWorktree {
+    pub path: String,
+    pub branch: Option<String>,
+    pub commit: String,
+    pub is_main: bool,
+    pub is_bare: bool,
+    pub is_locked: bool,
+    pub is_prunable: bool,
+}
+
 /// Git state for the git modal
 #[derive(Debug, Clone)]
 pub struct GitState {
@@ -289,6 +325,14 @@ pub struct GitState {
     pub submodules: Vec<GitSubmodule>,
     /// Selected submodule
     pub selected_submodule: usize,
+    /// Reflog entries
+    pub reflog_entries: Vec<GitReflogEntry>,
+    /// Selected reflog entry
+    pub selected_reflog: usize,
+    /// Worktrees list
+    pub worktrees: Vec<GitWorktree>,
+    /// Selected worktree
+    pub selected_worktree: usize,
 }
 
 impl Default for GitState {
@@ -328,6 +372,10 @@ impl Default for GitState {
             selected_conflict_file: 0,
             submodules: Vec::new(),
             selected_submodule: 0,
+            reflog_entries: Vec::new(),
+            selected_reflog: 0,
+            worktrees: Vec::new(),
+            selected_worktree: 0,
         }
     }
 }

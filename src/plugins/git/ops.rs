@@ -5,8 +5,8 @@
 
 use super::state::{
     BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
-    GitConfigEntry, GitFileStatus, GitLogEntry, GitRemote, GitStashEntry, GitState, GitSubmodule,
-    GitTag, SubmoduleStatus,
+    GitConfigEntry, GitFileStatus, GitLogEntry, GitReflogEntry, GitRemote, GitStashEntry,
+    GitState, GitSubmodule, GitTag, GitWorktree, SubmoduleStatus,
 };
 use std::path::PathBuf;
 use std::process::Command;
@@ -1540,6 +1540,277 @@ pub fn sync_submodules(cwd: &PathBuf) -> Result<String, String> {
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 Err(format!("Sync failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+// ============================================================
+// Reflog Operations
+// ============================================================
+
+/// Load git reflog into state
+pub fn load_reflog(state: &mut GitState, cwd: &PathBuf) {
+    state.reflog_entries.clear();
+    state.selected_reflog = 0;
+    state.error = None;
+
+    let output = Command::new("git")
+        .args([
+            "reflog",
+            "--format=%h|%gd|%gs|%s|%ar",
+            "-50", // Limit to 50 entries
+        ])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let parts: Vec<&str> = line.splitn(5, '|').collect();
+                    if parts.len() >= 5 {
+                        state.reflog_entries.push(GitReflogEntry {
+                            hash: parts[0].to_string(),
+                            selector: parts[1].to_string(),
+                            action: parts[2].to_string(),
+                            message: parts[3].to_string(),
+                            time_ago: parts[4].to_string(),
+                        });
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to load reflog: {}", e));
+        }
+    }
+}
+
+/// Checkout a specific reflog entry
+pub fn checkout_reflog_entry(selector: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["checkout", selector])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Checked out {}", selector))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Checkout failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Reset to a specific reflog entry
+pub fn reset_to_reflog_entry(selector: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["reset", "--hard", selector])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Reset to {}", selector))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Reset failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+// ============================================================
+// Worktree Operations
+// ============================================================
+
+/// Load git worktrees into state
+pub fn load_worktrees(state: &mut GitState, cwd: &PathBuf) {
+    state.worktrees.clear();
+    state.selected_worktree = 0;
+    state.error = None;
+
+    let output = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let mut current_worktree: Option<GitWorktree> = None;
+
+                for line in stdout.lines() {
+                    if line.starts_with("worktree ") {
+                        // Save previous worktree if exists
+                        if let Some(wt) = current_worktree.take() {
+                            state.worktrees.push(wt);
+                        }
+                        current_worktree = Some(GitWorktree {
+                            path: line.strip_prefix("worktree ").unwrap_or("").to_string(),
+                            branch: None,
+                            commit: String::new(),
+                            is_main: false,
+                            is_bare: false,
+                            is_locked: false,
+                            is_prunable: false,
+                        });
+                    } else if let Some(ref mut wt) = current_worktree {
+                        if line.starts_with("HEAD ") {
+                            wt.commit = line
+                                .strip_prefix("HEAD ")
+                                .unwrap_or("")
+                                .chars()
+                                .take(8)
+                                .collect();
+                        } else if line.starts_with("branch ") {
+                            let branch = line.strip_prefix("branch ").unwrap_or("");
+                            // Strip refs/heads/ prefix
+                            let branch = branch.strip_prefix("refs/heads/").unwrap_or(branch);
+                            wt.branch = Some(branch.to_string());
+                            // First worktree with a branch is usually main
+                            if state.worktrees.is_empty() && !wt.is_bare {
+                                wt.is_main = true;
+                            }
+                        } else if line == "bare" {
+                            wt.is_bare = true;
+                        } else if line == "locked" {
+                            wt.is_locked = true;
+                        } else if line == "prunable" {
+                            wt.is_prunable = true;
+                        } else if line.starts_with("detached") {
+                            // Detached HEAD - no branch name
+                        }
+                    }
+                }
+
+                // Don't forget the last worktree
+                if let Some(wt) = current_worktree.take() {
+                    state.worktrees.push(wt);
+                }
+
+                // Mark the first worktree as main if none marked
+                if !state.worktrees.is_empty() && !state.worktrees.iter().any(|w| w.is_main) {
+                    state.worktrees[0].is_main = true;
+                }
+            }
+        }
+        Err(e) => {
+            state.error = Some(format!("Failed to list worktrees: {}", e));
+        }
+    }
+}
+
+/// Add a new worktree
+pub fn add_worktree(path: &str, branch: Option<&str>, cwd: &PathBuf) -> Result<String, String> {
+    let mut args = vec!["worktree", "add", path];
+    if let Some(b) = branch {
+        args.push("-b");
+        args.push(b);
+    }
+
+    let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Added worktree at '{}'", path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Add worktree failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Remove a worktree
+pub fn remove_worktree(path: &str, force: bool, cwd: &PathBuf) -> Result<String, String> {
+    let mut args = vec!["worktree", "remove"];
+    if force {
+        args.push("--force");
+    }
+    args.push(path);
+
+    let output = Command::new("git").args(&args).current_dir(cwd).output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Removed worktree at '{}'", path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Remove worktree failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Lock a worktree
+pub fn lock_worktree(path: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["worktree", "lock", path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Locked worktree at '{}'", path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Lock failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Unlock a worktree
+pub fn unlock_worktree(path: &str, cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["worktree", "unlock", path])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(format!("Unlocked worktree at '{}'", path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Unlock failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Git error: {}", e)),
+    }
+}
+
+/// Prune stale worktree info
+pub fn prune_worktrees(cwd: &PathBuf) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["worktree", "prune"])
+        .current_dir(cwd)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                Ok("Pruned stale worktree information".to_string())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Prune failed: {}", stderr))
             }
         }
         Err(e) => Err(format!("Git error: {}", e)),

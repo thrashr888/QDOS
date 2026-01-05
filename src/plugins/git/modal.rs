@@ -25,10 +25,12 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
         GitView::Branch => " GIT BRANCHES ",
         GitView::Stash => " GIT STASH ",
         GitView::Tag => " GIT TAGS ",
+        GitView::Reflog => " GIT REFLOG ",
         GitView::Remote => match state.remote_action {
             RemoteAction::Push => " GIT PUSH TO REMOTE ",
             RemoteAction::Pull => " GIT PULL FROM REMOTE ",
         },
+        GitView::Worktrees => " GIT WORKTREES ",
         GitView::Config => " GIT CONFIG ",
         GitView::Conflicts => " MERGE CONFLICTS ",
         GitView::Submodules => " GIT SUBMODULES ",
@@ -84,6 +86,9 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
                         GitMenuItem::Branch => "B",
                         GitMenuItem::Stash => "H",
                         GitMenuItem::Tag => "T",
+                        GitMenuItem::Reflog => "R",
+                        GitMenuItem::Remotes => "E",
+                        GitMenuItem::Worktrees => "W",
                         GitMenuItem::Config => "G",
                         GitMenuItem::Conflicts => "X",
                         GitMenuItem::Submodules => "M",
@@ -911,6 +916,173 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
 
                 frame.render_widget(Paragraph::new(lines), content_area);
             }
+            GitView::Reflog => {
+                let visible_height = content_area.height as usize / 2; // Each entry takes 2 lines
+                let mut lines: Vec<Line> = vec![];
+
+                if state.reflog_entries.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No reflog entries found",
+                        Style::default().fg(colors.grey()),
+                    )));
+                } else {
+                    // Calculate scroll offset based on selection
+                    let scroll = if state.selected_reflog >= visible_height {
+                        state.selected_reflog - visible_height + 1
+                    } else {
+                        0
+                    };
+
+                    for (i, entry) in state
+                        .reflog_entries
+                        .iter()
+                        .enumerate()
+                        .skip(scroll)
+                        .take(visible_height)
+                    {
+                        let is_selected = i == state.selected_reflog;
+                        let prefix = if is_selected { "▶ " } else { "  " };
+                        let hash_style = if is_selected {
+                            Style::default()
+                                .fg(colors.yellow())
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default().fg(colors.yellow())
+                        };
+                        let msg_style = if is_selected {
+                            Style::default()
+                                .fg(colors.fg())
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // First line: selector, action, message
+                        lines.push(Line::from(vec![
+                            Span::styled(prefix, hash_style),
+                            Span::styled(format!("{:<14} ", entry.selector), hash_style),
+                            Span::styled(&entry.action, Style::default().fg(colors.cyan())),
+                            Span::styled(": ", Style::default().fg(colors.grey())),
+                            Span::styled(&entry.message, msg_style),
+                        ]));
+                        // Second line: hash and time
+                        lines.push(Line::from(vec![
+                            Span::styled("                  ", Style::default()),
+                            Span::styled(&entry.hash, Style::default().fg(colors.blue())),
+                            Span::styled(" - ", Style::default().fg(colors.grey())),
+                            Span::styled(&entry.time_ago, Style::default().fg(colors.grey())),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
+            GitView::Worktrees => {
+                let visible_height = content_area.height as usize;
+                let mut lines: Vec<Line> = vec![];
+
+                if state.worktrees.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "No worktrees found",
+                        Style::default().fg(colors.grey()),
+                    )));
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        "Add worktrees with 'git worktree add <path> <branch>'",
+                        Style::default().fg(colors.green()),
+                    )));
+                } else {
+                    // List worktrees
+                    for (i, worktree) in state.worktrees.iter().enumerate() {
+                        if i >= visible_height {
+                            break;
+                        }
+
+                        let is_selected = i == state.selected_worktree;
+                        let style = if is_selected {
+                            Style::default().fg(colors.yellow()).bg(colors.red())
+                        } else {
+                            Style::default().fg(colors.fg())
+                        };
+
+                        // Status indicators
+                        let main_indicator = if worktree.is_main { "*" } else { " " };
+                        let lock_indicator = if worktree.is_locked { "🔒" } else { "  " };
+
+                        // Branch or detached HEAD
+                        let branch_display = worktree
+                            .branch
+                            .as_ref()
+                            .map(|b| {
+                                if b.len() > 20 {
+                                    format!("{}...", &b[..17])
+                                } else {
+                                    b.clone()
+                                }
+                            })
+                            .unwrap_or_else(|| "(detached)".to_string());
+
+                        // Truncate path if needed
+                        let path_display = if worktree.path.len() > 40 {
+                            format!("{}...", &worktree.path[..37])
+                        } else {
+                            worktree.path.clone()
+                        };
+
+                        lines.push(Line::from(vec![
+                            Span::styled(
+                                format!(" {}", main_indicator),
+                                if worktree.is_main {
+                                    Style::default().fg(colors.green())
+                                } else {
+                                    style
+                                },
+                            ),
+                            Span::styled(lock_indicator, Style::default().fg(colors.yellow())),
+                            Span::styled(format!("{:<42}", path_display), style),
+                        ]));
+                        lines.push(Line::from(vec![
+                            Span::styled("      ", Style::default()),
+                            Span::styled(
+                                format!("{:<20} ", branch_display),
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.cyan())
+                                },
+                            ),
+                            Span::styled(
+                                &worktree.commit,
+                                if is_selected {
+                                    style
+                                } else {
+                                    Style::default().fg(colors.grey())
+                                },
+                            ),
+                        ]));
+                    }
+                }
+
+                if let Some(ref err) = state.error {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Error: {}", err),
+                        Style::default().fg(colors.red()),
+                    )));
+                }
+
+                frame.render_widget(Paragraph::new(lines), content_area);
+            }
         }
     }
 
@@ -1003,6 +1175,19 @@ pub fn draw_git_modal(frame: &mut Frame, area: Rect, state: &GitState, app: &App
                 ("I", "init"),
                 ("U", "update"),
                 ("S", "sync"),
+                ("ESC", "back"),
+            ],
+            GitView::Reflog => vec![
+                ("↑↓", "select"),
+                ("Enter", "diff"),
+                ("C", "checkout"),
+                ("ESC", "back"),
+            ],
+            GitView::Worktrees => vec![
+                ("↑↓", "select"),
+                ("L", "lock"),
+                ("D", "remove"),
+                ("P", "prune"),
                 ("ESC", "back"),
             ],
         }
