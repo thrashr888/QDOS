@@ -530,6 +530,29 @@ impl BeadsPlugin {
                 }
                 KeyHandleResult::Handled
             }
+            KeyCode::Enter => {
+                // Navigate to selected subtask/dependent issue
+                if let Some(ref detail) = state.detail_issue {
+                    if !detail.dependents.is_empty()
+                        && state.selected_subtask < detail.dependents.len()
+                    {
+                        let subtask = &detail.dependents[state.selected_subtask];
+                        let subtask_id = subtask.id.clone();
+                        // Load the subtask's full details
+                        match ops::load_beads_issue_detail(&subtask_id, cwd) {
+                            Ok(subtask_detail) => {
+                                state.detail_issue = Some(subtask_detail);
+                                state.selected_subtask = 0;
+                                state.detail_scroll = 0;
+                            }
+                            Err(e) => {
+                                state.error = Some(e);
+                            }
+                        }
+                    }
+                }
+                KeyHandleResult::Handled
+            }
             KeyCode::PageUp => {
                 // Scroll detail view up
                 if state.detail_scroll >= 5 {

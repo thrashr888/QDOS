@@ -223,6 +223,8 @@ pub struct BeadsState {
     pub create_type: usize,
     pub create_priority: usize,
     pub create_field: usize,
+    /// Scroll offset for create form when content exceeds visible area
+    pub create_scroll: usize,
     /// Whether we're in a beads-enabled project
     pub is_beads_project: bool,
     /// Error message if any
@@ -294,6 +296,7 @@ impl Default for BeadsState {
             create_type: 0,
             create_priority: 2,
             create_field: 0,
+            create_scroll: 0,
             is_beads_project: false,
             error: None,
             success_message: None,

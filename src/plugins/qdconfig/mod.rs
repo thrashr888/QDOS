@@ -64,6 +64,8 @@ impl QdconfigField {
 pub struct QdconfigState {
     /// Currently selected field
     pub selected: usize,
+    /// Scroll offset for list view
+    pub scroll_offset: usize,
     /// Editing mode (for text input fields)
     pub editing: bool,
     /// Input buffer for text fields
@@ -128,6 +130,7 @@ impl QdconfigState {
 
         Self {
             selected: 0,
+            scroll_offset: 0,
             editing: false,
             input_buffer: String::new(),
             search_spec,
@@ -415,11 +418,17 @@ impl Plugin for QdconfigPlugin {
                 KeyCode::Up | KeyCode::Char('k') => {
                     if state.selected > 0 {
                         state.selected -= 1;
+                        // Adjust scroll to keep selection visible
+                        if state.selected < state.scroll_offset {
+                            state.scroll_offset = state.selected;
+                        }
                     }
                     KeyHandleResult::Handled
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    if state.selected < QdconfigField::ALL.len() - 1 {
+                    // Total items = config fields + plugins
+                    let total_items = QdconfigField::ALL.len() + state.plugins.len();
+                    if state.selected < total_items - 1 {
                         state.selected += 1;
                     }
                     KeyHandleResult::Handled
@@ -496,14 +505,24 @@ impl Plugin for QdconfigPlugin {
 
         // Content area
         let content_area = view.content_area();
-        let mut lines: Vec<Line> = vec![Line::from("")];
+        let visible_height = content_area.height.saturating_sub(3) as usize; // Reserve for header + footer info
 
+        // Build all items (config fields + plugins)
+        struct DisplayItem {
+            name: String,
+            value: String,
+            is_header: bool,
+            is_info: bool,
+        }
+
+        let mut items: Vec<DisplayItem> = vec![];
+
+        // Add config fields
         for (i, field) in QdconfigField::ALL.iter().enumerate() {
             let is_selected = i == state.selected;
             let is_editing = is_selected && state.editing;
 
-            // Get field name and value
-            let name = field.name();
+            let name = field.name().to_string();
             let value = match field {
                 QdconfigField::SearchSpec => {
                     if is_editing {
@@ -521,18 +540,10 @@ impl Plugin for QdconfigPlugin {
                     }
                 }
                 QdconfigField::ShowHidden => {
-                    if state.show_hidden {
-                        "Yes".to_string()
-                    } else {
-                        "No".to_string()
-                    }
+                    if state.show_hidden { "Yes" } else { "No" }.to_string()
                 }
                 QdconfigField::ConfirmDelete => {
-                    if state.confirm_delete {
-                        "Yes".to_string()
-                    } else {
-                        "No".to_string()
-                    }
+                    if state.confirm_delete { "Yes" } else { "No" }.to_string()
                 }
                 QdconfigField::Editor => {
                     if is_editing {
@@ -546,18 +557,10 @@ impl Plugin for QdconfigPlugin {
                 }
                 QdconfigField::ColorTheme => state.theme().name().to_string(),
                 QdconfigField::MouseSupport => {
-                    if state.mouse_support {
-                        "Yes".to_string()
-                    } else {
-                        "No".to_string()
-                    }
+                    if state.mouse_support { "Yes" } else { "No" }.to_string()
                 }
                 QdconfigField::UppercaseNames => {
-                    if state.uppercase_names {
-                        "Yes".to_string()
-                    } else {
-                        "No".to_string()
-                    }
+                    if state.uppercase_names { "Yes" } else { "No" }.to_string()
                 }
                 QdconfigField::AutoRefresh => {
                     if state.auto_refresh_interval == 0 {
@@ -568,73 +571,135 @@ impl Plugin for QdconfigPlugin {
                 }
             };
 
-            // Style based on selection
-            let line_style = if is_selected {
-                Style::default().fg(colors.yellow()).bg(colors.red())
-            } else {
-                Style::default().fg(colors.fg()).bg(colors.bg())
-            };
-
-            let name_style = if is_selected {
-                Style::default()
-                    .fg(colors.yellow())
-                    .bg(colors.red())
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(colors.blue())
-            };
-
-            let value_style = if is_editing {
-                Style::default().fg(colors.yellow()).bg(colors.red())
-            } else if is_selected {
-                Style::default().fg(colors.yellow()).bg(colors.red())
-            } else {
-                Style::default().fg(colors.green())
-            };
-
-            // Format as "  Field Name:        Value"
-            let padded_name = format!("  {:<22}", format!("{}:", name));
-            let padded_value = format!("{:<20}", value);
-
-            lines.push(Line::from(vec![
-                Span::styled(padded_name, name_style),
-                Span::styled(padded_value, value_style),
-                Span::styled(
-                    " ".repeat(area.width.saturating_sub(44) as usize),
-                    line_style,
-                ),
-            ]));
+            items.push(DisplayItem {
+                name,
+                value,
+                is_header: false,
+                is_info: false,
+            });
         }
 
-        lines.push(Line::from(""));
-
-        // Show registered plugins
+        // Add plugins header and items
         if !state.plugins.is_empty() {
-            lines.push(Line::from(Span::styled(
-                "Registered Plugins:",
-                Style::default()
-                    .fg(colors.blue())
-                    .add_modifier(Modifier::BOLD),
-            )));
-            for (id, name, description) in &state.plugins {
+            items.push(DisplayItem {
+                name: "Registered Plugins:".to_string(),
+                value: String::new(),
+                is_header: true,
+                is_info: false,
+            });
+
+            for (i, (id, name, description)) in state.plugins.iter().enumerate() {
+                let plugin_idx = QdconfigField::ALL.len() + i;
+                let is_selected = plugin_idx == state.selected;
+                items.push(DisplayItem {
+                    name: format!(
+                        "{} {} ({}) - {}",
+                        if is_selected { "▶" } else { " " },
+                        id,
+                        name,
+                        description
+                    ),
+                    value: String::new(),
+                    is_header: false,
+                    is_info: true,
+                });
+            }
+        }
+
+        // Add info line
+        items.push(DisplayItem {
+            name: "Settings will be saved to ~/.config/rdos/config.toml".to_string(),
+            value: String::new(),
+            is_header: false,
+            is_info: true,
+        });
+
+        // Calculate scroll to keep selection visible
+        let scroll = if state.selected >= state.scroll_offset + visible_height {
+            state.selected.saturating_sub(visible_height - 1)
+        } else if state.selected < state.scroll_offset {
+            state.selected
+        } else {
+            state.scroll_offset
+        };
+
+        // Build visible lines
+        let mut lines: Vec<Line> = vec![Line::from("")];
+
+        for (item_idx, item) in items.iter().enumerate().skip(scroll).take(visible_height) {
+            if item.is_header {
+                lines.push(Line::from(Span::styled(
+                    &item.name,
+                    Style::default()
+                        .fg(colors.blue())
+                        .add_modifier(Modifier::BOLD),
+                )));
+            } else if item.is_info {
+                // Plugin item or info line
+                let is_plugin_selected = item_idx >= QdconfigField::ALL.len()
+                    && item_idx < QdconfigField::ALL.len() + state.plugins.len()
+                    && item_idx == state.selected;
+                let style = if is_plugin_selected {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.grey())
+                };
+                lines.push(Line::from(Span::styled(&item.name, style)));
+            } else {
+                // Config field
+                let is_selected = item_idx == state.selected;
+                let is_editing = is_selected && state.editing;
+
+                let line_style = if is_selected {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.fg()).bg(colors.bg())
+                };
+
+                let name_style = if is_selected {
+                    Style::default()
+                        .fg(colors.yellow())
+                        .bg(colors.red())
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(colors.blue())
+                };
+
+                let value_style = if is_editing || is_selected {
+                    Style::default().fg(colors.yellow()).bg(colors.red())
+                } else {
+                    Style::default().fg(colors.green())
+                };
+
+                let padded_name = format!("  {:<22}", format!("{}:", item.name));
+                let padded_value = format!("{:<20}", item.value);
+
                 lines.push(Line::from(vec![
-                    Span::styled(format!("  {} ", id), Style::default().fg(colors.green())),
-                    Span::styled(format!("({}) ", name), Style::default().fg(colors.fg())),
+                    Span::styled(padded_name, name_style),
+                    Span::styled(padded_value, value_style),
                     Span::styled(
-                        format!("- {}", description),
-                        Style::default()
-                            .fg(colors.grey())
-                            .add_modifier(Modifier::DIM),
+                        " ".repeat(area.width.saturating_sub(44) as usize),
+                        line_style,
                     ),
                 ]));
             }
-            lines.push(Line::from(""));
         }
 
-        lines.push(Line::from(Span::styled(
-            "Settings will be saved to ~/.config/rdos/config.toml",
-            Style::default().fg(colors.grey()),
-        )));
+        // Show scroll indicator if content extends beyond view
+        let total_items = items.len();
+        if total_items > visible_height {
+            let indicator = format!(
+                " [{}/{}] ",
+                scroll + 1,
+                total_items.saturating_sub(visible_height) + 1
+            );
+            let indicator_len = indicator.len() as u16;
+            let indicator_x = content_area.x + content_area.width.saturating_sub(indicator_len + 1);
+            frame.render_widget(
+                Paragraph::new(Span::styled(indicator, Style::default().fg(colors.grey()))),
+                Rect::new(indicator_x, content_area.y, indicator_len + 1, 1),
+            );
+        }
 
         frame.render_widget(Paragraph::new(lines), content_area);
 

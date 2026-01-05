@@ -464,45 +464,98 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
             BeadsView::Create => {
                 let issue_types = ["task", "bug", "feature"];
                 let priorities = ["P0", "P1", "P2", "P3", "P4"];
+                let visible_height = content_area.height as usize;
+                let label_width = 15; // "  Description: " length
+                let max_text_width = content_area
+                    .width
+                    .saturating_sub(label_width as u16 + 2) as usize; // -2 for cursor
 
-                let mut lines = vec![
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        "Create New Issue",
-                        Style::default()
-                            .fg(colors.fg())
-                            .add_modifier(Modifier::BOLD),
-                    )),
-                    Line::from(""),
-                ];
+                // Helper to wrap text into lines
+                let wrap_text = |text: &str, width: usize| -> Vec<String> {
+                    if text.is_empty() {
+                        return vec![String::new()];
+                    }
+                    let mut wrapped = Vec::new();
+                    for line in text.lines() {
+                        if line.is_empty() {
+                            wrapped.push(String::new());
+                            continue;
+                        }
+                        let mut current = String::new();
+                        for word in line.split_inclusive(char::is_whitespace) {
+                            if current.len() + word.len() <= width {
+                                current.push_str(word);
+                            } else if current.is_empty() {
+                                // Word is longer than width, break it
+                                for chunk in word
+                                    .chars()
+                                    .collect::<Vec<_>>()
+                                    .chunks(width.max(1))
+                                {
+                                    wrapped.push(chunk.iter().collect());
+                                }
+                            } else {
+                                wrapped.push(current.trim_end().to_string());
+                                current = word.to_string();
+                            }
+                        }
+                        if !current.is_empty() {
+                            wrapped.push(current.trim_end().to_string());
+                        }
+                    }
+                    if wrapped.is_empty() {
+                        wrapped.push(String::new());
+                    }
+                    wrapped
+                };
 
-                // Title field (field 0)
+                let mut lines: Vec<Line> = vec![];
+
+                // Header
+                lines.push(Line::from(""));
+                lines.push(Line::from(Span::styled(
+                    "Create New Issue",
+                    Style::default()
+                        .fg(colors.fg())
+                        .add_modifier(Modifier::BOLD),
+                )));
+                lines.push(Line::from(""));
+
+                // Track line indices for scroll targeting
+                let title_start_line = lines.len();
+
+                // Title field (field 0) - with wrapping
                 let title_style = if state.create_field == 0 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
-                lines.push(Line::from(vec![
-                    Span::styled("  Title:       ", Style::default().fg(colors.green())),
-                    Span::styled(&state.create_title, title_style),
-                    if state.create_field == 0 {
-                        Span::styled("█", title_style)
-                    } else {
-                        Span::styled("", Style::default())
-                    },
-                ]));
+                let title_wrapped = wrap_text(&state.create_title, max_text_width);
+                let title_len = title_wrapped.len();
+                for (i, line_text) in title_wrapped.into_iter().enumerate() {
+                    let is_last = i == title_len - 1;
+                    let label = if i == 0 { "  Title:       " } else { "               " };
+                    lines.push(Line::from(vec![
+                        Span::styled(label, Style::default().fg(colors.green())),
+                        Span::styled(line_text, title_style),
+                        if state.create_field == 0 && is_last {
+                            Span::styled("█", title_style)
+                        } else {
+                            Span::styled("", Style::default())
+                        },
+                    ]));
+                }
 
                 lines.push(Line::from(""));
+                let desc_start_line = lines.len();
 
-                // Description field (field 1) - supports multi-line
+                // Description field (field 1) - with wrapping
                 let desc_style = if state.create_field == 1 {
                     Style::default().fg(colors.yellow()).bg(colors.red())
                 } else {
                     Style::default().fg(colors.fg())
                 };
-                let desc_lines: Vec<&str> = state.create_description.split('\n').collect();
-                if desc_lines.is_empty() || (desc_lines.len() == 1 && desc_lines[0].is_empty()) {
-                    // Empty description
+                if state.create_description.is_empty() {
                     let placeholder = if state.create_field == 1 {
                         ""
                     } else {
@@ -518,37 +571,29 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                         },
                     ]));
                 } else {
-                    // Multi-line description
-                    for (i, line) in desc_lines.iter().enumerate() {
-                        let is_last = i == desc_lines.len() - 1;
-                        if i == 0 {
-                            lines.push(Line::from(vec![
-                                Span::styled(
-                                    "  Description: ",
-                                    Style::default().fg(colors.green()),
-                                ),
-                                Span::styled(*line, desc_style),
-                                if state.create_field == 1 && is_last {
-                                    Span::styled("█", desc_style)
-                                } else {
-                                    Span::styled("", Style::default())
-                                },
-                            ]));
+                    let desc_wrapped = wrap_text(&state.create_description, max_text_width);
+                    let desc_len = desc_wrapped.len();
+                    for (i, line_text) in desc_wrapped.into_iter().enumerate() {
+                        let is_last = i == desc_len - 1;
+                        let label = if i == 0 {
+                            "  Description: "
                         } else {
-                            lines.push(Line::from(vec![
-                                Span::styled("               ", Style::default()), // Indent to align
-                                Span::styled(*line, desc_style),
-                                if state.create_field == 1 && is_last {
-                                    Span::styled("█", desc_style)
-                                } else {
-                                    Span::styled("", Style::default())
-                                },
-                            ]));
-                        }
+                            "               "
+                        };
+                        lines.push(Line::from(vec![
+                            Span::styled(label, Style::default().fg(colors.green())),
+                            Span::styled(line_text, desc_style),
+                            if state.create_field == 1 && is_last {
+                                Span::styled("█", desc_style)
+                            } else {
+                                Span::styled("", Style::default())
+                            },
+                        ]));
                     }
                 }
 
                 lines.push(Line::from(""));
+                let type_line = lines.len();
 
                 // Type field (field 2)
                 let type_style = if state.create_field == 2 {
@@ -563,6 +608,7 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                 ]));
 
                 lines.push(Line::from(""));
+                let priority_line = lines.len();
 
                 // Priority field (field 3)
                 let priority_style = if state.create_field == 3 {
@@ -590,7 +636,55 @@ pub fn draw_beads_modal(frame: &mut Frame, area: Rect, state: &BeadsState, app: 
                     )));
                 }
 
-                frame.render_widget(Paragraph::new(lines), content_area);
+                // Calculate target line for current field to ensure visibility
+                let target_line = match state.create_field {
+                    0 => title_start_line,
+                    1 => desc_start_line,
+                    2 => type_line,
+                    3 => priority_line,
+                    _ => 0,
+                };
+
+                // Calculate scroll to keep current field visible
+                let total_lines = lines.len();
+                let scroll = if total_lines <= visible_height {
+                    0
+                } else {
+                    let max_scroll = total_lines.saturating_sub(visible_height);
+                    // Ensure target line is visible
+                    if target_line < state.create_scroll {
+                        target_line
+                    } else if target_line >= state.create_scroll + visible_height {
+                        (target_line + 1).saturating_sub(visible_height).min(max_scroll)
+                    } else {
+                        state.create_scroll.min(max_scroll)
+                    }
+                };
+
+                // Apply scrolling
+                let visible_lines: Vec<Line> = lines
+                    .into_iter()
+                    .skip(scroll)
+                    .take(visible_height)
+                    .collect();
+
+                // Show scroll indicator if content extends beyond view
+                if total_lines > visible_height {
+                    let indicator = format!(
+                        " [{}/{}] ",
+                        scroll + 1,
+                        total_lines.saturating_sub(visible_height) + 1
+                    );
+                    let indicator_len = indicator.len() as u16;
+                    let indicator_x =
+                        content_area.x + content_area.width.saturating_sub(indicator_len + 1);
+                    frame.render_widget(
+                        Paragraph::new(Span::styled(indicator, Style::default().fg(colors.grey()))),
+                        Rect::new(indicator_x, content_area.y, indicator_len + 1, 1),
+                    );
+                }
+
+                frame.render_widget(Paragraph::new(visible_lines), content_area);
             }
             BeadsView::Detail => {
                 let mut lines = vec![];
