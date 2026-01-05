@@ -63,7 +63,23 @@ pub struct ModalFrame {
 impl ModalFrame {
     /// Create a new modal frame with theme colors.
     /// This is the preferred constructor for theme-aware modals.
+    ///
+    /// # Panics (debug builds only)
+    ///
+    /// In debug builds, this will panic if the area appears to be full-screen
+    /// (width >= 75 and height >= 20). For full-screen modals, use
+    /// [`FullScreenView`](super::FullScreenView) instead.
     pub fn themed(area: Rect, title: &str, colors: &ThemeColors) -> Self {
+        // In debug builds, warn about full-screen usage
+        // Full-screen modals should use FullScreenView instead
+        debug_assert!(
+            !(area.width >= 75 && area.height >= 20),
+            "ModalFrame used for full-screen area ({}x{}). \
+             Use FullScreenView for full-screen plugin modals instead.",
+            area.width,
+            area.height
+        );
+
         Self {
             area,
             title: title.to_string(),

@@ -717,11 +717,11 @@ fn draw_codex_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Them
 
 /// Draw Gemini detailed view
 fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " Gemini CLI Status ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Gemini CLI Status ", colors);
+    view.render_frame(frame);
 
     if !state.gemini.available {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -729,7 +729,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
-        modal.render_row(
+        view.render_row(
             frame,
             3,
             vec![Span::styled(
@@ -737,14 +737,14 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
                 Style::default().fg(colors.blue()).bg(colors.bg()),
             )],
         );
-        modal.render_help(frame, vec![("Esc", "back")]);
+        view.render_help(frame, vec![("Esc", "back")]);
         return;
     }
 
     let mut row = 0;
 
     // Authentication
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -755,7 +755,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     row += 1;
 
     if let Some(ref auth) = state.gemini.auth_type {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -769,7 +769,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     row += 1;
 
     // Settings
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -780,7 +780,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     row += 1;
 
     if let Some(ref editor) = state.gemini.preferred_editor {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -792,7 +792,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     }
 
     if let Some(ref theme) = state.gemini.theme {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -803,7 +803,7 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
         row += 1;
     }
 
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -819,16 +819,16 @@ fn draw_gemini_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
         )],
     );
 
-    modal.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
+    view.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
 }
 
 /// Draw Cursor detailed view
 fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " Cursor Status ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " Cursor Status ", colors);
+    view.render_frame(frame);
 
     if !state.cursor.available {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -836,7 +836,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
-        modal.render_row(
+        view.render_row(
             frame,
             3,
             vec![Span::styled(
@@ -844,14 +844,14 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
                 Style::default().fg(colors.blue()).bg(colors.bg()),
             )],
         );
-        modal.render_help(frame, vec![("Esc", "back")]);
+        view.render_help(frame, vec![("Esc", "back")]);
         return;
     }
 
     let mut row = 0;
 
     // Configuration
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -862,7 +862,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     row += 1;
 
     if let Some(ref model) = state.cursor.model {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -873,7 +873,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
         row += 1;
     }
 
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -891,7 +891,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     row += 2;
 
     // AI tracking stats
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -901,7 +901,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
     );
     row += 1;
 
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -913,7 +913,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
 
     // Breakdown by source
     if !state.cursor.generations_by_source.is_empty() {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -924,7 +924,7 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
         row += 1;
 
         for (source, count) in state.cursor.generations_by_source.iter().take(6) {
-            modal.render_row(
+            view.render_row(
                 frame,
                 row,
                 vec![Span::styled(
@@ -936,16 +936,16 @@ fn draw_cursor_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &The
         }
     }
 
-    modal.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
+    view.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
 }
 
 /// Draw Copilot detailed view
 fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " GitHub Copilot Status ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " GitHub Copilot Status ", colors);
+    view.render_frame(frame);
 
     if !state.copilot.available {
-        modal.render_row(
+        view.render_row(
             frame,
             1,
             vec![Span::styled(
@@ -953,7 +953,7 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
-        modal.render_row(
+        view.render_row(
             frame,
             3,
             vec![Span::styled(
@@ -961,14 +961,14 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
                 Style::default().fg(colors.blue()).bg(colors.bg()),
             )],
         );
-        modal.render_help(frame, vec![("Esc", "back")]);
+        view.render_help(frame, vec![("Esc", "back")]);
         return;
     }
 
     let mut row = 0;
 
     // Authentication status
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -978,7 +978,7 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
     );
     row += 1;
 
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -996,7 +996,7 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
     row += 1;
 
     if let Some(ref user) = state.copilot.github_user {
-        modal.render_row(
+        view.render_row(
             frame,
             row,
             vec![Span::styled(
@@ -1010,7 +1010,7 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
     row += 1;
 
     // Info
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -1019,7 +1019,7 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
         )],
     );
     row += 1;
-    modal.render_row(
+    view.render_row(
         frame,
         row,
         vec![Span::styled(
@@ -1028,5 +1028,5 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
         )],
     );
 
-    modal.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
+    view.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
 }
