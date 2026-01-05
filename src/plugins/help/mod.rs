@@ -84,7 +84,9 @@ impl HelpPlugin {
             self.state.topics.len().saturating_sub(visible_height)
         } else {
             // Topic page - scroll through content
-            self.current_content_lines().len().saturating_sub(visible_height)
+            self.current_content_lines()
+                .len()
+                .saturating_sub(visible_height)
         };
         if self.state.scroll_offset < max_scroll {
             self.state.scroll_offset += 1;
@@ -103,7 +105,9 @@ impl HelpPlugin {
             self.state.topics.len().saturating_sub(visible_height)
         } else {
             // Topic page - scroll through content
-            self.current_content_lines().len().saturating_sub(visible_height)
+            self.current_content_lines()
+                .len()
+                .saturating_sub(visible_height)
         };
         self.state.scroll_offset = (self.state.scroll_offset + visible_height).min(max_scroll);
     }
@@ -310,7 +314,14 @@ impl HelpPlugin {
         let start = self.state.scroll_offset;
         let end = (start + visible_height).min(total_topics);
 
-        for (i, topic) in self.state.topics.iter().enumerate().skip(start).take(end - start) {
+        for (i, topic) in self
+            .state
+            .topics
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(end - start)
+        {
             let row = (i - start) as u16 + 2;
             modal.render_row(
                 frame,
@@ -329,7 +340,13 @@ impl HelpPlugin {
             String::new()
         };
 
-        modal.render_help(frame, vec![("↑↓", &format!("scroll{}", scroll_info)), ("ESC", "close help")]);
+        modal.render_help(
+            frame,
+            vec![
+                ("↑↓", &format!("scroll{}", scroll_info)),
+                ("ESC", "close help"),
+            ],
+        );
     }
 
     fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {

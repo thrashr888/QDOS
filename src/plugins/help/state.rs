@@ -37,7 +37,9 @@ impl HelpState {
     pub fn add_plugin_topics(&mut self, plugin_help: Vec<(String, String, Vec<String>)>) {
         // Available keys for plugin topics (avoiding conflicts with hardcoded topics)
         // Hardcoded uses: I, A, C, D, E, F, G, B, M, R, V, K
-        let available_keys = ['J', 'L', 'N', 'O', 'P', 'Q', 'S', 'T', 'U', 'W', 'X', 'Y', 'Z'];
+        let available_keys = [
+            'J', 'L', 'N', 'O', 'P', 'Q', 'S', 'T', 'U', 'W', 'X', 'Y', 'Z',
+        ];
         let mut key_index = 0;
 
         for (plugin_id, plugin_name, content) in plugin_help {

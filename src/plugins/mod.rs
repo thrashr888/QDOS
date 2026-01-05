@@ -397,13 +397,7 @@ impl PluginManager {
     pub fn collect_plugin_help(&self) -> Vec<(String, String, Vec<String>)> {
         self.plugins()
             .filter(|p| p.capabilities().has_help)
-            .map(|p| {
-                (
-                    p.id().to_string(),
-                    p.name().to_string(),
-                    p.help_content(),
-                )
-            })
+            .map(|p| (p.id().to_string(), p.name().to_string(), p.help_content()))
             .filter(|(_, _, content)| !content.is_empty())
             .collect()
     }
