@@ -306,3 +306,122 @@ impl Plugin for QEditPlugin {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = QEditPlugin::new();
+        assert!(!plugin.initialized);
+        assert!(plugin.modal_state.is_none());
+    }
+
+    #[test]
+    fn test_plugin_id_name() {
+        let plugin = QEditPlugin::new();
+        assert_eq!(plugin.id(), "qedit");
+        assert_eq!(plugin.name(), "Q-EDIT");
+    }
+
+    #[test]
+    fn test_plugin_capabilities() {
+        let plugin = QEditPlugin::new();
+        let caps = plugin.capabilities();
+        assert!(caps.has_menu);
+        assert!(caps.has_keys);
+        assert!(caps.has_modal);
+        assert!(!caps.has_status);
+        assert!(caps.has_cli);
+        assert!(caps.has_help);
+    }
+
+    #[test]
+    fn test_plugin_menu_item() {
+        let plugin = QEditPlugin::new();
+        let item = plugin.menu_item().expect("Should have menu item");
+        assert_eq!(item.name, "Edit");
+        assert_eq!(item.key, 'E');
+        assert_eq!(item.priority, 90);
+    }
+
+    #[test]
+    fn test_plugin_is_open() {
+        let mut plugin = QEditPlugin::new();
+        assert!(!plugin.is_open());
+
+        plugin.modal_state = Some(QEditState::new());
+        assert!(plugin.is_open());
+    }
+
+    #[test]
+    fn test_plugin_init() {
+        let mut plugin = QEditPlugin::new();
+        let cwd = PathBuf::from("/tmp");
+        assert!(plugin.init(&cwd).is_ok());
+        assert!(plugin.initialized);
+    }
+
+    #[test]
+    fn test_plugin_is_available() {
+        let plugin = QEditPlugin::new();
+        let cwd = PathBuf::from("/tmp");
+        assert!(plugin.is_available(&cwd));
+    }
+
+    #[test]
+    fn test_plugin_help_content() {
+        let plugin = QEditPlugin::new();
+        let help = plugin.help_content();
+        assert!(!help.is_empty());
+        assert!(help[0].contains("Q-EDIT"));
+    }
+
+    #[test]
+    fn test_handle_menu_edit_command() {
+        let mut plugin = QEditPlugin::new();
+        plugin.modal_state = Some(QEditState::new());
+
+        let result = plugin.handle_menu_command(QEditMenuItem::Edit);
+        assert!(matches!(result, KeyHandleResult::Handled));
+
+        if let Some(ref state) = plugin.modal_state {
+            assert_eq!(state.mode, EditorMode::Insert);
+        }
+    }
+
+    #[test]
+    fn test_handle_menu_hex_toggle() {
+        let mut plugin = QEditPlugin::new();
+        plugin.modal_state = Some(QEditState::new());
+
+        // Initially ASCII
+        assert_eq!(
+            plugin.modal_state.as_ref().unwrap().display_mode,
+            DisplayMode::Ascii
+        );
+
+        plugin.handle_menu_command(QEditMenuItem::Hex);
+        assert_eq!(
+            plugin.modal_state.as_ref().unwrap().display_mode,
+            DisplayMode::Hex
+        );
+
+        plugin.handle_menu_command(QEditMenuItem::Hex);
+        assert_eq!(
+            plugin.modal_state.as_ref().unwrap().display_mode,
+            DisplayMode::Ascii
+        );
+    }
+
+    #[test]
+    fn test_handle_menu_quit() {
+        let mut plugin = QEditPlugin::new();
+        plugin.modal_state = Some(QEditState::new());
+
+        let result = plugin.handle_menu_command(QEditMenuItem::Quit);
+        assert!(matches!(result, KeyHandleResult::CloseModal));
+        assert!(plugin.modal_state.is_none());
+    }
+}

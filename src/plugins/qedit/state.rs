@@ -425,3 +425,372 @@ impl Default for QEditState {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // EditorMode tests
+    #[test]
+    fn test_editor_mode_names() {
+        assert_eq!(EditorMode::Command.name(), "Command");
+        assert_eq!(EditorMode::Insert.name(), "Insert");
+        assert_eq!(EditorMode::Overwrite.name(), "Overwrite");
+    }
+
+    #[test]
+    fn test_editor_mode_toggle_insert() {
+        assert_eq!(EditorMode::Insert.toggle_insert(), EditorMode::Overwrite);
+        assert_eq!(EditorMode::Overwrite.toggle_insert(), EditorMode::Insert);
+        assert_eq!(EditorMode::Command.toggle_insert(), EditorMode::Insert);
+    }
+
+    // DisplayMode tests
+    #[test]
+    fn test_display_mode_names() {
+        assert_eq!(DisplayMode::Ascii.name(), "ASCII");
+        assert_eq!(DisplayMode::Hex.name(), "HEX");
+    }
+
+    // QEditMenuItem tests
+    #[test]
+    fn test_menu_items_all() {
+        let items = QEditMenuItem::all();
+        assert_eq!(items.len(), 13);
+        assert_eq!(items[0], QEditMenuItem::Again);
+        assert_eq!(items[9], QEditMenuItem::Quit);
+    }
+
+    #[test]
+    fn test_menu_item_keys() {
+        assert_eq!(QEditMenuItem::Again.key(), 'A');
+        assert_eq!(QEditMenuItem::Edit.key(), 'E');
+        assert_eq!(QEditMenuItem::Quit.key(), 'Q');
+        assert_eq!(QEditMenuItem::Find.key(), 'F');
+    }
+
+    #[test]
+    fn test_menu_item_names() {
+        assert_eq!(QEditMenuItem::Again.name(), "Again");
+        assert_eq!(QEditMenuItem::Edit.name(), "Edit");
+        assert_eq!(QEditMenuItem::Quit.name(), "Quit");
+    }
+
+    // QEditState tests
+    #[test]
+    fn test_new_state() {
+        let state = QEditState::new();
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 0);
+        assert_eq!(state.lines.len(), 1);
+        assert_eq!(state.lines[0], "");
+        assert!(!state.modified);
+        assert_eq!(state.mode, EditorMode::Command);
+        assert_eq!(state.display_mode, DisplayMode::Ascii);
+    }
+
+    #[test]
+    fn test_insert_char() {
+        let mut state = QEditState::new();
+        state.mode = EditorMode::Insert;
+        state.insert_char('a');
+        assert_eq!(state.lines[0], "a");
+        assert_eq!(state.cursor_col, 1);
+        assert!(state.modified);
+
+        state.insert_char('b');
+        assert_eq!(state.lines[0], "ab");
+        assert_eq!(state.cursor_col, 2);
+    }
+
+    #[test]
+    fn test_insert_char_middle() {
+        let mut state = QEditState::new();
+        state.lines[0] = "ac".to_string();
+        state.cursor_col = 1;
+        state.mode = EditorMode::Insert;
+        state.insert_char('b');
+        assert_eq!(state.lines[0], "abc");
+        assert_eq!(state.cursor_col, 2);
+    }
+
+    #[test]
+    fn test_overwrite_mode() {
+        let mut state = QEditState::new();
+        state.lines[0] = "abc".to_string();
+        state.cursor_col = 1;
+        state.mode = EditorMode::Overwrite;
+        state.insert_char('X');
+        assert_eq!(state.lines[0], "aXc");
+        assert_eq!(state.cursor_col, 2);
+    }
+
+    #[test]
+    fn test_backspace() {
+        let mut state = QEditState::new();
+        state.lines[0] = "abc".to_string();
+        state.cursor_col = 2;
+        state.backspace();
+        assert_eq!(state.lines[0], "ac");
+        assert_eq!(state.cursor_col, 1);
+    }
+
+    #[test]
+    fn test_backspace_join_lines() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string(), "world".to_string()];
+        state.cursor_line = 1;
+        state.cursor_col = 0;
+        state.backspace();
+        assert_eq!(state.lines.len(), 1);
+        assert_eq!(state.lines[0], "helloworld");
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 5);
+    }
+
+    #[test]
+    fn test_delete_char() {
+        let mut state = QEditState::new();
+        state.lines[0] = "abc".to_string();
+        state.cursor_col = 1;
+        state.delete_char();
+        assert_eq!(state.lines[0], "ac");
+        assert_eq!(state.cursor_col, 1);
+    }
+
+    #[test]
+    fn test_delete_char_join_lines() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string(), "world".to_string()];
+        state.cursor_col = 5; // End of first line
+        state.delete_char();
+        assert_eq!(state.lines.len(), 1);
+        assert_eq!(state.lines[0], "helloworld");
+    }
+
+    #[test]
+    fn test_insert_newline() {
+        let mut state = QEditState::new();
+        state.auto_indent = false;
+        state.lines[0] = "hello world".to_string();
+        state.cursor_col = 5;
+        state.insert_newline();
+        assert_eq!(state.lines.len(), 2);
+        assert_eq!(state.lines[0], "hello");
+        assert_eq!(state.lines[1], " world");
+        assert_eq!(state.cursor_line, 1);
+        assert_eq!(state.cursor_col, 0);
+    }
+
+    #[test]
+    fn test_insert_newline_auto_indent() {
+        let mut state = QEditState::new();
+        state.auto_indent = true;
+        state.lines[0] = "    indented".to_string();
+        state.cursor_col = 12; // End of line
+        state.insert_newline();
+        assert_eq!(state.lines.len(), 2);
+        assert_eq!(state.lines[0], "    indented");
+        assert_eq!(state.lines[1], "    ");
+        assert_eq!(state.cursor_col, 4);
+    }
+
+    #[test]
+    fn test_move_up() {
+        let mut state = QEditState::new();
+        state.lines = vec!["line1".to_string(), "line2".to_string()];
+        state.cursor_line = 1;
+        state.cursor_col = 2;
+        state.move_up();
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 2);
+    }
+
+    #[test]
+    fn test_move_up_clamp_col() {
+        let mut state = QEditState::new();
+        state.lines = vec!["ab".to_string(), "longer".to_string()];
+        state.cursor_line = 1;
+        state.cursor_col = 5;
+        state.move_up();
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 2); // Clamped to line length
+    }
+
+    #[test]
+    fn test_move_down() {
+        let mut state = QEditState::new();
+        state.lines = vec!["line1".to_string(), "line2".to_string()];
+        state.cursor_line = 0;
+        state.move_down();
+        assert_eq!(state.cursor_line, 1);
+    }
+
+    #[test]
+    fn test_move_left() {
+        let mut state = QEditState::new();
+        state.lines[0] = "abc".to_string();
+        state.cursor_col = 2;
+        state.move_left();
+        assert_eq!(state.cursor_col, 1);
+    }
+
+    #[test]
+    fn test_move_left_wrap_to_prev_line() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string(), "world".to_string()];
+        state.cursor_line = 1;
+        state.cursor_col = 0;
+        state.move_left();
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 5);
+    }
+
+    #[test]
+    fn test_move_right() {
+        let mut state = QEditState::new();
+        state.lines[0] = "abc".to_string();
+        state.cursor_col = 1;
+        state.move_right();
+        assert_eq!(state.cursor_col, 2);
+    }
+
+    #[test]
+    fn test_move_right_wrap_to_next_line() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string(), "world".to_string()];
+        state.cursor_col = 5; // End of first line
+        state.move_right();
+        assert_eq!(state.cursor_line, 1);
+        assert_eq!(state.cursor_col, 0);
+    }
+
+    #[test]
+    fn test_move_home() {
+        let mut state = QEditState::new();
+        state.lines[0] = "hello world".to_string();
+        state.cursor_col = 6;
+        state.move_home();
+        assert_eq!(state.cursor_col, 0);
+    }
+
+    #[test]
+    fn test_move_end() {
+        let mut state = QEditState::new();
+        state.lines[0] = "hello world".to_string();
+        state.cursor_col = 3;
+        state.move_end();
+        assert_eq!(state.cursor_col, 11);
+    }
+
+    #[test]
+    fn test_move_top() {
+        let mut state = QEditState::new();
+        state.lines = vec![
+            "line1".to_string(),
+            "line2".to_string(),
+            "line3".to_string(),
+        ];
+        state.cursor_line = 2;
+        state.cursor_col = 3;
+        state.scroll_offset = 1;
+        state.move_top();
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.cursor_col, 0);
+        assert_eq!(state.scroll_offset, 0);
+    }
+
+    #[test]
+    fn test_move_bottom() {
+        let mut state = QEditState::new();
+        state.lines = vec![
+            "line1".to_string(),
+            "line2".to_string(),
+            "line3".to_string(),
+        ];
+        state.cursor_line = 0;
+        state.move_bottom();
+        assert_eq!(state.cursor_line, 2);
+        assert_eq!(state.cursor_col, 0);
+    }
+
+    #[test]
+    fn test_page_up() {
+        let mut state = QEditState::new();
+        state.lines = (0..50).map(|i| format!("line {}", i)).collect();
+        state.cursor_line = 30;
+        state.scroll_offset = 20;
+        state.page_up(20);
+        assert_eq!(state.cursor_line, 10);
+        assert_eq!(state.scroll_offset, 0);
+    }
+
+    #[test]
+    fn test_page_down() {
+        let mut state = QEditState::new();
+        state.lines = (0..50).map(|i| format!("line {}", i)).collect();
+        state.cursor_line = 10;
+        state.scroll_offset = 5;
+        state.page_down(20);
+        assert_eq!(state.cursor_line, 30);
+        assert_eq!(state.scroll_offset, 25);
+    }
+
+    #[test]
+    fn test_ensure_visible_scroll_up() {
+        let mut state = QEditState::new();
+        state.lines = (0..50).map(|i| format!("line {}", i)).collect();
+        state.scroll_offset = 20;
+        state.cursor_line = 10;
+        state.ensure_visible(20);
+        assert_eq!(state.scroll_offset, 10);
+    }
+
+    #[test]
+    fn test_ensure_visible_scroll_down() {
+        let mut state = QEditState::new();
+        state.lines = (0..50).map(|i| format!("line {}", i)).collect();
+        state.scroll_offset = 0;
+        state.cursor_line = 25;
+        state.ensure_visible(20);
+        assert_eq!(state.scroll_offset, 6);
+    }
+
+    #[test]
+    fn test_display_name_with_file() {
+        let mut state = QEditState::new();
+        state.file_path = Some(PathBuf::from("/path/to/myfile.txt"));
+        assert_eq!(state.display_name(), "myfile.txt");
+    }
+
+    #[test]
+    fn test_display_name_without_file() {
+        let state = QEditState::new();
+        assert_eq!(state.display_name(), "[New File]");
+    }
+
+    #[test]
+    fn test_byte_count() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string(), "world".to_string()];
+        // "hello\nworld" = 11 bytes
+        assert_eq!(state.byte_count(), 11);
+    }
+
+    #[test]
+    fn test_current_line() {
+        let mut state = QEditState::new();
+        state.lines = vec!["first".to_string(), "second".to_string()];
+        assert_eq!(state.current_line(), "first");
+        state.cursor_line = 1;
+        assert_eq!(state.current_line(), "second");
+    }
+
+    #[test]
+    fn test_current_line_mut() {
+        let mut state = QEditState::new();
+        state.lines = vec!["hello".to_string()];
+        state.current_line_mut().push_str(" world");
+        assert_eq!(state.lines[0], "hello world");
+    }
+}
