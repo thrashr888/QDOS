@@ -101,6 +101,15 @@ impl NavItem {
             NavItem::Print => "Print one or several files on the printer",
         }
     }
+
+    /// Returns the index of the key character to highlight in the nav bar
+    /// Most items highlight the first character (index 0), but MkDir highlights 'k' (index 1)
+    pub fn key_index(&self) -> usize {
+        match self {
+            NavItem::MkDir => 1, // Highlight the 'k' in "MkDir"
+            _ => 0,              // All others highlight first character
+        }
+    }
 }
 
 /// Sort modes for file listing

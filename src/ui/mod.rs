@@ -222,13 +222,11 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
         }
 
         let name = item.as_str();
-        let first_char = &name[..1];
-        let rest = &name[1..];
-
+        let key_idx = item.key_index();
         let is_selected = i == app.nav_index;
 
-        // First letter style: green normally, yellow on red when selected
-        let first_style = if is_selected {
+        // Key character style: green normally, yellow on red when selected
+        let key_style = if is_selected {
             Style::default().fg(colors.yellow()).bg(colors.red())
         } else {
             Style::default().fg(colors.green())
@@ -241,8 +239,18 @@ fn draw_nav_bar(frame: &mut Frame, app: &App, area: Rect) {
             Style::default().fg(colors.fg())
         };
 
-        nav_spans.push(Span::styled(first_char, first_style));
-        nav_spans.push(Span::styled(rest, rest_style));
+        // Split name into: before key, key char, after key
+        let before_key = &name[..key_idx];
+        let key_char = &name[key_idx..key_idx + 1];
+        let after_key = &name[key_idx + 1..];
+
+        if !before_key.is_empty() {
+            nav_spans.push(Span::styled(before_key, rest_style));
+        }
+        nav_spans.push(Span::styled(key_char, key_style));
+        if !after_key.is_empty() {
+            nav_spans.push(Span::styled(after_key, rest_style));
+        }
         nav_spans.push(Span::raw("  "));
     }
 
