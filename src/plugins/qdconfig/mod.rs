@@ -2,213 +2,18 @@
 //!
 //! Provides startup configuration (Ctrl+S) as a self-contained plugin.
 
+mod modal;
+mod state;
+
+pub use state::{QdconfigField, QdconfigState};
+
 use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
 use crate::app::{ColorTheme, SortMode};
-use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use std::any::Any;
 use std::path::PathBuf;
-
-/// Configuration fields
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QdconfigField {
-    SearchSpec,
-    SortMethod,
-    SortDirection,
-    ShowHidden,
-    ConfirmDelete,
-    Editor,
-    ColorTheme,
-    MouseSupport,
-    UppercaseNames,
-    AutoRefresh,
-}
-
-impl QdconfigField {
-    pub const ALL: [QdconfigField; 10] = [
-        QdconfigField::SearchSpec,
-        QdconfigField::SortMethod,
-        QdconfigField::SortDirection,
-        QdconfigField::ShowHidden,
-        QdconfigField::ConfirmDelete,
-        QdconfigField::Editor,
-        QdconfigField::ColorTheme,
-        QdconfigField::MouseSupport,
-        QdconfigField::UppercaseNames,
-        QdconfigField::AutoRefresh,
-    ];
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            QdconfigField::SearchSpec => "Search Specification",
-            QdconfigField::SortMethod => "Sort Method",
-            QdconfigField::SortDirection => "Sort Direction",
-            QdconfigField::ShowHidden => "Show Hidden Files",
-            QdconfigField::ConfirmDelete => "Confirm Delete",
-            QdconfigField::Editor => "Default Editor",
-            QdconfigField::ColorTheme => "Color Theme",
-            QdconfigField::MouseSupport => "Mouse Support",
-            QdconfigField::UppercaseNames => "Uppercase Names",
-            QdconfigField::AutoRefresh => "Auto-Refresh (sec)",
-        }
-    }
-}
-
-/// Configuration state
-#[derive(Debug, Clone)]
-pub struct QdconfigState {
-    /// Currently selected field
-    pub selected: usize,
-    /// Scroll offset for list view
-    pub scroll_offset: usize,
-    /// Editing mode (for text input fields)
-    pub editing: bool,
-    /// Input buffer for text fields
-    pub input_buffer: String,
-    /// Search specification
-    pub search_spec: String,
-    /// Sort method (0=name, 1=ext, 2=size, 3=date, 4=none)
-    pub sort_method: usize,
-    /// Sort direction (true=asc, false=desc)
-    pub sort_asc: bool,
-    /// Show hidden files
-    pub show_hidden: bool,
-    /// Confirm before delete
-    pub confirm_delete: bool,
-    /// Editor command (None = use $EDITOR)
-    pub editor: Option<String>,
-    /// Color theme index
-    pub theme_index: usize,
-    /// Mouse support enabled
-    pub mouse_support: bool,
-    /// Show filenames in uppercase
-    pub uppercase_names: bool,
-    /// Auto-refresh interval in seconds (0 = disabled)
-    pub auto_refresh_interval: u64,
-    /// Original theme for cancel restore
-    original_theme_index: usize,
-    /// Registered plugins list (id, name, description)
-    pub plugins: Vec<(String, String, String)>,
-}
-
-impl QdconfigState {
-    pub fn new(
-        search_spec: String,
-        sort_mode: SortMode,
-        show_hidden: bool,
-        confirm_delete: bool,
-        editor: Option<String>,
-        color_theme: ColorTheme,
-        mouse_support: bool,
-        uppercase_names: bool,
-        auto_refresh_interval: u64,
-        plugins: Vec<(String, String, String)>,
-    ) -> Self {
-        // Convert SortMode to method + direction
-        let (sort_method, sort_asc) = match sort_mode {
-            SortMode::NameAsc => (0, true),
-            SortMode::NameDesc => (0, false),
-            SortMode::ExtAsc => (1, true),
-            SortMode::ExtDesc => (1, false),
-            SortMode::SizeAsc => (2, true),
-            SortMode::SizeDesc => (2, false),
-            SortMode::DateAsc => (3, true),
-            SortMode::DateDesc => (3, false),
-            SortMode::None => (4, true),
-        };
-
-        // Get theme index
-        let theme_index = ColorTheme::ALL
-            .iter()
-            .position(|&t| t == color_theme)
-            .unwrap_or(0);
-
-        Self {
-            selected: 0,
-            scroll_offset: 0,
-            editing: false,
-            input_buffer: String::new(),
-            search_spec,
-            sort_method,
-            sort_asc,
-            show_hidden,
-            confirm_delete,
-            editor,
-            theme_index,
-            mouse_support,
-            uppercase_names,
-            auto_refresh_interval,
-            original_theme_index: theme_index,
-            plugins,
-        }
-    }
-
-    pub fn cycle_auto_refresh(&mut self) {
-        // Cycle through: 0 (off), 1, 2, 5, 10, 30, 60 seconds
-        self.auto_refresh_interval = match self.auto_refresh_interval {
-            0 => 1,
-            1 => 2,
-            2 => 5,
-            5 => 10,
-            10 => 30,
-            30 => 60,
-            _ => 0,
-        };
-    }
-
-    pub fn current_field(&self) -> QdconfigField {
-        QdconfigField::ALL[self.selected]
-    }
-
-    pub fn sort_method_name(&self) -> &'static str {
-        match self.sort_method {
-            0 => "Name",
-            1 => "Extension",
-            2 => "Size",
-            3 => "Date",
-            _ => "None",
-        }
-    }
-
-    pub fn cycle_sort_method(&mut self) {
-        self.sort_method = (self.sort_method + 1) % 5;
-    }
-
-    pub fn toggle_sort_direction(&mut self) {
-        self.sort_asc = !self.sort_asc;
-    }
-
-    pub fn cycle_theme(&mut self) {
-        self.theme_index = (self.theme_index + 1) % ColorTheme::ALL.len();
-    }
-
-    pub fn theme(&self) -> ColorTheme {
-        ColorTheme::ALL[self.theme_index]
-    }
-
-    pub fn original_theme(&self) -> ColorTheme {
-        ColorTheme::ALL[self.original_theme_index]
-    }
-
-    pub fn sort_mode(&self) -> SortMode {
-        match (self.sort_method, self.sort_asc) {
-            (0, true) => SortMode::NameAsc,
-            (0, false) => SortMode::NameDesc,
-            (1, true) => SortMode::ExtAsc,
-            (1, false) => SortMode::ExtDesc,
-            (2, true) => SortMode::SizeAsc,
-            (2, false) => SortMode::SizeDesc,
-            (3, true) => SortMode::DateAsc,
-            (3, false) => SortMode::DateDesc,
-            _ => SortMode::None,
-        }
-    }
-}
 
 /// QDCONFIG plugin for startup configuration
 pub struct QdconfigPlugin {
@@ -495,249 +300,8 @@ impl Plugin for QdconfigPlugin {
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
-        let Some(ref state) = self.state else {
-            return;
-        };
-
-        // Create full-screen view
-        let view = FullScreenView::new(area, " R-DOS STARTUP CONFIGURATION ", colors);
-        view.render_frame(frame);
-
-        // Content area
-        let content_area = view.content_area();
-        let visible_height = content_area.height.saturating_sub(3) as usize; // Reserve for header + footer info
-
-        // Build all items (config fields + plugins)
-        struct DisplayItem {
-            name: String,
-            value: String,
-            is_header: bool,
-            is_info: bool,
-        }
-
-        let mut items: Vec<DisplayItem> = vec![];
-
-        // Add config fields
-        for (i, field) in QdconfigField::ALL.iter().enumerate() {
-            let is_selected = i == state.selected;
-            let is_editing = is_selected && state.editing;
-
-            let name = field.name().to_string();
-            let value = match field {
-                QdconfigField::SearchSpec => {
-                    if is_editing {
-                        format!("{}█", state.input_buffer)
-                    } else {
-                        state.search_spec.clone()
-                    }
-                }
-                QdconfigField::SortMethod => state.sort_method_name().to_string(),
-                QdconfigField::SortDirection => {
-                    if state.sort_asc {
-                        "Ascending".to_string()
-                    } else {
-                        "Descending".to_string()
-                    }
-                }
-                QdconfigField::ShowHidden => {
-                    if state.show_hidden { "Yes" } else { "No" }.to_string()
-                }
-                QdconfigField::ConfirmDelete => {
-                    if state.confirm_delete { "Yes" } else { "No" }.to_string()
-                }
-                QdconfigField::Editor => {
-                    if is_editing {
-                        format!("{}█", state.input_buffer)
-                    } else {
-                        state
-                            .editor
-                            .clone()
-                            .unwrap_or_else(|| "$EDITOR".to_string())
-                    }
-                }
-                QdconfigField::ColorTheme => state.theme().name().to_string(),
-                QdconfigField::MouseSupport => {
-                    if state.mouse_support { "Yes" } else { "No" }.to_string()
-                }
-                QdconfigField::UppercaseNames => {
-                    if state.uppercase_names { "Yes" } else { "No" }.to_string()
-                }
-                QdconfigField::AutoRefresh => {
-                    if state.auto_refresh_interval == 0 {
-                        "Off".to_string()
-                    } else {
-                        format!("{} sec", state.auto_refresh_interval)
-                    }
-                }
-            };
-
-            items.push(DisplayItem {
-                name,
-                value,
-                is_header: false,
-                is_info: false,
-            });
-        }
-
-        // Add plugins header and items (with blank line before)
-        if !state.plugins.is_empty() {
-            items.push(DisplayItem {
-                name: String::new(),
-                value: String::new(),
-                is_header: false,
-                is_info: true,
-            });
-            items.push(DisplayItem {
-                name: "Registered Plugins:".to_string(),
-                value: String::new(),
-                is_header: true,
-                is_info: false,
-            });
-
-            for (i, (id, name, description)) in state.plugins.iter().enumerate() {
-                // +2 to account for blank line and "Registered Plugins:" header row
-                let plugin_idx = QdconfigField::ALL.len() + 2 + i;
-                let is_selected = plugin_idx == state.selected;
-                items.push(DisplayItem {
-                    name: format!(
-                        "{} {} ({}) - {}",
-                        if is_selected { "▶" } else { " " },
-                        id,
-                        name,
-                        description
-                    ),
-                    value: String::new(),
-                    is_header: false,
-                    is_info: true,
-                });
-            }
-
-            // Blank line after plugins
-            items.push(DisplayItem {
-                name: String::new(),
-                value: String::new(),
-                is_header: false,
-                is_info: true,
-            });
-        }
-
-        // Add info line
-        items.push(DisplayItem {
-            name: "Settings will be saved to ~/.config/rdos/config.toml".to_string(),
-            value: String::new(),
-            is_header: false,
-            is_info: true,
-        });
-
-        // Calculate scroll to keep selection visible
-        let scroll = if state.selected >= state.scroll_offset + visible_height {
-            state.selected.saturating_sub(visible_height - 1)
-        } else if state.selected < state.scroll_offset {
-            state.selected
-        } else {
-            state.scroll_offset
-        };
-
-        // Build visible lines
-        let mut lines: Vec<Line> = vec![Line::from("")];
-
-        for (item_idx, item) in items.iter().enumerate().skip(scroll).take(visible_height) {
-            if item.is_header {
-                lines.push(Line::from(Span::styled(
-                    &item.name,
-                    Style::default()
-                        .fg(colors.blue())
-                        .add_modifier(Modifier::BOLD),
-                )));
-            } else if item.is_info {
-                // Plugin item or info line
-                // Plugins start after config fields (10) + blank line (1) + header (1), so index 12+
-                let is_plugin_selected = item_idx > QdconfigField::ALL.len() + 1
-                    && item_idx <= QdconfigField::ALL.len() + 1 + state.plugins.len()
-                    && item_idx == state.selected;
-                let style = if is_plugin_selected {
-                    Style::default().fg(colors.yellow()).bg(colors.red())
-                } else {
-                    Style::default().fg(colors.grey())
-                };
-                lines.push(Line::from(Span::styled(&item.name, style)));
-            } else {
-                // Config field
-                let is_selected = item_idx == state.selected;
-                let is_editing = is_selected && state.editing;
-
-                let line_style = if is_selected {
-                    Style::default().fg(colors.yellow()).bg(colors.red())
-                } else {
-                    Style::default().fg(colors.fg()).bg(colors.bg())
-                };
-
-                let name_style = if is_selected {
-                    Style::default()
-                        .fg(colors.yellow())
-                        .bg(colors.red())
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(colors.blue())
-                };
-
-                let value_style = if is_editing || is_selected {
-                    Style::default().fg(colors.yellow()).bg(colors.red())
-                } else {
-                    Style::default().fg(colors.green())
-                };
-
-                let padded_name = format!("  {:<22}", format!("{}:", item.name));
-                let padded_value = format!("{:<20}", item.value);
-
-                lines.push(Line::from(vec![
-                    Span::styled(padded_name, name_style),
-                    Span::styled(padded_value, value_style),
-                    Span::styled(
-                        " ".repeat(area.width.saturating_sub(44) as usize),
-                        line_style,
-                    ),
-                ]));
-            }
-        }
-
-        // Show scroll indicator if content extends beyond view
-        let total_items = items.len();
-        if total_items > visible_height {
-            let indicator = format!(
-                " [{}/{}] ",
-                scroll + 1,
-                total_items.saturating_sub(visible_height) + 1
-            );
-            let indicator_len = indicator.len() as u16;
-            let indicator_x = content_area.x + content_area.width.saturating_sub(indicator_len + 1);
-            frame.render_widget(
-                Paragraph::new(Span::styled(indicator, Style::default().fg(colors.grey()))),
-                Rect::new(indicator_x, content_area.y, indicator_len + 1, 1),
-            );
-        }
-
-        frame.render_widget(Paragraph::new(lines), content_area);
-
-        // Help line
-        if state.editing {
-            view.render_footer(
-                frame,
-                vec![Span::styled(
-                    " Type value, Enter to confirm, ESC to cancel",
-                    Style::default().fg(colors.green()),
-                )],
-            );
-        } else {
-            view.render_help(
-                frame,
-                vec![
-                    ("↑↓", "select"),
-                    ("Enter/Space", "toggle"),
-                    ("S", "save"),
-                    ("ESC", "close"),
-                ],
-            );
+        if let Some(ref state) = self.state {
+            modal::draw_config_modal(frame, area, state, colors);
         }
     }
 
@@ -770,6 +334,18 @@ mod tests {
     }
 
     #[test]
+    fn test_plugin_capabilities() {
+        let plugin = QdconfigPlugin::new();
+        let caps = plugin.capabilities();
+        assert!(caps.has_menu);
+        assert!(caps.has_keys);
+        assert!(caps.has_modal);
+        assert!(!caps.has_status);
+        assert!(!caps.has_cli);
+        assert!(caps.has_help);
+    }
+
+    #[test]
     fn test_modal_open_close() {
         let mut plugin = QdconfigPlugin::new();
         plugin.open_modal(
@@ -790,8 +366,11 @@ mod tests {
     }
 
     #[test]
-    fn test_field_cycling() {
-        let mut state = QdconfigState::new(
+    fn test_preview_theme() {
+        let mut plugin = QdconfigPlugin::new();
+        assert!(plugin.preview_theme().is_none());
+
+        plugin.open_modal(
             "*.*".to_string(),
             SortMode::NameAsc,
             false,
@@ -803,15 +382,18 @@ mod tests {
             5,
             Vec::new(),
         );
+        assert!(plugin.preview_theme().is_some());
+    }
 
-        // Test sort method cycling
-        assert_eq!(state.sort_method_name(), "Name");
-        state.cycle_sort_method();
-        assert_eq!(state.sort_method_name(), "Extension");
+    #[test]
+    fn test_take_result() {
+        let mut plugin = QdconfigPlugin::new();
+        assert!(plugin.take_result().is_none());
+    }
 
-        // Test theme cycling
-        let initial_theme = state.theme();
-        state.cycle_theme();
-        assert_ne!(state.theme(), initial_theme);
+    #[test]
+    fn test_was_saved() {
+        let plugin = QdconfigPlugin::new();
+        assert!(!plugin.was_saved());
     }
 }
