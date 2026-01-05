@@ -28,18 +28,18 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    fileops::FileOperation, AIPlugin, BeadsPlugin, DirMapPlugin, FileOpsPlugin, GitPlugin,
-    HelpPlugin, JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem, PluginStatusInfo,
-    PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin,
-    SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
+    fileops::FileOperation, AIPlugin, AppsPlugin, BeadsPlugin, DirMapPlugin, FileOpsPlugin,
+    GitPlugin, HelpPlugin, JjPlugin, KeyHandleResult, PluginManager, PluginMenuItem,
+    PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin,
+    ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
-use jumprs::Database as JumpDatabase;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use crossterm::execute;
 use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
+use jumprs::Database as JumpDatabase;
 use ratatui::prelude::*;
 use std::fs;
 use std::io::{self, Write};
@@ -127,6 +127,7 @@ impl App {
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
         plugin_manager.register(Box::new(AIPlugin::new()));
+        plugin_manager.register(Box::new(AppsPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
@@ -666,7 +667,8 @@ impl App {
                         !input.contains('/') && !input.contains('\\') && input.len() < 50;
 
                     if is_z_query {
-                        if let Some(entry) = self.z_db.as_ref().and_then(|db| db.best_match(&input)) {
+                        if let Some(entry) = self.z_db.as_ref().and_then(|db| db.best_match(&input))
+                        {
                             let z_path = entry.path.clone();
                             self.modal = Modal::None;
                             if let Err(e) = self.navigate_to(&z_path) {
@@ -833,7 +835,8 @@ impl App {
                                 let _ = self.refresh_files();
                             }
                             Err(e) => {
-                                self.modal = Modal::Error(format!("Failed to create directory: {}", e));
+                                self.modal =
+                                    Modal::Error(format!("Failed to create directory: {}", e));
                             }
                         }
                     }

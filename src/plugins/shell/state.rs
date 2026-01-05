@@ -203,10 +203,7 @@ pub enum TelnetMenuItem {
 
 impl TelnetMenuItem {
     /// All menu items in order
-    pub const ALL: [TelnetMenuItem; 2] = [
-        TelnetMenuItem::Connect,
-        TelnetMenuItem::History,
-    ];
+    pub const ALL: [TelnetMenuItem; 2] = [TelnetMenuItem::Connect, TelnetMenuItem::History];
 
     /// Get display name
     pub fn name(&self) -> &'static str {

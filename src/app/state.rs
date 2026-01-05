@@ -77,9 +77,7 @@ impl NavItem {
 
     pub fn description(&self) -> &'static str {
         match self {
-            NavItem::Directory => {
-                "Change current directory, remove directory, see directory tree"
-            }
+            NavItem::Directory => "Change current directory, remove directory, see directory tree",
             NavItem::Tag => {
                 "Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file"
             }

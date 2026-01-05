@@ -30,7 +30,9 @@ impl TelnetSession {
 
         // Connect with timeout
         let stream = TcpStream::connect_timeout(
-            &addr.parse().map_err(|e| anyhow::anyhow!("Invalid address: {}", e))?,
+            &addr
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Invalid address: {}", e))?,
             Duration::from_secs(10),
         )?;
 

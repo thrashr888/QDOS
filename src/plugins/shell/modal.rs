@@ -727,10 +727,7 @@ pub fn draw_telnet_history_view(
                     "Host                      ",
                     Style::default().fg(colors.cyan()).bg(colors.bg()),
                 ),
-                Span::styled(
-                    "Port  ",
-                    Style::default().fg(colors.cyan()).bg(colors.bg()),
-                ),
+                Span::styled("Port  ", Style::default().fg(colors.cyan()).bg(colors.bg())),
                 Span::styled(
                     "Connected",
                     Style::default().fg(colors.cyan()).bg(colors.bg()),
@@ -826,10 +823,7 @@ pub fn draw_telnet_error_view(
     let modal = ModalFrame::themed(area, " Connection Error ", colors);
     modal.render_frame(frame);
 
-    let error_msg = state
-        .error_message
-        .as_deref()
-        .unwrap_or("Unknown error");
+    let error_msg = state.error_message.as_deref().unwrap_or("Unknown error");
 
     modal.render_row(
         frame,

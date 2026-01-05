@@ -935,11 +935,7 @@ impl ShellPlugin {
             KeyCode::Enter => {
                 // Attempt connection
                 let host = self.telnet_state.host_input.trim().to_string();
-                let port: u16 = self
-                    .telnet_state
-                    .port_input
-                    .parse()
-                    .unwrap_or(23);
+                let port: u16 = self.telnet_state.port_input.parse().unwrap_or(23);
 
                 if host.is_empty() {
                     self.telnet_state.error_message = Some("Host cannot be empty".to_string());
@@ -1064,7 +1060,9 @@ impl ShellPlugin {
             KeyCode::Char('d') | KeyCode::Char('D') => {
                 // Delete history entry
                 if !self.telnet_state.history.is_empty() {
-                    self.telnet_state.history.remove(self.telnet_state.history_selected);
+                    self.telnet_state
+                        .history
+                        .remove(self.telnet_state.history_selected);
                     if self.telnet_state.history_selected > 0
                         && self.telnet_state.history_selected >= self.telnet_state.history.len()
                     {
