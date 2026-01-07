@@ -91,8 +91,14 @@ Wait for the Release workflow to complete successfully.
 
 The GitHub Actions workflow creates a release but may not populate the title/body from the tag. Update it:
 
+**Title format**: `vX.Y.Z - Feature 1, Feature 2, Feature 3`
+
+Examples:
+- `v0.6.0 - JJ VCS, AI Assistant, Interactive Shell`
+- `v0.7.0 - F12 Apps Launcher, Homebrew Plugin, CLI Crate Integration`
+
 ```bash
-gh release edit vX.Y.Z --title "QDOS X.Y.Z" --notes "$(cat <<'EOF'
+gh release edit vX.Y.Z --title "vX.Y.Z - Feature 1, Feature 2" --notes "$(cat <<'EOF'
 ## Highlights
 - Key feature 1
 - Key feature 2
