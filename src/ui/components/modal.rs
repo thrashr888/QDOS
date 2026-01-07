@@ -64,18 +64,34 @@ impl ModalFrame {
     /// Create a new modal frame with theme colors.
     /// This is the preferred constructor for theme-aware modals.
     ///
-    /// # Panics (debug builds only)
+    /// # When to use ModalFrame vs FullScreenView
     ///
-    /// In debug builds, this will panic if the area appears to be full-screen
-    /// (width >= 100 or height >= 25). For full-screen modals, use
-    /// [`FullScreenView`](super::FullScreenView) instead.
+    /// - **ModalFrame**: Small, centered dialogs (confirmations, short forms, menus).
+    ///   Pass a smaller `Rect` calculated from the full area, NOT the full screen area.
+    /// - **FullScreenView**: Full-screen plugin views (file viewers, output displays, lists).
+    ///   Use `FullScreenView::new(area, title, colors)` with the full screen area.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the area appears to be full-screen (width >= 80 or height >= 24).
+    /// This is intentional - ModalFrame is NOT designed for full-screen use.
+    /// Calculate a centered sub-area or use FullScreenView instead.
     pub fn themed(area: Rect, title: &str, colors: &ThemeColors) -> Self {
-        // In debug builds, panic if used for full-screen area
-        // Full-screen modals should use FullScreenView instead
-        debug_assert!(
-            area.width < 100 && area.height < 25,
-            "ModalFrame used for full-screen area ({}x{}). \
-             Use FullScreenView for full-screen plugin modals instead.",
+        // Panic if used for full-screen area - this is intentional to enforce proper usage
+        // ModalFrame is for small centered dialogs, NOT full-screen views
+        assert!(
+            area.width < 80 && area.height < 24,
+            "\n\nModalFrame misuse: area {}x{} is too large (max 79x23).\n\n\
+             ModalFrame is for SMALL CENTERED DIALOGS only.\n\n\
+             SOLUTIONS:\n\
+             1. For full-screen views: Use FullScreenView::new(area, title, colors)\n\
+             2. For small dialogs: Calculate a centered sub-area first:\n\
+                let width = area.width.min(60);\n\
+                let height = area.height.min(20);\n\
+                let x = area.x + (area.width - width) / 2;\n\
+                let y = area.y + (area.height - height) / 2;\n\
+                let modal_area = Rect::new(x, y, width, height);\n\
+                let modal = ModalFrame::themed(modal_area, title, colors);\n",
             area.width,
             area.height
         );
@@ -304,38 +320,35 @@ mod tests {
 
     #[test]
     fn test_modal_frame_medium_area_ok() {
-        // Medium-sized modals under the threshold should work
-        let area = Rect::new(0, 0, 99, 24);
+        // Medium-sized modals under the threshold should work (max 79x23)
+        let area = Rect::new(0, 0, 60, 20);
         let colors = ColorTheme::Default.colors();
         let modal = ModalFrame::themed(area, " Medium Modal ", &colors);
         assert_eq!(modal.area, area);
     }
 
     #[test]
-    #[should_panic(expected = "ModalFrame used for full-screen area")]
-    #[cfg(debug_assertions)]
+    #[should_panic(expected = "ModalFrame misuse")]
     fn test_modal_frame_rejects_fullscreen_width() {
-        // Full-screen width should panic in debug builds
-        let area = Rect::new(0, 0, 100, 25);
+        // Full-screen width should panic - use FullScreenView instead
+        let area = Rect::new(0, 0, 100, 20);
         let colors = ColorTheme::Default.colors();
         let _modal = ModalFrame::themed(area, " Full Screen ", &colors);
     }
 
     #[test]
-    #[should_panic(expected = "ModalFrame used for full-screen area")]
-    #[cfg(debug_assertions)]
+    #[should_panic(expected = "ModalFrame misuse")]
     fn test_modal_frame_rejects_fullscreen_height() {
-        // Full-screen height should panic in debug builds
-        let area = Rect::new(0, 0, 100, 30);
+        // Full-screen height should panic - use FullScreenView instead
+        let area = Rect::new(0, 0, 60, 30);
         let colors = ColorTheme::Default.colors();
         let _modal = ModalFrame::themed(area, " Full Screen ", &colors);
     }
 
     #[test]
-    #[should_panic(expected = "ModalFrame used for full-screen area")]
-    #[cfg(debug_assertions)]
+    #[should_panic(expected = "ModalFrame misuse")]
     fn test_modal_frame_rejects_large_terminal() {
-        // Simulates a large terminal (like 105x30)
+        // Large terminal should panic - use FullScreenView instead
         let area = Rect::new(0, 0, 105, 30);
         let colors = ColorTheme::Default.colors();
         let _modal = ModalFrame::themed(area, " Large Terminal ", &colors);
