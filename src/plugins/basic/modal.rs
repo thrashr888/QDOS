@@ -90,6 +90,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeCo
             .enumerate()
             .map(|(idx, interp)| {
                 let is_selected = idx == state.selected_interpreter;
+                let is_recommended = idx == 0; // First is best-ranked
                 let marker = if is_selected { ">" } else { " " };
                 let style = if is_selected {
                     Style::default()
@@ -98,10 +99,17 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeCo
                 } else {
                     Style::default().fg(colors.fg())
                 };
-                Line::from(vec![
+                let mut spans = vec![
                     Span::styled(format!(" {} ", marker), style),
                     Span::styled(interp.name(), style),
-                ])
+                ];
+                if is_recommended && state.available_interpreters.len() > 1 {
+                    spans.push(Span::styled(
+                        "  * recommended",
+                        Style::default().fg(colors.green()),
+                    ));
+                }
+                Line::from(spans)
             })
             .collect()
     };

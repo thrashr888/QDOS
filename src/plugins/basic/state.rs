@@ -45,6 +45,20 @@ impl BasicInterpreter {
         }
     }
 
+    /// Ranking for recommendation (lower = better)
+    /// cbmbasic: Good C64 compatibility, flexible syntax
+    /// pc-basic: Full GW-BASIC, most features
+    /// bwbasic: Modern but less retro
+    /// bas55: Very strict Ecma-55, uppercase only, limited IF-THEN
+    pub fn rank(&self) -> u8 {
+        match self {
+            BasicInterpreter::CbmBasic => 1,
+            BasicInterpreter::PcBasic => 2,
+            BasicInterpreter::BwBasic => 3,
+            BasicInterpreter::Bas55 => 4,
+        }
+    }
+
     /// Check if this interpreter is available
     pub fn is_available(&self) -> bool {
         // Use 'which' to check if command exists, since some interpreters
@@ -56,13 +70,13 @@ impl BasicInterpreter {
             .unwrap_or(false)
     }
 
-    /// Get all interpreter variants
+    /// Get all interpreter variants in ranked order (best first)
     pub fn all() -> &'static [BasicInterpreter] {
         &[
-            BasicInterpreter::Bas55,
+            BasicInterpreter::CbmBasic,
             BasicInterpreter::PcBasic,
             BasicInterpreter::BwBasic,
-            BasicInterpreter::CbmBasic,
+            BasicInterpreter::Bas55,
         ]
     }
 }
