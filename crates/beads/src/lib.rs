@@ -331,7 +331,12 @@ impl Beads {
     /// Show a specific issue
     pub fn show(&self, id: &str) -> Result<Issue> {
         let output = self.run_command(&["show", id, "--json"])?;
-        serde_json::from_str(&output.stdout).map_err(Error::from)
+        // bd show returns an array with a single issue
+        let issues: Vec<Issue> = serde_json::from_str(&output.stdout)?;
+        issues
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::IssueNotFound(id.to_string()))
     }
 
     /// Search for issues by query
