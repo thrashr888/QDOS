@@ -13,6 +13,15 @@ use ratatui::{
     Frame,
 };
 
+/// Calculate a centered modal area from the full screen area
+fn centered_modal_area(area: Rect) -> Rect {
+    let width = area.width.min(60);
+    let height = area.height.min(20);
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    Rect::new(x, y, width, height)
+}
+
 pub fn draw_basic_modal(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
     match state.view {
         BasicView::Menu => draw_menu(frame, area, state, colors),
@@ -23,7 +32,8 @@ pub fn draw_basic_modal(frame: &mut Frame, area: Rect, state: &BasicState, color
 }
 
 fn draw_menu(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " BASIC Runner ", colors);
+    let modal_area = centered_modal_area(area);
+    let modal = ModalFrame::themed(modal_area, " BASIC Runner ", colors);
     modal.render_frame(frame);
     let content_area = modal.content_area();
 
@@ -142,7 +152,8 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeCo
 }
 
 fn draw_running(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " BASIC - Running ", colors);
+    let modal_area = centered_modal_area(area);
+    let modal = ModalFrame::themed(modal_area, " BASIC - Running ", colors);
     modal.render_frame(frame);
     let content_area = modal.content_area();
 
@@ -169,7 +180,8 @@ fn draw_running(frame: &mut Frame, area: Rect, state: &BasicState, colors: &Them
 }
 
 fn draw_output(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " BASIC - Output ", colors);
+    let modal_area = centered_modal_area(area);
+    let modal = ModalFrame::themed(modal_area, " BASIC - Output ", colors);
     modal.render_frame(frame);
     let content_area = modal.content_area();
 
@@ -207,7 +219,8 @@ fn draw_output(frame: &mut Frame, area: Rect, state: &BasicState, colors: &Theme
 }
 
 fn draw_error(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " BASIC - Error ", colors);
+    let modal_area = centered_modal_area(area);
+    let modal = ModalFrame::themed(modal_area, " BASIC - Error ", colors);
     modal.render_frame(frame);
     let content_area = modal.content_area();
 
