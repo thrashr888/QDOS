@@ -11,7 +11,7 @@ use crate::plugins::{
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
-use state::{DrivesState, VolumeEntry, VolumeType};
+use state::{DrivesSection, DrivesState, NetworkShare, ShareProtocol, VolumeEntry, VolumeType};
 use std::any::Any;
 use std::fs;
 use std::path::PathBuf;
@@ -203,6 +203,110 @@ impl DrivesPlugin {
         }
     }
 
+    /// Discover network shares via mDNS/Bonjour
+    #[cfg(target_os = "macos")]
+    fn discover_network_shares(&mut self) {
+        self.state.network_shares.clear();
+
+        // Get mounted share names to filter them out
+        let mounted_names: Vec<String> = self
+            .state
+            .volumes
+            .iter()
+            .filter(|v| v.volume_type == VolumeType::Network)
+            .map(|v| v.name.to_lowercase())
+            .collect();
+
+        // Discover SMB shares
+        self.discover_shares_for_protocol("_smb._tcp", ShareProtocol::Smb, &mounted_names);
+
+        // Discover AFP shares
+        self.discover_shares_for_protocol("_afpovertcp._tcp", ShareProtocol::Afp, &mounted_names);
+
+        // Remove duplicates (same name, different protocol - prefer SMB)
+        let mut seen_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+        self.state.network_shares.retain(|share| {
+            let key = share.name.to_lowercase();
+            if seen_names.contains(&key) {
+                false
+            } else {
+                seen_names.insert(key);
+                true
+            }
+        });
+    }
+
+    #[cfg(target_os = "macos")]
+    fn discover_shares_for_protocol(
+        &mut self,
+        service_type: &str,
+        protocol: ShareProtocol,
+        mounted_names: &[String],
+    ) {
+        use std::io::{BufRead, BufReader};
+        use std::process::Stdio;
+        use std::time::Duration;
+
+        // Run dns-sd with a short timeout
+        let mut child = match Command::new("dns-sd")
+            .args(["-B", service_type, "local."])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        // Give it a moment to discover
+        std::thread::sleep(Duration::from_millis(500));
+
+        // Kill the process (it runs forever otherwise)
+        let _ = child.kill();
+
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines().map_while(Result::ok) {
+                // Parse lines like:
+                // "23:47:16.674  Add        3  14 local.               _smb._tcp.           pault-home-nas"
+                if line.contains("Add") && line.contains(service_type) {
+                    // Extract instance name (last column)
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 7 {
+                        let name = parts[6..].join(" ");
+
+                        // Skip if already mounted
+                        if mounted_names.iter().any(|m| m == &name.to_lowercase()) {
+                            continue;
+                        }
+
+                        // Skip if we already have this share
+                        if self
+                            .state
+                            .network_shares
+                            .iter()
+                            .any(|s| s.name == name)
+                        {
+                            continue;
+                        }
+
+                        self.state.network_shares.push(NetworkShare {
+                            name: name.clone(),
+                            hostname: name, // Will be resolved later if needed
+                            protocol,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn discover_network_shares(&mut self) {
+        // Network discovery not implemented for non-macOS
+        self.state.network_shares.clear();
+    }
+
     #[cfg(target_os = "macos")]
     fn detect_volume_type(&self, path: &PathBuf) -> VolumeType {
         // First check mount output - most reliable for network volumes
@@ -336,8 +440,33 @@ impl DrivesPlugin {
     /// Open the modal (refresh volumes and reset selection)
     pub fn open_modal(&mut self) {
         self.refresh_volumes();
+        self.discover_network_shares();
         self.state.selected_index = 0;
+        self.state.section = DrivesSection::Volumes;
         self.state.navigate_path = None;
+        self.state.mount_share = None;
+    }
+
+    /// Mount a network share using Finder
+    #[cfg(target_os = "macos")]
+    fn mount_share(&self, share: &NetworkShare) -> Result<(), String> {
+        let url = match share.protocol {
+            ShareProtocol::Smb => format!("smb://{}", share.hostname),
+            ShareProtocol::Afp => format!("afp://{}", share.hostname),
+        };
+
+        // Use 'open' command to mount via Finder (handles auth dialogs)
+        Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to mount share: {}", e))?;
+
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn mount_share(&self, _share: &NetworkShare) -> Result<(), String> {
+        Err("Network share mounting not supported on this platform".to_string())
     }
 }
 
@@ -413,17 +542,45 @@ impl Plugin for DrivesPlugin {
                 self.state.select_next();
                 KeyHandleResult::Handled
             }
+            KeyCode::Tab | KeyCode::Left | KeyCode::Right => {
+                // Switch between sections
+                if !self.state.network_shares.is_empty() {
+                    self.state.next_section();
+                }
+                KeyHandleResult::Handled
+            }
             KeyCode::Enter => {
-                // Navigate to selected volume
-                if let Some(vol) = self.state.selected_volume() {
-                    self.state.navigate_path = Some(vol.path.clone());
-                    return KeyHandleResult::CloseWithSuccess("drives:navigate".to_string());
+                match self.state.section {
+                    DrivesSection::Volumes => {
+                        // Navigate to selected volume
+                        if let Some(vol) = self.state.selected_volume() {
+                            self.state.navigate_path = Some(vol.path.clone());
+                            return KeyHandleResult::CloseWithSuccess("drives:navigate".to_string());
+                        }
+                    }
+                    DrivesSection::NetworkShares => {
+                        // Mount selected share
+                        if let Some(share) = self.state.selected_share().cloned() {
+                            match self.mount_share(&share) {
+                                Ok(()) => {
+                                    return KeyHandleResult::CloseWithSuccess(format!(
+                                        "Mounting {}...",
+                                        share.name
+                                    ));
+                                }
+                                Err(e) => {
+                                    return KeyHandleResult::CloseWithError(e);
+                                }
+                            }
+                        }
+                    }
                 }
                 KeyHandleResult::Handled
             }
             KeyCode::Char('r') | KeyCode::Char('R') => {
-                // Refresh volume list
+                // Refresh volume list and network shares
                 self.refresh_volumes();
+                self.discover_network_shares();
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,

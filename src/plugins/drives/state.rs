@@ -4,6 +4,30 @@
 
 use std::path::PathBuf;
 
+/// Network share protocol
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShareProtocol {
+    Smb,
+    Afp,
+}
+
+impl ShareProtocol {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ShareProtocol::Smb => "SMB",
+            ShareProtocol::Afp => "AFP",
+        }
+    }
+}
+
+/// A discovered but unmounted network share
+#[derive(Debug, Clone)]
+pub struct NetworkShare {
+    pub name: String,
+    pub hostname: String,
+    pub protocol: ShareProtocol,
+}
+
 /// Volume type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VolumeType {
@@ -106,13 +130,25 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
+/// Current view/section in the drives modal
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DrivesSection {
+    #[default]
+    Volumes,
+    NetworkShares,
+}
+
 /// Drives plugin state
 #[derive(Debug, Clone, Default)]
 pub struct DrivesState {
     pub volumes: Vec<VolumeEntry>,
+    pub network_shares: Vec<NetworkShare>,
     pub selected_index: usize,
+    pub section: DrivesSection,
     /// Path to navigate to after modal closes
     pub navigate_path: Option<PathBuf>,
+    /// Share to mount after modal closes
+    pub mount_share: Option<NetworkShare>,
 }
 
 impl DrivesState {
@@ -120,9 +156,30 @@ impl DrivesState {
         Self::default()
     }
 
-    /// Get the currently selected volume
+    /// Get the currently selected volume (only in Volumes section)
     pub fn selected_volume(&self) -> Option<&VolumeEntry> {
-        self.volumes.get(self.selected_index)
+        if self.section == DrivesSection::Volumes {
+            self.volumes.get(self.selected_index)
+        } else {
+            None
+        }
+    }
+
+    /// Get the currently selected network share (only in NetworkShares section)
+    pub fn selected_share(&self) -> Option<&NetworkShare> {
+        if self.section == DrivesSection::NetworkShares {
+            self.network_shares.get(self.selected_index)
+        } else {
+            None
+        }
+    }
+
+    /// Get current list length based on section
+    fn current_list_len(&self) -> usize {
+        match self.section {
+            DrivesSection::Volumes => self.volumes.len(),
+            DrivesSection::NetworkShares => self.network_shares.len(),
+        }
     }
 
     /// Move selection up
@@ -134,9 +191,18 @@ impl DrivesState {
 
     /// Move selection down
     pub fn select_next(&mut self) {
-        let max = self.volumes.len().saturating_sub(1);
+        let max = self.current_list_len().saturating_sub(1);
         if self.selected_index < max {
             self.selected_index += 1;
         }
+    }
+
+    /// Switch to next section
+    pub fn next_section(&mut self) {
+        self.section = match self.section {
+            DrivesSection::Volumes => DrivesSection::NetworkShares,
+            DrivesSection::NetworkShares => DrivesSection::Volumes,
+        };
+        self.selected_index = 0;
     }
 }
