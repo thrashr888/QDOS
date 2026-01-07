@@ -87,6 +87,27 @@ gh run watch <run-id>
 
 Wait for the Release workflow to complete successfully.
 
+### Step 6b: Update Release Title and Notes
+
+The GitHub Actions workflow creates a release but may not populate the title/body from the tag. Update it:
+
+```bash
+gh release edit vX.Y.Z --title "QDOS X.Y.Z" --notes "$(cat <<'EOF'
+## Highlights
+- Key feature 1
+- Key feature 2
+
+## Changes
+- Change 1
+- Change 2
+
+## Bug Fixes
+- Fix 1
+- Fix 2
+EOF
+)"
+```
+
 ### Step 7: Close Release Epic
 
 ```bash
