@@ -41,8 +41,8 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
     ("jujutsu", "Git-compatible VCS"),
     // Retro/DOS tools
     ("dosbox-x", "DOS emulator with enhancements"),
-    ("basic256", "BASIC programming for beginners"),
-    ("basicterminal", "Terminal BASIC interpreter"),
+    ("bas55", "Minimal ANSI BASIC (Ecma-55)"),
+    ("cbmbasic", "Commodore 64 BASIC interpreter"),
 ];
 
 /// Packages from custom taps (format: tap, formula, description)

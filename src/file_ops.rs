@@ -539,10 +539,28 @@ pub fn apply_attributes(path: &PathBuf, attrs: &[crate::app::AttrValue; 4]) -> R
 pub fn open_in_default_app(path: &PathBuf) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
+        // Try to open in default app, fall back to text editor if no app is associated
+        let output = std::process::Command::new("open")
             .arg(path)
-            .spawn()
+            .stderr(std::process::Stdio::piped())
+            .output()
             .map_err(|e| anyhow::anyhow!("Failed to open file: {}", e))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // If no app is associated, try opening in text editor
+            if stderr.contains("kLSApplicationNotFoundErr")
+                || stderr.contains("No application knows how to open")
+            {
+                std::process::Command::new("open")
+                    .arg("-t") // Open in default text editor
+                    .arg(path)
+                    .spawn()
+                    .map_err(|e| anyhow::anyhow!("Failed to open in text editor: {}", e))?;
+            } else {
+                return Err(anyhow::anyhow!("Failed to open file: {}", stderr));
+            }
+        }
     }
 
     #[cfg(target_os = "linux")]
