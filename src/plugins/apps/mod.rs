@@ -201,6 +201,15 @@ impl AppsPlugin {
                 enabled: true,
             },
             AppEntry {
+                id: "midi".to_string(),
+                name: "MIDI".to_string(),
+                description: "Play MIDI music files".to_string(),
+                category: PluginCategory::Games,
+                key: 'M',
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
                 id: "shell".to_string(),
                 name: "Shell".to_string(),
                 description: "Interactive shell".to_string(),

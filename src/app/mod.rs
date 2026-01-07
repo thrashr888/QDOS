@@ -31,9 +31,9 @@ use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_cont
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, BasicPlugin, BeadsPlugin, DirMapPlugin,
     DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult,
-    PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin,
-    QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
-    ViewerPlugin,
+    MidiPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
+    QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
+    ThemePlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -141,6 +141,7 @@ impl App {
         plugin_manager.register(Box::new(HelpPlugin::new()));
         plugin_manager.register(Box::new(HomebrewPlugin::new()));
         plugin_manager.register(Box::new(JjPlugin::new()));
+        plugin_manager.register(Box::new(MidiPlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
@@ -3016,6 +3017,21 @@ impl App {
                 }
                 self.plugin_manager.set_active_modal(Some("basic"));
                 self.modal = Modal::Plugin("basic".to_string());
+            }
+            "midi" => {
+                // Open MIDI Player plugin with current file (if .mid/.midi)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::midi::MidiPlugin::is_midi_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(midi_plugin) = self.plugin_manager.midi_plugin_mut() {
+                    midi_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("midi"));
+                self.modal = Modal::Plugin("midi".to_string());
             }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));

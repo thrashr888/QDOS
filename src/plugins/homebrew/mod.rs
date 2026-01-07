@@ -43,6 +43,9 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
     ("dosbox-x", "DOS emulator with enhancements"),
     ("bas55", "Minimal ANSI BASIC (Ecma-55)"),
     ("cbmbasic", "Commodore 64 BASIC interpreter"),
+    // MIDI players
+    ("fluid-synth", "Software synthesizer for MIDI"),
+    ("timidity", "MIDI to WAV converter and player"),
 ];
 
 /// Packages from custom taps (format: tap, formula, description)

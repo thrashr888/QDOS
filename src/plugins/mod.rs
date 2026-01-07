@@ -26,6 +26,7 @@ pub mod git;
 pub mod help;
 pub mod homebrew;
 pub mod jj;
+pub mod midi;
 pub mod print;
 pub mod proc;
 pub mod qdconfig;
@@ -48,6 +49,7 @@ pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use homebrew::HomebrewPlugin;
 pub use jj::JjPlugin;
+pub use midi::MidiPlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
@@ -523,6 +525,13 @@ impl PluginManager {
         self.plugins
             .get_mut("basic")
             .and_then(|p| p.as_any_mut().downcast_mut::<basic::BasicPlugin>())
+    }
+
+    /// Get mutable reference to MidiPlugin
+    pub fn midi_plugin_mut(&mut self) -> Option<&mut midi::MidiPlugin> {
+        self.plugins
+            .get_mut("midi")
+            .and_then(|p| p.as_any_mut().downcast_mut::<midi::MidiPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
