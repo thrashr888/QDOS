@@ -10,6 +10,8 @@ use std::path::PathBuf;
 
 /// Convert crate Issue to plugin BeadsIssue
 fn convert_issue(issue: BeadsCrateIssue) -> BeadsIssue {
+    // Call blocker_ids() before moving fields
+    let blocked_by = issue.blocker_ids();
     BeadsIssue {
         id: issue.id,
         title: issue.title,
@@ -20,7 +22,7 @@ fn convert_issue(issue: BeadsCrateIssue) -> BeadsIssue {
             .map(|p| p.to_string())
             .unwrap_or_else(|| "2".to_string()),
         issue_type: issue.issue_type,
-        blocked_by: issue.depends_on,
+        blocked_by,
         dependents: Vec::new(), // Would need separate struct in crate for full support
         comments: Vec::new(),   // Comments loaded separately
     }

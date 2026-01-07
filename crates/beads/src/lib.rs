@@ -99,6 +99,18 @@ impl std::fmt::Display for IssueType {
     }
 }
 
+/// A dependency reference (used in bd show --json output)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DependencyRef {
+    pub id: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub dependency_type: Option<String>,
+}
+
 /// A beads issue
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Issue {
@@ -117,16 +129,34 @@ pub struct Issue {
     pub parent: Option<String>,
     #[serde(default)]
     pub labels: Vec<String>,
-    /// Issues this depends on (blockers)
+    /// Rich dependency objects from bd show --json
+    #[serde(default)]
+    pub dependencies: Vec<DependencyRef>,
+    /// Simple list of issue IDs this depends on (from bd list)
     #[serde(default, alias = "blocked_by")]
     pub depends_on: Vec<String>,
-    /// Issues blocked by this (dependents)
+    /// Simple list of issue IDs blocked by this (from bd list)
     #[serde(default, alias = "dependents")]
     pub blocks: Vec<String>,
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
     pub updated_at: Option<String>,
+}
+
+impl Issue {
+    /// Get all blocker IDs (from either dependencies or depends_on)
+    pub fn blocker_ids(&self) -> Vec<String> {
+        if !self.dependencies.is_empty() {
+            self.dependencies
+                .iter()
+                .filter(|d| d.dependency_type.as_deref() == Some("blocks"))
+                .map(|d| d.id.clone())
+                .collect()
+        } else {
+            self.depends_on.clone()
+        }
+    }
 }
 
 /// A comment on an issue
