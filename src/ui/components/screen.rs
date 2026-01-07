@@ -206,7 +206,7 @@ impl FullScreenView {
 
         // Pad to full width
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
-        let pad = self.area.width as usize - content_width;
+        let pad = (self.area.width as usize).saturating_sub(content_width);
         if pad > 0 {
             spans.push(Span::styled(" ".repeat(pad), self.content_style));
         }
@@ -221,7 +221,7 @@ impl FullScreenView {
     pub fn render_footer(&self, frame: &mut Frame, spans: Vec<Span>) {
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let mut all_spans = spans;
-        let pad = self.area.width as usize - content_width;
+        let pad = (self.area.width as usize).saturating_sub(content_width);
         if pad > 0 {
             all_spans.push(Span::styled(" ".repeat(pad), self.content_style));
         }
