@@ -47,8 +47,10 @@ impl BasicInterpreter {
 
     /// Check if this interpreter is available
     pub fn is_available(&self) -> bool {
-        std::process::Command::new(self.command())
-            .arg("--version")
+        // Use 'which' to check if command exists, since some interpreters
+        // don't support --version (e.g., cbmbasic crashes with it)
+        std::process::Command::new("which")
+            .arg(self.command())
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)

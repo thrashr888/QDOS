@@ -1,5 +1,5 @@
-10 REM Squares - Print squares of numbers
-20 PRINT "Number", "Square"
+10 REM SQUARES
+20 PRINT "NUMBER", "SQUARE"
 30 PRINT "------", "------"
 40 FOR I = 1 TO 10
 50   PRINT I, I*I
