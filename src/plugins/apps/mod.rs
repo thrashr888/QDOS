@@ -210,6 +210,15 @@ impl AppsPlugin {
                 enabled: true,
             },
             AppEntry {
+                id: "video".to_string(),
+                name: "Video".to_string(),
+                description: "Play video files".to_string(),
+                category: PluginCategory::Games,
+                key: 'Z', // video - V is taken by Viewer
+                available: true,
+                enabled: true,
+            },
+            AppEntry {
                 id: "shell".to_string(),
                 name: "Shell".to_string(),
                 description: "Interactive shell".to_string(),

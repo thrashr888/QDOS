@@ -46,6 +46,8 @@ const RECOMMENDED_PACKAGES: &[(&str, &str)] = &[
     // MIDI players
     ("fluid-synth", "Software synthesizer for MIDI"),
     ("timidity", "MIDI to WAV converter and player"),
+    // Video players
+    ("mpv", "Powerful and lightweight video player"),
 ];
 
 /// Packages from custom taps (format: tap, formula, description)

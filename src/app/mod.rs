@@ -33,7 +33,7 @@ use crate::plugins::{
     DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult,
     MidiPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
     QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    ThemePlugin, ViewerPlugin,
+    ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -151,6 +151,7 @@ impl App {
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));
         plugin_manager.register(Box::new(ThemePlugin::new()));
+        plugin_manager.register(Box::new(VideoPlugin::new()));
         plugin_manager.register(Box::new(ViewerPlugin::new()));
 
         // Collect help content from plugins and pass to HelpPlugin
@@ -3032,6 +3033,21 @@ impl App {
                 }
                 self.plugin_manager.set_active_modal(Some("midi"));
                 self.modal = Modal::Plugin("midi".to_string());
+            }
+            "video" => {
+                // Open Video Player plugin with current file (if video)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::video::VideoPlugin::is_video_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(video_plugin) = self.plugin_manager.video_plugin_mut() {
+                    video_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("video"));
+                self.modal = Modal::Plugin("video".to_string());
             }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));

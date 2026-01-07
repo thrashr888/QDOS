@@ -36,6 +36,7 @@ pub mod shell;
 pub mod space;
 pub mod status;
 pub mod theme;
+pub mod video;
 pub mod viewer;
 
 pub use ai::AIPlugin;
@@ -59,6 +60,7 @@ pub use shell::ShellPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
 pub use theme::ThemePlugin;
+pub use video::VideoPlugin;
 pub use viewer::ViewerPlugin;
 
 use crate::config::PluginsConfig;
@@ -532,6 +534,13 @@ impl PluginManager {
         self.plugins
             .get_mut("midi")
             .and_then(|p| p.as_any_mut().downcast_mut::<midi::MidiPlugin>())
+    }
+
+    /// Get mutable reference to VideoPlugin
+    pub fn video_plugin_mut(&mut self) -> Option<&mut video::VideoPlugin> {
+        self.plugins
+            .get_mut("video")
+            .and_then(|p| p.as_any_mut().downcast_mut::<video::VideoPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
