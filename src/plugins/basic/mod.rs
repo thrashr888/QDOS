@@ -92,7 +92,7 @@ impl BasicPlugin {
 
                 if !stdout.is_empty() {
                     for line in stdout.lines() {
-                        self.state.output.push(line.to_string());
+                        self.state.output.push(strip_ansi_codes(line));
                     }
                 }
 
@@ -102,7 +102,7 @@ impl BasicPlugin {
                         self.state.output.push("--- Errors ---".to_string());
                     }
                     for line in stderr.lines() {
-                        self.state.output.push(line.to_string());
+                        self.state.output.push(strip_ansi_codes(line));
                     }
                 }
 
@@ -291,4 +291,32 @@ impl Plugin for BasicPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+/// Strip ANSI escape codes from a string
+fn strip_ansi_codes(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // Skip ESC and following sequence
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+                // Skip until we hit a letter (end of sequence)
+                while let Some(&next) = chars.peek() {
+                    chars.next();
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+        } else if c.is_control() && c != '\n' && c != '\t' {
+            // Skip other control characters
+        } else {
+            result.push(c);
+        }
+    }
+
+    result
 }
