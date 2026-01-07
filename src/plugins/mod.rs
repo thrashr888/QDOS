@@ -15,6 +15,7 @@
 pub mod ai;
 pub mod apps;
 pub mod attribute;
+pub mod basic;
 pub mod beads;
 pub mod clipboard;
 pub mod dirmap;
@@ -38,6 +39,7 @@ pub mod viewer;
 
 pub use ai::AIPlugin;
 pub use apps::AppsPlugin;
+pub use basic::BasicPlugin;
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
 pub use drives::DrivesPlugin;
@@ -514,6 +516,13 @@ impl PluginManager {
         self.plugins
             .get_mut("homebrew")
             .and_then(|p| p.as_any_mut().downcast_mut::<homebrew::HomebrewPlugin>())
+    }
+
+    /// Get mutable reference to BasicPlugin
+    pub fn basic_plugin_mut(&mut self) -> Option<&mut basic::BasicPlugin> {
+        self.plugins
+            .get_mut("basic")
+            .and_then(|p| p.as_any_mut().downcast_mut::<basic::BasicPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

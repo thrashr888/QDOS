@@ -8,6 +8,7 @@ pub enum PluginCategory {
     Files,
     Vcs,
     Tools,
+    Games,
     System,
 }
 
@@ -17,6 +18,7 @@ impl PluginCategory {
             PluginCategory::Files => "Files",
             PluginCategory::Vcs => "VCS",
             PluginCategory::Tools => "Tools",
+            PluginCategory::Games => "Games",
             PluginCategory::System => "System",
         }
     }
@@ -27,6 +29,7 @@ impl PluginCategory {
             PluginCategory::Files,
             PluginCategory::Vcs,
             PluginCategory::Tools,
+            PluginCategory::Games,
             PluginCategory::System,
         ]
     }

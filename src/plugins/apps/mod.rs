@@ -190,6 +190,16 @@ impl AppsPlugin {
                 available: true,
                 enabled: true,
             },
+            // Games category
+            AppEntry {
+                id: "basic".to_string(),
+                name: "BASIC".to_string(),
+                description: "Run BASIC programs".to_string(),
+                category: PluginCategory::Games,
+                key: 'I', // basIc
+                available: true,
+                enabled: true,
+            },
             AppEntry {
                 id: "shell".to_string(),
                 name: "Shell".to_string(),

@@ -29,10 +29,11 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    fileops::FileOperation, AIPlugin, AppsPlugin, BeadsPlugin, DirMapPlugin, DrivesPlugin,
-    FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult, PluginManager,
-    PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin,
-    SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, ViewerPlugin,
+    fileops::FileOperation, AIPlugin, AppsPlugin, BasicPlugin, BeadsPlugin, DirMapPlugin,
+    DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult,
+    PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin,
+    QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin,
+    ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -131,6 +132,7 @@ impl App {
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
         plugin_manager.register(Box::new(AIPlugin::new()));
         plugin_manager.register(Box::new(AppsPlugin::new()));
+        plugin_manager.register(Box::new(BasicPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(DrivesPlugin::new()));
@@ -2999,6 +3001,21 @@ impl App {
                 }
                 self.plugin_manager.set_active_modal(Some("drives"));
                 self.modal = Modal::Plugin("drives".to_string());
+            }
+            "basic" => {
+                // Open BASIC Runner plugin with current file (if .bas)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::basic::BasicPlugin::is_basic_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(basic_plugin) = self.plugin_manager.basic_plugin_mut() {
+                    basic_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("basic"));
+                self.modal = Modal::Plugin("basic".to_string());
             }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
