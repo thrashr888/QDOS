@@ -75,6 +75,9 @@ tui-term = "0.2"
 # Directory jumper database support
 jumprs = "0.1"
 
+# Audio playback
+rodio = "0.19"
+
 # Workspace crates
 homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
