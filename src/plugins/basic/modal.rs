@@ -4,7 +4,7 @@
 
 use super::state::{BasicInterpreter, BasicState, BasicView};
 use crate::app::ThemeColors;
-use crate::ui::components::ModalFrame;
+use crate::ui::components::{FullScreenView, ModalFrame};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
@@ -180,10 +180,10 @@ fn draw_running(frame: &mut Frame, area: Rect, state: &BasicState, colors: &Them
 }
 
 fn draw_output(frame: &mut Frame, area: Rect, state: &BasicState, colors: &ThemeColors) {
-    let modal_area = centered_modal_area(area);
-    let modal = ModalFrame::themed(modal_area, " BASIC - Output ", colors);
-    modal.render_frame(frame);
-    let content_area = modal.content_area();
+    // Use full-screen view for output to show more content
+    let screen = FullScreenView::new(area, " BASIC - Output ", colors);
+    screen.render_frame(frame);
+    let content_area = screen.content_area();
 
     let visible_height = content_area.height as usize;
     let lines: Vec<Line> = state
@@ -212,7 +212,7 @@ fn draw_output(frame: &mut Frame, area: Rect, state: &BasicState, colors: &Theme
         );
     }
 
-    modal.render_help(
+    screen.render_help(
         frame,
         vec![("↑↓", "scroll"), ("r", "run again"), ("Esc", "back")],
     );
