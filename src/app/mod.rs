@@ -2992,6 +2992,14 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("homebrew"));
                 self.modal = Modal::Plugin("homebrew".to_string());
             }
+            "drives" => {
+                // Open Drives plugin (F3 Change Drive)
+                if let Some(drives_plugin) = self.plugin_manager.drives_plugin_mut() {
+                    drives_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("drives"));
+                self.modal = Modal::Plugin("drives".to_string());
+            }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
             }

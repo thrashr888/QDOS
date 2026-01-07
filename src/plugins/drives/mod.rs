@@ -59,7 +59,16 @@ impl DrivesPlugin {
         if let Ok(entries) = fs::read_dir("/Volumes") {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if !path.is_dir() {
+
+                // Check if it's a directory or symlink to directory
+                let is_dir = if path.is_symlink() {
+                    // Follow symlink and check if target is a directory
+                    fs::metadata(&path).map(|m| m.is_dir()).unwrap_or(false)
+                } else {
+                    path.is_dir()
+                };
+
+                if !is_dir {
                     continue;
                 }
 
@@ -68,9 +77,13 @@ impl DrivesPlugin {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_default();
 
-                // Skip "Macintosh HD" symlink if it points to /
-                if name == "Macintosh HD" && path.read_link().is_ok() {
-                    continue;
+                // Skip "Macintosh HD" symlink that points to / (we add root separately)
+                if name == "Macintosh HD" {
+                    if let Ok(target) = fs::read_link(&path) {
+                        if target.as_os_str() == "/" {
+                            continue;
+                        }
+                    }
                 }
 
                 // Determine volume type
@@ -95,7 +108,12 @@ impl DrivesPlugin {
             }
         }
 
+        // Also check for network mounts that may not appear in /Volumes
+        // (some NFS/automount configurations mount elsewhere)
+        self.add_network_mounts_from_mount_output();
+
         // Add root filesystem
+        let (root_total, root_free, _) = self.get_fs_info(&PathBuf::from("/"));
         self.state.volumes.insert(
             0,
             VolumeEntry {
@@ -104,8 +122,8 @@ impl DrivesPlugin {
                 volume_type: VolumeType::Local,
                 mount_point: "/".to_string(),
                 filesystem: "apfs".to_string(),
-                total_size: self.get_fs_info(&PathBuf::from("/")).0,
-                free_space: self.get_fs_info(&PathBuf::from("/")).1,
+                total_size: root_total,
+                free_space: root_free,
                 writable: true,
             },
         );
@@ -126,8 +144,94 @@ impl DrivesPlugin {
     }
 
     #[cfg(target_os = "macos")]
+    fn add_network_mounts_from_mount_output(&mut self) {
+        // Parse mount output to find network mounts that may not be in /Volumes
+        if let Ok(output) = Command::new("mount").output() {
+            let mount_str = String::from_utf8_lossy(&output.stdout);
+
+            for line in mount_str.lines() {
+                // Look for network filesystem types
+                if line.contains("smbfs")
+                    || line.contains("afpfs")
+                    || line.contains("nfs")
+                    || line.contains("webdavfs")
+                {
+                    // Parse mount line: "source on /mount/point (fstype, options)"
+                    if let Some(on_pos) = line.find(" on ") {
+                        let rest = &line[on_pos + 4..];
+                        if let Some(paren_pos) = rest.find(" (") {
+                            let mount_point = &rest[..paren_pos];
+                            let path = PathBuf::from(mount_point);
+
+                            // Skip if already in volumes list
+                            if self
+                                .state
+                                .volumes
+                                .iter()
+                                .any(|v| v.mount_point == mount_point)
+                            {
+                                continue;
+                            }
+
+                            // Skip root and /Volumes entries (already handled)
+                            if mount_point == "/" || mount_point.starts_with("/Volumes/") {
+                                continue;
+                            }
+
+                            let name = path
+                                .file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_else(|| mount_point.to_string());
+
+                            let (total_size, free_space, filesystem) = self.get_fs_info(&path);
+                            let writable = self.check_writable(&path);
+
+                            self.state.volumes.push(VolumeEntry {
+                                name,
+                                path,
+                                volume_type: VolumeType::Network,
+                                mount_point: mount_point.to_string(),
+                                filesystem,
+                                total_size,
+                                free_space,
+                                writable,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
     fn detect_volume_type(&self, path: &PathBuf) -> VolumeType {
-        // Try to detect volume type using diskutil
+        // First check mount output - most reliable for network volumes
+        if let Ok(mount_output) = Command::new("mount").output() {
+            let mount_str = String::from_utf8_lossy(&mount_output.stdout);
+            let path_str = path.to_string_lossy();
+
+            // Find the mount line for this path
+            for line in mount_str.lines() {
+                if line.contains(&*path_str) {
+                    // Check for network filesystem types
+                    if line.contains("smbfs")
+                        || line.contains("afpfs")
+                        || line.contains("nfs")
+                        || line.contains("webdavfs")
+                        || line.contains("cifs")
+                    {
+                        return VolumeType::Network;
+                    }
+                    // Check for disk images
+                    if line.contains("hfs") && line.contains("/dev/disk") {
+                        // Could be a mounted DMG - check further with diskutil
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Try diskutil for more detailed info
         if let Ok(output) = Command::new("diskutil")
             .args(["info", &path.to_string_lossy()])
             .output()
@@ -136,6 +240,7 @@ impl DrivesPlugin {
             if info.contains("Network: Yes")
                 || info.contains("Protocol: AFP")
                 || info.contains("Protocol: SMB")
+                || info.contains("Protocol: NFS")
             {
                 return VolumeType::Network;
             }
@@ -226,6 +331,13 @@ impl DrivesPlugin {
     /// Take the navigate path (consumes it)
     pub fn take_navigate_path(&mut self) -> Option<PathBuf> {
         self.state.navigate_path.take()
+    }
+
+    /// Open the modal (refresh volumes and reset selection)
+    pub fn open_modal(&mut self) {
+        self.refresh_volumes();
+        self.state.selected_index = 0;
+        self.state.navigate_path = None;
     }
 }
 
@@ -350,5 +462,45 @@ impl Plugin for DrivesPlugin {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_refresh_volumes_finds_root() {
+        let mut plugin = DrivesPlugin::new();
+        plugin.open_modal();
+
+        // Should always find at least root filesystem
+        assert!(!plugin.state.volumes.is_empty(), "Should find at least one volume");
+
+        // First volume should be Macintosh HD (root)
+        let first = &plugin.state.volumes[0];
+        assert_eq!(first.name, "Macintosh HD");
+        assert_eq!(first.path, PathBuf::from("/"));
+
+        // Print what we found for debugging
+        println!("\n=== Detected Volumes ===");
+        for vol in &plugin.state.volumes {
+            println!(
+                "  {} ({:?}) -> {} [{}]",
+                vol.name,
+                vol.volume_type,
+                vol.mount_point,
+                vol.filesystem
+            );
+        }
+    }
+
+    #[test]
+    fn test_volume_type_detection() {
+        let plugin = DrivesPlugin::new();
+
+        // Test root path detection
+        let vol_type = plugin.detect_volume_type(&PathBuf::from("/"));
+        assert_eq!(vol_type, VolumeType::Local);
     }
 }
