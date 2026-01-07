@@ -475,7 +475,10 @@ mod tests {
         plugin.open_modal();
 
         // Should always find at least root filesystem
-        assert!(!plugin.state.volumes.is_empty(), "Should find at least one volume");
+        assert!(
+            !plugin.state.volumes.is_empty(),
+            "Should find at least one volume"
+        );
 
         // First volume should be Macintosh HD (root)
         let first = &plugin.state.volumes[0];
@@ -487,10 +490,7 @@ mod tests {
         for vol in &plugin.state.volumes {
             println!(
                 "  {} ({:?}) -> {} [{}]",
-                vol.name,
-                vol.volume_type,
-                vol.mount_point,
-                vol.filesystem
+                vol.name, vol.volume_type, vol.mount_point, vol.filesystem
             );
         }
     }
