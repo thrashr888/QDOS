@@ -45,6 +45,11 @@ impl BasicPlugin {
         self.state.output.clear();
         self.state.error = None;
         self.state.scroll_offset = 0;
+
+        // Auto-run if only one interpreter and a file is selected
+        if self.state.available_interpreters.len() == 1 && self.state.file_path.is_some() {
+            self.run_program();
+        }
     }
 
     /// Run the BASIC program with the selected interpreter
