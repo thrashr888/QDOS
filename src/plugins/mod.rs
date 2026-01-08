@@ -19,6 +19,7 @@ pub mod audio;
 pub mod basic;
 pub mod beads;
 pub mod clipboard;
+pub mod database;
 pub mod dirmap;
 pub mod drives;
 pub mod fileops;
@@ -46,6 +47,7 @@ pub use apps::AppsPlugin;
 pub use audio::AudioPlugin;
 pub use basic::BasicPlugin;
 pub use beads::BeadsPlugin;
+pub use database::DatabasePlugin;
 pub use dirmap::DirMapPlugin;
 pub use drives::DrivesPlugin;
 pub use fileops::FileOpsPlugin;
@@ -649,6 +651,13 @@ impl PluginManager {
         self.plugins
             .get_mut("shell")
             .and_then(|p| p.as_any_mut().downcast_mut::<shell::ShellPlugin>())
+    }
+
+    /// Get mutable reference to DatabasePlugin
+    pub fn database_plugin_mut(&mut self) -> Option<&mut database::DatabasePlugin> {
+        self.plugins
+            .get_mut("database")
+            .and_then(|p| p.as_any_mut().downcast_mut::<database::DatabasePlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

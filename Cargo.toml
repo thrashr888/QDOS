@@ -80,6 +80,9 @@ jumprs = "0.1"
 # Audio playback
 rodio = "0.19"
 
+# Database clients
+rusqlite = { version = "0.32", features = ["bundled"] }
+
 # Workspace crates
 homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }

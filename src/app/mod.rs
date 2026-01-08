@@ -30,10 +30,11 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
-    DirMapPlugin, DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin,
-    KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo,
-    PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin,
-    SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    DatabasePlugin, DirMapPlugin, DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
+    HomebrewPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager,
+    PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin,
+    SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin,
+    ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -134,6 +135,7 @@ impl App {
         plugin_manager.register(Box::new(AppsPlugin::new()));
         plugin_manager.register(Box::new(BasicPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
+        plugin_manager.register(Box::new(DatabasePlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(DrivesPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
@@ -2947,6 +2949,27 @@ impl App {
                     self.modal = Modal::Beads(state);
                 } else {
                     self.modal = Modal::Error("Beads not initialized in this project".to_string());
+                }
+            }
+            "database" => {
+                // Open Database plugin with current file (if .db/.sqlite)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if DatabasePlugin::is_database_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(db_plugin) = self.plugin_manager.database_plugin_mut() {
+                    if let Some(ref path) = file_path {
+                        db_plugin.open_sqlite(path);
+                    }
+                }
+                if file_path.is_some() {
+                    self.plugin_manager.set_active_modal(Some("database"));
+                    self.modal = Modal::Plugin("database".to_string());
+                } else {
+                    self.modal = Modal::Error("Select a database file (.db, .sqlite)".to_string());
                 }
             }
             "dirmap" => {

@@ -23,7 +23,7 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 - **Syntax Highlighting**: Highlight the contents of any file in the viewer
 - **Keyboard-First Interface**: All actions accessible via keyboard shortcuts
 - **Modal Dialogs**: Help (F1), Status (F2), Disk Space (Space menu), and more
-- **Cross-Platform**: Works on macOS, Linux, and Windows
+- **Cross-Platform**: Works on macOS and Linux
 
 ## Plugins
 
