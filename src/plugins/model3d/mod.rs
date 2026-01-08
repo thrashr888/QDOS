@@ -381,6 +381,10 @@ impl Plugin for Model3dPlugin {
                     self.state.toggle_render_mode();
                     KeyHandleResult::Handled
                 }
+                KeyCode::Char('f') | KeyCode::Char('F') => {
+                    self.state.toggle_draw_style();
+                    KeyHandleResult::Handled
+                }
                 KeyCode::Char('[') => {
                     if let Some(prev) = self.state.prev_file() {
                         self.switch_to_file(prev);
@@ -428,6 +432,7 @@ impl Plugin for Model3dPlugin {
             "  Arrows - Rotate model".to_string(),
             "  +/-    - Zoom in/out".to_string(),
             "  R      - Toggle auto-rotate".to_string(),
+            "  F      - Toggle wireframe/filled".to_string(),
             "  M      - Toggle ASCII/Image mode".to_string(),
         ]
     }

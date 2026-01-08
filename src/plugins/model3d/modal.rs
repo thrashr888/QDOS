@@ -1,7 +1,7 @@
 //! 3D Model Viewer modal rendering
 
 use super::render;
-use super::state::{ModelState, ModelView, RenderMode};
+use super::state::{DrawStyle, ModelState, ModelView, RenderMode};
 use crate::app::ThemeColors;
 use crate::ui::components::{FullScreenView, ModalFrame};
 use image::{ImageBuffer, Rgb};
@@ -47,6 +47,11 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
         RenderMode::Image => "IMG",
     };
 
+    let style_str = match state.draw_style {
+        DrawStyle::Wireframe => "WIRE",
+        DrawStyle::Filled => "FILL",
+    };
+
     let rotate_str = if state.auto_rotate { "AUTO" } else { "MANUAL" };
 
     let position_str = state.file_position();
@@ -57,8 +62,8 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
     };
 
     let title = format!(
-        " {} [{}] [{}]{} ",
-        state.file_name, mode_str, rotate_str, position_display
+        " {} [{}] [{}] [{}]{} ",
+        state.file_name, mode_str, style_str, rotate_str, position_display
     );
 
     let view = FullScreenView::new(area, &title, colors);
@@ -68,11 +73,12 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
     if let Some(ref model) = state.model {
         match state.render_mode {
             RenderMode::Ascii => {
-                let lines = render::render_ascii(
+                let lines = render::render_ascii_with_style(
                     model,
                     &state.camera,
                     content_area.width,
                     content_area.height,
+                    state.draw_style,
                 );
 
                 let text: Vec<Line> = lines
@@ -93,7 +99,13 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
                 let img_width = (content_area.width as u32 * 8).min(640);
                 let img_height = (content_area.height as u32 * 16).min(480);
 
-                let rgb_data = render::render_image(model, &state.camera, img_width, img_height);
+                let rgb_data = render::render_image_with_style(
+                    model,
+                    &state.camera,
+                    img_width,
+                    img_height,
+                    state.draw_style,
+                );
 
                 // Convert to image and display
                 if let Some(img) =
@@ -136,10 +148,16 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
         RenderMode::Image => "ascii",
     };
 
+    let style_hint = match state.draw_style {
+        DrawStyle::Wireframe => "filled",
+        DrawStyle::Filled => "wire",
+    };
+
     let mut help = vec![("Arrows", "rotate"), ("R", "auto-rotate"), ("+/-", "zoom")];
     if state.has_prev() || state.has_next() {
         help.push(("[/]", "prev/next"));
     }
+    help.push(("F", style_hint));
     help.push(("M", mode_hint));
     help.push(("Esc", "close"));
     view.render_help(frame, help);

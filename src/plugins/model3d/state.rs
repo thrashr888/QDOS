@@ -13,6 +13,16 @@ pub enum RenderMode {
     Image,
 }
 
+/// Draw style for 3D rendering
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DrawStyle {
+    /// Wireframe (edges only)
+    #[default]
+    Wireframe,
+    /// Filled/solid triangles
+    Filled,
+}
+
 /// Current view in the model plugin
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ModelView {
@@ -123,8 +133,10 @@ pub struct ModelState {
     pub file_name: String,
     /// Error message
     pub error: Option<String>,
-    /// Render mode
+    /// Render mode (ASCII vs Image)
     pub render_mode: RenderMode,
+    /// Draw style (Wireframe vs Filled)
+    pub draw_style: DrawStyle,
     /// Auto-rotate enabled
     pub auto_rotate: bool,
     /// Sibling model files
@@ -141,11 +153,19 @@ impl ModelState {
         }
     }
 
-    /// Toggle render mode
+    /// Toggle render mode (ASCII vs Image)
     pub fn toggle_render_mode(&mut self) {
         self.render_mode = match self.render_mode {
             RenderMode::Ascii => RenderMode::Image,
             RenderMode::Image => RenderMode::Ascii,
+        };
+    }
+
+    /// Toggle draw style (Wireframe vs Filled)
+    pub fn toggle_draw_style(&mut self) {
+        self.draw_style = match self.draw_style {
+            DrawStyle::Wireframe => DrawStyle::Filled,
+            DrawStyle::Filled => DrawStyle::Wireframe,
         };
     }
 
