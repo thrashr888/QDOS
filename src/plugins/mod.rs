@@ -644,6 +644,13 @@ impl PluginManager {
             .and_then(|p| p.as_any_mut().downcast_mut::<model3d::Model3dPlugin>())
     }
 
+    /// Get mutable reference to ShellPlugin
+    pub fn shell_plugin_mut(&mut self) -> Option<&mut shell::ShellPlugin> {
+        self.plugins
+            .get_mut("shell")
+            .and_then(|p| p.as_any_mut().downcast_mut::<shell::ShellPlugin>())
+    }
+
     /// Get list of registered plugins with their info (id, name, description)
     pub fn plugin_list(&self) -> Vec<(String, String, String)> {
         self.plugins()

@@ -3081,6 +3081,68 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("video"));
                 self.modal = Modal::Plugin("video".to_string());
             }
+            "viewer" => {
+                // Open Viewer plugin with current file
+                let file_path = self.files.get(self.selected_index).map(|e| e.path.clone());
+                if let Some(path) = file_path {
+                    if let Some(viewer_plugin) = self.plugin_manager.viewer_plugin_mut() {
+                        let _ = viewer_plugin.open_file(path, &self.current_path);
+                    }
+                }
+                self.plugin_manager.set_active_modal(Some("viewer"));
+                self.modal = Modal::Plugin("viewer".to_string());
+            }
+            "qedit" => {
+                // Open QEdit plugin with current file
+                let file_path = self.files.get(self.selected_index).map(|e| e.path.clone());
+                if let Some(qedit_plugin) = self.plugin_manager.qedit_plugin_mut() {
+                    let _ = qedit_plugin.open(file_path);
+                }
+                self.plugin_manager.set_active_modal(Some("qedit"));
+                self.modal = Modal::Plugin("qedit".to_string());
+            }
+            "shell" => {
+                // Open Shell plugin
+                self.plugin_manager.set_active_modal(Some("shell"));
+                self.modal = Modal::Plugin("shell".to_string());
+            }
+            "help" => {
+                // Open Help plugin
+                if let Some(help_plugin) = self.plugin_manager.help_plugin_mut() {
+                    help_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("help"));
+                self.modal = Modal::Plugin("help".to_string());
+            }
+            "print" => {
+                // Open Print plugin with current file
+                if let Some(entry) = self.files.get(self.selected_index) {
+                    let file_path = entry.path.clone();
+                    let file_name = entry.name.clone();
+                    if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
+                        print_plugin.open_modal(file_path, file_name);
+                    }
+                }
+                self.plugin_manager.set_active_modal(Some("print"));
+                self.modal = Modal::Plugin("print".to_string());
+            }
+            "status" => {
+                // Open Status plugin
+                self.plugin_manager.set_active_modal(Some("status"));
+                self.modal = Modal::Plugin("status".to_string());
+            }
+            "fileops" => {
+                // FileOps is not directly openable - it's used for file operations
+                self.modal = Modal::Error("FileOps is used via file operations".to_string());
+            }
+            "searchspec" => {
+                // Open SearchSpec plugin
+                if let Some(searchspec_plugin) = self.plugin_manager.searchspec_plugin_mut() {
+                    searchspec_plugin.open_modal(&self.search_spec);
+                }
+                self.plugin_manager.set_active_modal(Some("searchspec"));
+                self.modal = Modal::Plugin("searchspec".to_string());
+            }
             _ => {
                 self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
             }
