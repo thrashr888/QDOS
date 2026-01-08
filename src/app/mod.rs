@@ -30,11 +30,11 @@ use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
-    DatabasePlugin, DirMapPlugin, DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin,
-    HomebrewPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager,
-    PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin,
-    SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin,
-    ViewerPlugin,
+    DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
+    GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin,
+    Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
+    QEditPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin,
+    StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -138,6 +138,9 @@ impl App {
         plugin_manager.register(Box::new(DatabasePlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
         plugin_manager.register(Box::new(DrivesPlugin::new()));
+        plugin_manager.register(Box::new(DropboxPlugin::new()));
+        plugin_manager.register(Box::new(GDrivePlugin::new()));
+        plugin_manager.register(Box::new(ICloudPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(HelpPlugin::new()));
@@ -151,6 +154,7 @@ impl App {
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(QEditPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
+        plugin_manager.register(Box::new(SftpPlugin::new()));
         plugin_manager.register(Box::new(ShellPlugin::new()));
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));

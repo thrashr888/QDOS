@@ -19,14 +19,18 @@ pub mod audio;
 pub mod basic;
 pub mod beads;
 pub mod clipboard;
+pub mod cloud;
 pub mod database;
 pub mod dirmap;
 pub mod drives;
+pub mod dropbox;
 pub mod fileops;
 pub mod find;
+pub mod gdrive;
 pub mod git;
 pub mod help;
 pub mod homebrew;
+pub mod icloud;
 pub mod jj;
 pub mod midi;
 pub mod model3d;
@@ -35,6 +39,7 @@ pub mod proc;
 pub mod qdconfig;
 pub mod qedit;
 pub mod searchspec;
+pub mod sftp;
 pub mod shell;
 pub mod space;
 pub mod status;
@@ -50,10 +55,13 @@ pub use beads::BeadsPlugin;
 pub use database::DatabasePlugin;
 pub use dirmap::DirMapPlugin;
 pub use drives::DrivesPlugin;
+pub use dropbox::DropboxPlugin;
 pub use fileops::FileOpsPlugin;
+pub use gdrive::GDrivePlugin;
 pub use git::GitPlugin;
 pub use help::HelpPlugin;
 pub use homebrew::HomebrewPlugin;
+pub use icloud::ICloudPlugin;
 pub use jj::JjPlugin;
 pub use midi::MidiPlugin;
 pub use model3d::Model3dPlugin;
@@ -62,6 +70,7 @@ pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
 pub use searchspec::SearchSpecPlugin;
+pub use sftp::SftpPlugin;
 pub use shell::ShellPlugin;
 pub use space::SpacePlugin;
 pub use status::StatusPlugin;
@@ -636,6 +645,34 @@ impl PluginManager {
         self.plugins
             .get_mut("database")
             .and_then(|p| p.as_any_mut().downcast_mut::<database::DatabasePlugin>())
+    }
+
+    /// Get mutable reference to DropboxPlugin
+    pub fn dropbox_plugin_mut(&mut self) -> Option<&mut dropbox::DropboxPlugin> {
+        self.plugins
+            .get_mut("dropbox")
+            .and_then(|p| p.as_any_mut().downcast_mut::<dropbox::DropboxPlugin>())
+    }
+
+    /// Get mutable reference to ICloudPlugin
+    pub fn icloud_plugin_mut(&mut self) -> Option<&mut icloud::ICloudPlugin> {
+        self.plugins
+            .get_mut("icloud")
+            .and_then(|p| p.as_any_mut().downcast_mut::<icloud::ICloudPlugin>())
+    }
+
+    /// Get mutable reference to GDrivePlugin
+    pub fn gdrive_plugin_mut(&mut self) -> Option<&mut gdrive::GDrivePlugin> {
+        self.plugins
+            .get_mut("gdrive")
+            .and_then(|p| p.as_any_mut().downcast_mut::<gdrive::GDrivePlugin>())
+    }
+
+    /// Get mutable reference to SftpPlugin
+    pub fn sftp_plugin_mut(&mut self) -> Option<&mut sftp::SftpPlugin> {
+        self.plugins
+            .get_mut("sftp")
+            .and_then(|p| p.as_any_mut().downcast_mut::<sftp::SftpPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

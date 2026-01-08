@@ -35,6 +35,8 @@ pub enum VolumeType {
     Local,
     /// Network share (SMB, AFP, NFS)
     Network,
+    /// Cloud storage (Dropbox, iCloud, Google Drive)
+    Cloud(CloudStorageType),
     /// Disk image (DMG)
     DiskImage,
     /// Time Machine backup
@@ -43,11 +45,21 @@ pub enum VolumeType {
     Unknown,
 }
 
+/// Cloud storage provider type
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloudStorageType {
+    Dropbox,
+    ICloud,
+    GoogleDrive,
+    OneDrive,
+}
+
 impl VolumeType {
     pub fn as_str(&self) -> &'static str {
         match self {
             VolumeType::Local => "Local",
             VolumeType::Network => "Network",
+            VolumeType::Cloud(ct) => ct.as_str(),
             VolumeType::DiskImage => "Image",
             VolumeType::TimeMachine => "Time Machine",
             VolumeType::Unknown => "Unknown",
@@ -58,9 +70,30 @@ impl VolumeType {
         match self {
             VolumeType::Local => "HD",
             VolumeType::Network => "NET",
+            VolumeType::Cloud(ct) => ct.icon(),
             VolumeType::DiskImage => "DMG",
             VolumeType::TimeMachine => "TM",
             VolumeType::Unknown => "?",
+        }
+    }
+}
+
+impl CloudStorageType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CloudStorageType::Dropbox => "Dropbox",
+            CloudStorageType::ICloud => "iCloud",
+            CloudStorageType::GoogleDrive => "Google Drive",
+            CloudStorageType::OneDrive => "OneDrive",
+        }
+    }
+
+    pub fn icon(&self) -> &'static str {
+        match self {
+            CloudStorageType::Dropbox => "DBX",
+            CloudStorageType::ICloud => "iCL",
+            CloudStorageType::GoogleDrive => "GDR",
+            CloudStorageType::OneDrive => "OD",
         }
     }
 }

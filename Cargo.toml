@@ -85,6 +85,10 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 postgres = { version = "0.19", features = ["with-chrono-0_4"] }
 mysql = "25"
 
+# SFTP/SSH
+ssh2 = "0.9"
+whoami = "1.5"
+
 # Workspace crates
 homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }

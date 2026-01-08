@@ -129,14 +129,15 @@ impl DrivesPlugin {
             },
         );
 
-        // Sort: Local first, then Network, then others
+        // Sort: Local first, then Cloud, then Network, then others
         self.state.volumes.sort_by(|a, b| {
             let type_order = |t: &VolumeType| match t {
                 VolumeType::Local => 0,
-                VolumeType::Network => 1,
-                VolumeType::DiskImage => 2,
-                VolumeType::TimeMachine => 3,
-                VolumeType::Unknown => 4,
+                VolumeType::Cloud(_) => 1,
+                VolumeType::Network => 2,
+                VolumeType::DiskImage => 3,
+                VolumeType::TimeMachine => 4,
+                VolumeType::Unknown => 5,
             };
             type_order(&a.volume_type)
                 .cmp(&type_order(&b.volume_type))
@@ -442,11 +443,97 @@ impl DrivesPlugin {
     /// Open the modal (refresh volumes and reset selection)
     pub fn open_modal(&mut self) {
         self.refresh_volumes();
+        self.discover_cloud_storage();
         self.discover_network_shares();
         self.state.selected_index = 0;
         self.state.section = DrivesSection::Volumes;
         self.state.navigate_path = None;
         self.state.mount_share = None;
+    }
+
+    /// Discover cloud storage folders (Dropbox, iCloud, Google Drive, OneDrive)
+    fn discover_cloud_storage(&mut self) {
+        use state::CloudStorageType;
+
+        if let Some(home) = dirs::home_dir() {
+            // Dropbox
+            let dropbox_path = home.join("Dropbox");
+            if dropbox_path.exists() && dropbox_path.is_dir() {
+                self.add_cloud_volume("Dropbox", dropbox_path, CloudStorageType::Dropbox);
+            }
+
+            // iCloud Drive (macOS)
+            #[cfg(target_os = "macos")]
+            {
+                let icloud_path = home.join("Library/Mobile Documents/com~apple~CloudDocs");
+                if icloud_path.exists() && icloud_path.is_dir() {
+                    self.add_cloud_volume("iCloud Drive", icloud_path, CloudStorageType::ICloud);
+                }
+            }
+
+            // Google Drive - check multiple locations
+            let gdrive_paths = [
+                home.join("Google Drive"),
+                home.join("My Drive"), // Google Drive for Desktop default
+                PathBuf::from("/Volumes/GoogleDrive"),
+            ];
+            for gdrive_path in gdrive_paths {
+                if gdrive_path.exists() && gdrive_path.is_dir() {
+                    self.add_cloud_volume(
+                        "Google Drive",
+                        gdrive_path,
+                        CloudStorageType::GoogleDrive,
+                    );
+                    break;
+                }
+            }
+
+            // OneDrive
+            let onedrive_path = home.join("OneDrive");
+            if onedrive_path.exists() && onedrive_path.is_dir() {
+                self.add_cloud_volume("OneDrive", onedrive_path, CloudStorageType::OneDrive);
+            }
+        }
+    }
+
+    /// Add a cloud storage volume to the list
+    fn add_cloud_volume(&mut self, name: &str, path: PathBuf, cloud_type: state::CloudStorageType) {
+        // Check if already in volumes list (might be a mounted volume)
+        if self
+            .state
+            .volumes
+            .iter()
+            .any(|v| v.path == path || v.name == name)
+        {
+            return;
+        }
+
+        let (total_size, free_space, filesystem) = self.get_fs_info_generic(&path);
+        let writable = self.check_writable(&path);
+
+        self.state.volumes.push(VolumeEntry {
+            name: name.to_string(),
+            path: path.clone(),
+            volume_type: VolumeType::Cloud(cloud_type),
+            mount_point: path.to_string_lossy().to_string(),
+            filesystem,
+            total_size,
+            free_space,
+            writable,
+        });
+    }
+
+    /// Get filesystem info (cross-platform)
+    fn get_fs_info_generic(&self, path: &PathBuf) -> (Option<u64>, Option<u64>, String) {
+        #[cfg(target_os = "macos")]
+        {
+            self.get_fs_info(path)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = path;
+            (None, None, "unknown".to_string())
+        }
     }
 
     /// Mount a network share using Finder
