@@ -18,7 +18,6 @@ use std::path::PathBuf;
 
 /// 3D Model Viewer plugin
 pub struct Model3dPlugin {
-    initialized: bool,
     pub state: ModelState,
 }
 
@@ -31,7 +30,6 @@ impl Default for Model3dPlugin {
 impl Model3dPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: ModelState::new(),
         }
     }
@@ -308,16 +306,6 @@ impl Plugin for Model3dPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

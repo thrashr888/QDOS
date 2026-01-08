@@ -22,7 +22,6 @@ use std::sync::{Arc, Mutex};
 
 /// Audio Player plugin
 pub struct AudioPlugin {
-    initialized: bool,
     pub state: AudioState,
     /// Audio player handle (for builtin player)
     player: Option<AudioPlayerHandle>,
@@ -41,7 +40,6 @@ impl Default for AudioPlugin {
 impl AudioPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: AudioState::new(),
             player: None,
             player_state: None,
@@ -286,17 +284,6 @@ impl Plugin for AudioPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.stop_playback();
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

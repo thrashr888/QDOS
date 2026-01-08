@@ -28,8 +28,6 @@ use std::process::Command;
 
 /// Git plugin that provides version control integration
 pub struct GitPlugin {
-    /// Whether the plugin is initialized
-    initialized: bool,
     /// Cached info about whether we're in a git repo
     is_repo: bool,
     /// Current branch name
@@ -49,7 +47,6 @@ pub struct GitPlugin {
 impl GitPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             is_repo: false,
             branch: String::new(),
             staged: 0,
@@ -1186,17 +1183,6 @@ impl Plugin for GitPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
-        self.refresh_status(cwd);
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, cwd: &PathBuf) -> bool {

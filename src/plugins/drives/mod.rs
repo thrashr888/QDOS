@@ -21,7 +21,6 @@ use std::process::Command;
 
 /// Drives plugin for browsing mounted volumes
 pub struct DrivesPlugin {
-    initialized: bool,
     pub state: DrivesState,
 }
 
@@ -34,7 +33,6 @@ impl Default for DrivesPlugin {
 impl DrivesPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: DrivesState::new(),
         }
     }
@@ -484,16 +482,6 @@ impl Plugin for DrivesPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

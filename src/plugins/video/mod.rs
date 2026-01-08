@@ -36,7 +36,6 @@ pub type SharedFrame = Arc<Mutex<Option<VideoFrame>>>;
 
 /// Video Player plugin
 pub struct VideoPlugin {
-    initialized: bool,
     pub state: VideoState,
     /// Shared frame state updated by background extraction thread
     shared_frame: SharedFrame,
@@ -51,7 +50,6 @@ impl Default for VideoPlugin {
 impl VideoPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: VideoState::new(),
             shared_frame: Arc::new(Mutex::new(None)),
         }
@@ -260,16 +258,6 @@ impl Plugin for VideoPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

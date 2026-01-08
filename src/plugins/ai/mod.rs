@@ -23,7 +23,6 @@ pub use state::{AIProvider, ClaudeStatus, CodexStatus, CopilotStatus, CursorStat
 
 /// AI Assistant plugin for monitoring AI CLI tools
 pub struct AIPlugin {
-    initialized: bool,
     pub state: AIState,
     /// Whether data is currently being loaded (for lazy loading)
     loading: bool,
@@ -38,7 +37,6 @@ impl Default for AIPlugin {
 impl AIPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: AIState::new(),
             loading: false,
         }
@@ -84,17 +82,6 @@ impl Plugin for AIPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.refresh_status();
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

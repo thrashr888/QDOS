@@ -16,7 +16,6 @@ use std::path::PathBuf;
 
 /// Apps launcher plugin
 pub struct AppsPlugin {
-    initialized: bool,
     pub state: AppsState,
     /// ID of plugin to launch after closing Apps modal
     pub launch_plugin: Option<String>,
@@ -33,7 +32,6 @@ impl Default for AppsPlugin {
 impl AppsPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: AppsState::new(),
             launch_plugin: None,
             toggled_plugin: None,
@@ -94,16 +92,6 @@ impl Plugin for AppsPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

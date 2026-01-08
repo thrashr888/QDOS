@@ -25,7 +25,6 @@ use std::path::PathBuf;
 
 /// Database client plugin
 pub struct DatabasePlugin {
-    initialized: bool,
     pub state: DatabaseState,
 }
 
@@ -104,7 +103,6 @@ impl Default for DatabasePlugin {
 impl DatabasePlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: DatabaseState::new(),
         }
     }
@@ -160,6 +158,7 @@ impl DatabasePlugin {
 
     /// Open the database type selection modal
     pub fn open_modal(&mut self) {
+        self.load_profiles(); // Load saved profiles when modal opens
         self.state.reset();
         self.state.view = DatabaseView::TypeSelect;
         self.state.db_name = "Database".to_string();
@@ -360,18 +359,6 @@ impl Plugin for DatabasePlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.load_profiles();
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.state.reset();
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {
@@ -654,9 +641,9 @@ impl DatabasePlugin {
                 KeyHandleResult::Handled
             }
             KeyCode::Char('p') | KeyCode::Char('P') => {
-                if !self.state.profiles.is_empty() {
-                    self.state.view = DatabaseView::Profiles;
-                }
+                // Reload profiles from disk each time (allows external edits)
+                self.load_profiles();
+                self.state.view = DatabaseView::Profiles;
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,

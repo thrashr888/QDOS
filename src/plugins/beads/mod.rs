@@ -26,8 +26,6 @@ use std::process::Command;
 
 /// Beads plugin that provides issue tracking integration
 pub struct BeadsPlugin {
-    /// Whether the plugin is initialized
-    initialized: bool,
     /// Cached info about whether we're in a beads project
     is_beads: bool,
     /// Number of open issues
@@ -43,7 +41,6 @@ pub struct BeadsPlugin {
 impl BeadsPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             is_beads: false,
             open_count: 0,
             in_progress_count: 0,
@@ -1325,17 +1322,6 @@ impl Plugin for BeadsPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
-        self.refresh_status(cwd);
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, cwd: &PathBuf) -> bool {

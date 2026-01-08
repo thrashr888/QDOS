@@ -496,19 +496,6 @@ impl Plugin for JjPlugin {
         }
     }
 
-    fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
-        if let Some((change_id, has_changes)) = ops::get_jj_status_info(cwd) {
-            self.change_id = Some(change_id);
-            self.has_changes = has_changes;
-        }
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.modal_state = None;
-        Ok(())
-    }
-
     fn is_available(&self, cwd: &PathBuf) -> bool {
         ops::is_jj_repo(cwd) && ops::is_jj_available()
     }

@@ -17,7 +17,6 @@ use std::process::{Child, Command, Stdio};
 
 /// MIDI Player plugin
 pub struct MidiPlugin {
-    initialized: bool,
     pub state: MidiState,
     /// Currently playing process (if any)
     player_process: Option<Child>,
@@ -32,7 +31,6 @@ impl Default for MidiPlugin {
 impl MidiPlugin {
     pub fn new() -> Self {
         Self {
-            initialized: false,
             state: MidiState::new(),
             player_process: None,
         }
@@ -190,17 +188,6 @@ impl Plugin for MidiPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.stop_playing();
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

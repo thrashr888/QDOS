@@ -76,13 +76,16 @@ fn draw_type_select(frame: &mut Frame, area: Rect, state: &DatabaseState, colors
     table_state.select(Some(state.selected_type_idx));
     frame.render_stateful_widget(table, content_area, &mut table_state);
 
-    // Show profiles option if profiles exist
-    let mut help = vec![("↑/↓", "select"), ("Enter", "open")];
-    if !state.profiles.is_empty() {
-        help.push(("P", "profiles"));
-    }
-    help.push(("Esc", "close"));
-    modal.render_help(frame, help);
+    // Always show profiles option (P reloads from disk)
+    modal.render_help(
+        frame,
+        vec![
+            ("↑/↓", "select"),
+            ("Enter", "open"),
+            ("P", "profiles"),
+            ("Esc", "close"),
+        ],
+    );
 }
 
 fn draw_profiles_view(frame: &mut Frame, area: Rect, state: &DatabaseState, colors: &ThemeColors) {

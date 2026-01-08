@@ -57,7 +57,6 @@ const TAP_PACKAGES: &[(&str, &str, &str)] =
 
 /// Homebrew plugin for package management
 pub struct HomebrewPlugin {
-    initialized: bool,
     pub state: HomebrewState,
     /// Package to install after modal closes
     pub install_package: Option<String>,
@@ -77,7 +76,6 @@ impl HomebrewPlugin {
         let brew = Homebrew::new().ok();
 
         Self {
-            initialized: false,
             state: HomebrewState::new(),
             install_package: None,
             brew,
@@ -422,16 +420,6 @@ impl Plugin for HomebrewPlugin {
             has_cli: false,
             has_help: true,
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

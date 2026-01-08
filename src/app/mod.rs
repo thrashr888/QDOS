@@ -203,11 +203,6 @@ impl App {
         // This must be done before entering raw mode in main.rs
         app.terminal_luma = terminal_light::luma().ok();
 
-        // Initialize all plugins
-        app.plugin_manager
-            .init_all(&app.current_path)
-            .map_err(|e| anyhow::anyhow!(e))?;
-
         // Load status bar info
         app.refresh_status_bar();
 

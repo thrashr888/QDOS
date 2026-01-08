@@ -4,15 +4,11 @@ use std::collections::HashMap;
 
 struct TestPlugin {
     id: String,
-    initialized: bool,
 }
 
 impl TestPlugin {
     fn new(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            initialized: false,
-        }
+        Self { id: id.to_string() }
     }
 }
 
@@ -30,16 +26,6 @@ impl Plugin for TestPlugin {
             has_menu: true,
             ..Default::default()
         }
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.initialized = false;
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {

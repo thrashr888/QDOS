@@ -194,12 +194,6 @@ pub trait Plugin: Send + Sync {
     /// Plugin capabilities
     fn capabilities(&self) -> PluginCapabilities;
 
-    /// Initialize the plugin
-    fn init(&mut self, cwd: &PathBuf) -> Result<(), String>;
-
-    /// Shutdown the plugin
-    fn shutdown(&mut self) -> Result<(), String>;
-
     /// Check if plugin is available in current directory
     fn is_available(&self, cwd: &PathBuf) -> bool;
 
@@ -317,22 +311,6 @@ impl PluginManager {
         let id = plugin.id().to_string();
         self.plugin_order.push(id.clone());
         self.plugins.insert(id, plugin);
-    }
-
-    /// Initialize all enabled plugins
-    pub fn init_all(&mut self, cwd: &PathBuf) -> Result<(), String> {
-        for plugin in self.plugins.values_mut() {
-            plugin.init(cwd)?;
-        }
-        Ok(())
-    }
-
-    /// Shutdown all plugins
-    pub fn shutdown_all(&mut self) -> Result<(), String> {
-        for plugin in self.plugins.values_mut() {
-            plugin.shutdown()?;
-        }
-        Ok(())
     }
 
     /// Get all registered plugins

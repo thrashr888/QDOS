@@ -99,14 +99,6 @@ impl Plugin for DirMapPlugin {
         }
     }
 
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        Ok(())
-    }
-
     fn is_available(&self, _cwd: &PathBuf) -> bool {
         true
     }

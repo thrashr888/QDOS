@@ -411,15 +411,6 @@ impl Plugin for ShellPlugin {
         }
     }
 
-    fn init(&mut self, cwd: &PathBuf) -> Result<(), String> {
-        self.current_cwd = cwd.clone();
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        Ok(())
-    }
-
     fn is_available(&self, _cwd: &PathBuf) -> bool {
         true
     }

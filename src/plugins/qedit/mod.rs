@@ -23,16 +23,12 @@ use std::path::PathBuf;
 
 /// Q-EDIT plugin
 pub struct QEditPlugin {
-    initialized: bool,
     pub modal_state: Option<QEditState>,
 }
 
 impl QEditPlugin {
     pub fn new() -> Self {
-        Self {
-            initialized: false,
-            modal_state: None,
-        }
+        Self { modal_state: None }
     }
 
     /// Open the editor with an optional file
@@ -98,15 +94,6 @@ impl Plugin for QEditPlugin {
 
     fn name(&self) -> &str {
         "Q-EDIT"
-    }
-
-    fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.initialized = true;
-        Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        Ok(())
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {
@@ -340,7 +327,6 @@ mod tests {
     #[test]
     fn test_plugin_creation() {
         let plugin = QEditPlugin::new();
-        assert!(!plugin.initialized);
         assert!(plugin.modal_state.is_none());
     }
 
@@ -382,11 +368,10 @@ mod tests {
     }
 
     #[test]
-    fn test_plugin_init() {
-        let mut plugin = QEditPlugin::new();
-        let cwd = PathBuf::from("/tmp");
-        assert!(plugin.init(&cwd).is_ok());
-        assert!(plugin.initialized);
+    fn test_plugin_id_and_name() {
+        let plugin = QEditPlugin::new();
+        assert_eq!(plugin.id(), "qedit");
+        assert_eq!(plugin.name(), "Q-EDIT");
     }
 
     #[test]
