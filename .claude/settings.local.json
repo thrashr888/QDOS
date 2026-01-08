@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./target/debug/rdos:*)",
+      "Bash(bas55:*)",
       "Bash(bd blocked)",
       "Bash(bd close:*)",
       "Bash(bd create:*)",
@@ -20,6 +21,7 @@
       "Bash(cargo run:*)",
       "Bash(cargo search:*)",
       "Bash(cargo test:*)",
+      "Bash(cargo tree:*)",
       "Bash(cargo update:*)",
       "Bash(gh auth:*)",
       "Bash(gh release download:*)",
