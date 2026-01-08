@@ -1,0 +1,18 @@
+# Pyramid with square base
+# 5 vertices, 6 triangular faces
+
+v  0.0  1.5  0.0
+v -1.0 -0.5 -1.0
+v  1.0 -0.5 -1.0
+v  1.0 -0.5  1.0
+v -1.0 -0.5  1.0
+
+# Four side faces
+f 1 2 3
+f 1 3 4
+f 1 4 5
+f 1 5 2
+
+# Base (two triangles)
+f 2 4 3
+f 2 5 4

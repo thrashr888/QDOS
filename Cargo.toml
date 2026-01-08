@@ -1,10 +1,5 @@
 [workspace]
-members = [
-    "crates/homebrew",
-    "crates/jj",
-    "crates/beads",
-    "crates/search",
-]
+members = ["crates/homebrew", "crates/jj", "crates/beads", "crates/search"]
 resolver = "2"
 
 [package]
@@ -50,6 +45,13 @@ sysinfo = "0.37"
 # Image viewing in terminal
 ratatui-image = "3.0"
 image = "0.25"
+
+# Video frame extraction
+ffmpeg-sidecar = "2.0"
+
+# 3D model rendering
+tobj = "4.0"            # OBJ file loading
+glam = "0.29"           # 3D math (vectors, matrices)
 
 # Markdown rendering
 termimad = "0.34.1"

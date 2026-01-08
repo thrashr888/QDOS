@@ -29,11 +29,11 @@ use crate::errors;
 use crate::event::EventHandler;
 use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
 use crate::plugins::{
-    fileops::FileOperation, AIPlugin, AppsPlugin, BasicPlugin, BeadsPlugin, DirMapPlugin,
-    DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin, KeyHandleResult,
-    MidiPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    ThemePlugin, VideoPlugin, ViewerPlugin,
+    fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
+    DirMapPlugin, DrivesPlugin, FileOpsPlugin, GitPlugin, HelpPlugin, HomebrewPlugin, JjPlugin,
+    KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo,
+    PrintPlugin, ProcPlugin, QEditPlugin, QdconfigPlugin, SearchSpecPlugin, ShellPlugin,
+    SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::watcher::DirWatcher;
@@ -142,6 +142,8 @@ impl App {
         plugin_manager.register(Box::new(HomebrewPlugin::new()));
         plugin_manager.register(Box::new(JjPlugin::new()));
         plugin_manager.register(Box::new(MidiPlugin::new()));
+        plugin_manager.register(Box::new(Model3dPlugin::new()));
+        plugin_manager.register(Box::new(AudioPlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
@@ -2599,11 +2601,11 @@ impl App {
                         }
                     }
 
-                    // Sync plugin enabled status to AppsPlugin when it opens
+                    // Collect app entries from all plugins and pass to AppsPlugin
                     if plugin_id == "apps" {
-                        let plugins_config = self.config.plugins.clone();
+                        let entries = self.plugin_manager.collect_app_entries(&self.current_path);
                         if let Some(apps_plugin) = self.plugin_manager.apps_plugin_mut() {
-                            apps_plugin.update_enabled_status(&plugins_config);
+                            apps_plugin.set_entries(entries);
                         }
                     }
 
@@ -2909,6 +2911,116 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("ai"));
                 self.modal = Modal::Plugin("ai".to_string());
             }
+            "audio" => {
+                // Open Audio Player plugin with current file (if audio)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if AudioPlugin::is_audio_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(audio_plugin) = self.plugin_manager.audio_plugin_mut() {
+                    audio_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("audio"));
+                self.modal = Modal::Plugin("audio".to_string());
+            }
+            "basic" => {
+                // Open BASIC Runner plugin with current file (if .bas)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::basic::BasicPlugin::is_basic_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(basic_plugin) = self.plugin_manager.basic_plugin_mut() {
+                    basic_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("basic"));
+                self.modal = Modal::Plugin("basic".to_string());
+            }
+            "beads" => {
+                if self.is_beads_project() {
+                    let state = BeadsState::new(true);
+                    self.modal = Modal::Beads(state);
+                } else {
+                    self.modal = Modal::Error("Beads not initialized in this project".to_string());
+                }
+            }
+            "dirmap" => {
+                // Initialize Dir Map plugin with current path
+                let path = self.current_path.clone();
+                if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
+                    dirmap_plugin.open_modal(&path);
+                }
+                self.plugin_manager.set_active_modal(Some("dirmap"));
+                self.modal = Modal::Plugin("dirmap".to_string());
+            }
+            "drives" => {
+                // Open Drives plugin (F3 Change Drive)
+                if let Some(drives_plugin) = self.plugin_manager.drives_plugin_mut() {
+                    drives_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("drives"));
+                self.modal = Modal::Plugin("drives".to_string());
+            }
+            "git" => {
+                if self.is_git_repo() {
+                    let state = GitState::new(true);
+                    self.modal = Modal::Git(state);
+                } else {
+                    self.modal = Modal::Error("Not a Git repository".to_string());
+                }
+            }
+            "homebrew" => {
+                // Open Homebrew plugin
+                if let Some(homebrew_plugin) = self.plugin_manager.homebrew_plugin_mut() {
+                    homebrew_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("homebrew"));
+                self.modal = Modal::Plugin("homebrew".to_string());
+            }
+            "jj" => {
+                // Initialize JJ plugin - will show error if not in a jj repo
+                let path = self.current_path.clone();
+                if let Some(jj_plugin) = self.plugin_manager.jj_plugin_mut() {
+                    jj_plugin.open_modal(&path);
+                }
+                self.plugin_manager.set_active_modal(Some("jj"));
+                self.modal = Modal::Plugin("jj".to_string());
+            }
+            "midi" => {
+                // Open MIDI Player plugin with current file (if .mid/.midi)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::midi::MidiPlugin::is_midi_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(midi_plugin) = self.plugin_manager.midi_plugin_mut() {
+                    midi_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("midi"));
+                self.modal = Modal::Plugin("midi".to_string());
+            }
+            "model3d" => {
+                // Open 3D Model Viewer plugin with current file (if .obj/.stl)
+                let file_path = self.files.get(self.selected_index).and_then(|e| {
+                    if crate::plugins::model3d::Model3dPlugin::is_model_file(&e.path) {
+                        Some(e.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(model3d_plugin) = self.plugin_manager.model3d_plugin_mut() {
+                    model3d_plugin.open_modal(file_path.as_ref());
+                }
+                self.plugin_manager.set_active_modal(Some("model3d"));
+                self.modal = Modal::Plugin("model3d".to_string());
+            }
             "proc" => {
                 // Initialize and open Proc plugin - refresh process data
                 if let Some(proc_plugin) = self.plugin_manager.proc_plugin_mut() {
@@ -2916,14 +3028,6 @@ impl App {
                 }
                 self.plugin_manager.set_active_modal(Some("proc"));
                 self.modal = Modal::Plugin("proc".to_string());
-            }
-            "theme" => {
-                // Initialize Theme plugin with current theme
-                if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
-                    theme_plugin.open_modal(self.color_theme);
-                }
-                self.plugin_manager.set_active_modal(Some("theme"));
-                self.modal = Modal::Plugin("theme".to_string());
             }
             "qdconfig" => {
                 // Initialize Config plugin with current settings
@@ -2945,40 +3049,6 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("qdconfig"));
                 self.modal = Modal::Plugin("qdconfig".to_string());
             }
-            "git" => {
-                if self.is_git_repo() {
-                    let state = GitState::new(true);
-                    self.modal = Modal::Git(state);
-                } else {
-                    self.modal = Modal::Error("Not a Git repository".to_string());
-                }
-            }
-            "jj" => {
-                // Initialize JJ plugin - will show error if not in a jj repo
-                let path = self.current_path.clone();
-                if let Some(jj_plugin) = self.plugin_manager.jj_plugin_mut() {
-                    jj_plugin.open_modal(&path);
-                }
-                self.plugin_manager.set_active_modal(Some("jj"));
-                self.modal = Modal::Plugin("jj".to_string());
-            }
-            "beads" => {
-                if self.is_beads_project() {
-                    let state = BeadsState::new(true);
-                    self.modal = Modal::Beads(state);
-                } else {
-                    self.modal = Modal::Error("Beads not initialized in this project".to_string());
-                }
-            }
-            "dirmap" => {
-                // Initialize Dir Map plugin with current path
-                let path = self.current_path.clone();
-                if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
-                    dirmap_plugin.open_modal(&path);
-                }
-                self.plugin_manager.set_active_modal(Some("dirmap"));
-                self.modal = Modal::Plugin("dirmap".to_string());
-            }
             "space" => {
                 // Initialize Space plugin with current path
                 let path = self.current_path.clone();
@@ -2988,51 +3058,13 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("space"));
                 self.modal = Modal::Plugin("space".to_string());
             }
-            "homebrew" => {
-                // Open Homebrew plugin
-                if let Some(homebrew_plugin) = self.plugin_manager.homebrew_plugin_mut() {
-                    homebrew_plugin.open_modal();
+            "theme" => {
+                // Initialize Theme plugin with current theme
+                if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
+                    theme_plugin.open_modal(self.color_theme);
                 }
-                self.plugin_manager.set_active_modal(Some("homebrew"));
-                self.modal = Modal::Plugin("homebrew".to_string());
-            }
-            "drives" => {
-                // Open Drives plugin (F3 Change Drive)
-                if let Some(drives_plugin) = self.plugin_manager.drives_plugin_mut() {
-                    drives_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("drives"));
-                self.modal = Modal::Plugin("drives".to_string());
-            }
-            "basic" => {
-                // Open BASIC Runner plugin with current file (if .bas)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::basic::BasicPlugin::is_basic_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(basic_plugin) = self.plugin_manager.basic_plugin_mut() {
-                    basic_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("basic"));
-                self.modal = Modal::Plugin("basic".to_string());
-            }
-            "midi" => {
-                // Open MIDI Player plugin with current file (if .mid/.midi)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::midi::MidiPlugin::is_midi_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(midi_plugin) = self.plugin_manager.midi_plugin_mut() {
-                    midi_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("midi"));
-                self.modal = Modal::Plugin("midi".to_string());
+                self.plugin_manager.set_active_modal(Some("theme"));
+                self.modal = Modal::Plugin("theme".to_string());
             }
             "video" => {
                 // Open Video Player plugin with current file (if video)

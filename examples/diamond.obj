@@ -1,0 +1,21 @@
+# Diamond / Octahedron
+# 6 vertices, 8 triangular faces
+
+v  0.0  1.5  0.0
+v  0.0 -1.5  0.0
+v -1.0  0.0  0.0
+v  1.0  0.0  0.0
+v  0.0  0.0 -1.0
+v  0.0  0.0  1.0
+
+# Top 4 faces
+f 1 3 6
+f 1 6 4
+f 1 4 5
+f 1 5 3
+
+# Bottom 4 faces
+f 2 6 3
+f 2 4 6
+f 2 5 4
+f 2 3 5

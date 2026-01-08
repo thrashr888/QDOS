@@ -15,6 +15,7 @@
 pub mod ai;
 pub mod apps;
 pub mod attribute;
+pub mod audio;
 pub mod basic;
 pub mod beads;
 pub mod clipboard;
@@ -27,6 +28,7 @@ pub mod help;
 pub mod homebrew;
 pub mod jj;
 pub mod midi;
+pub mod model3d;
 pub mod print;
 pub mod proc;
 pub mod qdconfig;
@@ -41,6 +43,7 @@ pub mod viewer;
 
 pub use ai::AIPlugin;
 pub use apps::AppsPlugin;
+pub use audio::AudioPlugin;
 pub use basic::BasicPlugin;
 pub use beads::BeadsPlugin;
 pub use dirmap::DirMapPlugin;
@@ -51,6 +54,7 @@ pub use help::HelpPlugin;
 pub use homebrew::HomebrewPlugin;
 pub use jj::JjPlugin;
 pub use midi::MidiPlugin;
+pub use model3d::Model3dPlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
@@ -108,6 +112,54 @@ pub struct PluginStatusInfo {
     pub text: String,
     /// Whether plugin is active/enabled
     pub active: bool,
+}
+
+/// Plugin category for Apps launcher organization
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PluginCategory {
+    Files,
+    Vcs,
+    Tools,
+    Games,
+    System,
+}
+
+impl PluginCategory {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PluginCategory::Files => "Files",
+            PluginCategory::Vcs => "VCS",
+            PluginCategory::Tools => "Tools",
+            PluginCategory::Games => "Games",
+            PluginCategory::System => "System",
+        }
+    }
+
+    /// Get all categories in display order
+    pub fn all() -> &'static [PluginCategory] {
+        &[
+            PluginCategory::Files,
+            PluginCategory::Vcs,
+            PluginCategory::Tools,
+            PluginCategory::Games,
+            PluginCategory::System,
+        ]
+    }
+}
+
+/// App entry for the F12 Apps launcher
+#[derive(Debug, Clone)]
+pub struct AppEntry {
+    /// Plugin ID (must match plugin.id())
+    pub id: String,
+    /// Display name
+    pub name: String,
+    /// Short description
+    pub description: String,
+    /// Category for grouping
+    pub category: PluginCategory,
+    /// Keyboard shortcut key (A-Z)
+    pub key: char,
 }
 
 /// Result of handling a key event
@@ -178,6 +230,13 @@ pub trait Plugin: Send + Sync {
     /// Get help content lines
     fn help_content(&self) -> Vec<String> {
         vec![]
+    }
+
+    /// Get app entry for F12 Apps launcher.
+    /// Return Some(AppEntry) if this plugin should appear in the Apps launcher.
+    /// The `id` should match the plugin's `id()` method.
+    fn app_entry(&self) -> Option<AppEntry> {
+        None
     }
 
     /// Get plugin state as Any for downcasting
@@ -307,6 +366,34 @@ impl PluginManager {
         self.plugins()
             .filter(|p| p.capabilities().has_status && p.is_available(cwd))
             .filter_map(|p| p.status_info(cwd).map(|s| (p, s)))
+            .collect()
+    }
+
+    /// Collect app entries from all registered plugins for the Apps launcher
+    pub fn collect_app_entries(&self, _cwd: &PathBuf) -> Vec<apps::state::AppEntry> {
+        self.plugins()
+            .filter_map(|p| {
+                p.app_entry().map(|entry| {
+                    let enabled = self.config.is_plugin_enabled(&entry.id);
+                    apps::state::AppEntry {
+                        id: entry.id,
+                        name: entry.name,
+                        description: entry.description,
+                        category: match entry.category {
+                            PluginCategory::Files => apps::state::PluginCategory::Files,
+                            PluginCategory::Vcs => apps::state::PluginCategory::Vcs,
+                            PluginCategory::Tools => apps::state::PluginCategory::Tools,
+                            PluginCategory::Games => apps::state::PluginCategory::Games,
+                            PluginCategory::System => apps::state::PluginCategory::System,
+                        },
+                        key: entry.key,
+                        // Apps launcher shows all plugins as available - runtime availability
+                        // is checked when the plugin is actually launched
+                        available: true,
+                        enabled,
+                    }
+                })
+            })
             .collect()
     }
 
@@ -541,6 +628,20 @@ impl PluginManager {
         self.plugins
             .get_mut("video")
             .and_then(|p| p.as_any_mut().downcast_mut::<video::VideoPlugin>())
+    }
+
+    /// Get mutable reference to AudioPlugin
+    pub fn audio_plugin_mut(&mut self) -> Option<&mut audio::AudioPlugin> {
+        self.plugins
+            .get_mut("audio")
+            .and_then(|p| p.as_any_mut().downcast_mut::<audio::AudioPlugin>())
+    }
+
+    /// Get mutable reference to Model3dPlugin
+    pub fn model3d_plugin_mut(&mut self) -> Option<&mut model3d::Model3dPlugin> {
+        self.plugins
+            .get_mut("model3d")
+            .and_then(|p| p.as_any_mut().downcast_mut::<model3d::Model3dPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
