@@ -12,7 +12,9 @@ use crate::plugins::{
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
-use state::{DrivesSection, DrivesState, NetworkShare, ShareProtocol, VolumeEntry, VolumeType};
+#[cfg(target_os = "macos")]
+use state::ShareProtocol;
+use state::{DrivesSection, DrivesState, NetworkShare, VolumeEntry, VolumeType};
 use std::any::Any;
 use std::fs;
 use std::path::PathBuf;
