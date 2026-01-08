@@ -2,7 +2,7 @@
 //!
 //! Provides color theme selection (Ctrl+T functionality) as a self-contained plugin.
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::app::{ColorTheme, ColorThemeState};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -260,6 +260,16 @@ impl Plugin for ThemePlugin {
             "Tip:       Theme changes preview live as you navigate.".to_string(),
             "           Use Config (Ctrl+S) to save theme permanently.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Theme".to_string(),
+            description: "Color theme settings".to_string(),
+            category: PluginCategory::System,
+            key: 'T',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

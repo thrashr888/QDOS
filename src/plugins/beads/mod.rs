@@ -13,7 +13,10 @@ pub use state::{
     BeadsSubIssue, BeadsView, KanbanSort,
 };
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -1458,6 +1461,16 @@ impl Plugin for BeadsPlugin {
             "Tip: Issues support dependencies - use Blocked view to see".to_string(),
             "     which issues are waiting on others.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Beads".to_string(),
+            description: "Issue tracker".to_string(),
+            category: PluginCategory::Vcs,
+            key: 'B',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

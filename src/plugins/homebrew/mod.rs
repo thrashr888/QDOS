@@ -9,7 +9,8 @@ mod modal;
 pub mod state;
 
 use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use homebrew::Homebrew;
@@ -495,6 +496,16 @@ impl Plugin for HomebrewPlugin {
             "  g          Upgrade (if installed)".to_string(),
             "  x          Uninstall (if installed)".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Homebrew".to_string(),
+            description: "Browse Homebrew packages".to_string(),
+            category: PluginCategory::Tools,
+            key: 'Y',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

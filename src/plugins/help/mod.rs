@@ -6,7 +6,7 @@ mod state;
 
 pub use state::HelpState;
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -316,6 +316,16 @@ impl Plugin for HelpPlugin {
             // Topic page
             self.draw_topic(frame, modal_area, colors);
         }
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Help".to_string(),
+            description: "Help and documentation".to_string(),
+            category: PluginCategory::System,
+            key: 'H',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

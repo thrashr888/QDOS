@@ -7,7 +7,8 @@ mod modal;
 pub mod state;
 
 use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
@@ -281,12 +282,7 @@ impl DrivesPlugin {
                         }
 
                         // Skip if we already have this share
-                        if self
-                            .state
-                            .network_shares
-                            .iter()
-                            .any(|s| s.name == name)
-                        {
+                        if self.state.network_shares.iter().any(|s| s.name == name) {
                             continue;
                         }
 
@@ -555,7 +551,9 @@ impl Plugin for DrivesPlugin {
                         // Navigate to selected volume
                         if let Some(vol) = self.state.selected_volume() {
                             self.state.navigate_path = Some(vol.path.clone());
-                            return KeyHandleResult::CloseWithSuccess("drives:navigate".to_string());
+                            return KeyHandleResult::CloseWithSuccess(
+                                "drives:navigate".to_string(),
+                            );
                         }
                     }
                     DrivesSection::NetworkShares => {
@@ -611,6 +609,16 @@ impl Plugin for DrivesPlugin {
             "  DMG       Disk image".to_string(),
             "  TM        Time Machine backup".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Drives".to_string(),
+            description: "Browse mounted volumes".to_string(),
+            category: PluginCategory::Files,
+            key: 'N',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

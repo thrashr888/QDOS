@@ -6,7 +6,7 @@
 mod modal;
 mod state;
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -422,6 +422,16 @@ impl Plugin for ProcPlugin {
             "Tip:       Process detail view shows command line, working".to_string(),
             "           directory, parent process, and runtime info.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Processes".to_string(),
+            description: "System process monitor".to_string(),
+            category: PluginCategory::System,
+            key: 'P',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

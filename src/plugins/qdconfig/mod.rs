@@ -7,7 +7,7 @@ mod state;
 
 pub use state::{QdconfigField, QdconfigState};
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::app::{ColorTheme, SortMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
@@ -344,6 +344,16 @@ impl Plugin for QdconfigPlugin {
             "Tip:       Config is stored in ~/.config/rdos/config.toml".to_string(),
             "           Plugins section shows installed plugins.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Config".to_string(),
+            description: "RDOS configuration".to_string(),
+            category: PluginCategory::System,
+            key: 'C',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

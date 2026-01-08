@@ -13,7 +13,7 @@ pub mod pty;
 mod state;
 mod telnet;
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -569,6 +569,16 @@ impl Plugin for ShellPlugin {
             "    H - View connection history".to_string(),
             "    Ctrl+]   - Disconnect from server".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Shell".to_string(),
+            description: "Interactive shell".to_string(),
+            category: PluginCategory::Tools,
+            key: 'S',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

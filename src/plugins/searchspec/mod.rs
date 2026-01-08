@@ -2,7 +2,7 @@
 //!
 //! Provides search specification (F7) functionality as a self-contained plugin.
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -332,6 +332,16 @@ impl Plugin for SearchSpecPlugin {
             "  Filter files by pattern (*.txt, *.rs, etc.)".to_string(),
             "  Toggle file type attributes".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Search Spec".to_string(),
+            description: "File filter pattern".to_string(),
+            category: PluginCategory::Files,
+            key: 'W',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

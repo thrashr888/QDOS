@@ -90,8 +90,7 @@ pub fn draw_drives_modal(frame: &mut Frame, area: Rect, state: &DrivesState, col
     } else {
         let max_visible = volumes_height.saturating_sub(2);
         for (i, vol) in state.volumes.iter().take(max_visible).enumerate() {
-            let is_selected =
-                state.section == DrivesSection::Volumes && i == state.selected_index;
+            let is_selected = state.section == DrivesSection::Volumes && i == state.selected_index;
             let prefix = if is_selected { ">" } else { " " };
 
             let style = if is_selected {
@@ -153,7 +152,12 @@ pub fn draw_drives_modal(frame: &mut Frame, area: Rect, state: &DrivesState, col
         );
 
         let net_max_visible = visible_height.saturating_sub(volumes_height + 2);
-        for (i, share) in state.network_shares.iter().take(net_max_visible).enumerate() {
+        for (i, share) in state
+            .network_shares
+            .iter()
+            .take(net_max_visible)
+            .enumerate()
+        {
             let is_selected =
                 state.section == DrivesSection::NetworkShares && i == state.selected_index;
             let prefix = if is_selected { ">" } else { " " };
@@ -185,7 +189,14 @@ pub fn draw_drives_modal(frame: &mut Frame, area: Rect, state: &DrivesState, col
 
     // Help footer
     let mut help = vec![
-        ("Enter", if state.section == DrivesSection::Volumes { "go to" } else { "mount" }),
+        (
+            "Enter",
+            if state.section == DrivesSection::Volumes {
+                "go to"
+            } else {
+                "mount"
+            },
+        ),
         ("↑↓", "select"),
     ];
     if has_network_shares {

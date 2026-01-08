@@ -15,7 +15,10 @@ pub use state::{
     SubmoduleStatus,
 };
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -1314,6 +1317,16 @@ impl Plugin for GitPlugin {
             "Views: Status, Log, Diff, Commit, Push, Pull, Fetch,".to_string(),
             "       Branches, Stash, Remotes, Submodules".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Git".to_string(),
+            description: "Git version control".to_string(),
+            category: PluginCategory::Vcs,
+            key: 'G',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -13,7 +13,9 @@ pub mod state;
 pub use state::{DisplayMode, EditorMode, QEditMenuItem, QEditState};
 
 use crate::app::ThemeColors;
-use crate::plugins::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use crate::plugins::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
 use std::any::Any;
@@ -310,6 +312,16 @@ impl Plugin for QEditPlugin {
             "Tip:       Use H menu for Hex mode to view binary files.".to_string(),
             "           The status bar shows line, column, and mode.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Editor".to_string(),
+            description: "Built-in text editor".to_string(),
+            category: PluginCategory::Files,
+            key: 'E',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

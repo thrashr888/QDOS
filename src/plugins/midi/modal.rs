@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
 
@@ -193,7 +193,13 @@ fn draw_playing(frame: &mut Frame, area: Rect, state: &MidiState, colors: &Theme
 }
 
 fn draw_error(frame: &mut Frame, area: Rect, state: &MidiState, colors: &ThemeColors) {
-    let modal_area = centered_modal_area(area);
+    // Use wider modal for error messages
+    let width = area.width.min(60);
+    let height = area.height.min(14);
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    let modal_area = Rect::new(x, y, width, height);
+
     let modal = ModalFrame::themed(modal_area, " MIDI - Error ", colors);
     modal.render_frame(frame);
     let content_area = modal.content_area();
@@ -210,7 +216,7 @@ fn draw_error(frame: &mut Frame, area: Rect, state: &MidiState, colors: &ThemeCo
         Line::from(Span::styled(error_msg, Style::default().fg(colors.fg()))),
     ];
 
-    let para = Paragraph::new(text);
+    let para = Paragraph::new(text).wrap(Wrap { trim: true });
     frame.render_widget(para, content_area);
 
     modal.render_help(frame, vec![("Enter/Esc", "back")]);

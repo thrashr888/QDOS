@@ -5,7 +5,7 @@
 
 pub mod modal;
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
 use crate::ui::components::ModalFrame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -426,6 +426,16 @@ impl Plugin for FileOpsPlugin {
             "  Erase - Delete files".to_string(),
             "  Rename - Rename files".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "File Ops".to_string(),
+            description: "Copy, move, delete files".to_string(),
+            category: PluginCategory::Files,
+            key: 'O',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

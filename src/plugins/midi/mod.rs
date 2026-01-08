@@ -70,6 +70,10 @@ impl MidiPlugin {
 
         // Build command based on player
         let result = match player {
+            state::MidiPlayer::SystemDefault => {
+                // Use macOS `open` to play with default MIDI app
+                Command::new("open").arg(file_path).spawn()
+            }
             state::MidiPlayer::FluidSynth => {
                 // FluidSynth needs a soundfont - try common locations
                 let soundfont = find_soundfont();
@@ -84,7 +88,7 @@ impl MidiPlugin {
                 } else {
                     Err(std::io::Error::new(
                         std::io::ErrorKind::NotFound,
-                        "No soundfont found. Install with: brew install fluid-synth",
+                        "No soundfont (.sf2) found. Download one from: https://musical-artifacts.com/artifacts?formats=sf2",
                     ))
                 }
             }

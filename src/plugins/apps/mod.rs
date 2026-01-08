@@ -10,7 +10,7 @@ use crate::plugins::{
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
-use state::{AppEntry, AppsState, PluginCategory};
+use state::{AppEntry, AppsState};
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -57,239 +57,13 @@ impl AppsPlugin {
         None
     }
 
-    /// Build the list of available apps/plugins
-    fn build_app_list(&mut self) {
-        self.state.apps = vec![
-            // Files category
-            AppEntry {
-                id: "dirmap".to_string(),
-                name: "Dir Map".to_string(),
-                description: "Directory tree view".to_string(),
-                category: PluginCategory::Files,
-                key: 'D',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "space".to_string(),
-                name: "Disk Space".to_string(),
-                description: "Disk usage analyzer".to_string(),
-                category: PluginCategory::Files,
-                key: 'U',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "find".to_string(),
-                name: "Find".to_string(),
-                description: "Search for files".to_string(),
-                category: PluginCategory::Files,
-                key: 'F',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "searchspec".to_string(),
-                name: "Search Spec".to_string(),
-                description: "File filter pattern".to_string(),
-                category: PluginCategory::Files,
-                key: 'W',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "fileops".to_string(),
-                name: "File Ops".to_string(),
-                description: "Copy, move, delete files".to_string(),
-                category: PluginCategory::Files,
-                key: 'O',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "viewer".to_string(),
-                name: "Viewer".to_string(),
-                description: "File content viewer".to_string(),
-                category: PluginCategory::Files,
-                key: 'V',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "qedit".to_string(),
-                name: "Editor".to_string(),
-                description: "Built-in text editor".to_string(),
-                category: PluginCategory::Files,
-                key: 'E',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "print".to_string(),
-                name: "Print".to_string(),
-                description: "Print file contents".to_string(),
-                category: PluginCategory::Files,
-                key: 'R',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "drives".to_string(),
-                name: "Drives".to_string(),
-                description: "Browse mounted volumes".to_string(),
-                category: PluginCategory::Files,
-                key: 'N',
-                available: true,
-                enabled: true,
-            },
-            // Tools category (additional)
-            AppEntry {
-                id: "homebrew".to_string(),
-                name: "Homebrew".to_string(),
-                description: "Browse Homebrew packages".to_string(),
-                category: PluginCategory::Tools,
-                key: 'Y',
-                available: cfg!(target_os = "macos"),
-                enabled: true,
-            },
-            // VCS category
-            AppEntry {
-                id: "git".to_string(),
-                name: "Git".to_string(),
-                description: "Git version control".to_string(),
-                category: PluginCategory::Vcs,
-                key: 'G',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "jj".to_string(),
-                name: "Jujutsu".to_string(),
-                description: "Jujutsu VCS".to_string(),
-                category: PluginCategory::Vcs,
-                key: 'J',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "beads".to_string(),
-                name: "Beads".to_string(),
-                description: "Issue tracker".to_string(),
-                category: PluginCategory::Vcs,
-                key: 'B',
-                available: true,
-                enabled: true,
-            },
-            // Tools category
-            AppEntry {
-                id: "ai".to_string(),
-                name: "AI Assistant".to_string(),
-                description: "Monitor AI coding tools".to_string(),
-                category: PluginCategory::Tools,
-                key: 'A',
-                available: true,
-                enabled: true,
-            },
-            // Games category
-            AppEntry {
-                id: "basic".to_string(),
-                name: "BASIC".to_string(),
-                description: "Run BASIC programs".to_string(),
-                category: PluginCategory::Games,
-                key: 'I', // basIc
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "midi".to_string(),
-                name: "MIDI".to_string(),
-                description: "Play MIDI music files".to_string(),
-                category: PluginCategory::Games,
-                key: 'M',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "video".to_string(),
-                name: "Video".to_string(),
-                description: "Play video files".to_string(),
-                category: PluginCategory::Games,
-                key: 'Z', // video - V is taken by Viewer
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "shell".to_string(),
-                name: "Shell".to_string(),
-                description: "Interactive shell".to_string(),
-                category: PluginCategory::Tools,
-                key: 'S',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "clipboard".to_string(),
-                name: "Clipboard".to_string(),
-                description: "Clipboard manager".to_string(),
-                category: PluginCategory::Tools,
-                key: 'L',
-                available: true,
-                enabled: true,
-            },
-            // System category
-            AppEntry {
-                id: "proc".to_string(),
-                name: "Processes".to_string(),
-                description: "System process monitor".to_string(),
-                category: PluginCategory::System,
-                key: 'P',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "theme".to_string(),
-                name: "Theme".to_string(),
-                description: "Color theme settings".to_string(),
-                category: PluginCategory::System,
-                key: 'T',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "qdconfig".to_string(),
-                name: "Config".to_string(),
-                description: "RDOS configuration".to_string(),
-                category: PluginCategory::System,
-                key: 'C',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "help".to_string(),
-                name: "Help".to_string(),
-                description: "Help and documentation".to_string(),
-                category: PluginCategory::System,
-                key: 'H',
-                available: true,
-                enabled: true,
-            },
-            AppEntry {
-                id: "status".to_string(),
-                name: "Status".to_string(),
-                description: "Status bar plugin".to_string(),
-                category: PluginCategory::System,
-                key: 'X',
-                available: true,
-                enabled: true,
-            },
-        ];
-    }
-
-    /// Update enabled status for all apps from config
-    pub fn update_enabled_status(&mut self, config: &crate::config::PluginsConfig) {
-        for app in &mut self.state.apps {
-            app.enabled = config.is_plugin_enabled(&app.id);
-        }
+    /// Set app entries from collected plugin info
+    pub fn set_entries(&mut self, entries: Vec<AppEntry>) {
+        self.state.apps = entries;
+        // Sort by category then by name for consistent display
+        self.state.apps.sort_by(|a, b| {
+            a.category.cmp(&b.category).then(a.name.cmp(&b.name))
+        });
     }
 
     /// Find app by key character
@@ -323,7 +97,6 @@ impl Plugin for AppsPlugin {
     }
 
     fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
-        self.build_app_list();
         self.initialized = true;
         Ok(())
     }
@@ -348,11 +121,7 @@ impl Plugin for AppsPlugin {
     fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         match key.code {
             KeyCode::F(12) => {
-                // Build app list if empty (lazy init)
-                if self.state.apps.is_empty() {
-                    self.build_app_list();
-                }
-                // Open Apps launcher
+                // Open Apps launcher (entries are collected dynamically via set_entries)
                 self.state.clear_filter();
                 self.launch_plugin = None;
                 KeyHandleResult::OpenModal

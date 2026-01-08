@@ -2,7 +2,7 @@
 //!
 //! Provides disk space display functionality as a self-contained plugin.
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
@@ -235,6 +235,16 @@ impl Plugin for SpacePlugin {
             "F11 - Show Disk Space".to_string(),
             "  Displays total, used, and available disk space".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Disk Space".to_string(),
+            description: "Disk usage analyzer".to_string(),
+            category: PluginCategory::Files,
+            key: 'U',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -8,7 +8,10 @@ mod state;
 
 pub use state::{JjMenuItem, JjState, JjView};
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
+};
 use crate::app::ThemeColors;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -601,6 +604,16 @@ impl Plugin for JjPlugin {
             "".to_string(),
             "Tip: Use Operations > Undo to reverse any jj action.".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Jujutsu".to_string(),
+            description: "Jujutsu VCS".to_string(),
+            category: PluginCategory::Vcs,
+            key: 'J',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

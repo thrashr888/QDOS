@@ -2,7 +2,7 @@
 //!
 //! Provides system status display (F2 functionality) as a self-contained plugin.
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};
@@ -270,6 +270,16 @@ impl Plugin for StatusPlugin {
             "  Shows hostname, OS, CPU, memory info".to_string(),
             "  Lists registered plugins".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Status".to_string(),
+            description: "Status bar plugin".to_string(),
+            category: PluginCategory::System,
+            key: 'X',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

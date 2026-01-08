@@ -8,7 +8,8 @@ pub mod ops;
 pub mod state;
 
 use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
@@ -270,6 +271,16 @@ impl Plugin for AIPlugin {
             "  R       Refresh status".to_string(),
             "  Esc     Close/Back".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "AI Assistant".to_string(),
+            description: "Monitor AI coding tools".to_string(),
+            category: PluginCategory::Tools,
+            key: 'A',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

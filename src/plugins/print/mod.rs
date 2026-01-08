@@ -2,7 +2,7 @@
 //!
 //! Provides file printing functionality as a self-contained plugin.
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -224,6 +224,16 @@ impl Plugin for PrintPlugin {
             "  Sends the selected file to the default printer".to_string(),
             "  Uses the 'lpr' command".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Print".to_string(),
+            description: "Print file contents".to_string(),
+            category: PluginCategory::Files,
+            key: 'R',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

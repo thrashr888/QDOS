@@ -7,6 +7,8 @@ use std::path::PathBuf;
 /// Available MIDI players
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MidiPlayer {
+    /// System default (uses macOS `open` command)
+    SystemDefault,
     /// FluidSynth - software synthesizer
     FluidSynth,
     /// TiMidity++ - MIDI to WAV converter/player
@@ -16,6 +18,7 @@ pub enum MidiPlayer {
 impl MidiPlayer {
     pub fn command(&self) -> &'static str {
         match self {
+            MidiPlayer::SystemDefault => "open",
             MidiPlayer::FluidSynth => "fluidsynth",
             MidiPlayer::Timidity => "timidity",
         }
@@ -23,6 +26,7 @@ impl MidiPlayer {
 
     pub fn name(&self) -> &'static str {
         match self {
+            MidiPlayer::SystemDefault => "System Default",
             MidiPlayer::FluidSynth => "FluidSynth",
             MidiPlayer::Timidity => "TiMidity++",
         }
@@ -30,6 +34,7 @@ impl MidiPlayer {
 
     pub fn install_hint(&self) -> &'static str {
         match self {
+            MidiPlayer::SystemDefault => "(built-in)",
             MidiPlayer::FluidSynth => "brew install fluid-synth",
             MidiPlayer::Timidity => "brew install timidity",
         }
@@ -38,23 +43,34 @@ impl MidiPlayer {
     /// Ranking for recommendation (lower = better)
     pub fn rank(&self) -> u8 {
         match self {
-            MidiPlayer::FluidSynth => 1, // Preferred - better sound quality
-            MidiPlayer::Timidity => 2,
+            MidiPlayer::SystemDefault => 1, // Always available, easiest
+            MidiPlayer::FluidSynth => 2,    // Good quality if configured
+            MidiPlayer::Timidity => 3,
         }
     }
 
     /// Check if this player is available
     pub fn is_available(&self) -> bool {
-        std::process::Command::new("which")
-            .arg(self.command())
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+        match self {
+            MidiPlayer::SystemDefault => {
+                // Always available on macOS
+                cfg!(target_os = "macos")
+            }
+            _ => std::process::Command::new("which")
+                .arg(self.command())
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false),
+        }
     }
 
     /// Get all player variants in ranked order
     pub fn all() -> &'static [MidiPlayer] {
-        &[MidiPlayer::FluidSynth, MidiPlayer::Timidity]
+        &[
+            MidiPlayer::SystemDefault,
+            MidiPlayer::FluidSynth,
+            MidiPlayer::Timidity,
+        ]
     }
 }
 

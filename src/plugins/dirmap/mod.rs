@@ -6,7 +6,7 @@ mod state;
 
 pub use state::DirMapState;
 
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -410,6 +410,16 @@ impl Plugin for DirMapPlugin {
             "  Navigate directory tree".to_string(),
             "  M: Create directory, d: Delete directory".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Dir Map".to_string(),
+            description: "Directory tree view".to_string(),
+            category: PluginCategory::Files,
+            key: 'D',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {

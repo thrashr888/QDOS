@@ -8,7 +8,8 @@ pub mod state;
 
 use crate::app::ThemeColors;
 use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
@@ -284,6 +285,16 @@ impl Plugin for BasicPlugin {
         ]
     }
 
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "BASIC".to_string(),
+            description: "Run BASIC programs".to_string(),
+            category: PluginCategory::Games,
+            key: 'I',
+        })
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -303,7 +314,7 @@ fn strip_ansi_codes(s: &str) -> String {
             // Skip ESC and following sequence
             if chars.peek() == Some(&'[') {
                 chars.next(); // consume '['
-                // Skip until we hit a letter (end of sequence)
+                              // Skip until we hit a letter (end of sequence)
                 while let Some(&next) = chars.peek() {
                     chars.next();
                     if next.is_ascii_alphabetic() {
