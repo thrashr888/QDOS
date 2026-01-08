@@ -265,10 +265,12 @@ impl Model3dPlugin {
         let siblings = std::mem::take(&mut self.state.sibling_files);
         let new_index = siblings.iter().position(|p| p == &file_path).unwrap_or(0);
         let render_mode = self.state.render_mode;
+        let draw_style = self.state.draw_style;
         let auto_rotate = self.state.auto_rotate;
 
         self.state = ModelState::new();
         self.state.render_mode = render_mode;
+        self.state.draw_style = draw_style;
         self.state.auto_rotate = auto_rotate;
         self.state.file_path = Some(file_path.clone());
         self.state.file_name = file_path
