@@ -116,7 +116,10 @@ fn draw_playing(frame: &mut Frame, area: Rect, state: &VideoState, colors: &Them
                 Style::default().fg(colors.cyan()),
             ),
             if !position_str.is_empty() {
-                Span::styled(format!("  [{}]", position_str), Style::default().fg(colors.grey()))
+                Span::styled(
+                    format!("  [{}]", position_str),
+                    Style::default().fg(colors.grey()),
+                )
             } else {
                 Span::raw("")
             },
@@ -193,8 +196,7 @@ fn draw_inline_player(frame: &mut Frame, area: Rect, state: &VideoState, colors:
     let position_str = if state.inline_state.position > 0.0 {
         format!(
             " {:.1}s - Frame {} ",
-            state.inline_state.position,
-            state.inline_state.current_frame
+            state.inline_state.position, state.inline_state.current_frame
         )
     } else {
         String::new()

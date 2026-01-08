@@ -26,7 +26,7 @@ pub struct Triangle2D {
     pub p0: Point2D,
     pub p1: Point2D,
     pub p2: Point2D,
-    pub brightness: f32,  // 0.0 to 1.0 based on face normal
+    pub brightness: f32, // 0.0 to 1.0 based on face normal
 }
 
 /// Project 3D model to 2D screen space
@@ -37,7 +37,7 @@ pub fn project_model(model: &Model, camera: &Camera, width: u16, height: u16) ->
     let char_aspect = 2.0;
 
     let projection = Mat4::perspective_rh(
-        std::f32::consts::FRAC_PI_4,  // 45 degree FOV
+        std::f32::consts::FRAC_PI_4, // 45 degree FOV
         aspect * char_aspect,
         0.1,
         100.0,
@@ -63,7 +63,7 @@ pub fn project_model(model: &Model, camera: &Camera, width: u16, height: u16) ->
             // NDC to screen coordinates
             Some(Point2D {
                 x: (ndc.x + 1.0) * 0.5 * width as f32,
-                y: (1.0 - ndc.y) * 0.5 * height as f32,  // Flip Y for screen coords
+                y: (1.0 - ndc.y) * 0.5 * height as f32, // Flip Y for screen coords
                 depth: ndc.z,
             })
         })
@@ -159,36 +159,31 @@ fn get_line_char(x0: i32, y0: i32, x1: i32, y1: i32, _x: i32, _y: i32) -> char {
 
     // Choose character based on angle
     if angle_deg.abs() < 22.5 {
-        '-'  // Horizontal
+        '-' // Horizontal
     } else if angle_deg.abs() > 157.5 {
-        '-'  // Horizontal (opposite direction)
+        '-' // Horizontal (opposite direction)
     } else if (angle_deg - 90.0).abs() < 22.5 || (angle_deg + 90.0).abs() < 22.5 {
-        '|'  // Vertical
+        '|' // Vertical
     } else if angle_deg > 0.0 && angle_deg < 90.0 {
-        '\\'  // Diagonal down-right
+        '\\' // Diagonal down-right
     } else if angle_deg > 90.0 {
-        '/'  // Diagonal down-left
+        '/' // Diagonal down-left
     } else if angle_deg < 0.0 && angle_deg > -90.0 {
-        '/'  // Diagonal up-right
+        '/' // Diagonal up-right
     } else {
-        '\\'  // Diagonal up-left
+        '\\' // Diagonal up-left
     }
 }
 
 /// Render to RGB image buffer for image protocol display
-pub fn render_image(
-    model: &Model,
-    camera: &Camera,
-    width: u32,
-    height: u32,
-) -> Vec<u8> {
+pub fn render_image(model: &Model, camera: &Camera, width: u32, height: u32) -> Vec<u8> {
     let mut buffer = vec![0u8; (width * height * 3) as usize];
 
     // Fill with dark background
     for i in 0..(width * height) as usize {
-        buffer[i * 3] = 20;      // R
-        buffer[i * 3 + 1] = 20;  // G
-        buffer[i * 3 + 2] = 30;  // B
+        buffer[i * 3] = 20; // R
+        buffer[i * 3 + 1] = 20; // G
+        buffer[i * 3 + 2] = 30; // B
     }
 
     let lines = project_model(model, camera, width as u16, height as u16);
@@ -245,7 +240,12 @@ fn draw_line_image(buffer: &mut [u8], p0: Point2D, p1: Point2D, width: u32, heig
 }
 
 /// Project 3D model to triangles for filled rendering
-pub fn project_triangles(model: &Model, camera: &Camera, width: u16, height: u16) -> Vec<Triangle2D> {
+pub fn project_triangles(
+    model: &Model,
+    camera: &Camera,
+    width: u16,
+    height: u16,
+) -> Vec<Triangle2D> {
     let aspect = width as f32 / height as f32;
     let char_aspect = 2.0;
 
@@ -304,7 +304,12 @@ pub fn project_triangles(model: &Model, camera: &Camera, width: u16, height: u16
             // Simple diffuse lighting
             let brightness = normal.dot(light_dir).clamp(0.1, 1.0);
 
-            triangles.push(Triangle2D { p0, p1, p2, brightness });
+            triangles.push(Triangle2D {
+                p0,
+                p1,
+                p2,
+                brightness,
+            });
         }
     }
 
@@ -312,7 +317,9 @@ pub fn project_triangles(model: &Model, camera: &Camera, width: u16, height: u16
     triangles.sort_by(|a, b| {
         let depth_a = (a.p0.depth + a.p1.depth + a.p2.depth) / 3.0;
         let depth_b = (b.p0.depth + b.p1.depth + b.p2.depth) / 3.0;
-        depth_b.partial_cmp(&depth_a).unwrap_or(std::cmp::Ordering::Equal)
+        depth_b
+            .partial_cmp(&depth_a)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     triangles
@@ -329,7 +336,14 @@ pub fn render_ascii_filled(model: &Model, camera: &Camera, width: u16, height: u
     let shade_chars = ['.', ':', '-', '=', '+', '*', '#', '%', '@'];
 
     for tri in triangles {
-        fill_triangle_ascii(&mut buffer, &mut depth_buffer, &tri, width, height, &shade_chars);
+        fill_triangle_ascii(
+            &mut buffer,
+            &mut depth_buffer,
+            &tri,
+            width,
+            height,
+            &shade_chars,
+        );
     }
 
     buffer.iter().map(|row| row.iter().collect()).collect()
@@ -348,11 +362,16 @@ fn fill_triangle_ascii(
     let min_x = tri.p0.x.min(tri.p1.x).min(tri.p2.x).max(0.0) as i32;
     let max_x = tri.p0.x.max(tri.p1.x).max(tri.p2.x).min(width as f32 - 1.0) as i32;
     let min_y = tri.p0.y.min(tri.p1.y).min(tri.p2.y).max(0.0) as i32;
-    let max_y = tri.p0.y.max(tri.p1.y).max(tri.p2.y).min(height as f32 - 1.0) as i32;
+    let max_y = tri
+        .p0
+        .y
+        .max(tri.p1.y)
+        .max(tri.p2.y)
+        .min(height as f32 - 1.0) as i32;
 
     // Choose character based on brightness
-    let char_idx = ((tri.brightness * (shade_chars.len() - 1) as f32) as usize)
-        .min(shade_chars.len() - 1);
+    let char_idx =
+        ((tri.brightness * (shade_chars.len() - 1) as f32) as usize).min(shade_chars.len() - 1);
     let ch = shade_chars[char_idx];
 
     for y in min_y..=max_y {
@@ -406,7 +425,12 @@ fn fill_triangle_image(
     let min_x = tri.p0.x.min(tri.p1.x).min(tri.p2.x).max(0.0) as i32;
     let max_x = tri.p0.x.max(tri.p1.x).max(tri.p2.x).min(width as f32 - 1.0) as i32;
     let min_y = tri.p0.y.min(tri.p1.y).min(tri.p2.y).max(0.0) as i32;
-    let max_y = tri.p0.y.max(tri.p1.y).max(tri.p2.y).min(height as f32 - 1.0) as i32;
+    let max_y = tri
+        .p0
+        .y
+        .max(tri.p1.y)
+        .max(tri.p2.y)
+        .min(height as f32 - 1.0) as i32;
 
     // Green with brightness
     let r = (50.0 + tri.brightness * 50.0) as u8;

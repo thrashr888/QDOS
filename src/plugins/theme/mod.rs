@@ -2,7 +2,9 @@
 //!
 //! Provides color theme selection (Ctrl+T functionality) as a self-contained plugin.
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crate::app::{ColorTheme, ColorThemeState};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};

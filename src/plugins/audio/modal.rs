@@ -253,7 +253,10 @@ fn draw_external_playing(frame: &mut Frame, area: Rect, state: &AudioState, colo
     let lines = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled(format!(" {} ", playing_icon), Style::default().fg(colors.green())),
+            Span::styled(
+                format!(" {} ", playing_icon),
+                Style::default().fg(colors.green()),
+            ),
             Span::styled(
                 &state.file_name,
                 Style::default()
@@ -261,7 +264,10 @@ fn draw_external_playing(frame: &mut Frame, area: Rect, state: &AudioState, colo
                     .add_modifier(Modifier::BOLD),
             ),
             if !position_str.is_empty() {
-                Span::styled(format!("  [{}]", position_str), Style::default().fg(colors.grey()))
+                Span::styled(
+                    format!("  [{}]", position_str),
+                    Style::default().fg(colors.grey()),
+                )
             } else {
                 Span::raw("")
             },
@@ -346,7 +352,10 @@ fn draw_needs_soundfont(frame: &mut Frame, area: Rect, state: &AudioState, color
     ];
 
     frame.render_widget(Paragraph::new(lines), content_area);
-    modal.render_help(frame, vec![("D", "download"), ("S", "skip"), ("Esc", "cancel")]);
+    modal.render_help(
+        frame,
+        vec![("D", "download"), ("S", "skip"), ("Esc", "cancel")],
+    );
 }
 
 fn draw_downloading_soundfont(

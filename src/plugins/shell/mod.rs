@@ -13,7 +13,9 @@ pub mod pty;
 mod state;
 mod telnet;
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;

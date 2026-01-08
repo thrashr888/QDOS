@@ -2,7 +2,9 @@
 //!
 //! Provides file printing functionality as a self-contained plugin.
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;

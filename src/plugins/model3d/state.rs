@@ -92,15 +92,15 @@ impl Model {
 #[derive(Debug, Clone)]
 pub struct Camera {
     pub distance: f32,
-    pub rotation_x: f32,  // Pitch
-    pub rotation_y: f32,  // Yaw
+    pub rotation_x: f32, // Pitch
+    pub rotation_y: f32, // Yaw
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Self {
             distance: 3.0,
-            rotation_x: 0.3,  // Slight downward angle
+            rotation_x: 0.3, // Slight downward angle
             rotation_y: 0.0,
         }
     }
@@ -225,7 +225,11 @@ impl ModelState {
         if self.sibling_files.is_empty() {
             String::new()
         } else {
-            format!("{}/{}", self.current_file_index + 1, self.sibling_files.len())
+            format!(
+                "{}/{}",
+                self.current_file_index + 1,
+                self.sibling_files.len()
+            )
         }
     }
 }

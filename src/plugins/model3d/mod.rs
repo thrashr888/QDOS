@@ -321,7 +321,7 @@ impl Plugin for Model3dPlugin {
     }
 
     fn is_available(&self, _cwd: &PathBuf) -> bool {
-        true  // Always available
+        true // Always available
     }
 
     fn menu_item(&self) -> Option<PluginMenuItem> {
@@ -356,14 +356,12 @@ impl Plugin for Model3dPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Up => {
-                    self.state.camera.rotation_x =
-                        (self.state.camera.rotation_x + 0.1).min(1.5);
+                    self.state.camera.rotation_x = (self.state.camera.rotation_x + 0.1).min(1.5);
                     self.state.auto_rotate = false;
                     KeyHandleResult::Handled
                 }
                 KeyCode::Down => {
-                    self.state.camera.rotation_x =
-                        (self.state.camera.rotation_x - 0.1).max(-1.5);
+                    self.state.camera.rotation_x = (self.state.camera.rotation_x - 0.1).max(-1.5);
                     self.state.auto_rotate = false;
                     KeyHandleResult::Handled
                 }

@@ -167,9 +167,7 @@ impl AudioPlugin {
                 }
 
                 // Add the MIDI file and suppress output
-                cmd.arg(path)
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null());
+                cmd.arg(path).stdout(Stdio::null()).stderr(Stdio::null());
 
                 match cmd.spawn() {
                     Ok(child) => {
@@ -309,7 +307,7 @@ impl Plugin for AudioPlugin {
     fn menu_item(&self) -> Option<PluginMenuItem> {
         Some(PluginMenuItem {
             name: "Audio".to_string(),
-            key: 'U',  // Shift+U... wait, that's Disk Space. Let's use 'O' for audiO
+            key: 'U', // Shift+U... wait, that's Disk Space. Let's use 'O' for audiO
             description: "Play audio files".to_string(),
             priority: 34,
         })

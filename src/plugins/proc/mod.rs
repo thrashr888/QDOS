@@ -6,7 +6,9 @@
 mod modal;
 mod state;
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;

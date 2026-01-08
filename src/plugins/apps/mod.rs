@@ -61,9 +61,9 @@ impl AppsPlugin {
     pub fn set_entries(&mut self, entries: Vec<AppEntry>) {
         self.state.apps = entries;
         // Sort by category then by name for consistent display
-        self.state.apps.sort_by(|a, b| {
-            a.category.cmp(&b.category).then(a.name.cmp(&b.name))
-        });
+        self.state
+            .apps
+            .sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
     }
 
     /// Find app by key character

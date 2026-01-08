@@ -9,7 +9,9 @@
 //! - Git diff view
 //! - Git history navigation
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crate::plugins::git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };

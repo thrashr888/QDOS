@@ -235,10 +235,7 @@ impl AudioState {
         siblings.sort();
 
         // Find current file index
-        self.current_file_index = siblings
-            .iter()
-            .position(|p| p == file_path)
-            .unwrap_or(0);
+        self.current_file_index = siblings.iter().position(|p| p == file_path).unwrap_or(0);
 
         self.sibling_files = siblings;
     }
@@ -276,7 +273,11 @@ impl AudioState {
         if self.sibling_files.is_empty() {
             String::new()
         } else {
-            format!("{}/{}", self.current_file_index + 1, self.sibling_files.len())
+            format!(
+                "{}/{}",
+                self.current_file_index + 1,
+                self.sibling_files.len()
+            )
         }
     }
 }

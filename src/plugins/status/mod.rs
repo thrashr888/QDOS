@@ -2,7 +2,9 @@
 //!
 //! Provides system status display (F2 functionality) as a self-contained plugin.
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crate::ui::components::ModalFrame;
 use crossterm::event::{KeyCode, KeyEvent};
 use humansize::{format_size, DECIMAL};

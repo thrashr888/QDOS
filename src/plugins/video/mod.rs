@@ -174,9 +174,7 @@ impl VideoPlugin {
                         }
 
                         // Small sleep to match target FPS
-                        thread::sleep(std::time::Duration::from_millis(
-                            1000 / TARGET_FPS as u64,
-                        ));
+                        thread::sleep(std::time::Duration::from_millis(1000 / TARGET_FPS as u64));
                     }
                     FfmpegEvent::Progress(progress) => {
                         if let Ok(secs) = parse_time_string(&progress.time) {

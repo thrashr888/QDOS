@@ -87,8 +87,7 @@ pub fn frame_to_colored_ascii(
                 let g = rgb_data[idx + 1];
                 let b = rgb_data[idx + 2];
 
-                let luminance =
-                    (0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32) / 255.0;
+                let luminance = (0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32) / 255.0;
                 let char_idx = (luminance * (ASCII_CHARS.len() - 1) as f32) as usize;
                 let ch = ASCII_CHARS[char_idx.min(ASCII_CHARS.len() - 1)];
 

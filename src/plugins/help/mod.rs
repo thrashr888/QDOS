@@ -6,7 +6,9 @@ mod state;
 
 pub use state::HelpState;
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
+use super::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;

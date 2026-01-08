@@ -117,11 +117,7 @@ fn draw_viewer(frame: &mut Frame, area: Rect, state: &ModelState, colors: &Theme
                         if let Some(ref mut picker) = *guard {
                             let mut protocol = picker.new_resize_protocol(dyn_img);
                             let image_widget = StatefulImage::new(None);
-                            frame.render_stateful_widget(
-                                image_widget,
-                                content_area,
-                                &mut protocol,
-                            );
+                            frame.render_stateful_widget(image_widget, content_area, &mut protocol);
                         } else {
                             draw_no_image_support(frame, content_area, colors);
                         }
