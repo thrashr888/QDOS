@@ -8,18 +8,14 @@
 //! - Git blame view
 //! - Git diff view
 //! - Git history navigation
-//! - Media playback (audio files)
 
-pub mod media;
-
-use super::{KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem};
+use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem};
 use crate::plugins::git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };
 use crate::plugins::git::{BlameLine, FileHistoryEntry};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
-use media::{AudioPlayerHandle, MediaState, MediaType, PlayState};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -83,7 +79,6 @@ pub enum ViewMode {
     Markdown,
     Blame,
     Diff,
-    Media,
 }
 
 /// File viewer filter mode
@@ -195,7 +190,7 @@ impl ViewerState {
                 let total_lines = self.content.len().div_ceil(bytes_per_line);
                 total_lines.saturating_sub(visible_height)
             }
-            ViewMode::Image | ViewMode::Media => 0,
+            ViewMode::Image => 0,
             ViewMode::Blame => self.blame_lines.len().saturating_sub(visible_height),
             ViewMode::Diff => self.diff_lines.len().saturating_sub(visible_height),
         }
@@ -215,16 +210,6 @@ impl ViewerState {
             || lower.ends_with(".ico")
         {
             ViewMode::Image
-        } else if lower.ends_with(".wav")
-            || lower.ends_with(".wave")
-            || lower.ends_with(".mp3")
-            || lower.ends_with(".ogg")
-            || lower.ends_with(".oga")
-            || lower.ends_with(".flac")
-            || lower.ends_with(".aac")
-            || lower.ends_with(".m4a")
-        {
-            ViewMode::Media
         } else {
             ViewMode::Normal
         }
@@ -236,10 +221,6 @@ pub struct ViewerPlugin {
     modal_open: bool,
     state: Option<ViewerState>,
     current_cwd: PathBuf,
-    /// Audio player handle for media playback
-    audio_player: Option<AudioPlayerHandle>,
-    /// Shared media state for UI updates
-    media_state: Option<std::sync::Arc<std::sync::Mutex<MediaState>>>,
 }
 
 impl ViewerPlugin {
@@ -248,8 +229,6 @@ impl ViewerPlugin {
             modal_open: false,
             state: None,
             current_cwd: PathBuf::new(),
-            audio_player: None,
-            media_state: None,
         }
     }
 
@@ -263,56 +242,18 @@ impl ViewerPlugin {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let mut state = ViewerState::new(file_name.clone(), file_path.clone(), content);
+        let mut state = ViewerState::new(file_name, file_path.clone(), content);
 
         // Load git history if in a git repo
         let history = load_file_history(&file_path, cwd);
         let is_git_repo = !history.is_empty();
         state.set_git_history(history, is_git_repo);
 
-        // Initialize audio player for media files
-        if state.mode == ViewMode::Media {
-            if let Some(media_type) = MediaType::from_path(&file_path) {
-                if media_type == MediaType::Audio {
-                    match AudioPlayerHandle::new() {
-                        Ok(player) => {
-                            self.media_state = Some(player.state());
-                            if let Err(e) = player.play_file(&file_path) {
-                                // Store error but don't fail - show error in UI
-                                if let Some(ref state) = self.media_state {
-                                    if let Ok(mut s) = state.lock() {
-                                        s.error = Some(e);
-                                    }
-                                }
-                            }
-                            self.audio_player = Some(player);
-                        }
-                        Err(e) => {
-                            // Create media state with error
-                            let mut ms = MediaState::new();
-                            ms.error = Some(e);
-                            ms.file_name = file_name;
-                            self.media_state = Some(std::sync::Arc::new(std::sync::Mutex::new(ms)));
-                        }
-                    }
-                }
-            }
-        }
-
         self.state = Some(state);
         self.modal_open = true;
         self.current_cwd = cwd.clone();
 
         Ok(())
-    }
-
-    /// Stop any playing audio and clean up
-    fn stop_audio(&mut self) {
-        if let Some(ref mut player) = self.audio_player {
-            player.stop();
-        }
-        self.audio_player = None;
-        self.media_state = None;
     }
 
     /// Get the current state for clipboard operations
@@ -385,70 +326,6 @@ impl Plugin for ViewerPlugin {
     }
 
     fn handle_modal_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
-        // Check if we're in media mode first (before borrowing state mutably)
-        let is_media_mode = self
-            .state
-            .as_ref()
-            .map(|s| s.mode == ViewMode::Media)
-            .unwrap_or(false);
-
-        // Handle media-specific keys first
-        if is_media_mode {
-            match key.code {
-                KeyCode::Esc => {
-                    self.stop_audio();
-                    self.modal_open = false;
-                    self.state = None;
-                    return KeyHandleResult::CloseModal;
-                }
-                KeyCode::Char(' ') => {
-                    // Toggle play/pause
-                    if let Some(ref player) = self.audio_player {
-                        player.toggle_pause();
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                KeyCode::Up => {
-                    // Volume up
-                    if let Some(ref player) = self.audio_player {
-                        player.adjust_volume(0.1);
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                KeyCode::Down => {
-                    // Volume down
-                    if let Some(ref player) = self.audio_player {
-                        player.adjust_volume(-0.1);
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                KeyCode::Char('s') | KeyCode::Char('S') => {
-                    // Stop playback
-                    if let Some(ref player) = self.audio_player {
-                        player.stop();
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                KeyCode::Char('n') | KeyCode::Char('N') => {
-                    // Switch to normal view
-                    self.stop_audio();
-                    if let Some(ref mut state) = self.state {
-                        state.mode = ViewMode::Normal;
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                KeyCode::Char('h') | KeyCode::Char('H') => {
-                    // Switch to hex view
-                    self.stop_audio();
-                    if let Some(ref mut state) = self.state {
-                        state.mode = ViewMode::Hex;
-                    }
-                    return KeyHandleResult::Handled;
-                }
-                _ => return KeyHandleResult::Handled,
-            }
-        }
-
         let state = match self.state.as_mut() {
             Some(s) => s,
             None => return KeyHandleResult::CloseModal,
@@ -458,7 +335,6 @@ impl Plugin for ViewerPlugin {
 
         match key.code {
             KeyCode::Esc => {
-                self.stop_audio();
                 self.modal_open = false;
                 self.state = None;
                 return KeyHandleResult::CloseModal;
@@ -589,7 +465,6 @@ impl Plugin for ViewerPlugin {
             ViewMode::Markdown => "MARKDOWN",
             ViewMode::Blame => "BLAME",
             ViewMode::Diff => "DIFF",
-            ViewMode::Media => "MEDIA",
         };
         let filter_str = match state.filter {
             ViewFilter::Off => "",
@@ -636,45 +511,32 @@ impl Plugin for ViewerPlugin {
             ViewMode::Diff => {
                 self.draw_diff_view(frame, content_area, state, content_height, colors)
             }
-            ViewMode::Media => self.draw_media_view(frame, content_area, colors),
         }
 
         // Build dynamic help hints based on mode
-        let help_hints: Vec<(&str, &str)> = if state.mode == ViewMode::Media {
-            vec![
-                ("Space", "play/pause"),
-                ("↑↓", "volume"),
-                ("S", "stop"),
-                ("N", "normal"),
-                ("H", "hex"),
-                ("Esc", "exit"),
-            ]
-        } else {
-            let mut hints: Vec<(&str, &str)> = vec![
-                ("H", "hex"),
-                ("N", "normal"),
-                ("I", "image"),
-                ("M", "markdown"),
-            ];
+        let mut help_hints: Vec<(&str, &str)> = vec![
+            ("H", "hex"),
+            ("N", "normal"),
+            ("I", "image"),
+            ("M", "markdown"),
+        ];
 
-            if state.is_git_repo {
-                hints.push(("B", "blame"));
-                hints.push(("D", "diff"));
-            }
+        if state.is_git_repo {
+            help_hints.push(("B", "blame"));
+            help_hints.push(("D", "diff"));
+        }
 
-            hints.push(("F", "filter"));
-            hints.push(("↑↓", "scroll"));
+        help_hints.push(("F", "filter"));
+        help_hints.push(("↑↓", "scroll"));
 
-            if state.has_older_version() {
-                hints.push(("←", "older"));
-            }
-            if state.has_newer_version() {
-                hints.push(("→", "newer"));
-            }
+        if state.has_older_version() {
+            help_hints.push(("←", "older"));
+        }
+        if state.has_newer_version() {
+            help_hints.push(("→", "newer"));
+        }
 
-            hints.push(("Esc", "exit"));
-            hints
-        };
+        help_hints.push(("Esc", "exit"));
 
         view.render_help(frame, help_hints);
     }
@@ -693,6 +555,16 @@ impl Plugin for ViewerPlugin {
             "  ←/→ - Navigate git history".to_string(),
             "  ↑↓ PgUp PgDn - Scroll".to_string(),
         ]
+    }
+
+    fn app_entry(&self) -> Option<AppEntry> {
+        Some(AppEntry {
+            id: self.id().to_string(),
+            name: "Viewer".to_string(),
+            description: "File content viewer".to_string(),
+            category: PluginCategory::Files,
+            key: 'V',
+        })
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -1142,155 +1014,6 @@ impl ViewerPlugin {
 
         frame.render_widget(Paragraph::new(visible_lines), area);
     }
-
-    fn draw_media_view(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
-        // Get media state
-        let media_state = match &self.media_state {
-            Some(state) => match state.lock() {
-                Ok(s) => s,
-                Err(_) => {
-                    let error_msg = vec![
-                        Line::from(""),
-                        Line::from(Span::styled(
-                            " Failed to access media state",
-                            Style::default().fg(colors.red()),
-                        )),
-                    ];
-                    frame.render_widget(Paragraph::new(error_msg), area);
-                    return;
-                }
-            },
-            None => {
-                let error_msg = vec![
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        " No media player available",
-                        Style::default().fg(colors.red()),
-                    )),
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        " Press N for normal view or H for hex view",
-                        Style::default().fg(colors.blue()),
-                    )),
-                ];
-                frame.render_widget(Paragraph::new(error_msg), area);
-                return;
-            }
-        };
-
-        // Check for errors
-        if let Some(ref error) = media_state.error {
-            let error_lines = vec![
-                Line::from(""),
-                Line::from(Span::styled(
-                    " Playback Error",
-                    Style::default()
-                        .fg(colors.red())
-                        .add_modifier(Modifier::BOLD),
-                )),
-                Line::from(""),
-                Line::from(Span::styled(
-                    format!(" {}", error),
-                    Style::default().fg(colors.fg()),
-                )),
-                Line::from(""),
-                Line::from(Span::styled(
-                    " Press N for normal view or Esc to exit",
-                    Style::default().fg(colors.blue()),
-                )),
-            ];
-            frame.render_widget(Paragraph::new(error_lines), area);
-            return;
-        }
-
-        // Build the media player UI
-        let mut lines: Vec<Line> = Vec::new();
-
-        // Vertical centering
-        let content_lines = 9;
-        let padding = area.height.saturating_sub(content_lines) / 2;
-        for _ in 0..padding {
-            lines.push(Line::from(""));
-        }
-
-        // File name
-        lines.push(Line::from(vec![
-            Span::styled("  Now Playing: ", Style::default().fg(colors.blue())),
-            Span::styled(
-                &media_state.file_name,
-                Style::default()
-                    .fg(colors.yellow())
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]));
-        lines.push(Line::from(""));
-
-        // Play state icon
-        let state_icon = match media_state.play_state {
-            PlayState::Playing => "▶",
-            PlayState::Paused => "⏸",
-            PlayState::Stopped => "⏹",
-        };
-
-        // Progress bar
-        let progress = media_state.progress();
-        let bar_width = (area.width as usize).saturating_sub(20).min(50);
-        let filled = (progress * bar_width as f32) as usize;
-        let empty = bar_width.saturating_sub(filled);
-        let progress_bar = format!(
-            "{}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{}",
-            "━".repeat(filled.min(50)),
-            "─".repeat(empty.min(50))
-        );
-        // Truncate to actual bar_width
-        let progress_chars: String = progress_bar.chars().take(bar_width).collect();
-
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("  {} ", state_icon),
-                Style::default().fg(colors.green()),
-            ),
-            Span::styled(progress_chars, Style::default().fg(colors.blue())),
-            Span::styled(
-                format!(
-                    "  {} / {}",
-                    media_state.format_position(),
-                    media_state.format_duration()
-                ),
-                Style::default().fg(colors.fg()),
-            ),
-        ]));
-        lines.push(Line::from(""));
-
-        // Volume bar
-        let vol_width: usize = 20;
-        let vol_filled = (media_state.volume * vol_width as f32) as usize;
-        let vol_empty = vol_width.saturating_sub(vol_filled);
-        let vol_bar = format!("{}{}", "█".repeat(vol_filled), "░".repeat(vol_empty));
-
-        lines.push(Line::from(vec![
-            Span::styled("  Volume: ", Style::default().fg(colors.fg())),
-            Span::styled(vol_bar, Style::default().fg(colors.green())),
-            Span::styled(
-                format!(" {:>3}%", (media_state.volume * 100.0) as u8),
-                Style::default().fg(colors.fg()),
-            ),
-        ]));
-        lines.push(Line::from(""));
-
-        // Status line
-        let status = match media_state.play_state {
-            PlayState::Playing => "Playing",
-            PlayState::Paused => "Paused",
-            PlayState::Stopped => "Stopped",
-        };
-        lines.push(Line::from(Span::styled(
-            format!("  Status: {}", status),
-            Style::default().fg(colors.grey()),
-        )));
-
-        frame.render_widget(Paragraph::new(lines), area);
-    }
 }
 
 #[cfg(test)]
@@ -1310,10 +1033,9 @@ mod tests {
         assert_eq!(ViewerState::detect_mode("test.png"), ViewMode::Image);
         assert_eq!(ViewerState::detect_mode("test.jpg"), ViewMode::Image);
         assert_eq!(ViewerState::detect_mode("test.rs"), ViewMode::Normal);
-        assert_eq!(ViewerState::detect_mode("test.mp3"), ViewMode::Media);
-        assert_eq!(ViewerState::detect_mode("test.wav"), ViewMode::Media);
-        assert_eq!(ViewerState::detect_mode("test.ogg"), ViewMode::Media);
-        assert_eq!(ViewerState::detect_mode("test.flac"), ViewMode::Media);
+        // Audio files are viewed as normal files (audio playback via Audio app)
+        assert_eq!(ViewerState::detect_mode("test.mp3"), ViewMode::Normal);
+        assert_eq!(ViewerState::detect_mode("test.wav"), ViewMode::Normal);
     }
 
     #[test]
