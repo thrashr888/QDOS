@@ -343,7 +343,7 @@ impl Plugin for QdconfigPlugin {
             "  R        - Reload settings from config file".to_string(),
             "  Esc      - Cancel and close".to_string(),
             "".to_string(),
-            "Tip:       Config is stored in ~/.config/rdos/config.toml".to_string(),
+            "Tip:       Config is stored in ~/Library/Application Support/rdos/".to_string(),
             "           Plugins section shows installed plugins.".to_string(),
         ]
     }

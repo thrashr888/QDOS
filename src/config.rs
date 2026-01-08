@@ -1,6 +1,7 @@
 //! Q-DOS II Configuration Module
 //!
-//! Handles loading and saving of configuration from ~/.config/rdos/config.toml
+//! Handles loading and saving of configuration.
+//! Path varies by OS: macOS uses ~/Library/Application Support/rdos/config.toml
 
 use crate::app::{ColorTheme, SortMode};
 use anyhow::{Context, Result};
@@ -381,7 +382,7 @@ fn default_auto_refresh() -> u64 {
 }
 
 impl Config {
-    /// Get the config file path (~/.config/rdos/config.toml)
+    /// Get the config file path (platform-specific, e.g. ~/Library/Application Support/rdos/config.toml on macOS)
     pub fn config_path() -> Result<PathBuf> {
         let config_dir = dirs::config_dir()
             .context("Could not find config directory")?
@@ -419,7 +420,7 @@ impl Config {
 
         let content = toml::to_string_pretty(self).context("Failed to serialize config")?;
 
-        fs::write(&path, content)
+        fs::write(&path, &content)
             .with_context(|| format!("Failed to write config file: {}", path.display()))?;
 
         Ok(())

@@ -1079,7 +1079,7 @@ fn test_with_real_tool() {
 
 ### 14.1 Plugin Enable/Disable
 
-Users can enable/disable plugins in `~/.config/rdos/config.toml`:
+Users can enable/disable plugins in the config file (e.g. `~/Library/Application Support/rdos/config.toml` on macOS):
 
 ```toml
 [plugins]

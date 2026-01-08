@@ -2952,7 +2952,7 @@ impl App {
                 }
             }
             "database" => {
-                // Open Database plugin with current file (if .db/.sqlite)
+                // Open Database plugin - with file if SQLite, or type selection
                 let file_path = self.files.get(self.selected_index).and_then(|e| {
                     if DatabasePlugin::is_database_file(&e.path) {
                         Some(e.path.clone())
@@ -2963,14 +2963,12 @@ impl App {
                 if let Some(db_plugin) = self.plugin_manager.database_plugin_mut() {
                     if let Some(ref path) = file_path {
                         db_plugin.open_sqlite(path);
+                    } else {
+                        db_plugin.open_modal();
                     }
                 }
-                if file_path.is_some() {
-                    self.plugin_manager.set_active_modal(Some("database"));
-                    self.modal = Modal::Plugin("database".to_string());
-                } else {
-                    self.modal = Modal::Error("Select a database file (.db, .sqlite)".to_string());
-                }
+                self.plugin_manager.set_active_modal(Some("database"));
+                self.modal = Modal::Plugin("database".to_string());
             }
             "dirmap" => {
                 // Initialize Dir Map plugin with current path

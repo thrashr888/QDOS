@@ -148,7 +148,7 @@ pub fn draw_config_modal(
 
     // Add info line
     items.push(DisplayItem {
-        name: "Settings will be saved to ~/.config/rdos/config.toml".to_string(),
+        name: "Settings saved to: ~/Library/Application Support/rdos/".to_string(),
         value: String::new(),
         is_header: false,
         is_info: true,

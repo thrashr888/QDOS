@@ -671,7 +671,7 @@ DOS file attributes that can be viewed/modified:
 - [ ] Mouse support (click to select, double-click to open)
 - [ ] Embedded QDCOLOR color theme changer
 - [ ] Embedded QDSTART configuration subprogram
-- [ ] Global config file persistence (~/.config/rdos/config.toml)
+- [ ] Global config file persistence (platform-specific, e.g. ~/Library/Application Support/rdos/ on macOS)
 - [ ] Additional CLI options (--theme, --sort, --order)
 - [ ] Q-EDIT built-in text editor (F9)
   - [ ] Normal text editing mode
@@ -691,7 +691,7 @@ DOS file attributes that can be viewed/modified:
 | Printer | LPT1 | Not applicable |
 | Log files | QD2N.LOG | Not implemented |
 | Mouse support | None | Full mouse support |
-| Config file | Binary in EXE | TOML in ~/.config |
+| Config file | Binary in EXE | TOML in platform config dir |
 | Color themes | QDCOLOR.COM separate | Embedded, multiple themes |
 | Terminal size | Fixed 80x25 | Responsive (min 80x25) |
 | CLI arguments | None | Path, theme, sort options |
@@ -1058,11 +1058,11 @@ R-DOS includes an embedded text editor (inspired by Q-EDIT) accessible via F9.
 
 ### 13.7 Global Configuration File
 
-Settings stored in `~/.config/rdos/config.toml`:
+Settings stored in platform-specific config directory (e.g. `~/Library/Application Support/rdos/config.toml` on macOS):
 
 ```toml
 # R-DOS Configuration File
-# Location: ~/.config/rdos/config.toml
+# Location: ~/Library/Application Support/rdos/config.toml (macOS)
 
 [general]
 # Default starting directory (empty = current dir)
@@ -1134,13 +1134,17 @@ yellow = "#FFFF00"
 **Config Loading Priority:**
 1. Command line arguments (highest)
 2. Environment variables (`RDOS_THEME`, `RDOS_EDITOR`, etc.)
-3. User config file (`~/.config/rdos/config.toml`)
+3. User config file (platform-specific, e.g. `~/Library/Application Support/rdos/config.toml` on macOS)
 4. System config (`/etc/rdos/config.toml`)
 5. Built-in defaults (lowest)
 
 **Config Directory Structure:**
 ```
-~/.config/rdos/
+# macOS: ~/Library/Application Support/rdos/
+# Linux: ~/.config/rdos/
+# Windows: %APPDATA%\rdos\
+
+<config_dir>/
 ├── config.toml      # Main configuration
 ├── themes/          # Custom theme files
 │   ├── mytheme.toml

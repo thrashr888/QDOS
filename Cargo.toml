@@ -82,6 +82,8 @@ rodio = "0.19"
 
 # Database clients
 rusqlite = { version = "0.32", features = ["bundled"] }
+postgres = { version = "0.19", features = ["with-chrono-0_4"] }
+mysql = "25"
 
 # Workspace crates
 homebrew = { path = "crates/homebrew" }

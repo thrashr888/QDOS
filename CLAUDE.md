@@ -38,7 +38,7 @@ src/
 │   ├── components/   # Reusable UI component library
 │   └── viewer.rs     # File viewer with ASCII/HEX/Markdown/Image modes
 ├── plugins/          # Plugin modules (git, beads, proc, qedit, etc.)
-├── config.rs         # TOML configuration (~/.config/rdos/config.toml)
+├── config.rs         # TOML configuration (~/Library/Application Support/rdos/)
 ├── file_ops.rs       # File system operations and utilities
 ├── errors.rs         # Q-DOS style error messages
 └── event.rs          # Terminal event handling

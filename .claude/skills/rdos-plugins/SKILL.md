@@ -239,3 +239,122 @@ if self.state.available_players.len() == 1 {
     self.state.view = MyView::Menu;
 }
 ```
+
+## Multi-Backend Plugins
+
+For plugins supporting multiple backends (e.g., SQLite, PostgreSQL, MySQL):
+
+1. **Type enum** for backend selection:
+```rust
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BackendType {
+    TypeA,
+    TypeB,
+    TypeC,
+}
+```
+
+2. **Separate operation modules** per backend:
+```
+src/plugins/myplugin/
+├── mod.rs       # Plugin struct, dispatch logic
+├── state.rs     # Shared state types
+├── modal.rs     # UI rendering
+├── backend_a.rs # Backend A operations
+├── backend_b.rs # Backend B operations
+└── backend_c.rs # Backend C operations
+```
+
+3. **Dispatch pattern** in operations:
+```rust
+fn do_operation(&mut self) {
+    let result = match self.state.backend_type {
+        Some(BackendType::TypeA) => backend_a::operation(&self.state.config),
+        Some(BackendType::TypeB) => backend_b::operation(&self.state.config),
+        Some(BackendType::TypeC) => backend_c::operation(&self.state.config),
+        None => return,
+    };
+    // Handle result...
+}
+```
+
+## Connection Form Pattern
+
+For plugins that need connection configuration (host, port, user, etc.):
+
+1. **Config struct** with URL builder:
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct ConnectionConfig {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub password: String,
+    pub database: String,
+}
+
+impl ConnectionConfig {
+    pub fn new_with_defaults(port: u16, user: &str) -> Self {
+        Self {
+            host: "localhost".to_string(),
+            port,
+            user: user.to_string(),
+            ..Default::default()
+        }
+    }
+}
+```
+
+2. **Field enum** for form navigation:
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConnectField {
+    #[default]
+    Host,
+    Port,
+    User,
+    Password,
+    Database,
+}
+```
+
+3. **Field navigation and input methods**:
+```rust
+impl MyState {
+    pub fn next_field(&mut self) {
+        self.field = match self.field {
+            ConnectField::Host => ConnectField::Port,
+            // ...cycle through fields
+        };
+    }
+
+    pub fn insert_char(&mut self, c: char) {
+        match self.field {
+            ConnectField::Host => self.config.host.push(c),
+            ConnectField::Port => {
+                if c.is_ascii_digit() {
+                    // Parse and update port
+                }
+            }
+            // ...handle each field
+        }
+    }
+}
+```
+
+4. **Form rendering** with field highlighting:
+```rust
+fn draw_form_field(
+    frame: &mut Frame,
+    area: Rect,
+    label: &str,
+    value: &str,
+    selected: bool,
+    is_password: bool,
+    colors: &ThemeColors,
+) {
+    let display = if is_password { "*".repeat(value.len()) } else { value.to_string() };
+    let border_color = if selected { colors.yellow() } else { colors.grey() };
+    // Render block with border and text
+}
+```

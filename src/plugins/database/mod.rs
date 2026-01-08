@@ -1,8 +1,10 @@
 //! Database client plugin
 //!
-//! Browse and query SQLite databases (PostgreSQL/MySQL coming soon).
+//! Browse and query SQLite, PostgreSQL, and MySQL databases.
 
 mod modal;
+mod mysql;
+mod postgres;
 mod sqlite;
 pub mod state;
 
@@ -13,14 +15,84 @@ use crate::plugins::{
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
-use state::{is_sqlite_file, DatabaseState, DatabaseType, DatabaseView};
+use state::{
+    is_sqlite_file, ConnectionConfig, ConnectionProfile, DatabasePluginConfig, DatabaseState,
+    DatabaseType, DatabaseView,
+};
 use std::any::Any;
+use std::fs;
 use std::path::PathBuf;
 
 /// Database client plugin
 pub struct DatabasePlugin {
     initialized: bool,
     pub state: DatabaseState,
+}
+
+impl DatabasePlugin {
+    /// Get the config file path for database profiles
+    fn config_path() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("rdos").join("database.toml"))
+    }
+
+    /// Load profiles from config file
+    fn load_profiles(&mut self) {
+        if let Some(path) = Self::config_path() {
+            if path.exists() {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if let Ok(config) = toml::from_str::<DatabasePluginConfig>(&content) {
+                        self.state.profiles = config.profiles;
+                        // Restore last used connection
+                        if let Some(last_conn) = config.last_connection {
+                            self.state.connection = last_conn;
+                        }
+                        if let Some(last_type) = config.last_db_type {
+                            self.state.last_db_type = Some(last_type);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Save profiles to config file
+    fn save_profiles(&self) {
+        if let Some(path) = Self::config_path() {
+            // Create directory if needed
+            if let Some(parent) = path.parent() {
+                if let Err(e) = fs::create_dir_all(parent) {
+                    eprintln!("Failed to create config dir: {}", e);
+                    return;
+                }
+            }
+
+            let config = DatabasePluginConfig {
+                profiles: self.state.profiles.clone(),
+                last_connection: Some(self.state.connection.clone()),
+                last_db_type: self.state.db_type.as_ref().map(|t| match t {
+                    DatabaseType::PostgreSQL => "postgresql".to_string(),
+                    DatabaseType::MySQL => "mysql".to_string(),
+                    DatabaseType::SQLite => "sqlite".to_string(),
+                }),
+            };
+
+            match toml::to_string_pretty(&config) {
+                Ok(content) => {
+                    if let Err(e) = fs::write(&path, &content) {
+                        eprintln!("Failed to write config: {}", e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to serialize config: {}", e);
+                }
+            }
+        }
+    }
+
+    /// Save just the last connection (without profiles changes)
+    fn save_last_connection(&self) {
+        self.save_profiles(); // Reuses save_profiles which now includes last_connection
+    }
 }
 
 impl Default for DatabasePlugin {
@@ -50,15 +122,126 @@ impl DatabasePlugin {
         self.load_tables();
     }
 
+    /// Open PostgreSQL connection dialog
+    pub fn open_postgres(&mut self) {
+        // Save current connection before reset if we have one
+        let saved_conn = self.state.connection.clone();
+        let saved_type = self.state.last_db_type.clone();
+        self.state.reset();
+        self.state.db_type = Some(DatabaseType::PostgreSQL);
+        // Restore last connection if it was PostgreSQL
+        if saved_type.as_deref() == Some("postgresql") {
+            self.state.connection = saved_conn;
+        } else {
+            self.state.connection = ConnectionConfig::new_postgres();
+        }
+        self.state.last_db_type = Some("postgresql".to_string());
+        self.state.db_name = "PostgreSQL".to_string();
+        self.state.view = DatabaseView::Connect;
+    }
+
+    /// Open MySQL connection dialog
+    pub fn open_mysql(&mut self) {
+        // Save current connection before reset if we have one
+        let saved_conn = self.state.connection.clone();
+        let saved_type = self.state.last_db_type.clone();
+        self.state.reset();
+        self.state.db_type = Some(DatabaseType::MySQL);
+        // Restore last connection if it was MySQL
+        if saved_type.as_deref() == Some("mysql") {
+            self.state.connection = saved_conn;
+        } else {
+            self.state.connection = ConnectionConfig::new_mysql();
+        }
+        self.state.last_db_type = Some("mysql".to_string());
+        self.state.db_name = "MySQL".to_string();
+        self.state.view = DatabaseView::Connect;
+    }
+
+    /// Open the database type selection modal
+    pub fn open_modal(&mut self) {
+        self.state.reset();
+        self.state.view = DatabaseView::TypeSelect;
+        self.state.db_name = "Database".to_string();
+    }
+
+    /// Connect to the configured database
+    fn connect(&mut self) {
+        match self.state.db_type {
+            Some(DatabaseType::PostgreSQL) => {
+                self.state.db_name = format!("PostgreSQL - {}", self.state.connection.database);
+                self.load_tables();
+                // Save last connection on successful connect
+                if self.state.connected {
+                    self.save_last_connection();
+                }
+            }
+            Some(DatabaseType::MySQL) => {
+                self.state.db_name = format!("MySQL - {}", self.state.connection.database);
+                self.load_tables();
+                // Save last connection on successful connect
+                if self.state.connected {
+                    self.save_last_connection();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Handle selection of a database type
+    fn select_database_type(&mut self) {
+        if let Some(db_type) = self.state.selected_type().cloned() {
+            self.state.db_type = Some(db_type.clone());
+            match db_type {
+                DatabaseType::SQLite => {
+                    // For SQLite, show error - need to select a file
+                    self.state.error =
+                        Some("Select a .db/.sqlite file to open SQLite database".to_string());
+                    self.state.view = DatabaseView::Error;
+                }
+                DatabaseType::PostgreSQL => {
+                    // Use last connection if it was PostgreSQL, otherwise use defaults
+                    if self.state.last_db_type.as_deref() != Some("postgresql") {
+                        self.state.connection = ConnectionConfig::new_postgres();
+                    }
+                    self.state.last_db_type = Some("postgresql".to_string());
+                    self.state.db_name = "PostgreSQL".to_string();
+                    self.state.view = DatabaseView::Connect;
+                }
+                DatabaseType::MySQL => {
+                    // Use last connection if it was MySQL, otherwise use defaults
+                    if self.state.last_db_type.as_deref() != Some("mysql") {
+                        self.state.connection = ConnectionConfig::new_mysql();
+                    }
+                    self.state.last_db_type = Some("mysql".to_string());
+                    self.state.db_name = "MySQL".to_string();
+                    self.state.view = DatabaseView::Connect;
+                }
+            }
+        }
+    }
+
     /// Load tables from the database
     fn load_tables(&mut self) {
-        let Some(ref path) = self.state.file_path else {
-            self.state.error = Some("No database file selected".to_string());
-            self.state.view = DatabaseView::Error;
-            return;
+        let result = match self.state.db_type {
+            Some(DatabaseType::SQLite) => {
+                let Some(ref path) = self.state.file_path else {
+                    self.state.error = Some("No database file selected".to_string());
+                    self.state.view = DatabaseView::Error;
+                    return;
+                };
+                sqlite::get_tables(path)
+            }
+            Some(DatabaseType::PostgreSQL) => postgres::get_tables(&self.state.connection),
+            Some(DatabaseType::MySQL) => mysql::get_tables(&self.state.connection),
+            None => {
+                self.state.error = Some("No database type selected".to_string());
+                self.state.view = DatabaseView::Error;
+                return;
+            }
         };
 
-        match sqlite::get_tables(path) {
+        match result {
             Ok(tables) => {
                 self.state.tables = tables;
                 self.state.connected = true;
@@ -89,11 +272,23 @@ impl DatabasePlugin {
             return;
         };
 
-        let Some(ref path) = self.state.file_path else {
-            return;
+        let result = match self.state.db_type {
+            Some(DatabaseType::SQLite) => {
+                let Some(ref path) = self.state.file_path else {
+                    return;
+                };
+                sqlite::select_from_table(path, &table_name, 100)
+            }
+            Some(DatabaseType::PostgreSQL) => {
+                postgres::select_from_table(&self.state.connection, &table_name, 100)
+            }
+            Some(DatabaseType::MySQL) => {
+                mysql::select_from_table(&self.state.connection, &table_name, 100)
+            }
+            None => return,
         };
 
-        match sqlite::select_from_table(path, &table_name, 100) {
+        match result {
             Ok(results) => {
                 self.state.results = Some(results);
                 self.state.selected_row = 0;
@@ -112,11 +307,23 @@ impl DatabasePlugin {
             return;
         }
 
-        let Some(ref path) = self.state.file_path else {
-            return;
+        let result = match self.state.db_type {
+            Some(DatabaseType::SQLite) => {
+                let Some(ref path) = self.state.file_path else {
+                    return;
+                };
+                sqlite::execute_query(path, &self.state.query)
+            }
+            Some(DatabaseType::PostgreSQL) => {
+                postgres::execute_query(&self.state.connection, &self.state.query)
+            }
+            Some(DatabaseType::MySQL) => {
+                mysql::execute_query(&self.state.connection, &self.state.query)
+            }
+            None => return,
         };
 
-        match sqlite::execute_query(path, &self.state.query) {
+        match result {
             Ok(results) => {
                 self.state.results = Some(results);
                 self.state.selected_row = 0;
@@ -156,6 +363,7 @@ impl Plugin for DatabasePlugin {
     }
 
     fn init(&mut self, _cwd: &PathBuf) -> Result<(), String> {
+        self.load_profiles();
         self.initialized = true;
         Ok(())
     }
@@ -174,7 +382,7 @@ impl Plugin for DatabasePlugin {
         Some(PluginMenuItem {
             name: "Database".to_string(),
             key: 'D',
-            description: "Browse SQLite databases".to_string(),
+            description: "Browse SQLite, PostgreSQL, MySQL".to_string(),
             priority: 40,
         })
     }
@@ -183,7 +391,7 @@ impl Plugin for DatabasePlugin {
         Some(AppEntry {
             id: "database".to_string(),
             name: "Database".to_string(),
-            description: "SQLite database browser".to_string(),
+            description: "SQLite, PostgreSQL, MySQL browser".to_string(),
             category: PluginCategory::Tools,
             key: 'D',
         })
@@ -199,13 +407,23 @@ impl Plugin for DatabasePlugin {
 
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         match self.state.view {
+            DatabaseView::TypeSelect => self.handle_type_select_key(key),
+            DatabaseView::Profiles => self.handle_profiles_key(key),
             DatabaseView::Tables => self.handle_tables_key(key),
             DatabaseView::TableDetail => self.handle_table_detail_key(key),
             DatabaseView::Query => self.handle_query_key(key),
             DatabaseView::Results => self.handle_results_key(key),
+            DatabaseView::Connect => self.handle_connect_key(key),
+            DatabaseView::SaveProfile => self.handle_save_profile_key(key),
             DatabaseView::Error => match key.code {
                 KeyCode::Esc | KeyCode::Enter => {
-                    self.state.view = DatabaseView::Tables;
+                    if self.state.connected {
+                        self.state.view = DatabaseView::Tables;
+                    } else if self.state.db_type.is_some() {
+                        self.state.view = DatabaseView::Connect;
+                    } else {
+                        self.state.view = DatabaseView::TypeSelect;
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -221,10 +439,12 @@ impl Plugin for DatabasePlugin {
         vec![
             "Database Client".to_string(),
             "".to_string(),
-            "Browse and query SQLite databases.".to_string(),
+            "Browse and query databases.".to_string(),
             "".to_string(),
-            "Supported formats:".to_string(),
-            "  .db, .sqlite, .sqlite3, .db3".to_string(),
+            "Supported:".to_string(),
+            "  SQLite - .db, .sqlite, .sqlite3, .db3".to_string(),
+            "  PostgreSQL - Connect via host/port".to_string(),
+            "  MySQL - Connect via host/port".to_string(),
             "".to_string(),
             "Features:".to_string(),
             "  - Browse tables and columns".to_string(),
@@ -232,9 +452,10 @@ impl Plugin for DatabasePlugin {
             "  - View query results".to_string(),
             "".to_string(),
             "Keys:".to_string(),
-            "  Enter  - View table details".to_string(),
+            "  Enter  - View table details / Connect".to_string(),
             "  S      - SELECT * FROM table".to_string(),
             "  Q      - Open query editor".to_string(),
+            "  Tab    - Next field (connection form)".to_string(),
             "  Esc    - Go back / close".to_string(),
         ]
     }
@@ -372,6 +593,157 @@ impl DatabasePlugin {
             }
             KeyCode::Char('q') | KeyCode::Char('Q') => {
                 self.state.view = DatabaseView::Query;
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_connect_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.reset();
+                KeyHandleResult::CloseModal
+            }
+            KeyCode::Tab | KeyCode::Down => {
+                self.state.next_connect_field();
+                KeyHandleResult::Handled
+            }
+            KeyCode::BackTab | KeyCode::Up => {
+                self.state.prev_connect_field();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                self.connect();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                self.state.backspace_connect();
+                KeyHandleResult::Handled
+            }
+            KeyCode::F(2) => {
+                // Save as profile
+                self.state.profile_name.clear();
+                self.state.view = DatabaseView::SaveProfile;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                self.state.insert_connect_char(c);
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_type_select_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.reset();
+                KeyHandleResult::CloseModal
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.state.select_prev_type();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.state.select_next_type();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                self.select_database_type();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => {
+                if !self.state.profiles.is_empty() {
+                    self.state.view = DatabaseView::Profiles;
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_profiles_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.view = DatabaseView::TypeSelect;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.state.select_prev_profile();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.state.select_next_profile();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                // Load selected profile and connect
+                if let Some(profile) = self.state.selected_profile().cloned() {
+                    self.state.connection = profile.config;
+                    match profile.db_type.as_str() {
+                        "postgresql" => {
+                            self.state.db_type = Some(DatabaseType::PostgreSQL);
+                            self.state.db_name = format!("PostgreSQL - {}", profile.name);
+                        }
+                        "mysql" => {
+                            self.state.db_type = Some(DatabaseType::MySQL);
+                            self.state.db_name = format!("MySQL - {}", profile.name);
+                        }
+                        _ => {}
+                    }
+                    self.connect();
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Delete => {
+                // Delete selected profile
+                self.state.delete_selected_profile();
+                self.save_profiles();
+                if self.state.profiles.is_empty() {
+                    self.state.view = DatabaseView::TypeSelect;
+                }
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_save_profile_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.profile_name.clear();
+                self.state.view = DatabaseView::Connect;
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                if !self.state.profile_name.trim().is_empty() {
+                    // Save the profile
+                    let db_type_str = match self.state.db_type {
+                        Some(DatabaseType::PostgreSQL) => "postgresql",
+                        Some(DatabaseType::MySQL) => "mysql",
+                        _ => return KeyHandleResult::Handled,
+                    };
+
+                    let profile = ConnectionProfile {
+                        name: self.state.profile_name.trim().to_string(),
+                        db_type: db_type_str.to_string(),
+                        config: self.state.connection.clone(),
+                    };
+
+                    self.state.add_profile(profile);
+                    self.save_profiles();
+                    self.state.profile_name.clear();
+                    self.state.view = DatabaseView::Connect;
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                self.state.profile_name.pop();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                self.state.profile_name.push(c);
                 KeyHandleResult::Handled
             }
             _ => KeyHandleResult::Handled,
