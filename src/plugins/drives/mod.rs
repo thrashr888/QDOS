@@ -366,6 +366,12 @@ impl DrivesPlugin {
         }
     }
 
+    #[cfg(not(target_os = "macos"))]
+    fn detect_volume_type(&self, _path: &PathBuf) -> VolumeType {
+        // Volume type detection not implemented for non-macOS
+        VolumeType::Local
+    }
+
     #[cfg(target_os = "macos")]
     fn get_fs_info(&self, path: &PathBuf) -> (Option<u64>, Option<u64>, String) {
         // Use df command to get filesystem info
