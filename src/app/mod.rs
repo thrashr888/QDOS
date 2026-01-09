@@ -2556,9 +2556,10 @@ impl App {
         }
 
         // Let plugins try to handle global keys
-        let result = self
-            .plugin_manager
-            .handle_global_key(key, &self.current_path);
+        let selected_file = self.files.get(self.selected_index).map(|e| e.path.clone());
+        let result =
+            self.plugin_manager
+                .handle_global_key(key, &self.current_path, selected_file.as_ref());
         self.handle_plugin_result(result)
     }
 

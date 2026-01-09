@@ -132,7 +132,12 @@ impl Plugin for StatusPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::F(2) => {
                 self.open_modal();

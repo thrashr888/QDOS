@@ -206,7 +206,12 @@ impl Plugin for ICloudPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('i') | KeyCode::Char('I') => {
                 if ops::is_icloud_available() {

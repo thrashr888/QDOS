@@ -201,7 +201,12 @@ impl Plugin for AIPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        _key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // No global key - AI plugin is accessed through plugin menu system
         // TODO: Add to F-key menu when Plugin Launcher (QDOS-f5ap) is implemented
         KeyHandleResult::NotHandled

@@ -520,7 +520,12 @@ impl Plugin for JjPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // 'J' opens jj modal (only from main view, not in modals)
         if key.code == KeyCode::Char('J') && self.is_available(cwd) {
             self.open_modal(cwd);

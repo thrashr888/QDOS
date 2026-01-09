@@ -596,7 +596,12 @@ impl Plugin for DrivesPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             // F3 = Change Drive (classic DOS)
             KeyCode::F(3) => {

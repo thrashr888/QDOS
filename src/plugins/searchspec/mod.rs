@@ -132,7 +132,12 @@ impl Plugin for SearchSpecPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // F7 opens search spec
         if key.code == KeyCode::F(7) {
             // Note: We'll get the current spec from app when modal opens

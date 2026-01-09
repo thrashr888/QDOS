@@ -308,7 +308,12 @@ impl Plugin for ViewerPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // F3 opens viewer (but file selection is handled by app)
         if key.code == KeyCode::F(3) {
             // The app handles file selection and calls open_file

@@ -301,10 +301,16 @@ impl Plugin for QMindPlugin {
         }
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // ? key opens command palette directly
         if let KeyCode::Char('?') = key.code {
             self.cwd = cwd.clone();
+            self.selected_file = selected_file.cloned();
             self.state.view = QMindView::CommandPalette;
             self.state.command_input.reset();
             self.start_loading(); // Trigger API check on first tick

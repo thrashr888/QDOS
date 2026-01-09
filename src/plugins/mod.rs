@@ -219,7 +219,12 @@ pub trait Plugin: Send + Sync {
     }
 
     /// Handle a key event (when plugin modal is not open)
-    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        _key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         KeyHandleResult::NotHandled
     }
 
@@ -403,9 +408,14 @@ impl PluginManager {
     }
 
     /// Handle a global key event
-    pub fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    pub fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         for plugin in self.plugins.values_mut() {
-            let result = plugin.handle_global_key(key, cwd);
+            let result = plugin.handle_global_key(key, cwd, selected_file);
             if result != KeyHandleResult::NotHandled {
                 if result == KeyHandleResult::OpenModal {
                     self.active_modal = Some(plugin.id().to_string());

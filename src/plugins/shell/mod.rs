@@ -424,7 +424,12 @@ impl Plugin for ShellPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::F(6) => {
                 self.current_cwd = cwd.clone();

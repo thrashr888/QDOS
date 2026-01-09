@@ -206,7 +206,12 @@ impl Plugin for GDrivePlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('o') | KeyCode::Char('O') => {
                 if ops::is_gdrive_installed() {

@@ -1363,7 +1363,12 @@ impl Plugin for BeadsPlugin {
         Some(PluginStatusInfo { text, active: true })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('b') | KeyCode::Char('B') => {
                 // Open beads modal with plugin-owned state

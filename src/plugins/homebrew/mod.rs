@@ -440,7 +440,12 @@ impl Plugin for HomebrewPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        _key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // Homebrew plugin doesn't have a global key - accessed via F12 Apps launcher
         KeyHandleResult::NotHandled
     }

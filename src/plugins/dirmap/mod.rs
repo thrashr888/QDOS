@@ -112,7 +112,12 @@ impl Plugin for DirMapPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // D key opens directory map (but not lowercase d which might be delete)
         if key.code == KeyCode::Char('D') {
             self.open_modal(cwd);

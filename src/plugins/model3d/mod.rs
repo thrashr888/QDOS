@@ -325,7 +325,12 @@ impl Plugin for Model3dPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        _key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         KeyHandleResult::NotHandled
     }
 

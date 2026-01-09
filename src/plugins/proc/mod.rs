@@ -287,7 +287,12 @@ impl Plugin for ProcPlugin {
         })
     }
 
-    fn handle_global_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        _key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // Proc is accessed via F12 Apps launcher, no direct global key
         KeyHandleResult::NotHandled
     }

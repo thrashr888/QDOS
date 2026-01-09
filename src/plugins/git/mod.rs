@@ -1224,7 +1224,12 @@ impl Plugin for GitPlugin {
         Some(PluginStatusInfo { text, active: true })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('g') | KeyCode::Char('G') => {
                 // Open git modal with plugin-owned state

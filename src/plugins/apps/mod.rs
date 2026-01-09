@@ -106,7 +106,12 @@ impl Plugin for AppsPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::F(12) => {
                 // Open Apps launcher (entries are collected dynamically via set_entries)

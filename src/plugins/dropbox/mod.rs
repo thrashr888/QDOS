@@ -235,7 +235,12 @@ impl Plugin for DropboxPlugin {
         None
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             KeyCode::Char('d') | KeyCode::Char('D') => {
                 if ops::is_dropbox_installed() {

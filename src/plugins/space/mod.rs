@@ -135,7 +135,12 @@ impl Plugin for SpacePlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         match key.code {
             // F11 or 'S' for Space - using a function key to avoid conflict with 's' sort
             KeyCode::F(11) => {

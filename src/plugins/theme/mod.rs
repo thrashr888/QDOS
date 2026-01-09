@@ -107,7 +107,12 @@ impl Plugin for ThemePlugin {
         })
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(
+        &mut self,
+        key: KeyEvent,
+        _cwd: &PathBuf,
+        _selected_file: Option<&PathBuf>,
+    ) -> KeyHandleResult {
         // Ctrl+T opens theme selector
         if key.code == KeyCode::Char('t') && key.modifiers.contains(KeyModifiers::CONTROL) {
             self.open_modal(self.current_theme);
