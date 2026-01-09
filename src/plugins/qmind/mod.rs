@@ -23,7 +23,22 @@ use search::SemanticSearch;
 use state::{DryRunState, QMindState, QMindView, SearchResult};
 use std::any::Any;
 use std::path::PathBuf;
-use summary::FileSummarizer;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use summary::{FileSummarizer, FileSummary};
+
+/// Result from async operations
+#[derive(Clone)]
+enum AsyncResult {
+    /// Indexing completed with (new_count, total_count)
+    IndexComplete(usize, usize),
+    /// Indexing failed with error message
+    IndexError(String),
+    /// Summary completed
+    SummaryComplete(FileSummary),
+    /// Summary failed with error message
+    SummaryError(String),
+}
 
 /// Q-MIND AI Intelligence Layer plugin
 pub struct QMindPlugin {
@@ -40,6 +55,8 @@ pub struct QMindPlugin {
     cwd: PathBuf,
     /// Selected file for summarization
     selected_file: Option<PathBuf>,
+    /// Shared state for async operation results (None = no result yet)
+    async_result: Arc<Mutex<Option<AsyncResult>>>,
 }
 
 impl Default for QMindPlugin {
@@ -58,6 +75,7 @@ impl QMindPlugin {
             summarizer: None,
             cwd: std::env::current_dir().unwrap_or_default(),
             selected_file: None,
+            async_result: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -182,34 +200,101 @@ impl QMindPlugin {
         }
     }
 
-    /// Index the current directory tree (recursive, respects .gitignore)
-    /// Called from tick() to allow UI to show "Indexing..." first
-    fn do_index_directory(&mut self) {
+    /// Start async indexing of the current directory tree
+    /// Spawns a thread and stores result in async_result for tick() to pick up
+    fn start_async_indexing(&mut self) {
         self.state.clear_error();
 
-        // Get or create searcher
-        if self.searcher.is_none() {
-            self.searcher = Some(SemanticSearch::from_env());
-        }
+        let cwd = self.cwd.clone();
+        let result_holder = Arc::clone(&self.async_result);
 
-        if let Some(searcher) = &mut self.searcher {
-            // Use index_tree for recursive indexing that respects .gitignore
-            match searcher.index_tree(&self.cwd) {
+        // Spawn thread to do indexing in background
+        thread::spawn(move || {
+            // Create searcher in thread (loads existing index from disk)
+            let mut searcher = SemanticSearch::from_env();
+
+            let result = match searcher.index_tree(&cwd) {
                 Ok(count) => {
-                    self.state.indexed_count = searcher.indexed_count();
+                    let total = searcher.indexed_count();
+                    AsyncResult::IndexComplete(count, total)
+                }
+                Err(e) => AsyncResult::IndexError(format!("{}", e)),
+            };
+
+            // Store result for main thread to pick up
+            if let Ok(mut holder) = result_holder.lock() {
+                *holder = Some(result);
+            }
+        });
+    }
+
+    /// Start async file summary generation
+    fn start_async_summary(&mut self) {
+        let path = match &self.selected_file {
+            Some(p) => p.clone(),
+            None => {
+                self.state.set_error("No file selected".to_string());
+                self.state.generating_summary = false;
+                return;
+            }
+        };
+
+        let result_holder = Arc::clone(&self.async_result);
+
+        // Spawn thread to generate summary in background
+        thread::spawn(move || {
+            let summarizer = FileSummarizer::from_env();
+
+            let result = match summarizer.summarize(&path) {
+                Ok(summary) => AsyncResult::SummaryComplete(summary),
+                Err(e) => AsyncResult::SummaryError(format!("{}", e)),
+            };
+
+            // Store result for main thread to pick up
+            if let Ok(mut holder) = result_holder.lock() {
+                *holder = Some(result);
+            }
+        });
+    }
+
+    /// Check for and handle async operation results
+    fn poll_async_result(&mut self) {
+        // Try to get result without blocking
+        let result = {
+            if let Ok(mut holder) = self.async_result.try_lock() {
+                holder.take()
+            } else {
+                None
+            }
+        };
+
+        if let Some(result) = result {
+            match result {
+                AsyncResult::IndexComplete(new_count, total_count) => {
+                    self.state.indexed_count = total_count;
                     self.state.status_message = Some(format!(
                         "Indexed {} new files ({} total)",
-                        count, self.state.indexed_count
+                        new_count, total_count
                     ));
+                    self.state.indexing = false;
+                    // Reload searcher to get updated index
+                    self.searcher = Some(SemanticSearch::from_env());
                 }
-                Err(e) => {
+                AsyncResult::IndexError(e) => {
                     self.state.status_message = Some(format!("Index error: {}", e));
                     self.state.set_error(format!("Index error: {}", e));
+                    self.state.indexing = false;
+                }
+                AsyncResult::SummaryComplete(summary) => {
+                    self.state.file_summary = Some(summary);
+                    self.state.generating_summary = false;
+                }
+                AsyncResult::SummaryError(e) => {
+                    self.state.set_error(format!("Summary error: {}", e));
+                    self.state.generating_summary = false;
                 }
             }
         }
-
-        self.state.indexing = false;
     }
 
     /// Execute confirmed dry run operations
@@ -226,34 +311,6 @@ impl QMindPlugin {
             }
         }
         self.state.view = QMindView::CommandPalette;
-    }
-
-    /// Generate summary for the selected file
-    fn summarize_file(&mut self) {
-        let path = match &self.selected_file {
-            Some(p) => p.clone(),
-            None => {
-                self.state.set_error("No file selected".to_string());
-                return;
-            }
-        };
-
-        // Get or create summarizer
-        if self.summarizer.is_none() {
-            self.summarizer = Some(FileSummarizer::from_env());
-        }
-
-        if let Some(summarizer) = &self.summarizer {
-            match summarizer.summarize(&path) {
-                Ok(summary) => {
-                    self.state.file_summary = Some(summary);
-                    // View is already set to FileSummary by caller
-                }
-                Err(e) => {
-                    self.state.set_error(format!("Summary error: {}", e));
-                }
-            }
-        }
     }
 }
 
@@ -331,6 +388,10 @@ impl Plugin for QMindPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('i') | KeyCode::Char('I') => {
+                    // Refresh indexed count when opening status
+                    if let Some(searcher) = &self.searcher {
+                        self.state.indexed_count = searcher.indexed_count();
+                    }
                     self.state.view = QMindView::IndexStatus;
                     KeyHandleResult::Handled
                 }
@@ -526,15 +587,32 @@ impl Plugin for QMindPlugin {
         if self.loading {
             self.initialize();
         }
-        // Handle deferred indexing (allows UI to show "Indexing..." first)
-        if self.state.indexing {
-            self.do_index_directory();
+
+        // Check if we need to start async operations
+        let should_start_indexing = self.state.indexing && {
+            // Only start if no result pending
+            self.async_result
+                .try_lock()
+                .map(|r| r.is_none())
+                .unwrap_or(false)
+        };
+        let should_start_summary = self.state.generating_summary && {
+            self.async_result
+                .try_lock()
+                .map(|r| r.is_none())
+                .unwrap_or(false)
+        };
+
+        // Start async operations (only once per request)
+        if should_start_indexing {
+            self.start_async_indexing();
         }
-        // Handle deferred summary generation (allows UI to show "Generating..." first)
-        if self.state.generating_summary {
-            self.summarize_file();
-            self.state.generating_summary = false;
+        if should_start_summary {
+            self.start_async_summary();
         }
+
+        // Poll for async results
+        self.poll_async_result();
     }
 
     fn help_content(&self) -> Vec<String> {
