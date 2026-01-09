@@ -3,6 +3,7 @@ mod modals;
 
 use crate::app::{App, Modal, NavItem, SortMode};
 use crate::file_ops::GitStatus;
+use crate::plugins::cloud::SyncStatus;
 use chrono::Local;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -797,22 +798,56 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
                 Style::default().fg(colors.fg())
             };
 
-            // Git status indicator style
-            let git_style = if is_selected {
-                style
+            // Cloud sync status indicator style (takes precedence if present and not Synced)
+            let (status_indicator, status_style) = if let Some(cloud_status) = file.cloud_status {
+                // Only show cloud status if it's something interesting (not just synced)
+                let (indicator, cloud_style) = if is_selected {
+                    (cloud_status.ascii_indicator().to_string(), style)
+                } else {
+                    match cloud_status {
+                        SyncStatus::Synced => (
+                            cloud_status.ascii_indicator().to_string(),
+                            Style::default().fg(colors.green()),
+                        ),
+                        SyncStatus::Syncing | SyncStatus::Pending => (
+                            cloud_status.ascii_indicator().to_string(),
+                            Style::default().fg(colors.cyan()),
+                        ),
+                        SyncStatus::Error => (
+                            cloud_status.ascii_indicator().to_string(),
+                            Style::default().fg(colors.red()),
+                        ),
+                        SyncStatus::CloudOnly => (
+                            cloud_status.ascii_indicator().to_string(),
+                            Style::default().fg(colors.blue()),
+                        ),
+                        SyncStatus::Offline | SyncStatus::Excluded => (
+                            cloud_status.ascii_indicator().to_string(),
+                            Style::default().fg(colors.grey()),
+                        ),
+                        SyncStatus::Unknown => (cloud_status.ascii_indicator().to_string(), style),
+                    }
+                };
+                (indicator, cloud_style)
             } else {
-                match file.git_status {
-                    GitStatus::Modified => Style::default().fg(colors.yellow()),
-                    GitStatus::Added => Style::default().fg(colors.cyan()),
-                    GitStatus::Deleted => Style::default().fg(colors.red()),
-                    GitStatus::Renamed => Style::default().fg(colors.cyan()),
-                    GitStatus::Untracked => Style::default().fg(colors.magenta()),
-                    GitStatus::Conflict => Style::default()
-                        .fg(colors.red())
-                        .add_modifier(Modifier::BOLD),
-                    GitStatus::Ignored => Style::default().fg(colors.grey()),
-                    GitStatus::None => style,
-                }
+                // No cloud status - show git status indicator
+                let git_style = if is_selected {
+                    style
+                } else {
+                    match file.git_status {
+                        GitStatus::Modified => Style::default().fg(colors.yellow()),
+                        GitStatus::Added => Style::default().fg(colors.cyan()),
+                        GitStatus::Deleted => Style::default().fg(colors.red()),
+                        GitStatus::Renamed => Style::default().fg(colors.cyan()),
+                        GitStatus::Untracked => Style::default().fg(colors.magenta()),
+                        GitStatus::Conflict => Style::default()
+                            .fg(colors.red())
+                            .add_modifier(Modifier::BOLD),
+                        GitStatus::Ignored => Style::default().fg(colors.grey()),
+                        GitStatus::None => style,
+                    }
+                };
+                (file.git_status.indicator().to_string(), git_style)
             };
 
             let (sep_char, sep_style) = if is_selected {
@@ -839,7 +874,6 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             };
 
             let display_name = format!("{}{}", name, ext);
-            let git_indicator = file.git_status.indicator();
 
             let size_str = if file.is_dir {
                 if file.name == ".." {
@@ -855,9 +889,10 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
 
             let mut x = file_table_x;
 
-            // File name with git status indicator on the right
-            // Format: " NAME...           M" (name left-aligned, git status flush right)
-            let name_width = name_col as usize - 2; // -2 for leading space and trailing git indicator
+            // File name with status indicator on the right
+            // Format: " NAME...           M" (name left-aligned, status indicator flush right)
+            // Shows cloud sync status if in cloud folder, git status otherwise
+            let name_width = name_col as usize - 2; // -2 for leading space and trailing status indicator
             let truncated_name = if display_name.len() > name_width {
                 (&display_name[..name_width]).to_string()
             } else {
@@ -866,7 +901,7 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
             let name_content = Line::from(vec![
                 Span::styled(" ", style),
                 Span::styled(truncated_name, style),
-                Span::styled(git_indicator, git_style),
+                Span::styled(&status_indicator, status_style),
             ]);
             let max_x = area.x + area.width;
             frame.render_widget(

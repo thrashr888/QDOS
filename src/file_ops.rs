@@ -1,4 +1,8 @@
 use crate::app::SortMode;
+use crate::plugins::cloud::SyncStatus;
+use crate::plugins::dropbox::ops as dropbox_ops;
+use crate::plugins::gdrive::ops as gdrive_ops;
+use crate::plugins::icloud::ops as icloud_ops;
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use std::collections::HashMap;
@@ -131,6 +135,8 @@ pub struct FileEntry {
     pub is_hidden: bool,
     /// Git status
     pub git_status: GitStatus,
+    /// Cloud sync status (Dropbox, iCloud, Google Drive)
+    pub cloud_status: Option<SyncStatus>,
 }
 
 impl FileEntry {
@@ -258,12 +264,92 @@ fn get_git_status_map(path: &PathBuf) -> HashMap<PathBuf, GitStatus> {
     status_map
 }
 
+/// Cloud storage provider detected for a directory
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CloudStorageType {
+    Dropbox,
+    ICloud,
+    GoogleDrive,
+}
+
+/// Detect which cloud storage (if any) a directory is within
+fn detect_cloud_storage(path: &PathBuf) -> Option<CloudStorageType> {
+    // Check Dropbox
+    if let Some(dropbox_root) = dropbox_ops::get_dropbox_path() {
+        if path.starts_with(&dropbox_root) {
+            return Some(CloudStorageType::Dropbox);
+        }
+    }
+
+    // Check iCloud
+    if let Some(icloud_root) = icloud_ops::get_icloud_path() {
+        if path.starts_with(&icloud_root) {
+            return Some(CloudStorageType::ICloud);
+        }
+    }
+
+    // Check Google Drive
+    if let Some(gdrive_root) = gdrive_ops::get_gdrive_path() {
+        if path.starts_with(&gdrive_root) {
+            return Some(CloudStorageType::GoogleDrive);
+        }
+    }
+
+    None
+}
+
+/// Get cloud sync status for files in a directory
+fn get_cloud_status_map(path: &PathBuf) -> HashMap<PathBuf, SyncStatus> {
+    let mut status_map = HashMap::new();
+
+    // Determine which cloud storage we're in (if any)
+    let cloud_type = match detect_cloud_storage(path) {
+        Some(ct) => ct,
+        None => return status_map, // Not in a cloud folder
+    };
+
+    // Read directory and get status for each file
+    if let Ok(entries) = fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let file_path = entry.path();
+            let filename = entry.file_name().to_string_lossy().to_string();
+
+            // Skip hidden files (except .icloud placeholders)
+            if filename.starts_with('.') && !filename.ends_with(".icloud") {
+                continue;
+            }
+
+            let status: SyncStatus = match cloud_type {
+                CloudStorageType::Dropbox => {
+                    let dropbox_status = dropbox_ops::get_file_sync_status(&file_path);
+                    dropbox_status.into()
+                }
+                CloudStorageType::ICloud => {
+                    let icloud_status = icloud_ops::get_file_sync_status(&file_path);
+                    icloud_status.into()
+                }
+                CloudStorageType::GoogleDrive => {
+                    let gdrive_status = gdrive_ops::get_file_sync_status(&file_path);
+                    gdrive_status.into()
+                }
+            };
+
+            status_map.insert(file_path, status);
+        }
+    }
+
+    status_map
+}
+
 /// Get directory contents with sorting
 pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec<FileEntry>> {
     let mut entries = Vec::new();
 
     // Get git status for the directory
     let git_status_map = get_git_status_map(path);
+
+    // Get cloud sync status for the directory (if in a cloud folder)
+    let cloud_status_map = get_cloud_status_map(path);
 
     // Add parent directory entry if not at root
     if let Some(parent) = path.parent() {
@@ -278,6 +364,7 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             kind: FileKind::Directory,
             is_hidden: false,
             git_status: GitStatus::None,
+            cloud_status: None,
         });
     }
 
@@ -327,6 +414,9 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             .copied()
             .unwrap_or(GitStatus::None);
 
+        // Get cloud sync status for this file (if in a cloud folder)
+        let cloud_status = cloud_status_map.get(&file_path).copied();
+
         entries.push(FileEntry {
             name,
             extension,
@@ -338,6 +428,7 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
             kind,
             is_hidden,
             git_status,
+            cloud_status,
         });
     }
 

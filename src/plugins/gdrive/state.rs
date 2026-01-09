@@ -90,7 +90,7 @@ impl GDriveState {
     pub fn new() -> Self {
         Self {
             view: GDriveView::Browser,
-            current_dir: PathBuf::from("/"),
+            current_dir: PathBuf::new(), // Empty path - will be set when Google Drive is detected
             files: Vec::new(),
             selected: 0,
             scroll_offset: 0,

@@ -3,7 +3,7 @@
 //! Provides Dropbox integration with per-file sync status display.
 
 mod modal;
-mod ops;
+pub mod ops;
 pub mod state;
 
 use super::{
@@ -56,7 +56,19 @@ impl DropboxPlugin {
 
         // Load initial directory
         if let Some(dropbox_path) = ops::get_dropbox_path() {
+            self.state.current_dir = dropbox_path.clone();
             ops::load_directory(&mut self.state, &dropbox_path);
+        } else {
+            // Dropbox not available - show error
+            self.state.files.clear();
+            self.state.current_dir = PathBuf::new();
+            if !self.state.is_installed {
+                self.state.error = Some("Dropbox is not installed".to_string());
+            } else if !self.state.is_running {
+                self.state.error = Some("Dropbox is not running. Please start Dropbox.".to_string());
+            } else {
+                self.state.error = Some("Dropbox folder not found".to_string());
+            }
         }
 
         self.modal_open = true;
@@ -69,9 +81,24 @@ impl DropboxPlugin {
 
     /// Navigate into selected directory
     fn enter_directory(&mut self) {
+        // Get Dropbox root to validate navigation
+        let dropbox_root = match ops::get_dropbox_path() {
+            Some(root) => root,
+            None => {
+                self.state.error =
+                    Some("Dropbox is not available. Please start Dropbox.".to_string());
+                return;
+            }
+        };
+
         if let Some(file) = self.state.selected_file() {
             if file.is_dir {
                 let path = file.path.clone();
+                // Validate that the target path is within Dropbox
+                if !path.starts_with(&dropbox_root) {
+                    self.state.error = Some("Cannot navigate outside Dropbox".to_string());
+                    return;
+                }
                 ops::load_directory(&mut self.state, &path);
             }
         }
@@ -79,11 +106,22 @@ impl DropboxPlugin {
 
     /// Navigate to parent directory
     fn go_up(&mut self) {
+        // Get Dropbox root to validate navigation
+        let dropbox_root = match ops::get_dropbox_path() {
+            Some(root) => root,
+            None => {
+                self.state.error =
+                    Some("Dropbox is not available. Please start Dropbox.".to_string());
+                return;
+            }
+        };
+
         if let Some(parent) = self.state.current_dir.parent() {
             // Don't go above Dropbox root
-            if let Some(dropbox_root) = ops::get_dropbox_path() {
-                if self.state.current_dir != dropbox_root {
-                    let parent_path = parent.to_path_buf();
+            if self.state.current_dir != dropbox_root {
+                let parent_path = parent.to_path_buf();
+                // Validate parent is still within Dropbox
+                if parent_path.starts_with(&dropbox_root) || parent_path == dropbox_root {
                     ops::load_directory(&mut self.state, &parent_path);
                 }
             }
@@ -245,6 +283,9 @@ impl Plugin for DropboxPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('i') | KeyCode::Char('I') => {
+                    // Refresh status when opening info view
+                    self.state.is_running = ops::is_dropbox_running();
+                    self.state.storage_info = ops::get_storage_info();
                     self.state.view = DropboxView::Info;
                     KeyHandleResult::Handled
                 }
@@ -257,11 +298,35 @@ impl Plugin for DropboxPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    // Refresh
-                    let dir = self.state.current_dir.clone();
-                    ops::load_directory(&mut self.state, &dir);
-                    self.state.storage_info = ops::get_storage_info();
+                    // Re-detect Dropbox on refresh
+                    self.state.is_installed = ops::is_dropbox_installed();
                     self.state.is_running = ops::is_dropbox_running();
+                    self.state.storage_info = ops::get_storage_info();
+
+                    if let Some(dropbox_root) = ops::get_dropbox_path() {
+                        // If current_dir is valid and within Dropbox, refresh it
+                        // Otherwise, reset to Dropbox root
+                        let dir = if self.state.current_dir.starts_with(&dropbox_root) {
+                            self.state.current_dir.clone()
+                        } else {
+                            self.state.current_dir = dropbox_root.clone();
+                            dropbox_root
+                        };
+                        self.state.error = None;
+                        ops::load_directory(&mut self.state, &dir);
+                    } else {
+                        // Dropbox not available
+                        self.state.files.clear();
+                        self.state.current_dir = PathBuf::new();
+                        if !self.state.is_installed {
+                            self.state.error = Some("Dropbox is not installed".to_string());
+                        } else if !self.state.is_running {
+                            self.state.error =
+                                Some("Dropbox is not running. Please start Dropbox.".to_string());
+                        } else {
+                            self.state.error = Some("Dropbox folder not found".to_string());
+                        }
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,

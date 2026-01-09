@@ -3,7 +3,7 @@
 //! Provides Google Drive integration with sync status display.
 
 mod modal;
-mod ops;
+pub mod ops;
 pub mod state;
 
 use super::{
@@ -41,6 +41,8 @@ impl GDrivePlugin {
         if let Some(p) = path {
             state.current_dir = p;
         }
+        // If path is None, current_dir stays empty (PathBuf::new())
+        // The modal will show an appropriate error when opened
 
         Self {
             state,
@@ -61,6 +63,18 @@ impl GDrivePlugin {
         if let Some(p) = path {
             self.state.current_dir = p.clone();
             ops::load_directory(&mut self.state, &p);
+        } else {
+            // No Google Drive path found - show error and clear files
+            self.state.files.clear();
+            self.state.current_dir = PathBuf::new();
+            if !installed {
+                self.state.error = Some("Google Drive for Desktop is not installed".to_string());
+            } else if !self.state.is_running {
+                self.state.error =
+                    Some("Google Drive is not running. Please start Google Drive.".to_string());
+            } else {
+                self.state.error = Some("Google Drive folder not found".to_string());
+            }
         }
 
         self.modal_open = true;
@@ -71,9 +85,24 @@ impl GDrivePlugin {
     }
 
     fn enter_directory(&mut self) {
+        // Get Google Drive root to validate navigation
+        let gdrive_root = match ops::get_gdrive_path() {
+            Some(root) => root,
+            None => {
+                self.state.error =
+                    Some("Google Drive is not available. Please start Google Drive.".to_string());
+                return;
+            }
+        };
+
         if let Some(file) = self.state.selected_file() {
             if file.is_dir {
                 let path = file.path.clone();
+                // Validate that the target path is within Google Drive
+                if !path.starts_with(&gdrive_root) {
+                    self.state.error = Some("Cannot navigate outside Google Drive".to_string());
+                    return;
+                }
                 ops::load_directory(&mut self.state, &path);
             } else if file.is_google_doc {
                 // Open Google Doc in browser
@@ -86,10 +115,22 @@ impl GDrivePlugin {
     }
 
     fn go_up(&mut self) {
+        // Get Google Drive root to validate navigation
+        let gdrive_root = match ops::get_gdrive_path() {
+            Some(root) => root,
+            None => {
+                self.state.error =
+                    Some("Google Drive is not available. Please start Google Drive.".to_string());
+                return;
+            }
+        };
+
         if let Some(parent) = self.state.current_dir.parent() {
-            if let Some(gdrive_root) = ops::get_gdrive_path() {
-                if self.state.current_dir != gdrive_root {
-                    let parent_path = parent.to_path_buf();
+            // Don't go above the Google Drive root
+            if self.state.current_dir != gdrive_root {
+                let parent_path = parent.to_path_buf();
+                // Validate parent is still within Google Drive
+                if parent_path.starts_with(&gdrive_root) || parent_path == gdrive_root {
                     ops::load_directory(&mut self.state, &parent_path);
                 }
             }
@@ -209,6 +250,12 @@ impl Plugin for GDrivePlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('i') | KeyCode::Char('I') => {
+                    // Refresh status when opening info view
+                    let (installed, variant, _) = ops::detect_gdrive();
+                    self.state.is_installed = installed;
+                    self.state.is_running = ops::is_gdrive_running();
+                    self.state.drive_variant = variant;
+                    self.state.storage_info = ops::get_storage_info();
                     self.state.view = GDriveView::Info;
                     KeyHandleResult::Handled
                 }
@@ -217,10 +264,40 @@ impl Plugin for GDrivePlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    let dir = self.state.current_dir.clone();
-                    ops::load_directory(&mut self.state, &dir);
-                    self.state.storage_info = ops::get_storage_info();
+                    // Re-detect Google Drive on refresh
+                    let (installed, variant, path) = ops::detect_gdrive();
+                    self.state.is_installed = installed;
                     self.state.is_running = ops::is_gdrive_running();
+                    self.state.drive_variant = variant;
+                    self.state.storage_info = ops::get_storage_info();
+
+                    if let Some(gdrive_root) = path {
+                        // If current_dir is valid and within Google Drive, refresh it
+                        // Otherwise, reset to Google Drive root
+                        let dir = if self.state.current_dir.starts_with(&gdrive_root) {
+                            self.state.current_dir.clone()
+                        } else {
+                            self.state.current_dir = gdrive_root.clone();
+                            gdrive_root
+                        };
+                        self.state.error = None;
+                        ops::load_directory(&mut self.state, &dir);
+                    } else {
+                        // Google Drive not available
+                        self.state.files.clear();
+                        self.state.current_dir = PathBuf::new();
+                        if !installed {
+                            self.state.error =
+                                Some("Google Drive for Desktop is not installed".to_string());
+                        } else if !self.state.is_running {
+                            self.state.error = Some(
+                                "Google Drive is not running. Please start Google Drive."
+                                    .to_string(),
+                            );
+                        } else {
+                            self.state.error = Some("Google Drive folder not found".to_string());
+                        }
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,

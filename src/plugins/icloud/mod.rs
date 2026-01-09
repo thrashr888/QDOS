@@ -3,7 +3,7 @@
 //! Provides iCloud Drive integration with cloud-only file handling.
 
 mod modal;
-mod ops;
+pub mod ops;
 pub mod state;
 
 use super::{
@@ -50,7 +50,13 @@ impl ICloudPlugin {
         self.state.message = None;
 
         if let Some(icloud_path) = ops::get_icloud_path() {
+            self.state.current_dir = icloud_path.clone();
             ops::load_directory(&mut self.state, &icloud_path);
+        } else {
+            // iCloud not available - show error
+            self.state.files.clear();
+            self.state.current_dir = PathBuf::new();
+            self.state.error = Some("iCloud Drive is not available".to_string());
         }
 
         self.modal_open = true;
@@ -61,19 +67,44 @@ impl ICloudPlugin {
     }
 
     fn enter_directory(&mut self) {
+        // Get iCloud root to validate navigation
+        let icloud_root = match ops::get_icloud_path() {
+            Some(root) => root,
+            None => {
+                self.state.error = Some("iCloud Drive is not available".to_string());
+                return;
+            }
+        };
+
         if let Some(file) = self.state.selected_file() {
             if file.is_dir {
                 let path = file.path.clone();
+                // Validate that the target path is within iCloud
+                if !path.starts_with(&icloud_root) {
+                    self.state.error = Some("Cannot navigate outside iCloud Drive".to_string());
+                    return;
+                }
                 ops::load_directory(&mut self.state, &path);
             }
         }
     }
 
     fn go_up(&mut self) {
+        // Get iCloud root to validate navigation
+        let icloud_root = match ops::get_icloud_path() {
+            Some(root) => root,
+            None => {
+                self.state.error = Some("iCloud Drive is not available".to_string());
+                return;
+            }
+        };
+
         if let Some(parent) = self.state.current_dir.parent() {
-            if let Some(icloud_root) = ops::get_icloud_path() {
-                if self.state.current_dir != icloud_root {
-                    let parent_path = parent.to_path_buf();
+            // Don't go above iCloud root
+            if self.state.current_dir != icloud_root {
+                let parent_path = parent.to_path_buf();
+                // Validate parent is still within iCloud
+                if parent_path.starts_with(&icloud_root) || parent_path == icloud_root {
                     ops::load_directory(&mut self.state, &parent_path);
                 }
             }
@@ -223,6 +254,9 @@ impl Plugin for ICloudPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('i') => {
+                    // Refresh status when opening info view
+                    self.state.is_available = ops::is_icloud_available();
+                    self.state.storage_info = ops::get_storage_info();
                     self.state.view = ICloudView::Info;
                     KeyHandleResult::Handled
                 }
@@ -235,9 +269,27 @@ impl Plugin for ICloudPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    let dir = self.state.current_dir.clone();
-                    ops::load_directory(&mut self.state, &dir);
+                    // Re-detect iCloud on refresh
+                    self.state.is_available = ops::is_icloud_available();
                     self.state.storage_info = ops::get_storage_info();
+
+                    if let Some(icloud_root) = ops::get_icloud_path() {
+                        // If current_dir is valid and within iCloud, refresh it
+                        // Otherwise, reset to iCloud root
+                        let dir = if self.state.current_dir.starts_with(&icloud_root) {
+                            self.state.current_dir.clone()
+                        } else {
+                            self.state.current_dir = icloud_root.clone();
+                            icloud_root
+                        };
+                        self.state.error = None;
+                        ops::load_directory(&mut self.state, &dir);
+                    } else {
+                        // iCloud not available
+                        self.state.files.clear();
+                        self.state.current_dir = PathBuf::new();
+                        self.state.error = Some("iCloud Drive is not available".to_string());
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
