@@ -118,7 +118,7 @@ impl DropboxState {
         // Don't default to "/" - let open_modal() set the correct path
         let dropbox_path = dirs::home_dir()
             .map(|h| h.join("Dropbox"))
-            .unwrap_or_else(PathBuf::new);
+            .unwrap_or_default();
 
         Self {
             view: DropboxView::Browser,

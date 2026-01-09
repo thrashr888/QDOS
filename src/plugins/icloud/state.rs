@@ -111,7 +111,7 @@ impl ICloudState {
         // Don't default to "/" - let open_modal() set the correct path
         let icloud_path = dirs::home_dir()
             .map(|h| h.join("Library/Mobile Documents/com~apple~CloudDocs"))
-            .unwrap_or_else(PathBuf::new);
+            .unwrap_or_default();
 
         Self {
             view: ICloudView::Browser,
