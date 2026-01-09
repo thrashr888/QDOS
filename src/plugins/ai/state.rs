@@ -1,6 +1,6 @@
-//! AI Assistant plugin state types
+//! AI Coding Agents plugin state types
 //!
-//! State structures for monitoring AI coding assistant CLI tools.
+//! State structures for monitoring AI coding agent CLI tools.
 
 use std::path::PathBuf;
 
@@ -218,7 +218,7 @@ pub enum AIView {
 impl AIView {
     pub fn title(&self) -> &'static str {
         match self {
-            AIView::Overview => "AI Assistants Overview",
+            AIView::Overview => "AI Coding Agents",
             AIView::Claude => "Claude Code Status",
             AIView::Codex => "OpenAI Codex Status",
             AIView::Gemini => "Gemini CLI Status",

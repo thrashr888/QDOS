@@ -1,6 +1,6 @@
-//! AI Assistant plugin
+//! AI Coding Agents plugin
 //!
-//! Monitors AI coding assistant CLI tools (Claude Code, OpenAI Codex, Gemini CLI).
+//! Monitors AI coding agent CLI tools (Claude Code, OpenAI Codex, Gemini CLI, Cursor, Copilot).
 //! Displays usage stats and configuration from local data files.
 
 mod modal;
@@ -24,7 +24,7 @@ pub use state::{
     DryRunOperation, DryRunState, GeminiStatus,
 };
 
-/// AI Assistant plugin for monitoring AI CLI tools
+/// AI Coding Agents plugin for monitoring AI CLI tools
 pub struct AIPlugin {
     pub state: AIState,
     /// Whether data is currently being loaded (for lazy loading)
@@ -119,7 +119,7 @@ impl Plugin for AIPlugin {
     }
 
     fn name(&self) -> &str {
-        "AI Assistant"
+        "AI Coding Agents"
     }
 
     fn capabilities(&self) -> PluginCapabilities {
@@ -142,7 +142,7 @@ impl Plugin for AIPlugin {
         Some(PluginMenuItem {
             name: "AI".to_string(),
             key: 'I',
-            description: "Monitor AI coding assistant CLI tools".to_string(),
+            description: "Monitor AI coding agents".to_string(),
             priority: 55,
         })
     }
@@ -342,7 +342,7 @@ impl Plugin for AIPlugin {
 
     fn help_content(&self) -> Vec<String> {
         vec![
-            "AI Assistant - Monitor AI coding tools".to_string(),
+            "AI Coding Agents - Monitor AI coding tools".to_string(),
             "".to_string(),
             "Supported tools:".to_string(),
             "  Claude Code (~/.claude/)".to_string(),
@@ -365,8 +365,8 @@ impl Plugin for AIPlugin {
     fn app_entry(&self) -> Option<AppEntry> {
         Some(AppEntry {
             id: self.id().to_string(),
-            name: "AI Assistant".to_string(),
-            description: "Monitor AI coding tools".to_string(),
+            name: "AI Coding Agents".to_string(),
+            description: "Monitor AI coding agents".to_string(),
             category: PluginCategory::Tools,
             key: 'A',
         })

@@ -1,6 +1,6 @@
-//! AI Assistant plugin modal rendering
+//! AI Coding Agents plugin modal rendering
 //!
-//! UI components for displaying AI CLI tool status.
+//! UI components for displaying AI coding agent status.
 //! Uses FullScreenView for full-screen modal display.
 
 use super::state::{AIMenuItem, AIState, AIView, DryRunOpType};
@@ -35,14 +35,14 @@ pub fn draw_ai_modal(
 
 /// Draw loading screen
 fn draw_loading(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
-    let view = FullScreenView::new(area, " AI Assistants ", colors);
+    let view = FullScreenView::new(area, " AI Coding Agents ", colors);
     view.render_frame(frame);
 
     view.render_row(
         frame,
         5,
         vec![Span::styled(
-            "Loading AI assistant data...",
+            "Loading AI agent data...",
             Style::default().fg(colors.yellow()).bg(colors.bg()),
         )],
     );
@@ -75,7 +75,7 @@ fn draw_loading(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
 
 /// Draw the overview showing all providers
 fn draw_overview(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
-    let view = FullScreenView::new(area, " AI Assistants ", colors);
+    let view = FullScreenView::new(area, " AI Coding Agents ", colors);
     view.render_frame(frame);
 
     // Menu items

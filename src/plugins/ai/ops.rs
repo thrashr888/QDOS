@@ -1,6 +1,6 @@
-//! AI Assistant plugin operations
+//! AI Coding Agents plugin operations
 //!
-//! Functions to read status from AI CLI tool config/data files.
+//! Functions to read status from AI coding agent config/data files.
 
 use super::state::{
     AIProvider, ClaudeDailyStats, ClaudeStatus, ClaudeTokenUsage, CodexStatus, CodexTokenUsage,
