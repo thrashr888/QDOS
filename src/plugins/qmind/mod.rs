@@ -101,6 +101,7 @@ impl Plugin for QMindPlugin {
         if let KeyCode::Char('?') = key.code {
             self.state.view = QMindView::CommandPalette;
             self.state.command_input.reset();
+            self.start_loading(); // Trigger API check on first tick
             return KeyHandleResult::OpenModal;
         }
         KeyHandleResult::NotHandled
