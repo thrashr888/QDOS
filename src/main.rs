@@ -18,6 +18,7 @@ mod file_ops;
 mod plugins;
 mod rg;
 mod ui;
+mod vfs;
 mod watcher;
 
 use anyhow::Result;

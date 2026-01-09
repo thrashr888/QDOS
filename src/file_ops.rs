@@ -3,12 +3,14 @@ use crate::plugins::cloud::SyncStatus;
 use crate::plugins::dropbox::ops as dropbox_ops;
 use crate::plugins::gdrive::ops as gdrive_ops;
 use crate::plugins::icloud::ops as icloud_ops;
+use crate::vfs::{FileSystemProvider, LocalFS};
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 
 /// File type/kind classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -438,6 +440,125 @@ pub fn get_directory_contents(path: &PathBuf, sort_mode: SortMode) -> Result<Vec
     Ok(entries)
 }
 
+/// Get directory contents using a VFS provider
+///
+/// This version uses the FileSystemProvider trait for abstraction,
+/// enabling support for virtual file systems like MCP.
+#[allow(dead_code)] // VFS infrastructure for Q-LINK
+pub fn get_directory_contents_with_provider(
+    path: &Path,
+    sort_mode: SortMode,
+    provider: &dyn FileSystemProvider,
+) -> Result<Vec<FileEntry>> {
+    let path_buf = path.to_path_buf();
+    let mut entries = Vec::new();
+
+    // Git and cloud status only work with local filesystem
+    let (git_status_map, cloud_status_map) = if provider.is_local() {
+        (
+            get_git_status_map(&path_buf),
+            get_cloud_status_map(&path_buf),
+        )
+    } else {
+        (HashMap::new(), HashMap::new())
+    };
+
+    // Add parent directory entry if not at root
+    if let Some(parent) = path.parent() {
+        entries.push(FileEntry {
+            name: "..".to_string(),
+            extension: String::new(),
+            path: parent.to_path_buf(),
+            size: 0,
+            is_dir: true,
+            modified: DateTime::from(std::time::SystemTime::now()),
+            created: DateTime::from(std::time::SystemTime::now()),
+            kind: FileKind::Directory,
+            is_hidden: false,
+            git_status: GitStatus::None,
+            cloud_status: None,
+        });
+    }
+
+    // Read directory entries using the VFS provider
+    let dir_entries = provider.read_dir(path)?;
+    for entry in dir_entries {
+        let file_name = entry.file_name.clone();
+
+        // Check if file is hidden (starting with .)
+        let is_hidden = file_name.starts_with('.');
+
+        // Get metadata from VFS
+        let metadata = entry.metadata.as_ref();
+        let (size, is_dir, modified, created) = if let Some(meta) = metadata {
+            (
+                meta.len,
+                meta.is_dir,
+                meta.modified.map(DateTime::from).unwrap_or_else(Local::now),
+                meta.created.map(DateTime::from).unwrap_or_else(Local::now),
+            )
+        } else {
+            // Fallback to entry-level info if metadata unavailable
+            (0, entry.is_dir, Local::now(), Local::now())
+        };
+
+        // Extract name and extension
+        let (name, extension) = if is_dir {
+            (file_name.clone(), String::new())
+        } else {
+            match file_name.rfind('.') {
+                Some(pos) if pos > 0 => (
+                    file_name[..pos].to_string(),
+                    file_name[pos + 1..].to_string(),
+                ),
+                _ => (file_name.clone(), String::new()),
+            }
+        };
+
+        // Determine file kind
+        let kind = if is_dir {
+            FileKind::Directory
+        } else {
+            FileKind::from_extension(&extension)
+        };
+
+        // Get git status for this file (local only)
+        let file_path = entry.path.clone();
+        let git_status = git_status_map
+            .get(&file_path)
+            .copied()
+            .unwrap_or(GitStatus::None);
+
+        // Get cloud sync status for this file (local only)
+        let cloud_status = cloud_status_map.get(&file_path).copied();
+
+        entries.push(FileEntry {
+            name,
+            extension,
+            path: file_path,
+            size,
+            is_dir,
+            modified,
+            created,
+            kind,
+            is_hidden,
+            git_status,
+            cloud_status,
+        });
+    }
+
+    // Sort entries (directories first, then by sort mode)
+    sort_entries(&mut entries, sort_mode);
+
+    Ok(entries)
+}
+
+/// Create a default LocalFS provider
+#[allow(dead_code)] // VFS infrastructure for Q-LINK
+pub fn default_fs_provider() -> Arc<dyn FileSystemProvider> {
+    Arc::new(LocalFS::new())
+}
+
 /// Sort file entries according to the given mode
 fn sort_entries(entries: &mut [FileEntry], sort_mode: SortMode) {
     // Keep ".." at the top
@@ -555,6 +676,53 @@ fn find_files_recursive_impl(dir: &PathBuf, pattern: &str, results: &mut Vec<(Pa
                 // Recurse into subdirectories
                 find_files_recursive_impl(&path, pattern, results);
             } else {
+                // Check if file matches pattern
+                if match_pattern(&name, pattern) {
+                    let display =
+                        format!("{} - {}", name, path.parent().unwrap_or(&path).display());
+                    results.push((path, display));
+                }
+            }
+        }
+    }
+}
+
+/// Recursively find files matching a pattern using a VFS provider
+///
+/// This version uses the FileSystemProvider trait for abstraction.
+/// Returns a list of (full_path, display_string) tuples.
+#[allow(dead_code)] // VFS infrastructure for Q-LINK
+pub fn find_files_recursive_with_provider(
+    root: &Path,
+    pattern: &str,
+    provider: &dyn FileSystemProvider,
+) -> Vec<(PathBuf, String)> {
+    let mut results = Vec::new();
+    find_files_recursive_with_provider_impl(root, pattern, provider, &mut results);
+    results
+}
+
+#[allow(dead_code)] // VFS infrastructure for Q-LINK
+fn find_files_recursive_with_provider_impl(
+    dir: &Path,
+    pattern: &str,
+    provider: &dyn FileSystemProvider,
+    results: &mut Vec<(PathBuf, String)>,
+) {
+    if let Ok(entries) = provider.read_dir(dir) {
+        for entry in entries {
+            let path = entry.path.clone();
+            let name = entry.file_name.clone();
+
+            // Skip hidden files/dirs (starting with .)
+            if name.starts_with('.') {
+                continue;
+            }
+
+            if entry.is_dir {
+                // Recurse into subdirectories
+                find_files_recursive_with_provider_impl(&path, pattern, provider, results);
+            } else if entry.is_file {
                 // Check if file matches pattern
                 if match_pattern(&name, pattern) {
                     let display =

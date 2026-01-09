@@ -37,6 +37,7 @@ use crate::plugins::{
     StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
+use crate::vfs::{FileSystemProvider, LocalFS};
 use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -47,6 +48,7 @@ use ratatui::prelude::*;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Set terminal taskbar progress indicator (OSC 9;4)
 /// Supported by: Windows Terminal, Kitty, Foot, GNOME Terminal, ConsoleZ
@@ -116,6 +118,10 @@ pub struct App {
     pub terminal_luma: Option<f32>,
     /// Directory jump database (zoxide, z, autojump, fasd)
     pub z_db: Option<JumpDatabase>,
+    /// Virtual filesystem provider (default: LocalFS)
+    /// Used for Q-LINK MCP integration - will be utilized when remote filesystems are supported
+    #[allow(dead_code)]
+    pub fs_provider: Arc<dyn FileSystemProvider>,
 }
 
 impl App {
@@ -168,6 +174,9 @@ impl App {
             help_plugin.load_plugin_help(plugin_help);
         }
 
+        // Initialize the VFS provider (default to local filesystem)
+        let fs_provider: Arc<dyn FileSystemProvider> = Arc::new(LocalFS::new());
+
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
         let watcher = DirWatcher::new(&current_path).ok();
@@ -201,6 +210,7 @@ impl App {
             dir_watcher: watcher,
             terminal_luma: None,
             z_db,
+            fs_provider,
         };
 
         // Detect terminal light/dark mode using OSC 10/11 query
