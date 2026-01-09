@@ -733,9 +733,16 @@ mod tests {
             "Should find at least one volume"
         );
 
-        // First volume should be Macintosh HD (root)
+        // First volume should be root filesystem
         let first = &plugin.state.volumes[0];
-        assert_eq!(first.name, "Macintosh HD");
+        #[cfg(target_os = "macos")]
+        {
+            assert_eq!(first.name, "Macintosh HD");
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            assert_eq!(first.name, "Root");
+        }
         assert_eq!(first.path, PathBuf::from("/"));
 
         // Print what we found for debugging
