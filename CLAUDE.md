@@ -212,12 +212,26 @@ plugin_manager.register(Box::new(MyPlugin::new()));
 ## Releasing
 
 0. Batch issues and epics into release epics
-1. Run quality checks: `cargo fmt --check && cargo clippy && cargo test`
+1. Run **ALL** quality checks - tests are mandatory, not optional:
+   ```bash
+   cargo fmt -- --check && cargo clippy -- -D warnings && cargo test
+   ```
 2. Update version in `Cargo.toml` (remove `-dev` suffix)
 3. Commit, tag (`git tag -a v0.x.x -m "Release notes"`), and push tag
-4. GitHub Actions builds multi-platform binaries and creates release
-5. Update homebrew tap at `../homebrew-qdos` with new version and SHA256 hashes:
+4. GitHub Actions builds binaries (Linux, macOS ARM, Windows) and creates release
+   - **Note**: Intel Mac (x86_64-apple-darwin) is NOT supported due to unreliable GitHub runners
+5. Update homebrew tap at `../homebrew-qdos` with new version and SHA256 hash:
    ```bash
    curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.X.X/rdos-macos-aarch64 | shasum -a 256
-   curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.X.X/rdos-macos-x86_64 | shasum -a 256
    ```
+
+### Release Troubleshooting
+
+- If a workflow job fails/cancels, you may need to delete and recreate the tag:
+  ```bash
+  git push origin :refs/tags/vX.X.X  # Delete remote tag
+  git tag -d vX.X.X                   # Delete local tag
+  git tag -a vX.X.X -m "Release"      # Recreate tag
+  git push origin vX.X.X              # Push new tag
+  ```
+- Test workflow changes on a separate branch/tag before the real release

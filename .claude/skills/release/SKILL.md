@@ -12,11 +12,9 @@ Automate the QDOS release process including quality checks, version bumping, tag
 
 Before releasing, verify:
 
-1. **Quality gates pass**:
+1. **Quality gates pass** (ALL THREE are mandatory - never skip tests!):
    ```bash
-   cargo fmt -- --check
-   cargo clippy -- -D warnings
-   cargo test --verbose
+   cargo fmt -- --check && cargo clippy -- -D warnings && cargo test
    ```
 
 2. **All blockers closed**: Check the release epic in beads
@@ -125,16 +123,15 @@ bd sync
 
 After the release build completes, update the homebrew tap at `../homebrew-qdos`:
 
-1. Get SHA256 hashes for the new binaries:
+1. Get SHA256 hash for the macOS ARM binary (Intel Mac is not supported):
    ```bash
    curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.Y.Z/rdos-macos-aarch64 | shasum -a 256
-   curl -sL https://github.com/thrashr888/QDOS/releases/download/vX.Y.Z/rdos-macos-x86_64 | shasum -a 256
    ```
 
 2. Update `../homebrew-qdos/Formula/rdos.rb`:
    - Update `version "X.Y.Z"`
-   - Update SHA256 hashes for each architecture
-   - Update download URLs with new version
+   - Update SHA256 hash for aarch64
+   - Update download URL with new version
 
 3. Commit and push the homebrew tap:
    ```bash
@@ -149,6 +146,27 @@ After the release build completes, update the homebrew tap at `../homebrew-qdos`
 - Verify installation works: `brew upgrade rdos` or `brew install thrashr888/qdos/rdos`
 - Announce release if needed
 - Start next development cycle (bump to X.Y.Z-dev if desired)
+
+## Troubleshooting
+
+### Workflow job stuck or cancelled
+GitHub Actions runners (especially macOS) can be unreliable. If a job is stuck in "queued" or immediately cancelled:
+
+1. Cancel the stuck workflow: `gh run cancel <run-id>`
+2. Delete and recreate the tag to trigger a fresh run:
+   ```bash
+   git push origin :refs/tags/vX.Y.Z  # Delete remote tag
+   git tag -d vX.Y.Z                   # Delete local tag
+   git tag -a vX.Y.Z -m "Release"      # Recreate tag
+   git push origin vX.Y.Z              # Push new tag
+   ```
+
+### Platform support
+- **Supported**: Linux x86_64, macOS ARM (aarch64), Windows x86_64
+- **NOT supported**: macOS Intel (x86_64) - GitHub runners are unreliable
+
+### Test workflow changes safely
+Before modifying `.github/workflows/release.yml` for a real release, test changes on a separate branch or with a test tag (e.g., `v0.0.0-test`).
 
 ## Rollback
 
