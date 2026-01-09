@@ -2,18 +2,10 @@
 //!
 //! Monitors AI coding agent CLI tools (Claude Code, OpenAI Codex, Gemini CLI, Cursor, Copilot).
 //! Displays usage stats and configuration from local data files.
-//!
-//! Also provides Q-MIND AI Intelligence Layer for semantic search and natural language commands.
 
-pub mod api;
-pub mod command;
-pub mod indexer;
 mod modal;
 pub mod ops;
-pub mod search;
 pub mod state;
-pub mod summary;
-pub mod vector;
 
 use crate::plugins::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
@@ -329,50 +321,6 @@ impl Plugin for AIPlugin {
                         if let Some(ref mut dr) = self.state.dry_run {
                             dr.select_next();
                         }
-                        KeyHandleResult::Handled
-                    }
-                    _ => KeyHandleResult::Handled,
-                }
-            }
-            AIView::CommandPalette => {
-                // Natural language command palette input
-                match key.code {
-                    KeyCode::Esc => {
-                        self.state.command_palette.reset();
-                        self.state.view = AIView::Overview;
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Enter => {
-                        // TODO: Parse command using LLM
-                        // For now, just show placeholder
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Backspace => {
-                        self.state.command_palette.backspace();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Delete => {
-                        self.state.command_palette.delete();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Left => {
-                        self.state.command_palette.cursor_left();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Right => {
-                        self.state.command_palette.cursor_right();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Home => {
-                        self.state.command_palette.cursor_home();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::End => {
-                        self.state.command_palette.cursor_end();
-                        KeyHandleResult::Handled
-                    }
-                    KeyCode::Char(c) => {
-                        self.state.command_palette.insert_char(c);
                         KeyHandleResult::Handled
                     }
                     _ => KeyHandleResult::Handled,

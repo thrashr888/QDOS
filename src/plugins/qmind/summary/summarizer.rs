@@ -2,7 +2,7 @@
 //!
 //! Uses LLM to generate concise summaries of file contents.
 
-use crate::plugins::ai::api::{
+use crate::plugins::qmind::api::{
     chat::{create_chat_provider, ChatMessage},
     AIApiConfig, ApiError,
 };

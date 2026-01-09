@@ -173,24 +173,51 @@ fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
 }
 ```
 
-### Example: Plugin Modal with Components
+### CRITICAL: FullScreenView vs ModalFrame
+
+**ModalFrame PANICS on full-screen areas!** This is the #1 source of bugs.
+
+| Component | Use For | Max Size |
+|-----------|---------|----------|
+| `FullScreenView` | Plugin modals (draw_modal) | Unlimited |
+| `ModalFrame` | Small centered dialogs only | 79x23 max |
+
+### Example: Plugin Modal (MUST use FullScreenView)
 
 ```rust
-use crate::ui::components::{ModalFrame, ScrollableList};
+use crate::ui::components::FullScreenView;
 
 fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
-    // Use ModalFrame for consistent double-line borders
-    let modal = ModalFrame::themed(area, " My Plugin ", colors);
+    // ALWAYS use FullScreenView for plugin modals - ModalFrame will PANIC!
+    let view = FullScreenView::new(area, " My Plugin ", colors);
+    view.render_frame(frame);
+
+    // Render content rows
+    view.render_row(frame, 0, vec![Span::styled("Content", style)]);
+
+    // Help footer
+    view.render_help(frame, vec![("Enter", "select"), ("Esc", "close")]);
+}
+```
+
+### Example: Small Centered Dialog (ModalFrame)
+
+Only use ModalFrame for small dialogs - MUST calculate centered area first:
+
+```rust
+use crate::ui::components::ModalFrame;
+
+fn draw_confirm_dialog(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
+    // Calculate centered sub-area (REQUIRED - don't pass full area!)
+    let width = area.width.min(55);
+    let height = area.height.min(14);
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    let modal_area = Rect::new(x, y, width, height);
+
+    let modal = ModalFrame::themed(modal_area, " Confirm ", colors);
     modal.render_frame(frame);
-
-    // Use ScrollableList for item selection
-    let list = ScrollableList::new(&self.items, self.selected, visible_height);
-    list.render(frame, modal.content_area(), colors, |item, selected, style| {
-        vec![Span::styled(&item.name, style)]
-    });
-
-    // Use built-in help rendering
-    modal.render_help(frame, vec![("Enter", "select"), ("Esc", "close")]);
+    modal.render_help(frame, vec![("Y", "yes"), ("N", "no")]);
 }
 ```
 

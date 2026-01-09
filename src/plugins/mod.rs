@@ -38,6 +38,7 @@ pub mod print;
 pub mod proc;
 pub mod qdconfig;
 pub mod qedit;
+pub mod qmind;
 pub mod searchspec;
 pub mod sftp;
 pub mod shell;
@@ -69,6 +70,7 @@ pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
+pub use qmind::QMindPlugin;
 pub use searchspec::SearchSpecPlugin;
 pub use sftp::SftpPlugin;
 pub use shell::ShellPlugin;
@@ -705,6 +707,13 @@ impl PluginManager {
         self.plugins
             .get_mut("sftp")
             .and_then(|p| p.as_any_mut().downcast_mut::<sftp::SftpPlugin>())
+    }
+
+    /// Get mutable reference to QMindPlugin
+    pub fn qmind_plugin_mut(&mut self) -> Option<&mut qmind::QMindPlugin> {
+        self.plugins
+            .get_mut("qmind")
+            .and_then(|p| p.as_any_mut().downcast_mut::<qmind::QMindPlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)

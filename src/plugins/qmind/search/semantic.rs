@@ -2,9 +2,9 @@
 //!
 //! Combines embeddings API and vector store for natural language file search.
 
-use crate::plugins::ai::api::{embeddings::create_embeddings_provider, AIApiConfig, ApiError};
-use crate::plugins::ai::indexer::FileIndexer;
-use crate::plugins::ai::vector::SearchResult;
+use crate::plugins::qmind::api::{embeddings::create_embeddings_provider, AIApiConfig, ApiError};
+use crate::plugins::qmind::indexer::FileIndexer;
+use crate::plugins::qmind::vector::SearchResult;
 use std::path::{Path, PathBuf};
 
 /// Result from semantic search
@@ -50,7 +50,7 @@ pub struct SemanticSearch {
 impl SemanticSearch {
     /// Create a new semantic search instance
     pub fn new(config: AIApiConfig) -> Self {
-        use crate::plugins::ai::indexer::IndexConfig;
+        use crate::plugins::qmind::indexer::IndexConfig;
 
         Self {
             indexer: FileIndexer::new(config.clone(), IndexConfig::default()),
@@ -147,7 +147,7 @@ impl SemanticSearch {
     }
 
     /// Get indexer statistics
-    pub fn stats(&self) -> &crate::plugins::ai::indexer::IndexStats {
+    pub fn stats(&self) -> &crate::plugins::qmind::indexer::IndexStats {
         self.indexer.stats()
     }
 

@@ -2,8 +2,8 @@
 //!
 //! Indexes files on-demand as the user navigates directories.
 
-use crate::plugins::ai::api::{embeddings::create_embeddings_provider, AIApiConfig, ApiError};
-use crate::plugins::ai::vector::{EntryMetadata, VectorEntry, VectorStore};
+use crate::plugins::qmind::api::{embeddings::create_embeddings_provider, AIApiConfig, ApiError};
+use crate::plugins::qmind::vector::{EntryMetadata, VectorEntry, VectorStore};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -86,8 +86,8 @@ impl FileIndexer {
     pub fn new(api_config: AIApiConfig, index_config: IndexConfig) -> Self {
         // Determine dimension based on provider
         let dimension = match api_config.provider {
-            crate::plugins::ai::api::AIProvider::OpenAI => 1536,
-            crate::plugins::ai::api::AIProvider::Anthropic => 64,
+            crate::plugins::qmind::api::AIProvider::OpenAI => 1536,
+            crate::plugins::qmind::api::AIProvider::Anthropic => 64,
         };
 
         Self {
