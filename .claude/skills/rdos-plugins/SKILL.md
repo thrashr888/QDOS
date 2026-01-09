@@ -128,7 +128,18 @@ impl MyState {
 
 ## Registration Checklist
 
-### 1. `src/plugins/mod.rs`
+### 1. `README.md`
+
+Add your plugin to the Apps section in README.md under the appropriate category:
+
+```markdown
+### Category Name
+| Key | App | Description |
+|-----|-----|-------------|
+| X | My Plugin | Short description |
+```
+
+### 2. `src/plugins/mod.rs`
 
 Add module declaration, pub use, and accessor method:
 
@@ -147,7 +158,7 @@ pub fn myplugin_plugin_mut(&mut self) -> Option<&mut myplugin::MyPlugin> {
 }
 ```
 
-### 2. `src/app/mod.rs`
+### 3. `src/app/mod.rs`
 
 Add import and registration:
 
@@ -159,7 +170,7 @@ use crate::plugins::{MyPlugin, ...};
 plugin_manager.register(Box::new(MyPlugin::new()));
 ```
 
-### 3. Apps Launcher Integration (REQUIRED)
+### 4. Apps Launcher Integration (REQUIRED)
 
 **Every plugin with `app_entry()` MUST have a handler in `launch_plugin_modal()`.**
 

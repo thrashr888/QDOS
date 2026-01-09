@@ -115,10 +115,12 @@ pub fn draw_apps_modal(frame: &mut Frame, area: Rect, state: &AppsState, colors:
         };
 
         // Format: > K  Name                Description [status]
+        // Calculate available width: total - prefix(3) - key(10) - name(16) - status - padding(2)
         let name_padded = format!("{:<16}", app.name);
-        let max_desc_len = 30usize.saturating_sub(status_indicator.len());
-        let desc_truncated = if app.description.len() > max_desc_len {
-            format!("{}...", &app.description[..max_desc_len.saturating_sub(3)])
+        let fixed_width = 3 + 10 + 16 + status_indicator.len() + 2; // prefix + key + name + status + margin
+        let available_width = (view.area.width as usize).saturating_sub(fixed_width);
+        let desc_truncated = if app.description.len() > available_width && available_width > 3 {
+            format!("{}...", &app.description[..available_width.saturating_sub(3)])
         } else {
             app.description.clone()
         };

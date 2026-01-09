@@ -25,15 +25,61 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 - **Modal Dialogs**: Help (F1), Status (F2), Disk Space (Space menu), and more
 - **Cross-Platform**: Works on macOS and Linux
 
-## Plugins
+## Apps (F12)
 
-R-DOS features a modular plugin system. Built-in plugins include:
+R-DOS features a modular plugin system accessible via the F12 Apps launcher. Built-in apps include:
 
-- **Beads**: View and manage Beads issues and comments
-- **Git**: View Git status, log, diff, and commit history
-- **Q-EDIT**: Built-in text editor (F9)
-- **Shell**: Execute shell commands (F6)
-- **Theme**: Color theme selector (Ctrl+T)
+### File Management
+| Key | App | Description |
+|-----|-----|-------------|
+| E | Editor | Built-in text editor |
+| V | Viewer | File content viewer |
+| D | Dir Map | Directory tree view |
+| N | Drives | Browse mounted volumes |
+| O | File Ops | Copy, move, delete files |
+| R | Print | Print file contents |
+| W | Search Spec | File filter pattern |
+| U | Disk Space | Disk usage analyzer |
+
+### Cloud Storage
+| Key | App | Description |
+|-----|-----|-------------|
+| D | Dropbox | Browse Dropbox with sync status |
+| O | Google Drive | Browse Google Drive |
+| I | iCloud Drive | Browse iCloud with cloud-only file support |
+| F | SFTP | Browse remote SFTP servers |
+
+### Version Control
+| Key | App | Description |
+|-----|-----|-------------|
+| G | Git | Git version control |
+| J | Jujutsu | Jujutsu VCS |
+| B | Beads | Issue tracker |
+
+### Tools
+| Key | App | Description |
+|-----|-----|-------------|
+| A | AI Assistant | Monitor AI coding tools |
+| D | Database | SQLite, PostgreSQL, MySQL browser |
+| Y | Homebrew | Browse Homebrew packages |
+| S | Shell | Interactive shell |
+| 3 | 3D Model | View 3D model files |
+
+### System
+| Key | App | Description |
+|-----|-----|-------------|
+| H | Help | Help and documentation |
+| P | Processes | System process monitor |
+| C | Config | RDOS configuration |
+| X | Status | Status bar plugin |
+| T | Theme | Color theme settings |
+
+### Media
+| Key | App | Description |
+|-----|-----|-------------|
+| M | Audio | Play audio & MIDI files |
+| Z | Video | Play video files |
+| I | BASIC | Run BASIC programs |
 
 See [spec/PLUGIN.md](spec/PLUGIN.md) for plugin development documentation.
 

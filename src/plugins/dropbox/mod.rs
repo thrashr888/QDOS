@@ -65,7 +65,8 @@ impl DropboxPlugin {
             if !self.state.is_installed {
                 self.state.error = Some("Dropbox is not installed".to_string());
             } else if !self.state.is_running {
-                self.state.error = Some("Dropbox is not running. Please start Dropbox.".to_string());
+                self.state.error =
+                    Some("Dropbox is not running. Please start Dropbox.".to_string());
             } else {
                 self.state.error = Some("Dropbox folder not found".to_string());
             }
