@@ -120,7 +120,10 @@ pub fn draw_apps_modal(frame: &mut Frame, area: Rect, state: &AppsState, colors:
         let fixed_width = 3 + 10 + 16 + status_indicator.len() + 2; // prefix + key + name + status + margin
         let available_width = (view.area.width as usize).saturating_sub(fixed_width);
         let desc_truncated = if app.description.len() > available_width && available_width > 3 {
-            format!("{}...", &app.description[..available_width.saturating_sub(3)])
+            format!(
+                "{}...",
+                &app.description[..available_width.saturating_sub(3)]
+            )
         } else {
             app.description.clone()
         };
