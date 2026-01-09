@@ -50,12 +50,20 @@ pub fn is_dropbox_running() -> bool {
 /// Get Dropbox root path
 pub fn get_dropbox_path() -> Option<PathBuf> {
     let home = dirs::home_dir()?;
+
+    // Check newer macOS CloudStorage location first (more common now)
+    let cloud_storage_path = home.join("Library/CloudStorage/Dropbox");
+    if cloud_storage_path.exists() {
+        return Some(cloud_storage_path);
+    }
+
+    // Fall back to traditional Dropbox location
     let dropbox_path = home.join("Dropbox");
     if dropbox_path.exists() {
-        Some(dropbox_path)
-    } else {
-        None
+        return Some(dropbox_path);
     }
+
+    None
 }
 
 /// Read sync status for a file using extended attributes (macOS)

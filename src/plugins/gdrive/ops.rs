@@ -10,14 +10,32 @@ use std::process::Command;
 
 /// Check if Google Drive is installed and find which variant
 pub fn detect_gdrive() -> (bool, GDriveVariant, Option<PathBuf>) {
-    // Check for Google Drive for Desktop (newer, mounts as volume)
-    let volumes_path = PathBuf::from("/Volumes/GoogleDrive");
-    if volumes_path.exists() {
-        return (true, GDriveVariant::VolumesMount, Some(volumes_path));
-    }
-
-    // Check for home folder variant
+    // Check for home folder variants first (most common now)
     if let Some(home) = dirs::home_dir() {
+        // Check for macOS CloudStorage location (Google Drive for Desktop)
+        // Format: ~/Library/CloudStorage/GoogleDrive-email@domain.com
+        let cloud_storage = home.join("Library/CloudStorage");
+        if cloud_storage.exists() {
+            if let Ok(entries) = fs::read_dir(&cloud_storage) {
+                for entry in entries.flatten() {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if name.starts_with("GoogleDrive") {
+                        let path = entry.path();
+                        // Check for "My Drive" subfolder
+                        let my_drive = path.join("My Drive");
+                        if my_drive.exists() {
+                            return (true, GDriveVariant::HomeFolder, Some(my_drive));
+                        }
+                        // Otherwise return the root Google Drive folder
+                        if path.is_dir() {
+                            return (true, GDriveVariant::HomeFolder, Some(path));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check for traditional home folder paths
         let home_path = home.join("Google Drive");
         if home_path.exists() {
             return (true, GDriveVariant::HomeFolder, Some(home_path));
@@ -28,12 +46,18 @@ pub fn detect_gdrive() -> (bool, GDriveVariant, Option<PathBuf>) {
         if my_drive.exists() {
             return (true, GDriveVariant::HomeFolder, Some(my_drive));
         }
+    }
 
-        // Check for Google Drive Stream (older)
-        let stream_path = PathBuf::from("/Volumes/GoogleDrive/My Drive");
-        if stream_path.exists() {
-            return (true, GDriveVariant::Stream, Some(stream_path));
-        }
+    // Check for Google Drive for Desktop mounted as volume
+    let volumes_path = PathBuf::from("/Volumes/GoogleDrive");
+    if volumes_path.exists() {
+        return (true, GDriveVariant::VolumesMount, Some(volumes_path));
+    }
+
+    // Check for Google Drive Stream (older)
+    let stream_path = PathBuf::from("/Volumes/GoogleDrive/My Drive");
+    if stream_path.exists() {
+        return (true, GDriveVariant::Stream, Some(stream_path));
     }
 
     (false, GDriveVariant::None, None)
