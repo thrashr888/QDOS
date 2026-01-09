@@ -3,7 +3,7 @@
 use super::ops::format_bytes;
 use super::state::{AuthMethod, ConnectField, SftpState, SftpView};
 use crate::app::ThemeColors;
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
@@ -14,10 +14,10 @@ use ratatui::{
 
 /// Draw the SFTP modal
 pub fn draw_sftp_modal(frame: &mut Frame, area: Rect, state: &SftpState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " SFTP ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " SFTP ", colors);
+    view.render_frame(frame);
 
-    let content_area = modal.content_area();
+    let content_area = view.content_area();
 
     match state.view {
         SftpView::Connections => draw_connections_view(frame, content_area, state, colors),
@@ -51,7 +51,7 @@ pub fn draw_sftp_modal(frame: &mut Frame, area: Rect, state: &SftpState, colors:
         SftpView::SaveProfile => vec![("Enter", "save"), ("Esc", "cancel")],
         SftpView::Error => vec![("Enter", "ok"), ("Esc", "close")],
     };
-    modal.render_help(frame, help);
+    view.render_help(frame, help);
 }
 
 fn draw_connections_view(frame: &mut Frame, area: Rect, state: &SftpState, colors: &ThemeColors) {

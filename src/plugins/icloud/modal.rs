@@ -4,7 +4,7 @@ use super::state::{ICloudState, ICloudSyncState, ICloudView};
 use crate::app::ThemeColors;
 use crate::plugins::cloud::ui::status_span;
 use crate::plugins::cloud::{StorageInfo, SyncStatus};
-use crate::ui::components::ModalFrame;
+use crate::ui::components::FullScreenView;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
@@ -15,10 +15,10 @@ use ratatui::{
 
 /// Draw the iCloud modal
 pub fn draw_icloud_modal(frame: &mut Frame, area: Rect, state: &ICloudState, colors: &ThemeColors) {
-    let modal = ModalFrame::themed(area, " iCloud Drive ", colors);
-    modal.render_frame(frame);
+    let view = FullScreenView::new(area, " iCloud Drive ", colors);
+    view.render_frame(frame);
 
-    let content_area = modal.content_area();
+    let content_area = view.content_area();
 
     match state.view {
         ICloudView::Browser => draw_browser_view(frame, content_area, state, colors),
@@ -34,7 +34,7 @@ pub fn draw_icloud_modal(frame: &mut Frame, area: Rect, state: &ICloudState, col
         ("D", "download"),
         ("E", "evict"),
     ];
-    modal.render_help(frame, help);
+    view.render_help(frame, help);
 }
 
 /// Draw the file browser view
