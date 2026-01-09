@@ -28,6 +28,7 @@ pub fn draw_qmind_modal(
         QMindView::SemanticSearch => draw_semantic_search(frame, area, state, colors),
         QMindView::IndexStatus => draw_index_status(frame, area, state, colors),
         QMindView::FileSummary => draw_file_summary(frame, area, state, colors),
+        QMindView::DryRun => draw_dry_run(frame, area, state, colors),
     }
 }
 
@@ -306,6 +307,50 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
                 )],
             );
         }
+
+        // Show found files if any
+        if !state.found_files.is_empty() {
+            row += 2;
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Found {} files:", state.found_files.len()),
+                    Style::default().fg(colors.green()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+
+            // Show up to 10 files
+            for file in state.found_files.iter().take(10) {
+                let name = file.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| file.to_string_lossy().to_string());
+                let size = std::fs::metadata(file)
+                    .map(|m| format!("{} bytes", m.len()))
+                    .unwrap_or_default();
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("  {} {}", name, size),
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            if state.found_files.len() > 10 {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("  ... and {} more", state.found_files.len() - 10),
+                        Style::default().fg(colors.grey()).bg(colors.bg()),
+                    )],
+                );
+            }
+        }
     } else if !state.api_available {
         view.render_row(
             frame,
@@ -568,4 +613,123 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
     }
 
     view.render_help(frame, vec![("Esc", "back")]);
+}
+
+/// Draw dry run confirmation view
+fn draw_dry_run(frame: &mut Frame, area: Rect, state: &QMindState, colors: &ThemeColors) {
+    let view = FullScreenView::new(area, " Confirm Operation ", colors);
+    view.render_frame(frame);
+
+    let mut row = 0;
+
+    if let Some(ref dry_run) = state.dry_run {
+        // Source description
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                &dry_run.source,
+                Style::default().fg(colors.green()).bg(colors.bg()),
+            )],
+        );
+        row += 2;
+
+        // Warning for destructive operations
+        if dry_run.has_destructive() {
+            let warning = if dry_run.has_deletions() {
+                format!(
+                    "WARNING: {} destructive operation(s), including deletions!",
+                    dry_run.destructive_count()
+                )
+            } else {
+                format!(
+                    "WARNING: {} destructive operation(s)",
+                    dry_run.destructive_count()
+                )
+            };
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    warning,
+                    Style::default().fg(colors.red()).bg(colors.bg()),
+                )],
+            );
+            row += 2;
+        }
+
+        // Operations list
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Operations ({}):", dry_run.operations.len()),
+                Style::default().fg(colors.fg()).bg(colors.bg()),
+            )],
+        );
+        row += 1;
+
+        // List operations with selection
+        for (i, op) in dry_run.operations.iter().enumerate().take(15) {
+            let is_selected = i == dry_run.selected;
+            let prefix = if is_selected { ">" } else { " " };
+
+            // Color based on operation type
+            let op_color = if op.op_type.is_destructive() {
+                colors.red()
+            } else {
+                colors.cyan()
+            };
+
+            let path_str = op.path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| op.path.to_string_lossy().to_string());
+
+            let line = format!(
+                "{} [{:6}] {} - {}",
+                prefix,
+                op.op_type.label(),
+                path_str,
+                op.description
+            );
+
+            let style = if is_selected {
+                Style::default().fg(colors.yellow()).bg(colors.red())
+            } else {
+                Style::default().fg(op_color).bg(colors.bg())
+            };
+
+            view.render_row(frame, row, vec![Span::styled(line, style)]);
+            row += 1;
+        }
+
+        if dry_run.operations.len() > 15 {
+            row += 1;
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("... and {} more operations", dry_run.operations.len() - 15),
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                )],
+            );
+        }
+    } else {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "No operation to confirm",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+    }
+
+    // Help depends on whether destructive
+    let has_destructive = state.dry_run.as_ref().map(|dr| dr.has_destructive()).unwrap_or(false);
+    if has_destructive {
+        view.render_help(frame, vec![("Y", "confirm"), ("N/Esc", "cancel")]);
+    } else {
+        view.render_help(frame, vec![("Y/Enter", "confirm"), ("N/Esc", "cancel")]);
+    }
 }

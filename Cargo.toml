@@ -97,6 +97,7 @@ homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
 beads-cli = { path = "crates/beads" }
 search-tools = { path = "crates/search" }
+glob = "0.3.3"
 
 [profile.release]
 lto = true

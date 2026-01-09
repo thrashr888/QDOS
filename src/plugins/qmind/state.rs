@@ -238,6 +238,8 @@ pub enum QMindView {
     IndexStatus,
     /// File summary view
     FileSummary,
+    /// Dry run confirmation for destructive operations
+    DryRun,
 }
 
 impl QMindView {
@@ -248,6 +250,7 @@ impl QMindView {
             QMindView::SemanticSearch => "Semantic Search",
             QMindView::IndexStatus => "Index Status",
             QMindView::FileSummary => "File Summary",
+            QMindView::DryRun => "Confirm Operation",
         }
     }
 }
@@ -284,6 +287,10 @@ pub struct QMindState {
     pub current_summary: Option<String>,
     /// Last parsed command (for display/execution)
     pub last_parsed_command: Option<ParsedCommand>,
+    /// Found files from Find/List operations
+    pub found_files: Vec<std::path::PathBuf>,
+    /// Dry run state for operation confirmation
+    pub dry_run: Option<DryRunState>,
     /// Error message (if any)
     pub error: Option<String>,
 }

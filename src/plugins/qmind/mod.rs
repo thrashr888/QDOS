@@ -16,11 +16,11 @@ use crate::plugins::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
     PluginStatusInfo,
 };
-use command::CommandParser;
+use command::{CommandExecutor, CommandParser, ExecutionResult};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
 use search::SemanticSearch;
-use state::{QMindState, QMindView, SearchResult};
+use state::{DryRunState, QMindState, QMindView, SearchResult};
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -81,7 +81,7 @@ impl QMindPlugin {
         self.loading = false;
     }
 
-    /// Parse a natural language command
+    /// Parse and execute a natural language command
     fn parse_command(&mut self) {
         let input = self.state.command_input.text().to_string();
         if input.is_empty() {
@@ -89,6 +89,7 @@ impl QMindPlugin {
         }
 
         self.state.clear_error();
+        self.state.found_files.clear();
 
         // Get or create parser
         if self.parser.is_none() {
@@ -98,8 +99,33 @@ impl QMindPlugin {
         if let Some(parser) = &self.parser {
             match parser.parse(&input) {
                 Ok(cmd) => {
-                    // Store the parsed command for display/execution
-                    self.state.last_parsed_command = Some(cmd);
+                    // Store the parsed command for display
+                    self.state.last_parsed_command = Some(cmd.clone());
+
+                    // Execute the command
+                    let executor = CommandExecutor::new(self.cwd.clone());
+                    match executor.execute(&cmd) {
+                        ExecutionResult::Success(msg) => {
+                            self.state.set_error(msg); // Use error field for status messages too
+                        }
+                        ExecutionResult::Found(files) => {
+                            self.state.found_files = files;
+                        }
+                        ExecutionResult::NeedsDryRun(ops) => {
+                            // Set up dry run state
+                            self.state.dry_run = Some(DryRunState::new(
+                                format!("Q-MIND: {}", cmd.explanation),
+                                ops,
+                            ));
+                            self.state.view = QMindView::DryRun;
+                        }
+                        ExecutionResult::Error(e) => {
+                            self.state.set_error(e);
+                        }
+                        ExecutionResult::Unsupported(msg) => {
+                            self.state.set_error(msg);
+                        }
+                    }
                 }
                 Err(e) => {
                     self.state.set_error(format!("Parse error: {}", e));
@@ -162,6 +188,21 @@ impl QMindPlugin {
                 }
             }
         }
+    }
+
+    /// Execute confirmed dry run operations
+    fn execute_dry_run(&mut self) {
+        if let Some(dry_run) = self.state.dry_run.take() {
+            match CommandExecutor::execute_confirmed(&dry_run.operations) {
+                Ok(count) => {
+                    self.state.set_error(format!("Executed {} operations successfully", count));
+                }
+                Err(e) => {
+                    self.state.set_error(format!("Execution failed: {}", e));
+                }
+            }
+        }
+        self.state.view = QMindView::CommandPalette;
     }
 }
 
@@ -354,6 +395,51 @@ impl Plugin for QMindPlugin {
                 }
                 _ => KeyHandleResult::Handled,
             },
+            QMindView::DryRun => {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
+                        // Cancel - clear dry run and return to command palette
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.cancelled = true;
+                        }
+                        self.state.dry_run = None;
+                        self.state.view = QMindView::CommandPalette;
+                        self.state.set_error("Operation cancelled".to_string());
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        // Confirm and execute
+                        self.execute_dry_run();
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Enter => {
+                        // Enter only confirms for non-destructive operations
+                        let has_destructive = self
+                            .state
+                            .dry_run
+                            .as_ref()
+                            .map(|dr| dr.has_destructive())
+                            .unwrap_or(false);
+                        if !has_destructive {
+                            self.execute_dry_run();
+                        }
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.select_prev();
+                        }
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.select_next();
+                        }
+                        KeyHandleResult::Handled
+                    }
+                    _ => KeyHandleResult::Handled,
+                }
+            }
         }
     }
 
