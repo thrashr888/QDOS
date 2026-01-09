@@ -239,8 +239,6 @@ impl QMindPlugin {
             }
         };
 
-        self.state.clear_error();
-
         // Get or create summarizer
         if self.summarizer.is_none() {
             self.summarizer = Some(FileSummarizer::from_env());
@@ -250,7 +248,7 @@ impl QMindPlugin {
             match summarizer.summarize(&path) {
                 Ok(summary) => {
                     self.state.file_summary = Some(summary);
-                    self.state.view = QMindView::FileSummary;
+                    // View is already set to FileSummary by caller
                 }
                 Err(e) => {
                     self.state.set_error(format!("Summary error: {}", e));
@@ -338,8 +336,15 @@ impl Plugin for QMindPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('f') | KeyCode::Char('F') => {
-                    // Trigger file summary for selected file
-                    self.summarize_file();
+                    // Start file summary generation (happens in tick())
+                    if self.selected_file.is_some() {
+                        self.state.generating_summary = true;
+                        self.state.file_summary = None;
+                        self.state.clear_error();
+                        self.state.view = QMindView::FileSummary;
+                    } else {
+                        self.state.set_error("No file selected".to_string());
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -517,6 +522,11 @@ impl Plugin for QMindPlugin {
     fn tick(&mut self) {
         if self.loading {
             self.initialize();
+        }
+        // Handle deferred summary generation (allows UI to show "Generating..." first)
+        if self.state.generating_summary {
+            self.summarize_file();
+            self.state.generating_summary = false;
         }
     }
 

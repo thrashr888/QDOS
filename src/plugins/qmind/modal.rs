@@ -761,6 +761,36 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
+    } else if state.generating_summary {
+        // Show generating status
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "Generating summary...",
+                Style::default().fg(colors.yellow()).bg(colors.bg()),
+            )],
+        );
+        row += 2;
+
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "Please wait while the AI analyzes the file",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+    } else if let Some(ref error) = state.error {
+        // Show error
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Error: {}", error),
+                Style::default().fg(colors.red()).bg(colors.bg()),
+            )],
+        );
     } else {
         view.render_row(
             frame,

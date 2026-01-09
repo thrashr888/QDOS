@@ -278,6 +278,8 @@ pub struct QMindState {
     pub indexed_count: usize,
     /// Whether currently indexing
     pub indexing: bool,
+    /// Whether currently generating a file summary
+    pub generating_summary: bool,
     /// Status message (shown in Index Status view)
     pub status_message: Option<String>,
     /// Command palette text input
