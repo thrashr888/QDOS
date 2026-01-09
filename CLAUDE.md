@@ -73,6 +73,27 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+### Issue Lifecycle Rules
+
+**IMPORTANT**: Follow this order for issue completion:
+
+1. **Code complete** - Implementation is done, tests pass
+2. **Commit code** - Create git commit(s) for the work
+3. **Wait for user** - DO NOT close issues yet
+4. **User tests** - Let user test the implementation
+5. **User pushes** - User pushes code to remote
+6. **Then close issues** - Only close after code is pushed and tested
+
+**DO NOT** close issues immediately after implementation. The user needs to:
+- Review the changes
+- Test the functionality
+- Push the code to remote
+
+**Epics** should only be closed after:
+- All child issues are closed
+- The feature has been tested by user
+- The code has been pushed to remote
+
 ## Version Control
 
 This project uses **jj** (Jujutsu) colocated with git. jj provides:
@@ -110,10 +131,10 @@ Before ending a session:
 
 1. File issues for remaining work
 2. Verify quality gates pass (`cargo fmt --check`, `cargo clippy`, `cargo test`)
-3. Update issue status - close finished work
-4. One commit per beads issue
+3. Create commits for completed work (one commit per beads issue recommended)
+4. DO NOT close issues - leave that for user after testing/pushing
 5. NEVER `bd sync` or `git push` and NEVER ask to do so
-6. Only close a release epic after the release is published
+6. Only close epics after the release is published or user confirms
 
 ## UI Component Library
 
