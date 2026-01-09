@@ -4,6 +4,151 @@
 
 use std::path::PathBuf;
 
+/// Type of file operation for dry run preview
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DryRunOpType {
+    /// Create a new file
+    Create,
+    /// Modify an existing file
+    Modify,
+    /// Delete a file (DANGEROUS)
+    Delete,
+    /// Rename/move a file
+    Rename,
+    /// Copy a file
+    Copy,
+    /// Execute a command
+    Execute,
+}
+
+impl DryRunOpType {
+    pub fn label(&self) -> &'static str {
+        match self {
+            DryRunOpType::Create => "CREATE",
+            DryRunOpType::Modify => "MODIFY",
+            DryRunOpType::Delete => "DELETE",
+            DryRunOpType::Rename => "RENAME",
+            DryRunOpType::Copy => "COPY",
+            DryRunOpType::Execute => "EXEC",
+        }
+    }
+
+    pub fn is_destructive(&self) -> bool {
+        matches!(self, DryRunOpType::Delete | DryRunOpType::Modify)
+    }
+}
+
+/// A single planned operation in the dry run preview
+#[derive(Debug, Clone)]
+pub struct DryRunOperation {
+    /// Type of operation
+    pub op_type: DryRunOpType,
+    /// Primary path affected
+    pub path: PathBuf,
+    /// Secondary path (for rename/copy destination)
+    pub dest_path: Option<PathBuf>,
+    /// Description of the change
+    pub description: String,
+    /// Preview of content changes (for diffs)
+    pub preview: Option<String>,
+}
+
+impl DryRunOperation {
+    pub fn new(op_type: DryRunOpType, path: PathBuf, description: impl Into<String>) -> Self {
+        Self {
+            op_type,
+            path,
+            dest_path: None,
+            description: description.into(),
+            preview: None,
+        }
+    }
+
+    pub fn with_dest(mut self, dest: PathBuf) -> Self {
+        self.dest_path = Some(dest);
+        self
+    }
+
+    pub fn with_preview(mut self, preview: impl Into<String>) -> Self {
+        self.preview = Some(preview.into());
+        self
+    }
+}
+
+/// State for the dry run confirmation view
+#[derive(Debug, Clone, Default)]
+pub struct DryRunState {
+    /// List of operations to preview
+    pub operations: Vec<DryRunOperation>,
+    /// Currently selected operation index
+    pub selected: usize,
+    /// Scroll offset for long lists
+    pub scroll_offset: usize,
+    /// Whether user has confirmed (Y pressed)
+    pub confirmed: bool,
+    /// Whether user has cancelled (N/Esc pressed)
+    pub cancelled: bool,
+    /// Source description (e.g., "AI command: organize files")
+    pub source: String,
+}
+
+impl DryRunState {
+    pub fn new(source: impl Into<String>, operations: Vec<DryRunOperation>) -> Self {
+        Self {
+            operations,
+            selected: 0,
+            scroll_offset: 0,
+            confirmed: false,
+            cancelled: false,
+            source: source.into(),
+        }
+    }
+
+    /// Count destructive operations
+    pub fn destructive_count(&self) -> usize {
+        self.operations
+            .iter()
+            .filter(|op| op.op_type.is_destructive())
+            .count()
+    }
+
+    /// Check if any operations are destructive
+    pub fn has_destructive(&self) -> bool {
+        self.operations.iter().any(|op| op.op_type.is_destructive())
+    }
+
+    /// Check if any operations are deletions
+    pub fn has_deletions(&self) -> bool {
+        self.operations
+            .iter()
+            .any(|op| op.op_type == DryRunOpType::Delete)
+    }
+
+    /// Move selection up
+    pub fn select_prev(&mut self) {
+        if self.selected > 0 {
+            self.selected -= 1;
+            if self.selected < self.scroll_offset {
+                self.scroll_offset = self.selected;
+            }
+        }
+    }
+
+    /// Move selection down
+    pub fn select_next(&mut self) {
+        if self.selected < self.operations.len().saturating_sub(1) {
+            self.selected += 1;
+        }
+    }
+
+    /// Adjust scroll for visible height
+    pub fn adjust_scroll(&mut self, visible_height: usize) {
+        if self.selected >= self.scroll_offset + visible_height {
+            self.scroll_offset = self.selected.saturating_sub(visible_height - 1);
+        }
+    }
+}
+
 /// Supported AI CLI providers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AIProvider {
@@ -66,6 +211,8 @@ pub enum AIView {
     Gemini,
     Cursor,
     Copilot,
+    /// Dry run confirmation view for AI operations
+    DryRun,
 }
 
 impl AIView {
@@ -77,6 +224,7 @@ impl AIView {
             AIView::Gemini => "Gemini CLI Status",
             AIView::Cursor => "Cursor Status",
             AIView::Copilot => "GitHub Copilot Status",
+            AIView::DryRun => "AI Operation Preview",
         }
     }
 }
@@ -222,6 +370,8 @@ pub struct AIState {
     pub cursor: CursorStatus,
     pub copilot: CopilotStatus,
     pub scroll_offset: usize,
+    /// Dry run state for operation confirmation
+    pub dry_run: Option<DryRunState>,
 }
 
 impl AIState {
@@ -248,5 +398,115 @@ impl AIState {
             count += 1;
         }
         count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dry_run_op_type_labels() {
+        assert_eq!(DryRunOpType::Create.label(), "CREATE");
+        assert_eq!(DryRunOpType::Modify.label(), "MODIFY");
+        assert_eq!(DryRunOpType::Delete.label(), "DELETE");
+        assert_eq!(DryRunOpType::Rename.label(), "RENAME");
+        assert_eq!(DryRunOpType::Copy.label(), "COPY");
+        assert_eq!(DryRunOpType::Execute.label(), "EXEC");
+    }
+
+    #[test]
+    fn test_dry_run_op_type_destructive() {
+        assert!(!DryRunOpType::Create.is_destructive());
+        assert!(DryRunOpType::Modify.is_destructive());
+        assert!(DryRunOpType::Delete.is_destructive());
+        assert!(!DryRunOpType::Rename.is_destructive());
+        assert!(!DryRunOpType::Copy.is_destructive());
+        assert!(!DryRunOpType::Execute.is_destructive());
+    }
+
+    #[test]
+    fn test_dry_run_operation_builder() {
+        let op = DryRunOperation::new(
+            DryRunOpType::Rename,
+            PathBuf::from("/old/path.txt"),
+            "Rename file",
+        )
+        .with_dest(PathBuf::from("/new/path.txt"))
+        .with_preview("File will be moved");
+
+        assert_eq!(op.op_type, DryRunOpType::Rename);
+        assert_eq!(op.path, PathBuf::from("/old/path.txt"));
+        assert_eq!(op.dest_path, Some(PathBuf::from("/new/path.txt")));
+        assert_eq!(op.description, "Rename file");
+        assert_eq!(op.preview, Some("File will be moved".to_string()));
+    }
+
+    #[test]
+    fn test_dry_run_state_destructive_counts() {
+        let ops = vec![
+            DryRunOperation::new(DryRunOpType::Create, PathBuf::from("/a"), "Create file"),
+            DryRunOperation::new(DryRunOpType::Delete, PathBuf::from("/b"), "Delete file"),
+            DryRunOperation::new(DryRunOpType::Modify, PathBuf::from("/c"), "Modify file"),
+            DryRunOperation::new(DryRunOpType::Copy, PathBuf::from("/d"), "Copy file"),
+        ];
+
+        let state = DryRunState::new("Test operation", ops);
+
+        assert_eq!(state.destructive_count(), 2); // Delete + Modify
+        assert!(state.has_destructive());
+        assert!(state.has_deletions());
+    }
+
+    #[test]
+    fn test_dry_run_state_no_destructive() {
+        let ops = vec![
+            DryRunOperation::new(DryRunOpType::Create, PathBuf::from("/a"), "Create file"),
+            DryRunOperation::new(DryRunOpType::Copy, PathBuf::from("/b"), "Copy file"),
+        ];
+
+        let state = DryRunState::new("Safe operation", ops);
+
+        assert_eq!(state.destructive_count(), 0);
+        assert!(!state.has_destructive());
+        assert!(!state.has_deletions());
+    }
+
+    #[test]
+    fn test_dry_run_state_navigation() {
+        let ops = vec![
+            DryRunOperation::new(DryRunOpType::Create, PathBuf::from("/a"), "Op 1"),
+            DryRunOperation::new(DryRunOpType::Create, PathBuf::from("/b"), "Op 2"),
+            DryRunOperation::new(DryRunOpType::Create, PathBuf::from("/c"), "Op 3"),
+        ];
+
+        let mut state = DryRunState::new("Test", ops);
+
+        assert_eq!(state.selected, 0);
+
+        state.select_next();
+        assert_eq!(state.selected, 1);
+
+        state.select_next();
+        assert_eq!(state.selected, 2);
+
+        // Should not go past end
+        state.select_next();
+        assert_eq!(state.selected, 2);
+
+        state.select_prev();
+        assert_eq!(state.selected, 1);
+
+        state.select_prev();
+        assert_eq!(state.selected, 0);
+
+        // Should not go past start
+        state.select_prev();
+        assert_eq!(state.selected, 0);
+    }
+
+    #[test]
+    fn test_ai_view_dry_run_title() {
+        assert_eq!(AIView::DryRun.title(), "AI Operation Preview");
     }
 }

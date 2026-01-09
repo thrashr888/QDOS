@@ -3,7 +3,7 @@
 //! UI components for displaying AI CLI tool status.
 //! Uses FullScreenView for full-screen modal display.
 
-use super::state::{AIMenuItem, AIState, AIView};
+use super::state::{AIMenuItem, AIState, AIView, DryRunOpType};
 use crate::app::ThemeColors;
 use crate::ui::components::FullScreenView;
 use ratatui::{layout::Rect, style::Style, text::Span, Frame};
@@ -29,6 +29,7 @@ pub fn draw_ai_modal(
         AIView::Gemini => draw_gemini_view(frame, area, state, colors),
         AIView::Cursor => draw_cursor_view(frame, area, state, colors),
         AIView::Copilot => draw_copilot_view(frame, area, state, colors),
+        AIView::DryRun => draw_dry_run_view(frame, area, state, colors),
     }
 }
 
@@ -1029,4 +1030,175 @@ fn draw_copilot_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
     );
 
     view.render_help(frame, vec![("R", "refresh"), ("Esc", "back")]);
+}
+
+/// Draw dry run confirmation view
+///
+/// Shows list of planned operations requiring explicit user confirmation.
+/// Destructive operations (DELETE, MODIFY) are highlighted in red.
+fn draw_dry_run_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
+    let view = FullScreenView::new(area, " AI Operation Preview ", colors);
+    view.render_frame(frame);
+
+    let dry_run = match &state.dry_run {
+        Some(dr) => dr,
+        None => {
+            view.render_row(
+                frame,
+                1,
+                vec![Span::styled(
+                    "No operations to preview",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                )],
+            );
+            view.render_help(frame, vec![("Esc", "close")]);
+            return;
+        }
+    };
+
+    let mut row = 0;
+
+    // Header with source and warning
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            &dry_run.source,
+            Style::default().fg(colors.yellow()).bg(colors.bg()),
+        )],
+    );
+    row += 1;
+
+    // Warning if destructive operations
+    if dry_run.has_destructive() {
+        let warning = if dry_run.has_deletions() {
+            format!(
+                "WARNING: {} destructive operation(s) including DELETIONS!",
+                dry_run.destructive_count()
+            )
+        } else {
+            format!(
+                "WARNING: {} destructive operation(s)!",
+                dry_run.destructive_count()
+            )
+        };
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                warning,
+                Style::default().fg(colors.red()).bg(colors.bg()),
+            )],
+        );
+        row += 1;
+    }
+
+    row += 1;
+
+    // Operations header
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            format!("Planned Operations ({})", dry_run.operations.len()),
+            Style::default().fg(colors.green()).bg(colors.bg()),
+        )],
+    );
+    row += 1;
+
+    // Column header
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            "  TYPE     PATH",
+            Style::default().fg(colors.grey()).bg(colors.bg()),
+        )],
+    );
+    row += 1;
+
+    // Calculate visible height (leave room for header and footer)
+    let visible_height = (area.height as usize).saturating_sub(row as usize + 4);
+
+    // Render operations list
+    for (i, op) in dry_run
+        .operations
+        .iter()
+        .skip(dry_run.scroll_offset)
+        .take(visible_height)
+        .enumerate()
+    {
+        let actual_idx = i + dry_run.scroll_offset;
+        let is_selected = actual_idx == dry_run.selected;
+
+        // Color based on operation type
+        let op_color = match op.op_type {
+            DryRunOpType::Delete => colors.red(),
+            DryRunOpType::Modify => colors.yellow(),
+            DryRunOpType::Create => colors.green(),
+            DryRunOpType::Rename | DryRunOpType::Copy => colors.cyan(),
+            DryRunOpType::Execute => colors.blue(),
+        };
+
+        let prefix = if is_selected { ">" } else { " " };
+
+        // Format path - truncate if too long
+        let path_str = op.path.to_string_lossy();
+        let max_path_len = (area.width as usize).saturating_sub(15);
+        let path_display = if path_str.len() > max_path_len {
+            format!("...{}", &path_str[path_str.len() - max_path_len + 3..])
+        } else {
+            path_str.to_string()
+        };
+
+        let line = format!("{} {:6}  {}", prefix, op.op_type.label(), path_display);
+
+        let style = if is_selected {
+            Style::default().fg(colors.yellow()).bg(colors.red())
+        } else {
+            Style::default().fg(op_color).bg(colors.bg())
+        };
+
+        view.render_row(frame, row + i as u16, vec![Span::styled(line, style)]);
+    }
+
+    // Show selected operation details if available
+    if let Some(selected_op) = dry_run.operations.get(dry_run.selected) {
+        let detail_row = row + visible_height as u16 + 1;
+
+        // Description
+        view.render_row(
+            frame,
+            detail_row,
+            vec![Span::styled(
+                &selected_op.description,
+                Style::default().fg(colors.fg()).bg(colors.bg()),
+            )],
+        );
+
+        // Destination for rename/copy
+        if let Some(ref dest) = selected_op.dest_path {
+            view.render_row(
+                frame,
+                detail_row + 1,
+                vec![Span::styled(
+                    format!("  -> {}", dest.display()),
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                )],
+            );
+        }
+    }
+
+    // Footer with confirmation prompt
+    if dry_run.has_destructive() {
+        view.render_help(
+            frame,
+            vec![("↑↓", "select"), ("Y", "CONFIRM"), ("N/Esc", "cancel")],
+        );
+    } else {
+        view.render_help(
+            frame,
+            vec![("↑↓", "select"), ("Enter/Y", "confirm"), ("Esc", "cancel")],
+        );
+    }
 }

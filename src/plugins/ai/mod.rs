@@ -19,7 +19,10 @@ use std::path::PathBuf;
 
 // Re-export types for external use
 #[allow(unused_imports)]
-pub use state::{AIProvider, ClaudeStatus, CodexStatus, CopilotStatus, CursorStatus, GeminiStatus};
+pub use state::{
+    AIProvider, ClaudeStatus, CodexStatus, CopilotStatus, CursorStatus, DryRunOpType,
+    DryRunOperation, DryRunState, GeminiStatus,
+};
 
 /// AI Assistant plugin for monitoring AI CLI tools
 pub struct AIPlugin {
@@ -61,6 +64,52 @@ impl AIPlugin {
         self.state.cursor = cursor;
         self.state.copilot = copilot;
         self.loading = false;
+    }
+
+    /// Start a dry run preview with a list of operations
+    ///
+    /// This opens the dry run confirmation view where the user must
+    /// explicitly confirm before any operations are executed.
+    pub fn start_dry_run(
+        &mut self,
+        source: impl Into<String>,
+        operations: Vec<state::DryRunOperation>,
+    ) {
+        self.state.dry_run = Some(state::DryRunState::new(source, operations));
+        self.state.view = AIView::DryRun;
+    }
+
+    /// Check if dry run was confirmed by user
+    pub fn is_dry_run_confirmed(&self) -> bool {
+        self.state
+            .dry_run
+            .as_ref()
+            .map(|dr| dr.confirmed)
+            .unwrap_or(false)
+    }
+
+    /// Check if dry run was cancelled by user
+    pub fn is_dry_run_cancelled(&self) -> bool {
+        self.state
+            .dry_run
+            .as_ref()
+            .map(|dr| dr.cancelled)
+            .unwrap_or(false)
+    }
+
+    /// Get the confirmed operations (only if user confirmed)
+    pub fn take_confirmed_operations(&mut self) -> Option<Vec<state::DryRunOperation>> {
+        if self.is_dry_run_confirmed() {
+            self.state.dry_run.take().map(|dr| dr.operations)
+        } else {
+            None
+        }
+    }
+
+    /// Clear dry run state and return to overview
+    pub fn clear_dry_run(&mut self) {
+        self.state.dry_run = None;
+        self.state.view = AIView::Overview;
     }
 }
 
@@ -219,6 +268,59 @@ impl Plugin for AIPlugin {
                     }
                     KeyCode::Char('r') | KeyCode::Char('R') => {
                         self.refresh_status();
+                        KeyHandleResult::Handled
+                    }
+                    _ => KeyHandleResult::Handled,
+                }
+            }
+            AIView::DryRun => {
+                // Dry run confirmation view - requires explicit Y/N
+                match key.code {
+                    KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
+                        // Cancel - mark as cancelled and close
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.cancelled = true;
+                        }
+                        self.state.view = AIView::Overview;
+                        KeyHandleResult::CloseWithError("Operation cancelled".to_string())
+                    }
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        // Confirm - mark as confirmed and close
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.confirmed = true;
+                        }
+                        self.state.view = AIView::Overview;
+                        KeyHandleResult::CloseWithSuccess("Operations confirmed".to_string())
+                    }
+                    KeyCode::Enter => {
+                        // Enter only confirms for non-destructive operations
+                        let has_destructive = self
+                            .state
+                            .dry_run
+                            .as_ref()
+                            .map(|dr| dr.has_destructive())
+                            .unwrap_or(false);
+                        if !has_destructive {
+                            if let Some(ref mut dr) = self.state.dry_run {
+                                dr.confirmed = true;
+                            }
+                            self.state.view = AIView::Overview;
+                            KeyHandleResult::CloseWithSuccess("Operations confirmed".to_string())
+                        } else {
+                            // For destructive ops, Enter does nothing - must use Y
+                            KeyHandleResult::Handled
+                        }
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.select_prev();
+                        }
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if let Some(ref mut dr) = self.state.dry_run {
+                            dr.select_next();
+                        }
                         KeyHandleResult::Handled
                     }
                     _ => KeyHandleResult::Handled,
