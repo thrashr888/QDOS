@@ -577,6 +577,31 @@ fn draw_index_status(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
     );
     row += 1;
 
+    // Indexing status
+    let index_status = if state.indexing {
+        ("Indexing...", colors.yellow())
+    } else if state.indexed_count > 0 {
+        ("Ready", colors.green())
+    } else {
+        ("Not indexed", colors.grey())
+    };
+
+    view.render_row(
+        frame,
+        row,
+        vec![
+            Span::styled(
+                "  Index Status:   ",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            ),
+            Span::styled(
+                index_status.0,
+                Style::default().fg(index_status.1).bg(colors.bg()),
+            ),
+        ],
+    );
+    row += 1;
+
     view.render_row(
         frame,
         row,
@@ -593,11 +618,24 @@ fn draw_index_status(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
     );
     row += 2;
 
+    // Show status message if any
+    if let Some(ref msg) = state.status_message {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                msg.as_str(),
+                Style::default().fg(colors.cyan()).bg(colors.bg()),
+            )],
+        );
+        row += 2;
+    }
+
     view.render_row(
         frame,
         row,
         vec![Span::styled(
-            "Press R to rebuild index",
+            "Press R to rebuild index (recursive, respects .gitignore)",
             Style::default().fg(colors.grey()).bg(colors.bg()),
         )],
     );

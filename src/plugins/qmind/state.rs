@@ -276,6 +276,10 @@ pub struct QMindState {
     pub api_available: bool,
     /// Number of indexed files
     pub indexed_count: usize,
+    /// Whether currently indexing
+    pub indexing: bool,
+    /// Status message (shown in Index Status view)
+    pub status_message: Option<String>,
     /// Command palette text input
     pub command_input: TextInputState,
     /// Search text input

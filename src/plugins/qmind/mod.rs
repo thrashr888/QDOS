@@ -81,7 +81,14 @@ impl QMindPlugin {
                 self.parser = Some(CommandParser::from_env());
             }
             if self.searcher.is_none() {
-                self.searcher = Some(SemanticSearch::from_env());
+                // Load existing index from disk
+                let searcher = SemanticSearch::from_env();
+                self.state.indexed_count = searcher.indexed_count();
+                if self.state.indexed_count > 0 {
+                    self.state.status_message =
+                        Some(format!("Loaded {} indexed files", self.state.indexed_count));
+                }
+                self.searcher = Some(searcher);
             }
         }
 
@@ -178,6 +185,8 @@ impl QMindPlugin {
     /// Index the current directory tree (recursive, respects .gitignore)
     fn index_directory(&mut self) {
         self.state.clear_error();
+        self.state.indexing = true;
+        self.state.status_message = Some("Indexing directory tree...".to_string());
 
         // Get or create searcher
         if self.searcher.is_none() {
@@ -189,14 +198,19 @@ impl QMindPlugin {
             match searcher.index_tree(&self.cwd) {
                 Ok(count) => {
                     self.state.indexed_count = searcher.indexed_count();
-                    self.state
-                        .set_error(format!("Indexed {} files (recursive)", count));
+                    self.state.status_message = Some(format!(
+                        "Indexed {} new files ({} total)",
+                        count, self.state.indexed_count
+                    ));
                 }
                 Err(e) => {
+                    self.state.status_message = Some(format!("Index error: {}", e));
                     self.state.set_error(format!("Index error: {}", e));
                 }
             }
         }
+
+        self.state.indexing = false;
     }
 
     /// Execute confirmed dry run operations

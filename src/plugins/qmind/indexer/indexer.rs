@@ -372,6 +372,38 @@ impl FileIndexer {
     pub fn is_indexed(&self, path: &Path) -> bool {
         self.indexed_paths.contains(path)
     }
+
+    /// Save index to default location
+    pub fn save(&self) -> Result<(), IndexError> {
+        if let Some(path) = VectorStore::default_index_path() {
+            self.store
+                .save(&path)
+                .map_err(|e| IndexError::IoError(e.to_string()))?;
+        }
+        Ok(())
+    }
+
+    /// Load index from default location (returns new indexer if file exists)
+    pub fn load_or_new(api_config: AIApiConfig, index_config: IndexConfig) -> Self {
+        if let Some(path) = VectorStore::default_index_path() {
+            if path.exists() {
+                if let Ok(store) = VectorStore::load(&path) {
+                    let indexed_count = store.len();
+                    return Self {
+                        config: api_config,
+                        index_config,
+                        indexed_paths: store.ids().map(PathBuf::from).collect(),
+                        stats: IndexStats {
+                            files_indexed: indexed_count,
+                            ..Default::default()
+                        },
+                        store,
+                    };
+                }
+            }
+        }
+        Self::new(api_config, index_config)
+    }
 }
 
 /// Errors from indexing operations

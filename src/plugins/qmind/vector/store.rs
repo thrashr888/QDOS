@@ -1,12 +1,16 @@
 //! In-memory vector store with cosine similarity
 //!
 //! Stores file embeddings and provides semantic search functionality.
+//! Supports persistence to disk.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 
 /// A single entry in the vector store
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VectorEntry {
     /// Unique identifier (usually file path)
     pub id: String,
@@ -17,7 +21,7 @@ pub struct VectorEntry {
 }
 
 /// Metadata associated with a vector entry
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct EntryMetadata {
     /// File path
     pub path: PathBuf,
@@ -80,6 +84,13 @@ impl SearchResult {
     pub fn new(entry: VectorEntry, score: f32) -> Self {
         Self { entry, score }
     }
+}
+
+/// Serializable store data for persistence
+#[derive(Serialize, Deserialize)]
+struct StoreData {
+    dimension: usize,
+    entries: Vec<VectorEntry>,
 }
 
 /// In-memory vector store
@@ -208,6 +219,46 @@ impl VectorStore {
             .filter(|e| e.metadata.path.starts_with(dir))
             .collect()
     }
+
+    /// Save store to a file
+    pub fn save(&self, path: &Path) -> Result<(), VectorStoreError> {
+        // Ensure parent directory exists
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+        }
+
+        let data = StoreData {
+            dimension: self.dimension,
+            entries: self.entries.values().cloned().collect(),
+        };
+
+        let file = fs::File::create(path).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer(writer, &data)
+            .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Load store from a file
+    pub fn load(path: &Path) -> Result<Self, VectorStoreError> {
+        let file = fs::File::open(path).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+        let reader = BufReader::new(file);
+        let data: StoreData = serde_json::from_reader(reader)
+            .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+
+        let mut store = Self::new(data.dimension);
+        for entry in data.entries {
+            store.entries.insert(entry.id.clone(), entry);
+        }
+
+        Ok(store)
+    }
+
+    /// Get default index path (~/Library/Application Support/rdos/qmind-index.json)
+    pub fn default_index_path() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("rdos").join("qmind-index.json"))
+    }
 }
 
 /// Vector store errors
@@ -215,6 +266,8 @@ impl VectorStore {
 pub enum VectorStoreError {
     /// Embedding dimension doesn't match store dimension
     DimensionMismatch { expected: usize, got: usize },
+    /// IO error during save/load
+    IoError(String),
 }
 
 impl std::fmt::Display for VectorStoreError {
@@ -223,6 +276,7 @@ impl std::fmt::Display for VectorStoreError {
             VectorStoreError::DimensionMismatch { expected, got } => {
                 write!(f, "Dimension mismatch: expected {}, got {}", expected, got)
             }
+            VectorStoreError::IoError(msg) => write!(f, "IO error: {}", msg),
         }
     }
 }

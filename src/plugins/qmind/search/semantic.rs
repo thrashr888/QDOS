@@ -48,19 +48,19 @@ pub struct SemanticSearch {
 }
 
 impl SemanticSearch {
-    /// Create a new semantic search instance
+    /// Create a new semantic search instance (loads existing index if available)
     pub fn new(config: AIApiConfig) -> Self {
         use crate::plugins::qmind::indexer::IndexConfig;
 
         Self {
-            indexer: FileIndexer::new(config.clone(), IndexConfig::default()),
+            indexer: FileIndexer::load_or_new(config.clone(), IndexConfig::default()),
             config,
             min_score: 0.3,
             max_results: 20,
         }
     }
 
-    /// Create using environment API keys
+    /// Create using environment API keys (loads existing index if available)
     pub fn from_env() -> Self {
         Self::new(AIApiConfig::from_env())
     }
@@ -82,23 +82,40 @@ impl SemanticSearch {
 
     /// Index a directory for searching (non-recursive, for lazy indexing)
     pub fn index_directory(&mut self, dir: &Path) -> Result<usize, SearchError> {
-        self.indexer
+        let count = self
+            .indexer
             .index_directory(dir)
-            .map_err(|e| SearchError::IndexError(e.to_string()))
+            .map_err(|e| SearchError::IndexError(e.to_string()))?;
+
+        // Save index after indexing
+        let _ = self.indexer.save();
+        Ok(count)
     }
 
     /// Index a directory tree recursively (respects .gitignore)
     pub fn index_tree(&mut self, dir: &Path) -> Result<usize, SearchError> {
-        self.indexer
+        let count = self
+            .indexer
             .index_tree(dir)
-            .map_err(|e| SearchError::IndexError(e.to_string()))
+            .map_err(|e| SearchError::IndexError(e.to_string()))?;
+
+        // Save index after indexing
+        let _ = self.indexer.save();
+        Ok(count)
     }
 
     /// Index a single file
     pub fn index_file(&mut self, path: &Path) -> Result<bool, SearchError> {
-        self.indexer
+        let indexed = self
+            .indexer
             .index_file(path)
-            .map_err(|e| SearchError::IndexError(e.to_string()))
+            .map_err(|e| SearchError::IndexError(e.to_string()))?;
+
+        // Save index after indexing
+        if indexed {
+            let _ = self.indexer.save();
+        }
+        Ok(indexed)
     }
 
     /// Search files with a natural language query
