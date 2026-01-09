@@ -247,8 +247,66 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
     );
     row += 2;
 
-    // Status/help text
-    if !state.api_available {
+    // Show parsed command if available
+    if let Some(ref cmd) = state.last_parsed_command {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Action: {} ({}% confidence)", cmd.action.description(), (cmd.confidence * 100.0) as u32),
+                Style::default().fg(colors.green()).bg(colors.bg()),
+            )],
+        );
+        row += 1;
+
+        if !cmd.targets.is_empty() {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Targets: {}", cmd.targets.join(", ")),
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+        }
+
+        if let Some(ref dest) = cmd.destination {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Destination: {}", dest),
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+        }
+
+        if let Some(ref pattern) = cmd.pattern {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Pattern: {}", pattern),
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+        }
+
+        if !cmd.explanation.is_empty() {
+            row += 1;
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    &cmd.explanation,
+                    Style::default().fg(colors.fg()).bg(colors.bg()),
+                )],
+            );
+        }
+    } else if !state.api_available {
         view.render_row(
             frame,
             row,
@@ -262,7 +320,16 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
             frame,
             row,
             vec![Span::styled(
-                "Press Enter to parse command",
+                "Press Enter to parse command (Shift+Enter for newline)",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+    } else {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "Press Enter to parse...",
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
@@ -281,7 +348,7 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
         );
     }
 
-    view.render_help(frame, vec![("Enter", "parse"), ("Esc", "back")]);
+    view.render_help(frame, vec![("Enter", "parse"), ("Shift+Enter", "newline"), ("Esc", "back")]);
 }
 
 /// Draw semantic search view
@@ -382,7 +449,7 @@ fn draw_semantic_search(frame: &mut Frame, area: Rect, state: &QMindState, color
         );
     }
 
-    view.render_help(frame, vec![("Enter", "search"), ("Esc", "back")]);
+    view.render_help(frame, vec![("Enter", "search"), ("Shift+Enter", "newline"), ("Esc", "back")]);
 }
 
 /// Draw index status view

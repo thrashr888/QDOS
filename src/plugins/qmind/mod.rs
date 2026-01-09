@@ -3,25 +3,38 @@
 //! Provides semantic search and natural language commands for QDOS.
 //! Press `?` to open the command palette from anywhere.
 
+pub mod api;
+pub mod command;
+pub mod indexer;
 mod modal;
+pub mod search;
 mod state;
+pub mod summary;
+pub mod vector;
 
 use crate::plugins::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
     PluginStatusInfo,
 };
-use crossterm::event::{KeyCode, KeyEvent};
+use command::CommandParser;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
-use state::{QMindState, QMindView};
+use search::SemanticSearch;
+use state::{QMindState, QMindView, SearchResult};
 use std::any::Any;
 use std::path::PathBuf;
-
 
 /// Q-MIND AI Intelligence Layer plugin
 pub struct QMindPlugin {
     pub state: QMindState,
     /// Whether data is currently being loaded
     loading: bool,
+    /// Command parser for natural language commands
+    parser: Option<CommandParser>,
+    /// Semantic search engine
+    searcher: Option<SemanticSearch>,
+    /// Current working directory (for indexing)
+    cwd: PathBuf,
 }
 
 impl Default for QMindPlugin {
@@ -35,6 +48,9 @@ impl QMindPlugin {
         Self {
             state: QMindState::new(),
             loading: false,
+            parser: None,
+            searcher: None,
+            cwd: std::env::current_dir().unwrap_or_default(),
         }
     }
 
@@ -51,7 +67,101 @@ impl QMindPlugin {
     /// Initialize Q-MIND (check API availability, etc.)
     fn initialize(&mut self) {
         self.state.check_api_availability();
+
+        // Initialize parser and searcher if API is available
+        if self.state.api_available {
+            if self.parser.is_none() {
+                self.parser = Some(CommandParser::from_env());
+            }
+            if self.searcher.is_none() {
+                self.searcher = Some(SemanticSearch::from_env());
+            }
+        }
+
         self.loading = false;
+    }
+
+    /// Parse a natural language command
+    fn parse_command(&mut self) {
+        let input = self.state.command_input.text().to_string();
+        if input.is_empty() {
+            return;
+        }
+
+        self.state.clear_error();
+
+        // Get or create parser
+        if self.parser.is_none() {
+            self.parser = Some(CommandParser::from_env());
+        }
+
+        if let Some(parser) = &self.parser {
+            match parser.parse(&input) {
+                Ok(cmd) => {
+                    // Store the parsed command for display/execution
+                    self.state.last_parsed_command = Some(cmd);
+                }
+                Err(e) => {
+                    self.state.set_error(format!("Parse error: {}", e));
+                }
+            }
+        }
+    }
+
+    /// Execute semantic search
+    fn execute_search(&mut self) {
+        let query = self.state.search_input.text().to_string();
+        if query.is_empty() {
+            return;
+        }
+
+        self.state.clear_error();
+
+        // Get or create searcher
+        if self.searcher.is_none() {
+            self.searcher = Some(SemanticSearch::from_env());
+        }
+
+        if let Some(searcher) = &self.searcher {
+            match searcher.search(&query) {
+                Ok(results) => {
+                    self.state.search_results = results
+                        .into_iter()
+                        .map(|r| SearchResult {
+                            path: r.path,
+                            score: r.score,
+                            summary: Some(r.summary),
+                        })
+                        .collect();
+                    self.state.search_selected = 0;
+                }
+                Err(e) => {
+                    self.state.set_error(format!("Search error: {}", e));
+                }
+            }
+        }
+    }
+
+    /// Index the current directory
+    fn index_directory(&mut self) {
+        self.state.clear_error();
+
+        // Get or create searcher
+        if self.searcher.is_none() {
+            self.searcher = Some(SemanticSearch::from_env());
+        }
+
+        if let Some(searcher) = &mut self.searcher {
+            match searcher.index_directory(&self.cwd) {
+                Ok(count) => {
+                    self.state.indexed_count = searcher.indexed_count();
+                    self.state.set_error(format!("Indexed {} new files", count));
+                }
+                Err(e) => {
+                    self.state.set_error(format!("Index error: {}", e));
+                }
+            }
+        }
     }
 }
 
@@ -96,9 +206,10 @@ impl Plugin for QMindPlugin {
         }
     }
 
-    fn handle_global_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+    fn handle_global_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
         // ? key opens command palette directly
         if let KeyCode::Char('?') = key.code {
+            self.cwd = cwd.clone();
             self.state.view = QMindView::CommandPalette;
             self.state.command_input.reset();
             self.start_loading(); // Trigger API check on first tick
@@ -134,7 +245,12 @@ impl Plugin for QMindPlugin {
                         KeyHandleResult::Handled
                     }
                     KeyCode::Enter => {
-                        // TODO: Parse and execute command
+                        // Shift+Enter inserts newline, plain Enter parses command
+                        if key.modifiers.contains(KeyModifiers::SHIFT) {
+                            self.state.command_input.insert_char('\n');
+                        } else {
+                            self.parse_command();
+                        }
                         KeyHandleResult::Handled
                     }
                     KeyCode::Backspace => {
@@ -175,7 +291,12 @@ impl Plugin for QMindPlugin {
                         KeyHandleResult::Handled
                     }
                     KeyCode::Enter => {
-                        // TODO: Execute semantic search
+                        // Shift+Enter inserts newline, plain Enter searches
+                        if key.modifiers.contains(KeyModifiers::SHIFT) {
+                            self.state.search_input.insert_char('\n');
+                        } else {
+                            self.execute_search();
+                        }
                         KeyHandleResult::Handled
                     }
                     KeyCode::Backspace => {
@@ -194,6 +315,20 @@ impl Plugin for QMindPlugin {
                         self.state.search_input.cursor_right();
                         KeyHandleResult::Handled
                     }
+                    KeyCode::Up => {
+                        // Navigate search results
+                        if self.state.search_selected > 0 {
+                            self.state.search_selected -= 1;
+                        }
+                        KeyHandleResult::Handled
+                    }
+                    KeyCode::Down => {
+                        // Navigate search results
+                        if self.state.search_selected < self.state.search_results.len().saturating_sub(1) {
+                            self.state.search_selected += 1;
+                        }
+                        KeyHandleResult::Handled
+                    }
                     KeyCode::Char(c) => {
                         self.state.search_input.insert_char(c);
                         KeyHandleResult::Handled
@@ -207,7 +342,7 @@ impl Plugin for QMindPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    // TODO: Refresh/rebuild index
+                    self.index_directory();
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -265,7 +400,8 @@ impl Plugin for QMindPlugin {
         })
     }
 
-    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+    fn launch(&mut self, cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.cwd = cwd.clone();
         self.start_loading();
         Ok(())
     }

@@ -2,6 +2,7 @@
 //!
 //! State structures for the AI Intelligence Layer.
 
+use crate::plugins::qmind::command::ParsedCommand;
 use std::path::PathBuf;
 
 /// Type of file operation for dry run preview
@@ -281,6 +282,8 @@ pub struct QMindState {
     pub search_selected: usize,
     /// Current file summary (if viewing)
     pub current_summary: Option<String>,
+    /// Last parsed command (for display/execution)
+    pub last_parsed_command: Option<ParsedCommand>,
     /// Error message (if any)
     pub error: Option<String>,
 }
