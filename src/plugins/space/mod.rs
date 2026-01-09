@@ -241,6 +241,11 @@ impl Plugin for SpacePlugin {
         })
     }
 
+    fn launch(&mut self, cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.open_modal(cwd);
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

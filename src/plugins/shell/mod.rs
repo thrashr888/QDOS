@@ -574,6 +574,12 @@ impl Plugin for ShellPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.state = ShellState::default();
+        self.modal_open = true;
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

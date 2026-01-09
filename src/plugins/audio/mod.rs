@@ -501,6 +501,11 @@ impl Plugin for AudioPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.open_modal(selected_file);
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

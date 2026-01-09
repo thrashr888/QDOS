@@ -230,6 +230,19 @@ impl Plugin for PrintPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
+        if let Some(file_path) = selected_file {
+            let file_name = file_path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+            self.open_modal(file_path.clone(), file_name);
+            Ok(())
+        } else {
+            Err("No file selected".to_string())
+        }
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

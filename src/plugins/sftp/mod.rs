@@ -423,6 +423,13 @@ impl Plugin for SftpPlugin {
         })
     }
 
+    fn launch(&mut self, cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.state.local_dir = cwd.clone();
+        self.state.view = SftpView::Connections;
+        ops::load_profiles(&mut self.state);
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

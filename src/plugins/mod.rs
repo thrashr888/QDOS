@@ -244,6 +244,20 @@ pub trait Plugin: Send + Sync {
         None
     }
 
+    /// Launch the plugin from the Apps launcher (F12).
+    /// Called when user selects this plugin from the Apps menu.
+    /// Plugins should initialize their state here.
+    ///
+    /// Parameters:
+    /// - `cwd`: Current working directory
+    /// - `selected_file`: Currently selected file path (if any)
+    ///
+    /// Returns true if the plugin was successfully launched and its modal should open.
+    /// Returns false if the plugin cannot be launched (will show error).
+    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        Ok(())
+    }
+
     /// Get plugin state as Any for downcasting
     fn as_any(&self) -> &dyn Any;
 
@@ -444,6 +458,24 @@ impl PluginManager {
             if let Some(plugin) = self.plugins.get_mut(id) {
                 plugin.tick();
             }
+        }
+    }
+
+    /// Launch a plugin by ID from the Apps launcher.
+    /// Calls the plugin's launch() method and sets it as the active modal.
+    /// Returns Ok(plugin_id) on success, Err(message) on failure.
+    pub fn launch_plugin(
+        &mut self,
+        plugin_id: &str,
+        cwd: &PathBuf,
+        selected_file: Option<&PathBuf>,
+    ) -> Result<String, String> {
+        if let Some(plugin) = self.plugins.get_mut(plugin_id) {
+            plugin.launch(cwd, selected_file)?;
+            self.active_modal = Some(plugin_id.to_string());
+            Ok(plugin_id.to_string())
+        } else {
+            Err(format!("Unknown plugin: {}", plugin_id))
         }
     }
 

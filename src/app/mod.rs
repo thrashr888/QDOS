@@ -2905,48 +2905,8 @@ impl App {
 
     /// Launch a plugin modal by ID (from Apps launcher)
     fn launch_plugin_modal(&mut self, plugin_id: &str) {
+        // Special cases for plugins that use dedicated Modal types
         match plugin_id {
-            "ai" => {
-                // Initialize and open AI plugin - use lazy loading to avoid hang
-                if let Some(ai_plugin) = self.plugin_manager.ai_plugin_mut() {
-                    ai_plugin.state.view = crate::plugins::ai::state::AIView::Overview;
-                    ai_plugin.state.menu_index = 0;
-                    // Start loading - data will be fetched on first tick
-                    ai_plugin.start_loading();
-                }
-                self.plugin_manager.set_active_modal(Some("ai"));
-                self.modal = Modal::Plugin("ai".to_string());
-            }
-            "audio" => {
-                // Open Audio Player plugin with current file (if audio)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if AudioPlugin::is_audio_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(audio_plugin) = self.plugin_manager.audio_plugin_mut() {
-                    audio_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("audio"));
-                self.modal = Modal::Plugin("audio".to_string());
-            }
-            "basic" => {
-                // Open BASIC Runner plugin with current file (if .bas)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::basic::BasicPlugin::is_basic_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(basic_plugin) = self.plugin_manager.basic_plugin_mut() {
-                    basic_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("basic"));
-                self.modal = Modal::Plugin("basic".to_string());
-            }
             "beads" => {
                 if self.is_beads_project() {
                     let state = BeadsState::new(true);
@@ -2954,58 +2914,7 @@ impl App {
                 } else {
                     self.modal = Modal::Error("Beads not initialized in this project".to_string());
                 }
-            }
-            "database" => {
-                // Open Database plugin - with file if SQLite, or type selection
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if DatabasePlugin::is_database_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(db_plugin) = self.plugin_manager.database_plugin_mut() {
-                    if let Some(ref path) = file_path {
-                        db_plugin.open_sqlite(path);
-                    } else {
-                        db_plugin.open_modal();
-                    }
-                }
-                self.plugin_manager.set_active_modal(Some("database"));
-                self.modal = Modal::Plugin("database".to_string());
-            }
-            "dirmap" => {
-                // Initialize Dir Map plugin with current path
-                let path = self.current_path.clone();
-                if let Some(dirmap_plugin) = self.plugin_manager.dirmap_plugin_mut() {
-                    dirmap_plugin.open_modal(&path);
-                }
-                self.plugin_manager.set_active_modal(Some("dirmap"));
-                self.modal = Modal::Plugin("dirmap".to_string());
-            }
-            "drives" => {
-                // Open Drives plugin (F3 Change Drive)
-                if let Some(drives_plugin) = self.plugin_manager.drives_plugin_mut() {
-                    drives_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("drives"));
-                self.modal = Modal::Plugin("drives".to_string());
-            }
-            "dropbox" => {
-                // Open Dropbox plugin
-                if let Some(dropbox_plugin) = self.plugin_manager.dropbox_plugin_mut() {
-                    dropbox_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("dropbox"));
-                self.modal = Modal::Plugin("dropbox".to_string());
-            }
-            "gdrive" => {
-                // Open Google Drive plugin
-                if let Some(gdrive_plugin) = self.plugin_manager.gdrive_plugin_mut() {
-                    gdrive_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("gdrive"));
-                self.modal = Modal::Plugin("gdrive".to_string());
+                return;
             }
             "git" => {
                 if self.is_git_repo() {
@@ -3014,200 +2923,28 @@ impl App {
                 } else {
                     self.modal = Modal::Error("Not a Git repository".to_string());
                 }
-            }
-            "homebrew" => {
-                // Open Homebrew plugin
-                if let Some(homebrew_plugin) = self.plugin_manager.homebrew_plugin_mut() {
-                    homebrew_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("homebrew"));
-                self.modal = Modal::Plugin("homebrew".to_string());
-            }
-            "icloud" => {
-                // Open iCloud Drive plugin
-                if let Some(icloud_plugin) = self.plugin_manager.icloud_plugin_mut() {
-                    icloud_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("icloud"));
-                self.modal = Modal::Plugin("icloud".to_string());
-            }
-            "jj" => {
-                // Initialize JJ plugin - will show error if not in a jj repo
-                let path = self.current_path.clone();
-                if let Some(jj_plugin) = self.plugin_manager.jj_plugin_mut() {
-                    jj_plugin.open_modal(&path);
-                }
-                self.plugin_manager.set_active_modal(Some("jj"));
-                self.modal = Modal::Plugin("jj".to_string());
-            }
-            "midi" => {
-                // Open MIDI Player plugin with current file (if .mid/.midi)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::midi::MidiPlugin::is_midi_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(midi_plugin) = self.plugin_manager.midi_plugin_mut() {
-                    midi_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("midi"));
-                self.modal = Modal::Plugin("midi".to_string());
-            }
-            "model3d" => {
-                // Open 3D Model Viewer plugin with current file (if .obj/.stl)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::model3d::Model3dPlugin::is_model_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(model3d_plugin) = self.plugin_manager.model3d_plugin_mut() {
-                    model3d_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("model3d"));
-                self.modal = Modal::Plugin("model3d".to_string());
-            }
-            "proc" => {
-                // Initialize and open Proc plugin - refresh process data
-                if let Some(proc_plugin) = self.plugin_manager.proc_plugin_mut() {
-                    proc_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("proc"));
-                self.modal = Modal::Plugin("proc".to_string());
-            }
-            "qdconfig" => {
-                // Initialize Config plugin with current settings
-                let plugins = self.plugin_manager.plugin_list();
-                if let Some(qdconfig_plugin) = self.plugin_manager.qdconfig_plugin_mut() {
-                    qdconfig_plugin.open_modal(
-                        self.search_spec.clone(),
-                        self.sort_mode,
-                        self.show_hidden,
-                        self.config.general.confirm_delete,
-                        self.config.editor.command.clone(),
-                        self.color_theme,
-                        self.config.general.mouse_support,
-                        self.config.display.uppercase_names,
-                        self.config.general.auto_refresh_interval,
-                        plugins,
-                    );
-                }
-                self.plugin_manager.set_active_modal(Some("qdconfig"));
-                self.modal = Modal::Plugin("qdconfig".to_string());
-            }
-            "space" => {
-                // Initialize Space plugin with current path
-                let path = self.current_path.clone();
-                if let Some(space_plugin) = self.plugin_manager.space_plugin_mut() {
-                    space_plugin.open_modal(&path);
-                }
-                self.plugin_manager.set_active_modal(Some("space"));
-                self.modal = Modal::Plugin("space".to_string());
-            }
-            "theme" => {
-                // Initialize Theme plugin with current theme
-                if let Some(theme_plugin) = self.plugin_manager.theme_plugin_mut() {
-                    theme_plugin.open_modal(self.color_theme);
-                }
-                self.plugin_manager.set_active_modal(Some("theme"));
-                self.modal = Modal::Plugin("theme".to_string());
-            }
-            "video" => {
-                // Open Video Player plugin with current file (if video)
-                let file_path = self.files.get(self.selected_index).and_then(|e| {
-                    if crate::plugins::video::VideoPlugin::is_video_file(&e.path) {
-                        Some(e.path.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(video_plugin) = self.plugin_manager.video_plugin_mut() {
-                    video_plugin.open_modal(file_path.as_ref());
-                }
-                self.plugin_manager.set_active_modal(Some("video"));
-                self.modal = Modal::Plugin("video".to_string());
-            }
-            "viewer" => {
-                // Open Viewer plugin with current file
-                let file_path = self.files.get(self.selected_index).map(|e| e.path.clone());
-                if let Some(path) = file_path {
-                    if let Some(viewer_plugin) = self.plugin_manager.viewer_plugin_mut() {
-                        let _ = viewer_plugin.open_file(path, &self.current_path);
-                    }
-                }
-                self.plugin_manager.set_active_modal(Some("viewer"));
-                self.modal = Modal::Plugin("viewer".to_string());
-            }
-            "qedit" => {
-                // Open QEdit plugin with current file
-                let file_path = self.files.get(self.selected_index).map(|e| e.path.clone());
-                if let Some(qedit_plugin) = self.plugin_manager.qedit_plugin_mut() {
-                    let _ = qedit_plugin.open(file_path);
-                }
-                self.plugin_manager.set_active_modal(Some("qedit"));
-                self.modal = Modal::Plugin("qedit".to_string());
-            }
-            "shell" => {
-                // Open Shell plugin
-                self.plugin_manager.set_active_modal(Some("shell"));
-                self.modal = Modal::Plugin("shell".to_string());
-            }
-            "help" => {
-                // Open Help plugin
-                if let Some(help_plugin) = self.plugin_manager.help_plugin_mut() {
-                    help_plugin.open_modal();
-                }
-                self.plugin_manager.set_active_modal(Some("help"));
-                self.modal = Modal::Plugin("help".to_string());
-            }
-            "print" => {
-                // Open Print plugin with current file
-                if let Some(entry) = self.files.get(self.selected_index) {
-                    let file_path = entry.path.clone();
-                    let file_name = entry.name.clone();
-                    if let Some(print_plugin) = self.plugin_manager.print_plugin_mut() {
-                        print_plugin.open_modal(file_path, file_name);
-                    }
-                }
-                self.plugin_manager.set_active_modal(Some("print"));
-                self.modal = Modal::Plugin("print".to_string());
-            }
-            "status" => {
-                // Open Status plugin
-                self.plugin_manager.set_active_modal(Some("status"));
-                self.modal = Modal::Plugin("status".to_string());
+                return;
             }
             "fileops" => {
-                // FileOps is not directly openable - it's used for file operations
                 self.modal = Modal::Error("FileOps is used via file operations".to_string());
+                return;
             }
-            "searchspec" => {
-                // Open SearchSpec plugin
-                if let Some(searchspec_plugin) = self.plugin_manager.searchspec_plugin_mut() {
-                    searchspec_plugin.open_modal(&self.search_spec);
-                }
-                self.plugin_manager.set_active_modal(Some("searchspec"));
-                self.modal = Modal::Plugin("searchspec".to_string());
+            _ => {}
+        }
+
+        // Generic plugin launch - plugins implement their own launch() method
+        let selected_file = self.files.get(self.selected_index).map(|e| e.path.clone());
+        let cwd = self.current_path.clone();
+
+        match self
+            .plugin_manager
+            .launch_plugin(plugin_id, &cwd, selected_file.as_ref())
+        {
+            Ok(id) => {
+                self.modal = Modal::Plugin(id);
             }
-            "sftp" => {
-                // Open SFTP plugin
-                if let Some(sftp_plugin) = self.plugin_manager.sftp_plugin_mut() {
-                    sftp_plugin.state.local_dir = self.current_path.clone();
-                }
-                self.plugin_manager.set_active_modal(Some("sftp"));
-                self.modal = Modal::Plugin("sftp".to_string());
-            }
-            _ => {
-                // Try generic plugin launch for plugins that don't need special initialization
-                if self.plugin_manager.get(plugin_id).is_some() {
-                    self.plugin_manager.set_active_modal(Some(plugin_id));
-                    self.modal = Modal::Plugin(plugin_id.to_string());
-                } else {
-                    self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
-                }
+            Err(e) => {
+                self.modal = Modal::Error(e);
             }
         }
     }

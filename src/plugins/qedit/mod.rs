@@ -311,6 +311,10 @@ impl Plugin for QEditPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.open(selected_file.cloned()).map_err(|e| e.to_string())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

@@ -560,6 +560,14 @@ impl Plugin for ViewerPlugin {
         })
     }
 
+    fn launch(&mut self, cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
+        if let Some(file_path) = selected_file {
+            self.open_file(file_path.clone(), cwd)
+        } else {
+            Err("No file selected".to_string())
+        }
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

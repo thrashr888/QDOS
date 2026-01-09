@@ -384,6 +384,11 @@ impl Plugin for DatabasePlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.open_modal();
+        Ok(())
+    }
+
     fn status_info(&self, _cwd: &PathBuf) -> Option<PluginStatusInfo> {
         None
     }

@@ -270,6 +270,11 @@ impl Plugin for AIPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.start_loading();
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

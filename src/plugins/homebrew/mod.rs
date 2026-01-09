@@ -496,6 +496,11 @@ impl Plugin for HomebrewPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+        self.open_modal();
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
