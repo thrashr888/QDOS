@@ -80,6 +80,9 @@ jumprs = "0.1"
 # Audio playback
 rodio = "0.19"
 
+# HTTP client (blocking, for AI API calls)
+ureq = { version = "3.0", features = ["json"] }
+
 # Database clients
 rusqlite = { version = "0.32", features = ["bundled"] }
 postgres = { version = "0.19", features = ["with-chrono-0_4"] }

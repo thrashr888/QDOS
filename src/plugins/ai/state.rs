@@ -92,6 +92,104 @@ pub struct DryRunState {
     pub source: String,
 }
 
+/// Command palette parsing status
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum CommandPaletteStatus {
+    /// Waiting for input
+    #[default]
+    Ready,
+    /// Parsing the command (calling LLM)
+    Parsing,
+    /// Command parsed successfully
+    Parsed,
+    /// Parse error occurred
+    Error(String),
+}
+
+/// State for the natural language command palette
+#[derive(Debug, Clone, Default)]
+pub struct CommandPaletteState {
+    /// User input text
+    pub input: String,
+    /// Cursor position in input
+    pub cursor: usize,
+    /// Current status
+    pub status: CommandPaletteStatus,
+    /// Parsed command result (if successful)
+    pub parsed_action: Option<String>,
+    /// Parsed targets
+    pub parsed_targets: Vec<String>,
+    /// Parsed destination
+    pub parsed_dest: Option<String>,
+    /// Explanation of parsed command
+    pub explanation: String,
+    /// Confidence score
+    pub confidence: f32,
+    /// Error message if failed
+    pub error: Option<String>,
+}
+
+impl CommandPaletteState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Reset to initial state
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+
+    /// Set error state
+    pub fn set_error(&mut self, msg: impl Into<String>) {
+        self.status = CommandPaletteStatus::Error(msg.into());
+    }
+
+    /// Handle text input
+    pub fn insert_char(&mut self, c: char) {
+        self.input.insert(self.cursor, c);
+        self.cursor += 1;
+    }
+
+    /// Handle backspace
+    pub fn backspace(&mut self) {
+        if self.cursor > 0 {
+            self.cursor -= 1;
+            self.input.remove(self.cursor);
+        }
+    }
+
+    /// Handle delete
+    pub fn delete(&mut self) {
+        if self.cursor < self.input.len() {
+            self.input.remove(self.cursor);
+        }
+    }
+
+    /// Move cursor left
+    pub fn cursor_left(&mut self) {
+        if self.cursor > 0 {
+            self.cursor -= 1;
+        }
+    }
+
+    /// Move cursor right
+    pub fn cursor_right(&mut self) {
+        if self.cursor < self.input.len() {
+            self.cursor += 1;
+        }
+    }
+
+    /// Move cursor to start
+    pub fn cursor_home(&mut self) {
+        self.cursor = 0;
+    }
+
+    /// Move cursor to end
+    pub fn cursor_end(&mut self) {
+        self.cursor = self.input.len();
+    }
+}
+
 impl DryRunState {
     pub fn new(source: impl Into<String>, operations: Vec<DryRunOperation>) -> Self {
         Self {
@@ -213,6 +311,8 @@ pub enum AIView {
     Copilot,
     /// Dry run confirmation view for AI operations
     DryRun,
+    /// Natural language command palette
+    CommandPalette,
 }
 
 impl AIView {
@@ -225,6 +325,7 @@ impl AIView {
             AIView::Cursor => "Cursor Status",
             AIView::Copilot => "GitHub Copilot Status",
             AIView::DryRun => "AI Operation Preview",
+            AIView::CommandPalette => "Q-MIND Command",
         }
     }
 }
@@ -372,6 +473,8 @@ pub struct AIState {
     pub scroll_offset: usize,
     /// Dry run state for operation confirmation
     pub dry_run: Option<DryRunState>,
+    /// Command palette state
+    pub command_palette: CommandPaletteState,
 }
 
 impl AIState {

@@ -3,7 +3,7 @@
 //! UI components for displaying AI coding agent status.
 //! Uses FullScreenView for full-screen modal display.
 
-use super::state::{AIMenuItem, AIState, AIView, DryRunOpType};
+use super::state::{AIMenuItem, AIState, AIView, CommandPaletteStatus, DryRunOpType};
 use crate::app::ThemeColors;
 use crate::ui::components::FullScreenView;
 use ratatui::{layout::Rect, style::Style, text::Span, Frame};
@@ -30,6 +30,7 @@ pub fn draw_ai_modal(
         AIView::Cursor => draw_cursor_view(frame, area, state, colors),
         AIView::Copilot => draw_copilot_view(frame, area, state, colors),
         AIView::DryRun => draw_dry_run_view(frame, area, state, colors),
+        AIView::CommandPalette => draw_command_palette_view(frame, area, state, colors),
     }
 }
 
@@ -1201,4 +1202,170 @@ fn draw_dry_run_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
             vec![("↑↓", "select"), ("Enter/Y", "confirm"), ("Esc", "cancel")],
         );
     }
+}
+
+/// Draw natural language command palette view
+fn draw_command_palette_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &ThemeColors) {
+    let view = FullScreenView::new(area, " Q-MIND Command ", colors);
+    view.render_frame(frame);
+
+    let palette = &state.command_palette;
+    let mut row = 0;
+
+    // Prompt
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            "Enter a natural language command:",
+            Style::default().fg(colors.green()).bg(colors.bg()),
+        )],
+    );
+    row += 2;
+
+    // Input field with cursor
+    let input_display = if palette.input.is_empty() {
+        "Type your command... (e.g., 'copy *.txt to backup')".to_string()
+    } else {
+        // Show input with cursor
+        let mut display = palette.input.clone();
+        if palette.cursor <= display.len() {
+            display.insert(palette.cursor, '|');
+        }
+        display
+    };
+
+    let input_style = if palette.input.is_empty() {
+        Style::default().fg(colors.grey()).bg(colors.bg())
+    } else {
+        Style::default().fg(colors.yellow()).bg(colors.bg())
+    };
+
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(format!("> {}", input_display), input_style)],
+    );
+    row += 2;
+
+    // Status indicator
+    match &palette.status {
+        CommandPaletteStatus::Ready => {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    "Press Enter to parse command",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                )],
+            );
+        }
+        CommandPaletteStatus::Parsing => {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    "Parsing command...",
+                    Style::default().fg(colors.yellow()).bg(colors.bg()),
+                )],
+            );
+        }
+        CommandPaletteStatus::Parsed => {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    "Command parsed successfully",
+                    Style::default().fg(colors.green()).bg(colors.bg()),
+                )],
+            );
+            row += 2;
+
+            // Show parsed result
+            if let Some(ref action) = palette.parsed_action {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("Action: {}", action),
+                        Style::default().fg(colors.fg()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            if !palette.parsed_targets.is_empty() {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("Targets: {}", palette.parsed_targets.join(", ")),
+                        Style::default().fg(colors.fg()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            if let Some(ref dest) = palette.parsed_dest {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("Destination: {}", dest),
+                        Style::default().fg(colors.fg()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            if !palette.explanation.is_empty() {
+                row += 1;
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        &palette.explanation,
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            // Confidence
+            let confidence_color = if palette.confidence >= 0.8 {
+                colors.green()
+            } else if palette.confidence >= 0.5 {
+                colors.yellow()
+            } else {
+                colors.red()
+            };
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Confidence: {:.0}%", palette.confidence * 100.0),
+                    Style::default().fg(confidence_color).bg(colors.bg()),
+                )],
+            );
+        }
+        CommandPaletteStatus::Error(msg) => {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("Error: {}", msg),
+                    Style::default().fg(colors.red()).bg(colors.bg()),
+                )],
+            );
+        }
+    }
+
+    // Help footer
+    let help = match palette.status {
+        CommandPaletteStatus::Parsed => {
+            vec![("Enter", "execute"), ("Tab", "edit"), ("Esc", "cancel")]
+        }
+        _ => vec![("Enter", "parse"), ("Esc", "cancel")],
+    };
+    view.render_help(frame, help);
 }
