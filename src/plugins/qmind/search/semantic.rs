@@ -80,10 +80,17 @@ impl SemanticSearch {
         self.max_results = max;
     }
 
-    /// Index a directory for searching
+    /// Index a directory for searching (non-recursive, for lazy indexing)
     pub fn index_directory(&mut self, dir: &Path) -> Result<usize, SearchError> {
         self.indexer
             .index_directory(dir)
+            .map_err(|e| SearchError::IndexError(e.to_string()))
+    }
+
+    /// Index a directory tree recursively (respects .gitignore)
+    pub fn index_tree(&mut self, dir: &Path) -> Result<usize, SearchError> {
+        self.indexer
+            .index_tree(dir)
             .map_err(|e| SearchError::IndexError(e.to_string()))
     }
 

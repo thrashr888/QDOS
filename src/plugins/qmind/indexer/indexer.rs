@@ -1,9 +1,11 @@
 //! Lazy file indexer implementation
 //!
 //! Indexes files on-demand as the user navigates directories.
+//! Uses .gitignore to determine what to skip.
 
 use crate::plugins::qmind::api::{embeddings::create_embeddings_provider, AIApiConfig, ApiError};
 use crate::plugins::qmind::vector::{EntryMetadata, VectorEntry, VectorStore};
+use ignore::WalkBuilder;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,10 +20,10 @@ pub struct IndexConfig {
     pub content_extensions: HashSet<String>,
     /// Maximum content bytes to use for embedding
     pub max_content_bytes: usize,
-    /// Whether to index hidden files
-    pub index_hidden: bool,
-    /// Directories to skip
-    pub skip_dirs: HashSet<String>,
+    /// Whether to respect .gitignore (default: true)
+    pub respect_gitignore: bool,
+    /// Whether to include hidden files not in .gitignore (default: true)
+    pub include_hidden: bool,
 }
 
 impl Default for IndexConfig {
@@ -34,13 +36,18 @@ impl Default for IndexConfig {
             "py",
             "js",
             "ts",
+            "tsx",
+            "jsx",
             "go",
             "c",
             "cpp",
             "h",
+            "hpp",
             "java",
             "rb",
             "sh",
+            "bash",
+            "zsh",
             "toml",
             "yaml",
             "yml",
@@ -48,36 +55,39 @@ impl Default for IndexConfig {
             "xml",
             "html",
             "css",
+            "scss",
             "sql",
             "dockerfile",
+            "makefile",
+            "cmake",
+            "gradle",
+            "swift",
+            "kt",
+            "scala",
+            "clj",
+            "ex",
+            "exs",
+            "erl",
+            "hs",
+            "ml",
+            "lua",
+            "php",
+            "pl",
+            "r",
+            "jl",
+            "nim",
+            "zig",
+            "v",
         ] {
             content_extensions.insert(ext.to_string());
-        }
-
-        let mut skip_dirs = HashSet::new();
-        for dir in &[
-            ".git",
-            "node_modules",
-            "target",
-            ".cargo",
-            "__pycache__",
-            ".venv",
-            "venv",
-            "dist",
-            "build",
-            ".cache",
-            ".idea",
-            ".vscode",
-        ] {
-            skip_dirs.insert(dir.to_string());
         }
 
         Self {
             max_file_size: 100 * 1024, // 100 KB
             content_extensions,
             max_content_bytes: 4096, // Use first 4KB for embedding
-            index_hidden: false,
-            skip_dirs,
+            respect_gitignore: true,
+            include_hidden: true, // Include .github, .config, etc. (gitignore handles .git)
         }
     }
 }
@@ -213,7 +223,7 @@ impl FileIndexer {
         Ok(true)
     }
 
-    /// Index all files in a directory (non-recursive)
+    /// Index all files in a directory (non-recursive, for lazy indexing)
     pub fn index_directory(&mut self, dir: &Path) -> Result<usize, IndexError> {
         if !dir.is_dir() {
             return Err(IndexError::NotADirectory(dir.to_string_lossy().to_string()));
@@ -221,12 +231,19 @@ impl FileIndexer {
 
         let mut indexed = 0;
 
-        let entries = fs::read_dir(dir).map_err(|e| IndexError::IoError(e.to_string()))?;
+        // Use WalkBuilder with max_depth=1 for non-recursive
+        let walker = WalkBuilder::new(dir)
+            .max_depth(Some(1))
+            .hidden(!self.index_config.include_hidden)
+            .git_ignore(self.index_config.respect_gitignore)
+            .git_global(self.index_config.respect_gitignore)
+            .git_exclude(self.index_config.respect_gitignore)
+            .build();
 
-        for entry in entries.flatten() {
+        for entry in walker.flatten() {
             let path = entry.path();
             if path.is_file() {
-                match self.index_file(&path) {
+                match self.index_file(path) {
                     Ok(true) => indexed += 1,
                     Ok(false) => {}
                     Err(_) => self.stats.errors += 1,
@@ -238,30 +255,50 @@ impl FileIndexer {
         Ok(indexed)
     }
 
-    /// Check if a path should be skipped
+    /// Index all files in a directory tree (recursive, respects .gitignore)
+    pub fn index_tree(&mut self, dir: &Path) -> Result<usize, IndexError> {
+        if !dir.is_dir() {
+            return Err(IndexError::NotADirectory(dir.to_string_lossy().to_string()));
+        }
+
+        let mut indexed = 0;
+
+        // Use WalkBuilder for gitignore-aware recursive walking
+        let walker = WalkBuilder::new(dir)
+            .hidden(!self.index_config.include_hidden)
+            .git_ignore(self.index_config.respect_gitignore)
+            .git_global(self.index_config.respect_gitignore)
+            .git_exclude(self.index_config.respect_gitignore)
+            .build();
+
+        for entry in walker.flatten() {
+            let path = entry.path();
+
+            if path.is_dir() {
+                self.stats.dirs_indexed += 1;
+                continue;
+            }
+
+            if path.is_file() {
+                match self.index_file(path) {
+                    Ok(true) => indexed += 1,
+                    Ok(false) => {}
+                    Err(_) => self.stats.errors += 1,
+                }
+            }
+        }
+
+        Ok(indexed)
+    }
+
+    /// Check if a path should be skipped (size-based only, gitignore handled by walker)
     fn should_skip(&self, path: &Path) -> bool {
-        // Skip hidden files if configured
-        if !self.index_config.index_hidden {
-            if let Some(name) = path.file_name() {
-                if name.to_string_lossy().starts_with('.') {
-                    return true;
-                }
+        // Skip files larger than max size
+        if let Ok(metadata) = fs::metadata(path) {
+            if metadata.len() > self.index_config.max_file_size {
+                return true;
             }
         }
-
-        // Skip if in a skip directory
-        for component in path.components() {
-            if let std::path::Component::Normal(name) = component {
-                if self
-                    .index_config
-                    .skip_dirs
-                    .contains(&name.to_string_lossy().to_string())
-                {
-                    return true;
-                }
-            }
-        }
-
         false
     }
 
@@ -375,8 +412,8 @@ mod tests {
         let config = IndexConfig::default();
         assert!(config.content_extensions.contains("rs"));
         assert!(config.content_extensions.contains("py"));
-        assert!(config.skip_dirs.contains(".git"));
-        assert!(!config.index_hidden);
+        assert!(config.respect_gitignore);
+        assert!(config.include_hidden); // Hidden files included (gitignore handles .git)
     }
 
     #[test]
@@ -387,18 +424,11 @@ mod tests {
     }
 
     #[test]
-    fn test_should_skip_hidden() {
+    fn test_should_skip_large_files() {
         let indexer = FileIndexer::new(AIApiConfig::default(), IndexConfig::default());
-        assert!(indexer.should_skip(Path::new("/home/user/.gitignore")));
-        assert!(!indexer.should_skip(Path::new("/home/user/readme.md")));
-    }
-
-    #[test]
-    fn test_should_skip_dirs() {
-        let indexer = FileIndexer::new(AIApiConfig::default(), IndexConfig::default());
-        assert!(indexer.should_skip(Path::new("/project/node_modules/package/index.js")));
-        assert!(indexer.should_skip(Path::new("/project/.git/config")));
-        assert!(!indexer.should_skip(Path::new("/project/src/main.rs")));
+        // should_skip now only checks file size, gitignore handled by walker
+        // Small files should not be skipped
+        assert!(!indexer.should_skip(Path::new("Cargo.toml")));
     }
 
     #[test]

@@ -175,7 +175,7 @@ impl QMindPlugin {
         }
     }
 
-    /// Index the current directory
+    /// Index the current directory tree (recursive, respects .gitignore)
     fn index_directory(&mut self) {
         self.state.clear_error();
 
@@ -185,10 +185,12 @@ impl QMindPlugin {
         }
 
         if let Some(searcher) = &mut self.searcher {
-            match searcher.index_directory(&self.cwd) {
+            // Use index_tree for recursive indexing that respects .gitignore
+            match searcher.index_tree(&self.cwd) {
                 Ok(count) => {
                     self.state.indexed_count = searcher.indexed_count();
-                    self.state.set_error(format!("Indexed {} new files", count));
+                    self.state
+                        .set_error(format!("Indexed {} files (recursive)", count));
                 }
                 Err(e) => {
                     self.state.set_error(format!("Index error: {}", e));
