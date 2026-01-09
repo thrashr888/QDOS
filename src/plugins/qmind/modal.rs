@@ -133,6 +133,19 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &QMindState, colors: &The
             ),
         ],
     );
+    row += 1;
+
+    view.render_row(
+        frame,
+        row,
+        vec![
+            Span::styled("  F ", Style::default().fg(colors.yellow()).bg(colors.bg())),
+            Span::styled(
+                "File summary (AI)",
+                Style::default().fg(colors.fg()).bg(colors.bg()),
+            ),
+        ],
+    );
     row += 2;
 
     // Show indexed file count if any
@@ -201,7 +214,7 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &QMindState, colors: &The
         )],
     );
 
-    view.render_help(frame, vec![("C", "command"), ("S", "search"), ("Esc", "close")]);
+    view.render_help(frame, vec![("C", "command"), ("S", "search"), ("F", "summary"), ("Esc", "close")]);
 }
 
 /// Draw natural language command palette
@@ -572,7 +585,8 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
 
     let mut row = 0;
 
-    if let Some(ref summary) = state.current_summary {
+    if let Some(ref summary) = state.file_summary {
+        // Header
         view.render_row(
             frame,
             row,
@@ -583,12 +597,106 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
         );
         row += 2;
 
+        // File type
+        if !summary.file_type.is_empty() {
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(
+                        "Type: ",
+                        Style::default().fg(colors.grey()).bg(colors.bg()),
+                    ),
+                    Span::styled(
+                        &summary.file_type,
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    ),
+                ],
+            );
+            row += 1;
+        }
+
+        // Brief summary
         view.render_row(
             frame,
             row,
             vec![Span::styled(
-                summary.as_str(),
-                Style::default().fg(colors.fg()).bg(colors.bg()),
+                &summary.brief,
+                Style::default().fg(colors.yellow()).bg(colors.bg()),
+            )],
+        );
+        row += 2;
+
+        // Detailed summary
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "Description:",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+        row += 1;
+
+        // Word-wrap detailed summary (simple split by ~70 chars)
+        for line in wrap_text(&summary.detailed, 70) {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("  {}", line),
+                    Style::default().fg(colors.fg()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+        }
+        row += 1;
+
+        // Key elements
+        if !summary.key_elements.is_empty() {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    "Key Elements:",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+
+            for element in summary.key_elements.iter().take(10) {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("  - {}", element),
+                        Style::default().fg(colors.cyan()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+
+            if summary.key_elements.len() > 10 {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!("  ... and {} more", summary.key_elements.len() - 10),
+                        Style::default().fg(colors.grey()).bg(colors.bg()),
+                    )],
+                );
+                row += 1;
+            }
+            row += 1;
+        }
+
+        // Token usage
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Tokens used: {}", summary.tokens_used),
+                Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
     } else {
@@ -606,13 +714,37 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
             frame,
             row,
             vec![Span::styled(
-                "Select a file to generate an AI summary",
+                "Select a file in the file browser, then press F to summarize",
                 Style::default().fg(colors.grey()).bg(colors.bg()),
             )],
         );
     }
 
     view.render_help(frame, vec![("Esc", "back")]);
+}
+
+/// Simple text wrapping helper
+fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current_line = String::new();
+
+    for word in text.split_whitespace() {
+        if current_line.is_empty() {
+            current_line = word.to_string();
+        } else if current_line.len() + 1 + word.len() <= max_width {
+            current_line.push(' ');
+            current_line.push_str(word);
+        } else {
+            lines.push(current_line);
+            current_line = word.to_string();
+        }
+    }
+
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    lines
 }
 
 /// Draw dry run confirmation view

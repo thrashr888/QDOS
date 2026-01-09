@@ -21,6 +21,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
 use search::SemanticSearch;
 use state::{DryRunState, QMindState, QMindView, SearchResult};
+use summary::FileSummarizer;
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -33,8 +34,12 @@ pub struct QMindPlugin {
     parser: Option<CommandParser>,
     /// Semantic search engine
     searcher: Option<SemanticSearch>,
+    /// File summarizer
+    summarizer: Option<FileSummarizer>,
     /// Current working directory (for indexing)
     cwd: PathBuf,
+    /// Selected file for summarization
+    selected_file: Option<PathBuf>,
 }
 
 impl Default for QMindPlugin {
@@ -50,7 +55,9 @@ impl QMindPlugin {
             loading: false,
             parser: None,
             searcher: None,
+            summarizer: None,
             cwd: std::env::current_dir().unwrap_or_default(),
+            selected_file: None,
         }
     }
 
@@ -204,6 +211,36 @@ impl QMindPlugin {
         }
         self.state.view = QMindView::CommandPalette;
     }
+
+    /// Generate summary for the selected file
+    fn summarize_file(&mut self) {
+        let path = match &self.selected_file {
+            Some(p) => p.clone(),
+            None => {
+                self.state.set_error("No file selected".to_string());
+                return;
+            }
+        };
+
+        self.state.clear_error();
+
+        // Get or create summarizer
+        if self.summarizer.is_none() {
+            self.summarizer = Some(FileSummarizer::from_env());
+        }
+
+        if let Some(summarizer) = &self.summarizer {
+            match summarizer.summarize(&path) {
+                Ok(summary) => {
+                    self.state.file_summary = Some(summary);
+                    self.state.view = QMindView::FileSummary;
+                }
+                Err(e) => {
+                    self.state.set_error(format!("Summary error: {}", e));
+                }
+            }
+        }
+    }
 }
 
 impl Plugin for QMindPlugin {
@@ -275,6 +312,11 @@ impl Plugin for QMindPlugin {
                 }
                 KeyCode::Char('i') | KeyCode::Char('I') => {
                     self.state.view = QMindView::IndexStatus;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('f') | KeyCode::Char('F') => {
+                    // Trigger file summary for selected file
+                    self.summarize_file();
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -486,8 +528,9 @@ impl Plugin for QMindPlugin {
         })
     }
 
-    fn launch(&mut self, cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
+    fn launch(&mut self, cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
         self.cwd = cwd.clone();
+        self.selected_file = selected_file.cloned();
         self.start_loading();
         Ok(())
     }
