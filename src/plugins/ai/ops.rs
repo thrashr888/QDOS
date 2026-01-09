@@ -11,19 +11,21 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::Command;
 
-/// Claude API pricing (per million tokens) as of 2024
-/// Using Claude 3.5 Sonnet pricing as default
+/// Claude API pricing (per million tokens) as of 2026
+/// Using Claude Sonnet 4 pricing as default (Claude Code default model)
+/// See: https://platform.claude.com/docs/en/about-claude/pricing
 const CLAUDE_INPUT_PRICE_PER_M: f64 = 3.0;
 const CLAUDE_OUTPUT_PRICE_PER_M: f64 = 15.0;
-const CLAUDE_CACHE_READ_PRICE_PER_M: f64 = 0.30;
-const CLAUDE_CACHE_WRITE_PRICE_PER_M: f64 = 3.75;
+const CLAUDE_CACHE_READ_PRICE_PER_M: f64 = 0.30; // 0.1× base input price
+const CLAUDE_CACHE_WRITE_PRICE_PER_M: f64 = 3.75; // 1.25× base input price (5-min cache)
 
-/// OpenAI API pricing (per million tokens) as of 2024
-/// Using GPT-4o pricing as default for Codex
-const CODEX_INPUT_PRICE_PER_M: f64 = 2.50;
-const CODEX_CACHED_INPUT_PRICE_PER_M: f64 = 1.25;
+/// OpenAI API pricing (per million tokens) as of 2026
+/// Using gpt-5-codex Standard tier pricing as default
+/// See: https://platform.openai.com/docs/pricing
+const CODEX_INPUT_PRICE_PER_M: f64 = 1.25;
+const CODEX_CACHED_INPUT_PRICE_PER_M: f64 = 0.125;
 const CODEX_OUTPUT_PRICE_PER_M: f64 = 10.0;
-const CODEX_REASONING_PRICE_PER_M: f64 = 15.0;
+const CODEX_REASONING_PRICE_PER_M: f64 = 8.0; // o3 output pricing for reasoning
 
 /// Read Claude Code status from ~/.claude/
 pub fn read_claude_status() -> ClaudeStatus {
