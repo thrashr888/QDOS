@@ -183,10 +183,9 @@ impl QMindPlugin {
     }
 
     /// Index the current directory tree (recursive, respects .gitignore)
-    fn index_directory(&mut self) {
+    /// Called from tick() to allow UI to show "Indexing..." first
+    fn do_index_directory(&mut self) {
         self.state.clear_error();
-        self.state.indexing = true;
-        self.state.status_message = Some("Indexing directory tree...".to_string());
 
         // Get or create searcher
         if self.searcher.is_none() {
@@ -455,7 +454,11 @@ impl Plugin for QMindPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    self.index_directory();
+                    // Start indexing (actual work happens in tick())
+                    if !self.state.indexing {
+                        self.state.indexing = true;
+                        self.state.status_message = Some("Starting index...".to_string());
+                    }
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -522,6 +525,10 @@ impl Plugin for QMindPlugin {
     fn tick(&mut self) {
         if self.loading {
             self.initialize();
+        }
+        // Handle deferred indexing (allows UI to show "Indexing..." first)
+        if self.state.indexing {
+            self.do_index_directory();
         }
         // Handle deferred summary generation (allows UI to show "Generating..." first)
         if self.state.generating_summary {
