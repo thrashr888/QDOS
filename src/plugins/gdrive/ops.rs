@@ -265,14 +265,13 @@ pub fn open_in_browser(path: &PathBuf) -> Result<(), String> {
             .arg("https://drive.google.com")
             .spawn()
             .map_err(|e| format!("Failed to open browser: {}", e))?;
+        Ok(())
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        return Err("Opening browser not supported on this platform".to_string());
+        Err("Opening browser not supported on this platform".to_string())
     }
-
-    Ok(())
 }
 
 /// Open Google Drive preferences

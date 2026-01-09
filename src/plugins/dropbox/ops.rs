@@ -192,29 +192,27 @@ pub fn get_storage_info() -> StorageInfo {
     // We'd need to use the Dropbox API for accurate info
     // For now, return the filesystem info for the Dropbox folder
 
+    #[cfg(target_os = "macos")]
     if let Some(dropbox_path) = get_dropbox_path() {
-        #[cfg(target_os = "macos")]
+        if let Ok(output) = Command::new("df")
+            .args(["-k", &dropbox_path.to_string_lossy()])
+            .output()
         {
-            if let Ok(output) = Command::new("df")
-                .args(["-k", &dropbox_path.to_string_lossy()])
-                .output()
-            {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let lines: Vec<&str> = stdout.lines().collect();
-                if lines.len() >= 2 {
-                    let parts: Vec<&str> = lines[1].split_whitespace().collect();
-                    if parts.len() >= 4 {
-                        let total = parts[1].parse::<u64>().ok().map(|k| k * 1024);
-                        let free = parts[3].parse::<u64>().ok().map(|k| k * 1024);
-                        let used = total.and_then(|t| free.map(|f| t.saturating_sub(f)));
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let lines: Vec<&str> = stdout.lines().collect();
+            if lines.len() >= 2 {
+                let parts: Vec<&str> = lines[1].split_whitespace().collect();
+                if parts.len() >= 4 {
+                    let total = parts[1].parse::<u64>().ok().map(|k| k * 1024);
+                    let free = parts[3].parse::<u64>().ok().map(|k| k * 1024);
+                    let used = total.and_then(|t| free.map(|f| t.saturating_sub(f)));
 
-                        return StorageInfo {
-                            total_bytes: total,
-                            used_bytes: used,
-                            account: None, // Would need API access
-                            connected: is_dropbox_running(),
-                        };
-                    }
+                    return StorageInfo {
+                        total_bytes: total,
+                        used_bytes: used,
+                        account: None, // Would need API access
+                        connected: is_dropbox_running(),
+                    };
                 }
             }
         }
