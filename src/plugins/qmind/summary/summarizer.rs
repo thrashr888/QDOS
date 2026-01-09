@@ -10,7 +10,7 @@ use std::fs;
 use std::path::Path;
 
 /// A generated file summary
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FileSummary {
     /// Brief one-line description
     pub brief: String,
@@ -22,18 +22,6 @@ pub struct FileSummary {
     pub file_type: String,
     /// Tokens used to generate summary
     pub tokens_used: u32,
-}
-
-impl Default for FileSummary {
-    fn default() -> Self {
-        Self {
-            brief: String::new(),
-            detailed: String::new(),
-            key_elements: Vec::new(),
-            file_type: String::new(),
-            tokens_used: 0,
-        }
-    }
 }
 
 /// File summarizer using LLM
@@ -113,8 +101,7 @@ impl FileSummarizer {
         file_type: &str,
         path: &Path,
     ) -> Result<FileSummary, SummaryError> {
-        let provider =
-            create_chat_provider(self.config.clone()).map_err(SummaryError::ApiError)?;
+        let provider = create_chat_provider(self.config.clone()).map_err(SummaryError::ApiError)?;
 
         let file_name = path
             .file_name()
@@ -150,10 +137,15 @@ Output ONLY valid JSON."#;
             ChatMessage::user(user_prompt),
         ];
 
-        let response = provider.complete(&messages).map_err(SummaryError::ApiError)?;
+        let response = provider
+            .complete(&messages)
+            .map_err(SummaryError::ApiError)?;
 
         // Parse the JSON response
-        self.parse_summary_response(&response.content, response.input_tokens + response.output_tokens)
+        self.parse_summary_response(
+            &response.content,
+            response.input_tokens + response.output_tokens,
+        )
     }
 
     /// Parse LLM response into FileSummary
@@ -266,10 +258,7 @@ mod tests {
             summarizer.detect_file_type(Path::new("/test/file.py")),
             "py"
         );
-        assert_eq!(
-            summarizer.detect_file_type(Path::new("/test/file")),
-            ""
-        );
+        assert_eq!(summarizer.detect_file_type(Path::new("/test/file")), "");
     }
 
     #[test]

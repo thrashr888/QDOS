@@ -33,8 +33,8 @@ use crate::plugins::{
     DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
     GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin,
     Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QMindPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin,
-    StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    QEditPlugin, QMindPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin,
+    SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, LocalFS};

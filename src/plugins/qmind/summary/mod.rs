@@ -4,4 +4,6 @@
 
 mod summarizer;
 
+// SummaryError is re-exported for external use
+#[allow(unused_imports)]
 pub use summarizer::{FileSummarizer, FileSummary, SummaryError};

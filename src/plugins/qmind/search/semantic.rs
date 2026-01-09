@@ -136,12 +136,10 @@ impl SemanticSearch {
 
     /// Generate embedding for a search query
     fn generate_query_embedding(&self, query: &str) -> Result<Vec<f32>, SearchError> {
-        let provider = create_embeddings_provider(self.config.clone())
-            .map_err(|e| SearchError::ApiError(e))?;
+        let provider =
+            create_embeddings_provider(self.config.clone()).map_err(SearchError::ApiError)?;
 
-        let response = provider
-            .embed(query)
-            .map_err(|e| SearchError::ApiError(e))?;
+        let response = provider.embed(query).map_err(SearchError::ApiError)?;
 
         Ok(response.embedding)
     }

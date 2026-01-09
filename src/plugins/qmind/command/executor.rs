@@ -6,7 +6,7 @@ use super::parser::{CommandAction, ParsedCommand};
 use crate::plugins::qmind::state::{DryRunOpType, DryRunOperation};
 use glob::glob;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Result of command execution
 #[derive(Debug, Clone)]
@@ -132,7 +132,8 @@ impl CommandExecutor {
 
         match fs::read_dir(&dir) {
             Ok(entries) => {
-                let found: Vec<PathBuf> = entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
+                let found: Vec<PathBuf> =
+                    entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
                 ExecutionResult::Found(found)
             }
             Err(e) => ExecutionResult::Error(format!("Cannot list {}: {}", dir.display(), e)),
@@ -165,8 +166,12 @@ impl CommandExecutor {
                 } else {
                     dest.clone()
                 };
-                DryRunOperation::new(DryRunOpType::Copy, f.clone(), format!("Copy to {}", dest_path.display()))
-                    .with_dest(dest_path)
+                DryRunOperation::new(
+                    DryRunOpType::Copy,
+                    f.clone(),
+                    format!("Copy to {}", dest_path.display()),
+                )
+                .with_dest(dest_path)
             })
             .collect();
 
@@ -193,8 +198,12 @@ impl CommandExecutor {
                 } else {
                     dest.clone()
                 };
-                DryRunOperation::new(DryRunOpType::Rename, f.clone(), format!("Move to {}", dest_path.display()))
-                    .with_dest(dest_path)
+                DryRunOperation::new(
+                    DryRunOpType::Rename,
+                    f.clone(),
+                    format!("Move to {}", dest_path.display()),
+                )
+                .with_dest(dest_path)
             })
             .collect();
 
@@ -339,8 +348,7 @@ impl CommandExecutor {
             match op.op_type {
                 DryRunOpType::Copy => {
                     if let Some(dest) = &op.dest_path {
-                        fs::copy(&op.path, dest)
-                            .map_err(|e| format!("Copy failed: {}", e))?;
+                        fs::copy(&op.path, dest).map_err(|e| format!("Copy failed: {}", e))?;
                         executed += 1;
                     }
                 }
@@ -356,8 +364,7 @@ impl CommandExecutor {
                         fs::remove_dir_all(&op.path)
                             .map_err(|e| format!("Delete failed: {}", e))?;
                     } else {
-                        fs::remove_file(&op.path)
-                            .map_err(|e| format!("Delete failed: {}", e))?;
+                        fs::remove_file(&op.path).map_err(|e| format!("Delete failed: {}", e))?;
                     }
                     executed += 1;
                 }

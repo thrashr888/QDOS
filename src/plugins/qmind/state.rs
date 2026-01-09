@@ -304,8 +304,8 @@ impl QMindState {
     /// Check if API key is configured
     pub fn check_api_availability(&mut self) {
         // Check for OpenAI or Anthropic API keys
-        self.api_available = std::env::var("OPENAI_API_KEY").is_ok()
-            || std::env::var("ANTHROPIC_API_KEY").is_ok();
+        self.api_available =
+            std::env::var("OPENAI_API_KEY").is_ok() || std::env::var("ANTHROPIC_API_KEY").is_ok();
     }
 
     /// Set error message

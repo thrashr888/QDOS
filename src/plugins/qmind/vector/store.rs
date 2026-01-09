@@ -143,7 +143,11 @@ impl VectorStore {
     }
 
     /// Search for similar vectors
-    pub fn search(&self, query: &[f32], top_k: usize) -> Result<Vec<SearchResult>, VectorStoreError> {
+    pub fn search(
+        &self,
+        query: &[f32],
+        top_k: usize,
+    ) -> Result<Vec<SearchResult>, VectorStoreError> {
         if query.len() != self.dimension {
             return Err(VectorStoreError::DimensionMismatch {
                 expected: self.dimension,
@@ -161,7 +165,11 @@ impl VectorStore {
             .collect();
 
         // Sort by score descending
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Take top_k results
         results.truncate(top_k);
@@ -177,7 +185,10 @@ impl VectorStore {
         max_results: usize,
     ) -> Result<Vec<SearchResult>, VectorStoreError> {
         let results = self.search(query, max_results)?;
-        Ok(results.into_iter().filter(|r| r.score >= min_score).collect())
+        Ok(results
+            .into_iter()
+            .filter(|r| r.score >= min_score)
+            .collect())
     }
 
     /// Clear all entries
@@ -283,7 +294,10 @@ mod tests {
         let entry = VectorEntry::new("test", vec![1.0, 0.0], EntryMetadata::default());
 
         let result = store.upsert(entry);
-        assert!(matches!(result, Err(VectorStoreError::DimensionMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(VectorStoreError::DimensionMismatch { .. })
+        ));
     }
 
     #[test]
@@ -311,36 +325,72 @@ mod tests {
     fn test_search() {
         let mut store = VectorStore::new(3);
 
-        store.upsert(VectorEntry::new("a", vec![1.0, 0.0, 0.0], EntryMetadata::default())).unwrap();
-        store.upsert(VectorEntry::new("b", vec![0.9, 0.1, 0.0], EntryMetadata::default())).unwrap();
-        store.upsert(VectorEntry::new("c", vec![0.0, 1.0, 0.0], EntryMetadata::default())).unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "a",
+                vec![1.0, 0.0, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "b",
+                vec![0.9, 0.1, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "c",
+                vec![0.0, 1.0, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
 
         let query = vec![1.0, 0.0, 0.0];
         let results = store.search(&query, 2).unwrap();
 
         assert_eq!(results.len(), 2);
-        assert_eq!(results[0].entry.id, "a");  // Most similar
-        assert_eq!(results[1].entry.id, "b");  // Second most similar
+        assert_eq!(results[0].entry.id, "a"); // Most similar
+        assert_eq!(results[1].entry.id, "b"); // Second most similar
     }
 
     #[test]
     fn test_search_threshold() {
         let mut store = VectorStore::new(3);
 
-        store.upsert(VectorEntry::new("a", vec![1.0, 0.0, 0.0], EntryMetadata::default())).unwrap();
-        store.upsert(VectorEntry::new("b", vec![0.0, 1.0, 0.0], EntryMetadata::default())).unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "a",
+                vec![1.0, 0.0, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "b",
+                vec![0.0, 1.0, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
 
         let query = vec![1.0, 0.0, 0.0];
         let results = store.search_threshold(&query, 0.5, 10).unwrap();
 
-        assert_eq!(results.len(), 1);  // Only "a" meets threshold
+        assert_eq!(results.len(), 1); // Only "a" meets threshold
         assert_eq!(results[0].entry.id, "a");
     }
 
     #[test]
     fn test_remove() {
         let mut store = VectorStore::new(3);
-        store.upsert(VectorEntry::new("test", vec![1.0, 0.0, 0.0], EntryMetadata::default())).unwrap();
+        store
+            .upsert(VectorEntry::new(
+                "test",
+                vec![1.0, 0.0, 0.0],
+                EntryMetadata::default(),
+            ))
+            .unwrap();
 
         assert!(store.contains("test"));
         store.remove("test");

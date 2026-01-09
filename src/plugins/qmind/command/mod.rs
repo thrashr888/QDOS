@@ -7,4 +7,6 @@ mod executor;
 mod parser;
 
 pub use executor::{CommandExecutor, ExecutionResult};
+// CommandAction is re-exported for external use
+#[allow(unused_imports)]
 pub use parser::{CommandAction, CommandParser, ParsedCommand};

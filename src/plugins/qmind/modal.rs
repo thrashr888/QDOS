@@ -214,7 +214,15 @@ fn draw_overview(frame: &mut Frame, area: Rect, state: &QMindState, colors: &The
         )],
     );
 
-    view.render_help(frame, vec![("C", "command"), ("S", "search"), ("F", "summary"), ("Esc", "close")]);
+    view.render_help(
+        frame,
+        vec![
+            ("C", "command"),
+            ("S", "search"),
+            ("F", "summary"),
+            ("Esc", "close"),
+        ],
+    );
 }
 
 /// Draw natural language command palette
@@ -267,7 +275,11 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
             frame,
             row,
             vec![Span::styled(
-                format!("Action: {} ({}% confidence)", cmd.action.description(), (cmd.confidence * 100.0) as u32),
+                format!(
+                    "Action: {} ({}% confidence)",
+                    cmd.action.description(),
+                    (cmd.confidence * 100.0) as u32
+                ),
                 Style::default().fg(colors.green()).bg(colors.bg()),
             )],
         );
@@ -336,7 +348,8 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
 
             // Show up to 10 files
             for file in state.found_files.iter().take(10) {
-                let name = file.file_name()
+                let name = file
+                    .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| file.to_string_lossy().to_string());
                 let size = std::fs::metadata(file)
@@ -406,7 +419,14 @@ fn draw_command_palette(frame: &mut Frame, area: Rect, state: &QMindState, color
         );
     }
 
-    view.render_help(frame, vec![("Enter", "parse"), ("Shift+Enter", "newline"), ("Esc", "back")]);
+    view.render_help(
+        frame,
+        vec![
+            ("Enter", "parse"),
+            ("Shift+Enter", "newline"),
+            ("Esc", "back"),
+        ],
+    );
 }
 
 /// Draw semantic search view
@@ -507,7 +527,14 @@ fn draw_semantic_search(frame: &mut Frame, area: Rect, state: &QMindState, color
         );
     }
 
-    view.render_help(frame, vec![("Enter", "search"), ("Shift+Enter", "newline"), ("Esc", "back")]);
+    view.render_help(
+        frame,
+        vec![
+            ("Enter", "search"),
+            ("Shift+Enter", "newline"),
+            ("Esc", "back"),
+        ],
+    );
 }
 
 /// Draw index status view
@@ -603,10 +630,7 @@ fn draw_file_summary(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
                 frame,
                 row,
                 vec![
-                    Span::styled(
-                        "Type: ",
-                        Style::default().fg(colors.grey()).bg(colors.bg()),
-                    ),
+                    Span::styled("Type: ", Style::default().fg(colors.grey()).bg(colors.bg())),
                     Span::styled(
                         &summary.file_type,
                         Style::default().fg(colors.cyan()).bg(colors.bg()),
@@ -813,7 +837,9 @@ fn draw_dry_run(frame: &mut Frame, area: Rect, state: &QMindState, colors: &Them
                 colors.cyan()
             };
 
-            let path_str = op.path.file_name()
+            let path_str = op
+                .path
+                .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| op.path.to_string_lossy().to_string());
 
@@ -858,7 +884,11 @@ fn draw_dry_run(frame: &mut Frame, area: Rect, state: &QMindState, colors: &Them
     }
 
     // Help depends on whether destructive
-    let has_destructive = state.dry_run.as_ref().map(|dr| dr.has_destructive()).unwrap_or(false);
+    let has_destructive = state
+        .dry_run
+        .as_ref()
+        .map(|dr| dr.has_destructive())
+        .unwrap_or(false);
     if has_destructive {
         view.render_help(frame, vec![("Y", "confirm"), ("N/Esc", "cancel")]);
     } else {

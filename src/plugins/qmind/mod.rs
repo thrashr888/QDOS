@@ -21,9 +21,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{layout::Rect, Frame};
 use search::SemanticSearch;
 use state::{DryRunState, QMindState, QMindView, SearchResult};
-use summary::FileSummarizer;
 use std::any::Any;
 use std::path::PathBuf;
+use summary::FileSummarizer;
 
 /// Q-MIND AI Intelligence Layer plugin
 pub struct QMindPlugin {
@@ -202,7 +202,8 @@ impl QMindPlugin {
         if let Some(dry_run) = self.state.dry_run.take() {
             match CommandExecutor::execute_confirmed(&dry_run.operations) {
                 Ok(count) => {
-                    self.state.set_error(format!("Executed {} operations successfully", count));
+                    self.state
+                        .set_error(format!("Executed {} operations successfully", count));
                 }
                 Err(e) => {
                     self.state.set_error(format!("Execution failed: {}", e));
@@ -254,8 +255,8 @@ impl Plugin for QMindPlugin {
 
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities {
-            has_menu: false,       // Not in old menu system
-            has_keys: true,        // Has ? global key
+            has_menu: false, // Not in old menu system
+            has_keys: true,  // Has ? global key
             has_modal: true,
             has_status: true,
             has_cli: false,
@@ -407,7 +408,9 @@ impl Plugin for QMindPlugin {
                     }
                     KeyCode::Down => {
                         // Navigate search results
-                        if self.state.search_selected < self.state.search_results.len().saturating_sub(1) {
+                        if self.state.search_selected
+                            < self.state.search_results.len().saturating_sub(1)
+                        {
                             self.state.search_selected += 1;
                         }
                         KeyHandleResult::Handled

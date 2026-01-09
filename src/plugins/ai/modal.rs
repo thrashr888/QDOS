@@ -1202,4 +1202,3 @@ fn draw_dry_run_view(frame: &mut Frame, area: Rect, state: &AIState, colors: &Th
         );
     }
 }
-

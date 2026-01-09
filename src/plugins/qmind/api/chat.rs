@@ -107,11 +107,14 @@ impl ChatProvider for OpenAIChat {
             "temperature": self.config.temperature,
         });
 
-        let response = ureq::post(&format!("{}/chat/completions", self.config.provider.api_base()))
-            .header("Authorization", &format!("Bearer {}", api_key))
-            .header("Content-Type", "application/json")
-            .send_json(&request)
-            .map_err(|e| ApiError::RequestFailed(e.to_string()))?;
+        let response = ureq::post(&format!(
+            "{}/chat/completions",
+            self.config.provider.api_base()
+        ))
+        .header("Authorization", &format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .send_json(&request)
+        .map_err(|e| ApiError::RequestFailed(e.to_string()))?;
 
         let body: OpenAIChatResponse = response
             .into_body()

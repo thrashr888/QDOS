@@ -28,16 +28,46 @@ impl Default for IndexConfig {
     fn default() -> Self {
         let mut content_extensions = HashSet::new();
         for ext in &[
-            "txt", "md", "rs", "py", "js", "ts", "go", "c", "cpp", "h", "java", "rb", "sh",
-            "toml", "yaml", "yml", "json", "xml", "html", "css", "sql", "dockerfile",
+            "txt",
+            "md",
+            "rs",
+            "py",
+            "js",
+            "ts",
+            "go",
+            "c",
+            "cpp",
+            "h",
+            "java",
+            "rb",
+            "sh",
+            "toml",
+            "yaml",
+            "yml",
+            "json",
+            "xml",
+            "html",
+            "css",
+            "sql",
+            "dockerfile",
         ] {
             content_extensions.insert(ext.to_string());
         }
 
         let mut skip_dirs = HashSet::new();
         for dir in &[
-            ".git", "node_modules", "target", ".cargo", "__pycache__", ".venv",
-            "venv", "dist", "build", ".cache", ".idea", ".vscode",
+            ".git",
+            "node_modules",
+            "target",
+            ".cargo",
+            "__pycache__",
+            ".venv",
+            "venv",
+            "dist",
+            "build",
+            ".cache",
+            ".idea",
+            ".vscode",
         ] {
             skip_dirs.insert(dir.to_string());
         }
@@ -222,7 +252,11 @@ impl FileIndexer {
         // Skip if in a skip directory
         for component in path.components() {
             if let std::path::Component::Normal(name) = component {
-                if self.index_config.skip_dirs.contains(&name.to_string_lossy().to_string()) {
+                if self
+                    .index_config
+                    .skip_dirs
+                    .contains(&name.to_string_lossy().to_string())
+                {
                     return true;
                 }
             }
@@ -232,7 +266,11 @@ impl FileIndexer {
     }
 
     /// Generate text to use for embedding
-    fn generate_embed_text(&self, path: &Path, metadata: &fs::Metadata) -> Result<String, IndexError> {
+    fn generate_embed_text(
+        &self,
+        path: &Path,
+        metadata: &fs::Metadata,
+    ) -> Result<String, IndexError> {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -277,11 +315,9 @@ impl FileIndexer {
         }
 
         let provider =
-            create_embeddings_provider(self.config.clone()).map_err(|e| IndexError::ApiError(e))?;
+            create_embeddings_provider(self.config.clone()).map_err(IndexError::ApiError)?;
 
-        let response = provider
-            .embed(text)
-            .map_err(|e| IndexError::ApiError(e))?;
+        let response = provider.embed(text).map_err(IndexError::ApiError)?;
 
         self.stats.tokens_used += response.tokens_used;
 
