@@ -332,8 +332,11 @@ fn draw_integrated_content(frame: &mut Frame, app: &App, area: Rect) {
     let kind_col: u16 = 6; // "KIND" + padding
     let date_col: u16 = 10;
     let time_col: u16 = 9;
-    // Calculate name_col to fill remaining width (area.width - left_width - kind - size - date - time - 5 separators - 1 right border)
-    let fixed_cols = left_width + kind_col + size_col + date_col + time_col + 5 + 1;
+    // Calculate name_col to fill remaining width
+    // Border uses: (left_width-1) + 6 junctions/corners + name_col + kind_col + size_col + date_col + time_col
+    // So: name_col = area.width - (left_width-1) - 6 - kind_col - size_col - date_col - time_col
+    //            = area.width - left_width - kind_col - size_col - date_col - time_col - 5
+    let fixed_cols = left_width + kind_col + size_col + date_col + time_col + 5;
     let name_col: u16 = area.width.saturating_sub(fixed_cols).max(14);
 
     // Calculate positions
