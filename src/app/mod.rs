@@ -2991,6 +2991,22 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("drives"));
                 self.modal = Modal::Plugin("drives".to_string());
             }
+            "dropbox" => {
+                // Open Dropbox plugin
+                if let Some(dropbox_plugin) = self.plugin_manager.dropbox_plugin_mut() {
+                    dropbox_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("dropbox"));
+                self.modal = Modal::Plugin("dropbox".to_string());
+            }
+            "gdrive" => {
+                // Open Google Drive plugin
+                if let Some(gdrive_plugin) = self.plugin_manager.gdrive_plugin_mut() {
+                    gdrive_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("gdrive"));
+                self.modal = Modal::Plugin("gdrive".to_string());
+            }
             "git" => {
                 if self.is_git_repo() {
                     let state = GitState::new(true);
@@ -3006,6 +3022,14 @@ impl App {
                 }
                 self.plugin_manager.set_active_modal(Some("homebrew"));
                 self.modal = Modal::Plugin("homebrew".to_string());
+            }
+            "icloud" => {
+                // Open iCloud Drive plugin
+                if let Some(icloud_plugin) = self.plugin_manager.icloud_plugin_mut() {
+                    icloud_plugin.open_modal();
+                }
+                self.plugin_manager.set_active_modal(Some("icloud"));
+                self.modal = Modal::Plugin("icloud".to_string());
             }
             "jj" => {
                 // Initialize JJ plugin - will show error if not in a jj repo
@@ -3168,8 +3192,22 @@ impl App {
                 self.plugin_manager.set_active_modal(Some("searchspec"));
                 self.modal = Modal::Plugin("searchspec".to_string());
             }
+            "sftp" => {
+                // Open SFTP plugin
+                if let Some(sftp_plugin) = self.plugin_manager.sftp_plugin_mut() {
+                    sftp_plugin.state.local_dir = self.current_path.clone();
+                }
+                self.plugin_manager.set_active_modal(Some("sftp"));
+                self.modal = Modal::Plugin("sftp".to_string());
+            }
             _ => {
-                self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
+                // Try generic plugin launch for plugins that don't need special initialization
+                if self.plugin_manager.get(plugin_id).is_some() {
+                    self.plugin_manager.set_active_modal(Some(plugin_id));
+                    self.modal = Modal::Plugin(plugin_id.to_string());
+                } else {
+                    self.modal = Modal::Error(format!("Unknown app: {}", plugin_id));
+                }
             }
         }
     }

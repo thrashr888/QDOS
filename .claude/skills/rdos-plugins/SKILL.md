@@ -19,8 +19,8 @@ src/plugins/myplugin/
 
 ## Self-Containment Rules
 
-- **ZERO** modifications to `src/app/mod.rs`
-- **MINIMAL** additions to `src/plugins/mod.rs` (registration only)
+- **MINIMAL** modifications to `src/app/mod.rs` (import, registration, Apps launcher)
+- **MINIMAL** additions to `src/plugins/mod.rs` (module declaration, pub use, accessor method)
 - **NO** plugin-specific code in `src/ui/`
 - All state, operations, UI in plugin directory
 
@@ -126,18 +126,20 @@ impl MyState {
 }
 ```
 
-## Registration
+## Registration Checklist
 
-In `src/plugins/mod.rs`:
+### 1. `src/plugins/mod.rs`
 
-1. Add module declaration and pub use:
+Add module declaration, pub use, and accessor method:
+
 ```rust
+// Module declaration (alphabetical order)
 pub mod myplugin;
-pub use myplugin::MyPlugin;
-```
 
-2. Add accessor method (if plugin needs direct access):
-```rust
+// Public export (alphabetical order)
+pub use myplugin::MyPlugin;
+
+// In PluginManager impl - accessor method
 pub fn myplugin_plugin_mut(&mut self) -> Option<&mut myplugin::MyPlugin> {
     self.plugins
         .get_mut("myplugin")
@@ -145,28 +147,43 @@ pub fn myplugin_plugin_mut(&mut self) -> Option<&mut myplugin::MyPlugin> {
 }
 ```
 
-In `src/app/mod.rs`:
+### 2. `src/app/mod.rs`
 
-1. Add import:
+Add import and registration:
+
 ```rust
+// Add to imports (alphabetical order)
 use crate::plugins::{MyPlugin, ...};
-```
 
-2. Register plugin:
-```rust
+// Add registration in App::new() (alphabetical order)
 plugin_manager.register(Box::new(MyPlugin::new()));
 ```
 
-3. Add Apps launcher handler (in `launch_plugin_modal`):
+### 3. Apps Launcher Integration (REQUIRED)
+
+**Every plugin with `app_entry()` MUST have a handler in `launch_plugin_modal()`.**
+
+The F12 Apps launcher uses `launch_plugin_modal()` to open plugins. Without a handler, you get "Unknown app: myplugin" error.
+
+**Simple plugins** (no special initialization needed):
+```rust
+// The generic fallback will handle it - no explicit code needed
+// Just ensure app_entry() returns the correct id
+```
+
+**Plugins needing initialization** (file path, directory, etc.):
 ```rust
 "myplugin" => {
+    // Pass context if needed
     if let Some(plugin) = self.plugin_manager.myplugin_plugin_mut() {
-        plugin.open_modal(...);
+        plugin.open_modal(&self.current_path);  // or other initialization
     }
     self.plugin_manager.set_active_modal(Some("myplugin"));
     self.modal = Modal::Plugin("myplugin".to_string());
 }
 ```
+
+Add your handler in alphabetical order within the match statement.
 
 ## Apps Launcher (F12)
 
