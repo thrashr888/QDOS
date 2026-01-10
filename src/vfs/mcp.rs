@@ -9,10 +9,26 @@ use crate::mcp::{McpClient, ServerConfig};
 use anyhow::{anyhow, Result};
 use serde_json::json;
 use std::collections::HashMap;
-use std::fs::Permissions;
+use std::fs::{OpenOptions, Permissions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+
+/// Log a message to /tmp/mcp-{server}.log
+fn mcp_log(server_name: &str, msg: &str) {
+    let log_path = format!(
+        "/tmp/mcp-{}.log",
+        server_name.replace(" ", "_").to_lowercase()
+    );
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&log_path) {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let _ = writeln!(file, "[{}] {}", timestamp, msg);
+    }
+}
 
 /// Cache entry for directory listings
 struct CachedDir {
@@ -48,10 +64,15 @@ pub struct McpFS {
 impl McpFS {
     /// Create a new MCP filesystem from a client
     pub fn new(client: McpClient, server_name: String, base_path: String) -> Self {
+        // Canonicalize the base path to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
+        let canonical_base = std::fs::canonicalize(&base_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or(base_path);
+
         Self {
             client: Arc::new(Mutex::new(client)),
             server_name,
-            base_path,
+            base_path: canonical_base,
             dir_cache: Arc::new(Mutex::new(HashMap::new())),
             file_cache: Arc::new(Mutex::new(HashMap::new())),
             cache_ttl: Duration::from_secs(60), // 1 minute default
@@ -165,19 +186,54 @@ impl McpFS {
         let server_path = self.to_server_path(path);
         let path_str = server_path.to_string_lossy().to_string();
 
+        mcp_log(
+            &self.server_name,
+            &format!(
+                "call_list_directory: vfs_path={:?} server_path={}",
+                path, path_str
+            ),
+        );
+
         let result = {
+            mcp_log(&self.server_name, "Acquiring client lock...");
             let mut client = self
                 .client
                 .lock()
                 .map_err(|_| anyhow!("Failed to lock MCP client"))?;
 
+            mcp_log(&self.server_name, "Calling list_directory tool...");
             client
                 .call_tool("list_directory", Some(json!({"path": path_str})))
-                .map_err(|e| anyhow!("MCP list_directory error: {}", e))?
+                .map_err(|e| {
+                    mcp_log(&self.server_name, &format!("list_directory error: {}", e));
+                    anyhow!("MCP list_directory error: {}", e)
+                })?
         };
+
+        mcp_log(
+            &self.server_name,
+            &format!(
+                "Got result with {} content items, isError={:?}",
+                result.content.len(),
+                result.is_error
+            ),
+        );
+
+        // Check for error response
+        if result.is_error == Some(true) {
+            let error_msg = self
+                .extract_text_content(&result.content)
+                .unwrap_or_else(|_| "Unknown MCP error".to_string());
+            mcp_log(&self.server_name, &format!("MCP error: {}", error_msg));
+            return Err(anyhow!("MCP error: {}", error_msg));
+        }
 
         // Extract text content from result
         let content = self.extract_text_content(&result.content)?;
+        mcp_log(
+            &self.server_name,
+            &format!("Parsed content: {} bytes", content.len()),
+        );
 
         // Parse the result - format is "[DIR] name" or "[FILE] name" per line
         McpFS::parse_list_directory_result(&content, path)
@@ -297,13 +353,29 @@ impl McpFS {
 
 impl FileSystemProvider for McpFS {
     fn read_dir(&self, path: &Path) -> Result<Vec<VfsDirEntry>> {
+        mcp_log(
+            &self.server_name,
+            &format!("read_dir called for {:?}", path),
+        );
+
         // Check cache first
         if let Some(cached) = self.get_cached_dir(path) {
+            mcp_log(
+                &self.server_name,
+                &format!("Cache hit: {} entries", cached.len()),
+            );
             return Ok(cached);
         }
 
+        mcp_log(&self.server_name, "Cache miss, calling MCP...");
+
         // Call list_directory tool
         let entries = self.call_list_directory(path)?;
+
+        mcp_log(
+            &self.server_name,
+            &format!("Got {} entries from MCP", entries.len()),
+        );
 
         // Cache result
         self.cache_dir(path, entries.clone());

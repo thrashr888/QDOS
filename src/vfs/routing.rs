@@ -96,15 +96,41 @@ impl RoutingFS {
 
     /// Check if a path is under any mount point
     pub fn is_mounted_path(&self, path: &Path) -> bool {
-        // Canonicalize the path to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
-        let canonical_path = self
-            .local
-            .canonicalize(path)
-            .unwrap_or_else(|_| path.to_path_buf());
         if let Ok(mounts) = self.mounts.read() {
             for mount_point in mounts.keys() {
-                if canonical_path.starts_with(mount_point) {
+                // Try to match the path against the mount point
+                // Handle both canonicalized and non-canonicalized paths
+
+                // First, try direct prefix match
+                if path.starts_with(mount_point) {
                     return true;
+                }
+
+                // Try canonicalizing the path (may fail for virtual subdirs)
+                if let Ok(canonical_path) = self.local.canonicalize(path) {
+                    if canonical_path.starts_with(mount_point) {
+                        return true;
+                    }
+                }
+
+                // For virtual subdirectories, check if the path's existing prefix matches
+                // E.g., /tmp/mcp/filesystem/subdir -> canonicalize /tmp/mcp/filesystem -> /private/tmp/mcp/filesystem
+                let mut check_path = path.to_path_buf();
+                while let Some(parent) = check_path.parent().map(|p| p.to_path_buf()) {
+                    if let Ok(canonical_parent) = self.local.canonicalize(&parent) {
+                        // Reconstruct the path with the canonical prefix
+                        if let Ok(suffix) = path.strip_prefix(&parent) {
+                            let canonical_full = canonical_parent.join(suffix);
+                            if canonical_full.starts_with(mount_point) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    if parent.as_os_str().is_empty() || parent == Path::new("/") {
+                        break;
+                    }
+                    check_path = parent;
                 }
             }
         }
@@ -126,11 +152,45 @@ impl RoutingFS {
     fn find_provider(&self, path: &Path) -> Option<(Arc<dyn FileSystemProvider>, PathBuf)> {
         let mounts = self.mounts.read().ok()?;
 
-        // Canonicalize the path to handle symlinks
-        let canonical_path = self
-            .local
-            .canonicalize(path)
-            .unwrap_or_else(|_| path.to_path_buf());
+        // Try to canonicalize the path. For virtual subdirectories that don't exist
+        // on the local filesystem, canonicalization will fail. In that case, we need
+        // to canonicalize the existing parent and reconstruct the full path.
+        let canonical_path = if let Ok(canonical) = self.local.canonicalize(path) {
+            canonical
+        } else {
+            // Path doesn't exist locally - try to canonicalize parent directories
+            // E.g., /tmp/mcp/filesystem/virtual-subdir -> /private/tmp/mcp/filesystem/virtual-subdir
+            let mut check_path = path.to_path_buf();
+            let mut canonical_path = path.to_path_buf();
+
+            while let Some(parent) = check_path.parent().map(|p| p.to_path_buf()) {
+                if let Ok(canonical_parent) = self.local.canonicalize(&parent) {
+                    // Found a real parent we can canonicalize
+                    if let Ok(suffix) = path.strip_prefix(&parent) {
+                        canonical_path = canonical_parent.join(suffix);
+                        // Log the canonicalization
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/rdos-keys.log")
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(
+                                f,
+                                "find_provider: canonicalized {:?} -> {:?}",
+                                path, canonical_path
+                            );
+                        }
+                        break;
+                    }
+                }
+                if parent.as_os_str().is_empty() || parent == Path::new("/") {
+                    break;
+                }
+                check_path = parent;
+            }
+            canonical_path
+        };
 
         // Find the longest matching prefix
         let mut best_match: Option<(&PathBuf, &Arc<dyn FileSystemProvider>)> = None;
@@ -146,6 +206,24 @@ impl RoutingFS {
                     }
                 }
             }
+        }
+
+        // Log the result
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/rdos-keys.log")
+        {
+            use std::io::Write;
+            let mount_keys: Vec<_> = mounts.keys().collect();
+            let _ = writeln!(
+                f,
+                "find_provider: path={:?}, canonical={:?}, mounts={:?}, found={:?}",
+                path,
+                canonical_path,
+                mount_keys,
+                best_match.map(|(p, _)| p)
+            );
         }
 
         best_match.map(|(mount_path, provider)| {

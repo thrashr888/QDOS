@@ -10,6 +10,14 @@ description = "R-DOS: A retro DOS-style file manager TUI application written in 
 authors = ["thrashr888"]
 license = "MIT"
 
+[lib]
+name = "rdos"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rdos"
+path = "src/main.rs"
+
 [dependencies]
 # TUI framework
 ratatui = "0.29"

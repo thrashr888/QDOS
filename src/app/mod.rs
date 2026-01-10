@@ -40,7 +40,7 @@ use crate::plugins::{
     ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
-use crate::vfs::RoutingFS;
+use crate::vfs::{FileSystemProvider, RoutingFS};
 use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -279,7 +279,18 @@ impl App {
             // Handle events
             if let Some(event) = event_handler.next().await? {
                 match event {
-                    crate::event::Event::Key(key) => self.handle_key(key)?,
+                    crate::event::Event::Key(key) => {
+                        // Debug: log key events to file
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/rdos-keys.log")
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(f, "Key: {:?}", key.code);
+                        }
+                        self.handle_key(key)?
+                    }
                     crate::event::Event::Tick => {
                         // Auto-process progress on tick
                         if matches!(self.modal, Modal::Progress(_)) {
@@ -1496,6 +1507,15 @@ impl App {
     /// Move file selection up or down
     fn move_selection(&mut self, delta: i32) {
         if self.files.is_empty() {
+            // Log empty files
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/rdos-keys.log")
+            {
+                use std::io::Write;
+                let _ = writeln!(f, "move_selection: files is empty!");
+            }
             return;
         }
 
@@ -1506,6 +1526,22 @@ impl App {
         };
 
         self.selected_index = new_index;
+
+        // Log selection change
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/rdos-keys.log")
+        {
+            use std::io::Write;
+            let _ = writeln!(
+                f,
+                "move_selection: delta={}, new_index={}, files.len={}",
+                delta,
+                new_index,
+                self.files.len()
+            );
+        }
 
         // Only adjust scroll when selection goes outside visible window
         // UI will use this as starting point and make final adjustments
@@ -1659,9 +1695,33 @@ impl App {
 
     /// Navigate to a new directory
     fn navigate_to(&mut self, path: &PathBuf) -> Result<()> {
-        let canonical = path.canonicalize()?;
+        // Log navigation attempt
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/rdos-keys.log")
+        {
+            use std::io::Write;
+            let is_mounted = self.routing_fs.is_mounted_path(path);
+            let _ = writeln!(f, "navigate_to: path={:?}, is_mounted={}", path, is_mounted);
+        }
 
-        if !canonical.is_dir() {
+        // For MCP-mounted paths, use VFS operations instead of local filesystem
+        let canonical = if self.routing_fs.is_mounted_path(path) {
+            // For virtual paths, just use the path as-is (it's already "canonical" in VFS terms)
+            path.clone()
+        } else {
+            path.canonicalize()?
+        };
+
+        // Check if it's a directory using the appropriate filesystem
+        let is_dir = if self.routing_fs.is_mounted_path(&canonical) {
+            self.routing_fs.is_dir(&canonical)
+        } else {
+            canonical.is_dir()
+        };
+
+        if !is_dir {
             anyhow::bail!("Not a directory");
         }
 
@@ -1675,9 +1735,11 @@ impl App {
         self.selected_index = 0;
         self.scroll_offset = 0;
 
-        // Update directory watcher
-        if let Some(ref mut watcher) = self.dir_watcher {
-            let _ = watcher.watch_path(&canonical);
+        // Update directory watcher (only for local paths)
+        if !self.routing_fs.is_mounted_path(&canonical) {
+            if let Some(ref mut watcher) = self.dir_watcher {
+                let _ = watcher.watch_path(&canonical);
+            }
         }
 
         // Refresh git/beads status for new directory
@@ -1908,8 +1970,63 @@ impl App {
                     let file = &self.files[self.selected_index];
                     let file_path = file.path.clone();
                     let cwd = self.current_path.clone();
+
+                    // Check if this is a VFS path - if so, read via VFS
+                    let is_vfs = self.routing_fs.is_mounted_path(&file_path);
+
+                    // Debug log
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/rdos-keys.log")
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(
+                            f,
+                            "NavItem::View: file_path={:?}, is_vfs={}",
+                            file_path, is_vfs
+                        );
+                    }
+
                     if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
-                        match plugin.open_file(file_path, &cwd) {
+                        let result = if is_vfs {
+                            // Read file content via VFS
+                            match self.routing_fs.read_file(&file_path) {
+                                Ok(content) => {
+                                    // Log success
+                                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                                        .create(true)
+                                        .append(true)
+                                        .open("/tmp/rdos-keys.log")
+                                    {
+                                        use std::io::Write;
+                                        let _ = writeln!(
+                                            f,
+                                            "VFS read success: {} bytes",
+                                            content.len()
+                                        );
+                                    }
+                                    plugin.open_file_with_content(file_path, content, &cwd)
+                                }
+                                Err(e) => {
+                                    // Log error
+                                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                                        .create(true)
+                                        .append(true)
+                                        .open("/tmp/rdos-keys.log")
+                                    {
+                                        use std::io::Write;
+                                        let _ = writeln!(f, "VFS read error: {}", e);
+                                    }
+                                    Err(format!("VFS read error: {}", e))
+                                }
+                            }
+                        } else {
+                            // Use standard file reading
+                            plugin.open_file(file_path, &cwd)
+                        };
+
+                        match result {
                             Ok(()) => {
                                 self.plugin_manager.set_active_modal(Some("viewer"));
                                 self.modal = Modal::Plugin("viewer".to_string());
@@ -2921,8 +3038,9 @@ impl App {
                 true
             }
             KeyHandleResult::NavigateToFile(path) => {
-                // Close any active modal
+                // Close any active modal (both regular and plugin modals)
                 self.modal = Modal::None;
+                self.plugin_manager.set_active_modal(None);
 
                 // Navigate to the file's parent directory
                 if let Some(parent) = path.parent() {
@@ -2943,11 +3061,34 @@ impl App {
                 true
             }
             KeyHandleResult::NavigateToDir(path) => {
-                // Close any active modal
+                // Close any active modal (both regular and plugin modals)
                 self.modal = Modal::None;
+                self.plugin_manager.set_active_modal(None);
 
                 // Navigate directly into the directory
-                let _ = self.navigate_to(&path);
+                if let Err(e) = self.navigate_to(&path) {
+                    // Log navigation error
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/rdos-keys.log")
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(f, "NavigateToDir error: {:?} -> {}", path, e);
+                    }
+                } else if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/rdos-keys.log")
+                {
+                    use std::io::Write;
+                    let _ = writeln!(
+                        f,
+                        "NavigateToDir success: {:?}, files={}",
+                        path,
+                        self.files.len()
+                    );
+                }
 
                 true
             }

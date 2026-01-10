@@ -234,11 +234,20 @@ impl ViewerPlugin {
         }
     }
 
-    /// Open the viewer with a file
+    /// Open the viewer with a file (reads content using std::fs)
     pub fn open_file(&mut self, file_path: PathBuf, cwd: &PathBuf) -> Result<(), String> {
         let content =
             std::fs::read(&file_path).map_err(|e| format!("Failed to read file: {}", e))?;
+        self.open_file_with_content(file_path, content, cwd)
+    }
 
+    /// Open the viewer with file content already read (for VFS files)
+    pub fn open_file_with_content(
+        &mut self,
+        file_path: PathBuf,
+        content: Vec<u8>,
+        cwd: &PathBuf,
+    ) -> Result<(), String> {
         let file_name = file_path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())

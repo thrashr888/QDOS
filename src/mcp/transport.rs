@@ -6,12 +6,28 @@ use super::protocol::{
     parse_message, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, McpError,
 };
 use std::collections::HashMap;
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
+
+/// Log a message to /tmp/mcp-debug.log
+fn mcp_log(msg: &str) {
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/tmp/mcp-debug.log")
+    {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let _ = writeln!(file, "[{}] {}", timestamp, msg);
+    }
+}
 
 /// Configuration for spawning an MCP server
 #[derive(Debug, Clone)]
@@ -68,11 +84,25 @@ pub struct StdioTransport {
 impl StdioTransport {
     /// Spawn a new MCP server process and create a transport
     pub fn spawn(config: &ServerConfig) -> Result<Self, McpError> {
+        mcp_log(&format!(
+            "Spawning MCP server: {} {:?}",
+            config.command, config.args
+        ));
+
+        // Create stderr log file
+        let stderr_file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/mcp-stderr.log")
+            .ok()
+            .map(Stdio::from)
+            .unwrap_or(Stdio::null());
+
         let mut cmd = Command::new(&config.command);
         cmd.args(&config.args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null()); // Suppress stderr to avoid corrupting TUI
+            .stderr(stderr_file);
 
         // Set environment variables
         for (key, value) in &config.env {
@@ -123,6 +153,7 @@ impl StdioTransport {
         tx: Sender<Result<JsonRpcMessage, McpError>>,
         connected: Arc<Mutex<bool>>,
     ) {
+        mcp_log("Reader loop started");
         let reader = BufReader::new(stdout);
 
         for line in reader.lines() {
@@ -131,13 +162,15 @@ impl StdioTransport {
                     if text.trim().is_empty() {
                         continue;
                     }
+                    mcp_log(&format!("Received: {}", &text[..text.len().min(200)]));
                     let result = parse_message(&text);
                     if tx.send(result).is_err() {
-                        // Receiver dropped, exit loop
+                        mcp_log("Reader: receiver dropped");
                         break;
                     }
                 }
                 Err(e) => {
+                    mcp_log(&format!("Reader error: {}", e));
                     let _ = tx.send(Err(McpError::IoError(e.to_string())));
                     break;
                 }
@@ -153,12 +186,17 @@ impl StdioTransport {
     /// Send a JSON-RPC request
     pub fn send_request(&mut self, request: &JsonRpcRequest) -> Result<(), McpError> {
         let json = request.to_json_line()?;
+        mcp_log(&format!(
+            "Sending request: {}",
+            &json[..json.len().min(200)]
+        ));
         self.stdin
             .write_all(json.as_bytes())
             .map_err(|e| McpError::TransportError(e.to_string()))?;
         self.stdin
             .flush()
             .map_err(|e| McpError::TransportError(e.to_string()))?;
+        mcp_log("Request sent");
         Ok(())
     }
 
@@ -188,10 +226,24 @@ impl StdioTransport {
 
     /// Receive a message with timeout
     pub fn recv_timeout(&self, timeout: Duration) -> Result<JsonRpcMessage, McpError> {
-        self.message_rx.recv_timeout(timeout).map_err(|e| match e {
-            std::sync::mpsc::RecvTimeoutError::Timeout => McpError::Timeout,
-            std::sync::mpsc::RecvTimeoutError::Disconnected => McpError::Disconnected,
-        })?
+        match self.message_rx.recv_timeout(timeout) {
+            Ok(Ok(msg)) => {
+                mcp_log("recv_timeout: got message");
+                Ok(msg)
+            }
+            Ok(Err(e)) => {
+                mcp_log(&format!("recv_timeout: parse error {:?}", e));
+                Err(e)
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                // Don't log every timeout - too noisy
+                Err(McpError::Timeout)
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                mcp_log("recv_timeout: disconnected");
+                Err(McpError::Disconnected)
+            }
+        }
     }
 
     /// Check if the transport is still connected
