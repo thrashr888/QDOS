@@ -214,6 +214,23 @@ impl Plugin for QTaskPlugin {
         })
     }
 
+    fn launch(&mut self, _cwd: &PathBuf, selected_file: Option<&PathBuf>) -> Result<(), String> {
+        // If a .taskpaper file is selected, open it
+        if let Some(path) = selected_file {
+            if Self::handles_extension(
+                path.extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or_default(),
+            ) {
+                self.open_file(path.clone())?;
+                return Ok(());
+            }
+        }
+
+        // No valid file selected
+        Err("Select a .taskpaper file first, then press V to view".to_string())
+    }
+
     fn handle_global_key(
         &mut self,
         _key: KeyEvent,
