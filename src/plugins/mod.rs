@@ -192,6 +192,8 @@ pub enum KeyHandleResult {
     CloseWithError(String),
     /// Key was handled, request file list refresh
     RefreshFiles,
+    /// Key was handled, navigate to a file (close modal and select file)
+    NavigateToFile(std::path::PathBuf),
 }
 
 /// The core Plugin trait that all plugins must implement

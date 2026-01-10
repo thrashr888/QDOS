@@ -89,7 +89,15 @@ impl SearchResult {
 /// Serializable store data for persistence
 #[derive(Serialize, Deserialize)]
 struct StoreData {
+    /// Embedding dimension
     dimension: usize,
+    /// AI provider used for embeddings (e.g., "openai", "anthropic")
+    #[serde(default)]
+    provider: String,
+    /// Embedding model used (e.g., "text-embedding-3-small")
+    #[serde(default)]
+    embedding_model: String,
+    /// Vector entries
     entries: Vec<VectorEntry>,
 }
 
@@ -99,20 +107,50 @@ pub struct VectorStore {
     entries: HashMap<String, VectorEntry>,
     /// Expected dimension of embeddings
     dimension: usize,
+    /// AI provider used for embeddings
+    provider: String,
+    /// Embedding model used
+    embedding_model: String,
 }
 
 impl VectorStore {
-    /// Create a new vector store
-    pub fn new(dimension: usize) -> Self {
+    /// Create a new vector store with provider info
+    pub fn new_with_provider(
+        dimension: usize,
+        provider: impl Into<String>,
+        embedding_model: impl Into<String>,
+    ) -> Self {
         Self {
             entries: HashMap::new(),
             dimension,
+            provider: provider.into(),
+            embedding_model: embedding_model.into(),
         }
+    }
+
+    /// Create a new vector store (legacy, uses empty provider/model)
+    pub fn new(dimension: usize) -> Self {
+        Self::new_with_provider(dimension, "", "")
     }
 
     /// Get the expected embedding dimension
     pub fn dimension(&self) -> usize {
         self.dimension
+    }
+
+    /// Get the AI provider used for this store
+    pub fn provider(&self) -> &str {
+        &self.provider
+    }
+
+    /// Get the embedding model used for this store
+    pub fn embedding_model(&self) -> &str {
+        &self.embedding_model
+    }
+
+    /// Check if this store was created with a specific provider
+    pub fn is_provider(&self, provider: &str) -> bool {
+        self.provider.eq_ignore_ascii_case(provider)
     }
 
     /// Get the number of entries
@@ -222,6 +260,8 @@ impl VectorStore {
 
     /// Save store to a file
     pub fn save(&self, path: &Path) -> Result<(), VectorStoreError> {
+        use std::io::Write;
+
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
@@ -229,13 +269,31 @@ impl VectorStore {
 
         let data = StoreData {
             dimension: self.dimension,
+            provider: self.provider.clone(),
+            embedding_model: self.embedding_model.clone(),
             entries: self.entries.values().cloned().collect(),
         };
 
-        let file = fs::File::create(path).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
-        let writer = BufWriter::new(file);
-        serde_json::to_writer(writer, &data)
+        // Write to a temp file first, then rename (atomic write)
+        let temp_path = path.with_extension("json.tmp");
+        let file =
+            fs::File::create(&temp_path).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+        let mut writer = BufWriter::new(file);
+        serde_json::to_writer(&mut writer, &data)
             .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+
+        // Ensure all data is flushed to disk
+        writer
+            .flush()
+            .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+        writer
+            .into_inner()
+            .map_err(|e| VectorStoreError::IoError(e.to_string()))?
+            .sync_all()
+            .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
+
+        // Atomic rename
+        fs::rename(&temp_path, path).map_err(|e| VectorStoreError::IoError(e.to_string()))?;
 
         Ok(())
     }
@@ -247,7 +305,8 @@ impl VectorStore {
         let data: StoreData = serde_json::from_reader(reader)
             .map_err(|e| VectorStoreError::IoError(e.to_string()))?;
 
-        let mut store = Self::new(data.dimension);
+        let mut store =
+            Self::new_with_provider(data.dimension, data.provider, data.embedding_model);
         for entry in data.entries {
             store.entries.insert(entry.id.clone(), entry);
         }

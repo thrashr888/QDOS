@@ -147,8 +147,8 @@ impl FullScreenView {
 
     /// Render the title row.
     fn render_title(&self, frame: &mut Frame) {
-        // Pad title to full width
-        let pad = self.area.width as usize - self.title.len();
+        // Pad title to full width (use saturating_sub to prevent overflow)
+        let pad = (self.area.width as usize).saturating_sub(self.title.len());
         let title_line = format!("{}{}", self.title, " ".repeat(pad));
 
         frame.render_widget(
@@ -176,10 +176,10 @@ impl FullScreenView {
             return; // Don't render past content area
         }
 
-        // Pad to full width
+        // Pad to full width (use saturating_sub to prevent overflow if content is wider than area)
         let content_width: usize = spans.iter().map(|s| s.width()).sum();
         let mut all_spans = spans;
-        let pad = self.area.width as usize - content_width;
+        let pad = (self.area.width as usize).saturating_sub(content_width);
         if pad > 0 {
             all_spans.push(Span::styled(" ".repeat(pad), self.content_style));
         }

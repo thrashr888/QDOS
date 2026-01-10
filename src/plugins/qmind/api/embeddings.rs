@@ -71,6 +71,8 @@ impl EmbeddingsProvider for OpenAIEmbeddings {
     }
 
     fn embed_batch(&self, texts: &[String]) -> Result<Vec<EmbeddingsResponse>, ApiError> {
+        use std::time::Duration;
+
         let api_key = self.config.require_api_key()?;
 
         let request = OpenAIEmbeddingsRequest {
@@ -78,7 +80,14 @@ impl EmbeddingsProvider for OpenAIEmbeddings {
             input: texts.to_vec(),
         };
 
-        let response = ureq::post(&format!("{}/embeddings", self.config.provider.api_base()))
+        // Use a 30 second timeout for embedding API calls
+        let config = ureq::config::Config::builder()
+            .timeout_global(Some(Duration::from_secs(30)))
+            .build();
+        let agent = config.new_agent();
+
+        let response = agent
+            .post(&format!("{}/embeddings", self.config.provider.api_base()))
             .header("Authorization", &format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .send_json(&request)
@@ -124,6 +133,8 @@ impl AnthropicEmbeddings {
     /// Generate a pseudo-embedding using Claude's understanding
     /// This is a fallback for when native embeddings aren't available
     fn generate_embedding_via_chat(&self, text: &str) -> Result<Vec<f32>, ApiError> {
+        use std::time::Duration;
+
         // Use Claude to generate a semantic fingerprint
         // This is less efficient than native embeddings but works as fallback
         let api_key = self.config.require_api_key()?;
@@ -142,7 +153,14 @@ impl AnthropicEmbeddings {
             }]
         });
 
-        let response = ureq::post(&format!("{}/messages", self.config.provider.api_base()))
+        // Use a 60 second timeout for Claude API calls (they can be slow)
+        let config = ureq::config::Config::builder()
+            .timeout_global(Some(Duration::from_secs(60)))
+            .build();
+        let agent = config.new_agent();
+
+        let response = agent
+            .post(&format!("{}/messages", self.config.provider.api_base()))
             .header("x-api-key", api_key)
             .header("anthropic-version", "2023-06-01")
             .header("Content-Type", "application/json")

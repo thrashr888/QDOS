@@ -274,6 +274,10 @@ pub struct QMindState {
     pub view: QMindView,
     /// Whether AI API is available
     pub api_available: bool,
+    /// Current AI provider name (e.g., "openai", "anthropic")
+    pub provider: String,
+    /// Current embedding model (e.g., "text-embedding-3-small")
+    pub embedding_model: String,
     /// Number of indexed files
     pub indexed_count: usize,
     /// Whether currently indexing

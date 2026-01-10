@@ -11,6 +11,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+/// Default batch size for embedding requests
+pub const DEFAULT_BATCH_SIZE: usize = 10;
+
 /// Configuration for the file indexer
 #[derive(Debug, Clone)]
 pub struct IndexConfig {
@@ -24,6 +27,8 @@ pub struct IndexConfig {
     pub respect_gitignore: bool,
     /// Whether to include hidden files not in .gitignore (default: true)
     pub include_hidden: bool,
+    /// Batch size for embedding requests (default: 10)
+    pub batch_size: usize,
 }
 
 impl Default for IndexConfig {
@@ -88,6 +93,7 @@ impl Default for IndexConfig {
             max_content_bytes: 4096, // Use first 4KB for embedding
             respect_gitignore: true,
             include_hidden: true, // Include .github, .config, etc. (gitignore handles .git)
+            batch_size: DEFAULT_BATCH_SIZE,
         }
     }
 }
@@ -130,10 +136,14 @@ impl FileIndexer {
             crate::plugins::qmind::api::AIProvider::Anthropic => 64,
         };
 
+        // Get provider name for storage
+        let provider_name = api_config.provider.name().to_lowercase();
+        let embedding_model = api_config.embedding_model.clone();
+
         Self {
             config: api_config,
             index_config,
-            store: VectorStore::new(dimension),
+            store: VectorStore::new_with_provider(dimension, provider_name, embedding_model),
             indexed_paths: HashSet::new(),
             stats: IndexStats::default(),
         }
@@ -166,28 +176,54 @@ impl FileIndexer {
 
     /// Index a single file
     pub fn index_file(&mut self, path: &Path) -> Result<bool, IndexError> {
-        // Check if already indexed
-        if self.indexed_paths.contains(path) {
-            return Ok(false);
-        }
+        let (indexed, _tokens) = self.index_file_with_tokens(path)?;
+        Ok(indexed)
+    }
 
+    /// Index a single file and return tokens used
+    /// Supports incremental indexing - re-indexes if file has been modified
+    pub fn index_file_with_tokens(&mut self, path: &Path) -> Result<(bool, u32), IndexError> {
         // Check if file should be skipped
         if self.should_skip(path) {
-            return Ok(false);
+            return Ok((false, 0));
         }
 
         // Get file metadata
         let metadata = fs::metadata(path).map_err(|e| IndexError::IoError(e.to_string()))?;
 
         if !metadata.is_file() {
-            return Ok(false);
+            return Ok((false, 0));
+        }
+
+        // Get current file modification time
+        let current_mtime = metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        // Check if already indexed and not modified
+        let path_str = path.to_string_lossy().to_string();
+        if let Some(existing) = self.store.get(&path_str) {
+            // Compare modification times - only re-index if file is newer
+            if existing.metadata.modified >= current_mtime {
+                // File hasn't changed, skip
+                return Ok((false, 0));
+            }
+            // File has changed, will re-index (upsert will replace)
+        } else if self.indexed_paths.contains(path) {
+            // In indexed_paths but not in store - shouldn't happen, but skip
+            return Ok((false, 0));
         }
 
         // Generate text for embedding
         let embed_text = self.generate_embed_text(path, &metadata)?;
 
-        // Generate embedding
+        // Generate embedding and track tokens
+        let tokens_before = self.stats.tokens_used;
         let embedding = self.generate_embedding(&embed_text)?;
+        let tokens_used = self.stats.tokens_used - tokens_before;
 
         // Create metadata
         let entry_meta = EntryMetadata {
@@ -201,12 +237,7 @@ impl FileIndexer {
                 .map(|e| e.to_string_lossy().to_string())
                 .unwrap_or_default(),
             size: metadata.len(),
-            modified: metadata
-                .modified()
-                .ok()
-                .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
+            modified: current_mtime,
             summary: embed_text.chars().take(200).collect(),
         };
 
@@ -220,7 +251,111 @@ impl FileIndexer {
         self.indexed_paths.insert(path.to_path_buf());
         self.stats.files_indexed += 1;
 
-        Ok(true)
+        Ok((true, tokens_used))
+    }
+
+    /// Prepare a file for batch indexing - returns text and metadata if file should be indexed
+    pub fn prepare_file_for_batch(&self, path: &Path) -> Option<(String, EntryMetadata, u64)> {
+        // Check if file should be skipped
+        if self.should_skip(path) {
+            return None;
+        }
+
+        // Get file metadata
+        let metadata = fs::metadata(path).ok()?;
+        if !metadata.is_file() {
+            return None;
+        }
+
+        // Get current file modification time
+        let current_mtime = metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        // Check if already indexed and not modified
+        let path_str = path.to_string_lossy().to_string();
+        if let Some(existing) = self.store.get(&path_str) {
+            if existing.metadata.modified >= current_mtime {
+                return None; // File hasn't changed
+            }
+        } else if self.indexed_paths.contains(path) {
+            return None;
+        }
+
+        // Generate text for embedding
+        let embed_text = self.generate_embed_text(path, &metadata).ok()?;
+
+        let entry_meta = EntryMetadata {
+            path: path.to_path_buf(),
+            name: path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            file_type: path
+                .extension()
+                .map(|e| e.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            size: metadata.len(),
+            modified: current_mtime,
+            summary: embed_text.chars().take(200).collect(),
+        };
+
+        Some((embed_text, entry_meta, current_mtime))
+    }
+
+    /// Index multiple files in a batch (more efficient for API calls)
+    pub fn index_batch(
+        &mut self,
+        files: Vec<(PathBuf, String, EntryMetadata)>,
+    ) -> Result<(usize, u32), IndexError> {
+        if files.is_empty() {
+            return Ok((0, 0));
+        }
+
+        if !self.is_configured() {
+            return Err(IndexError::NoApiKey);
+        }
+
+        let texts: Vec<String> = files.iter().map(|(_, text, _)| text.clone()).collect();
+
+        // Generate embeddings in batch
+        let provider =
+            create_embeddings_provider(self.config.clone()).map_err(IndexError::ApiError)?;
+
+        let responses = provider.embed_batch(&texts).map_err(IndexError::ApiError)?;
+
+        let mut indexed = 0;
+        let mut total_tokens = 0u32;
+
+        for ((path, _, meta), response) in files.into_iter().zip(responses.into_iter()) {
+            let entry =
+                VectorEntry::new(path.to_string_lossy().to_string(), response.embedding, meta);
+
+            if self
+                .store
+                .upsert(entry)
+                .map_err(|e| IndexError::VectorError(e.to_string()))
+                .is_ok()
+            {
+                self.indexed_paths.insert(path);
+                self.stats.files_indexed += 1;
+                indexed += 1;
+            }
+
+            total_tokens += response.tokens_used;
+        }
+
+        self.stats.tokens_used += total_tokens;
+
+        Ok((indexed, total_tokens))
+    }
+
+    /// Get the batch size configuration
+    pub fn batch_size(&self) -> usize {
+        self.index_config.batch_size
     }
 
     /// Index all files in a directory (non-recursive, for lazy indexing)
@@ -384,25 +519,50 @@ impl FileIndexer {
     }
 
     /// Load index from default location (returns new indexer if file exists)
+    /// If the stored provider doesn't match the current config, creates a fresh index.
     pub fn load_or_new(api_config: AIApiConfig, index_config: IndexConfig) -> Self {
         if let Some(path) = VectorStore::default_index_path() {
             if path.exists() {
                 if let Ok(store) = VectorStore::load(&path) {
-                    let indexed_count = store.len();
-                    return Self {
-                        config: api_config,
-                        index_config,
-                        indexed_paths: store.ids().map(PathBuf::from).collect(),
-                        stats: IndexStats {
-                            files_indexed: indexed_count,
-                            ..Default::default()
-                        },
-                        store,
-                    };
+                    // Check if provider matches (empty provider means legacy index, allow it)
+                    let current_provider = api_config.provider.name().to_lowercase();
+                    let stored_provider = store.provider();
+
+                    if stored_provider.is_empty()
+                        || stored_provider.eq_ignore_ascii_case(&current_provider)
+                    {
+                        let indexed_count = store.len();
+                        return Self {
+                            config: api_config,
+                            index_config,
+                            indexed_paths: store.ids().map(PathBuf::from).collect(),
+                            stats: IndexStats {
+                                files_indexed: indexed_count,
+                                ..Default::default()
+                            },
+                            store,
+                        };
+                    }
+                    // Provider mismatch - need fresh index
+                    // Log this so user knows why index was cleared
+                    eprintln!(
+                        "Q-MIND: Index provider mismatch (stored: {}, current: {}). Creating fresh index.",
+                        stored_provider, current_provider
+                    );
                 }
             }
         }
         Self::new(api_config, index_config)
+    }
+
+    /// Get the provider name from the store
+    pub fn provider(&self) -> &str {
+        self.store.provider()
+    }
+
+    /// Get the embedding model from the store
+    pub fn embedding_model(&self) -> &str {
+        self.store.embedding_model()
     }
 }
 

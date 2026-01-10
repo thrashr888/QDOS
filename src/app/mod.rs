@@ -2902,6 +2902,28 @@ impl App {
                 let _ = self.refresh_files();
                 true
             }
+            KeyHandleResult::NavigateToFile(path) => {
+                // Close any active modal
+                self.modal = Modal::None;
+
+                // Navigate to the file's parent directory
+                if let Some(parent) = path.parent() {
+                    if parent != self.current_path && parent.is_dir() {
+                        self.current_path = parent.to_path_buf();
+                        let _ = self.refresh_files();
+                    }
+                }
+
+                // Try to select the file in the file list
+                if let Some(filename) = path.file_name() {
+                    let filename_str = filename.to_string_lossy().to_string();
+                    if let Some(idx) = self.files.iter().position(|f| f.name == filename_str) {
+                        self.selected_index = idx;
+                    }
+                }
+
+                true
+            }
         }
     }
 

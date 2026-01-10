@@ -14,6 +14,7 @@ pub fn draw_qmind_modal(
     area: Rect,
     state: &QMindState,
     loading: bool,
+    progress_log: &[String],
     colors: &ThemeColors,
 ) {
     // Show loading screen if still loading
@@ -26,7 +27,7 @@ pub fn draw_qmind_modal(
         QMindView::Overview => draw_overview(frame, area, state, colors),
         QMindView::CommandPalette => draw_command_palette(frame, area, state, colors),
         QMindView::SemanticSearch => draw_semantic_search(frame, area, state, colors),
-        QMindView::IndexStatus => draw_index_status(frame, area, state, colors),
+        QMindView::IndexStatus => draw_index_status(frame, area, state, progress_log, colors),
         QMindView::FileSummary => draw_file_summary(frame, area, state, colors),
         QMindView::DryRun => draw_dry_run(frame, area, state, colors),
     }
@@ -527,18 +528,38 @@ fn draw_semantic_search(frame: &mut Frame, area: Rect, state: &QMindState, color
         );
     }
 
-    view.render_help(
-        frame,
-        vec![
-            ("Enter", "search"),
-            ("Shift+Enter", "newline"),
-            ("Esc", "back"),
-        ],
-    );
+    // Show error if any
+    if let Some(ref error) = state.error {
+        row += 1;
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                format!("Error: {}", error),
+                Style::default().fg(colors.red()).bg(colors.bg()),
+            )],
+        );
+    }
+
+    // Show different help based on whether we have results
+    if state.search_results.is_empty() {
+        view.render_help(frame, vec![("Enter", "search"), ("Esc", "back")]);
+    } else {
+        view.render_help(
+            frame,
+            vec![("Enter", "open file"), ("↑↓", "select"), ("Esc", "back")],
+        );
+    }
 }
 
 /// Draw index status view
-fn draw_index_status(frame: &mut Frame, area: Rect, state: &QMindState, colors: &ThemeColors) {
+fn draw_index_status(
+    frame: &mut Frame,
+    area: Rect,
+    state: &QMindState,
+    progress_log: &[String],
+    colors: &ThemeColors,
+) {
     let view = FullScreenView::new(area, " Index Status ", colors);
     view.render_frame(frame);
 
@@ -616,31 +637,116 @@ fn draw_index_status(frame: &mut Frame, area: Rect, state: &QMindState, colors: 
             ),
         ],
     );
-    row += 2;
+    row += 1;
 
-    // Show status message if any
-    if let Some(ref msg) = state.status_message {
+    // Show provider info if available
+    if !state.provider.is_empty() {
+        view.render_row(
+            frame,
+            row,
+            vec![
+                Span::styled(
+                    "  Provider:       ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled(
+                    &state.provider,
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                ),
+            ],
+        );
+        row += 1;
+    }
+
+    if !state.embedding_model.is_empty() {
+        view.render_row(
+            frame,
+            row,
+            vec![
+                Span::styled(
+                    "  Model:          ",
+                    Style::default().fg(colors.grey()).bg(colors.bg()),
+                ),
+                Span::styled(
+                    &state.embedding_model,
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                ),
+            ],
+        );
+        row += 1;
+    }
+    row += 1;
+
+    // Show progress log if indexing or has entries
+    if state.indexing || !progress_log.is_empty() {
         view.render_row(
             frame,
             row,
             vec![Span::styled(
-                msg.as_str(),
-                Style::default().fg(colors.cyan()).bg(colors.bg()),
+                "Progress:",
+                Style::default().fg(colors.green()).bg(colors.bg()),
             )],
         );
-        row += 2;
+        row += 1;
+
+        // Show progress log entries
+        for entry in progress_log {
+            let style = if entry.starts_with("  Error:") {
+                Style::default().fg(colors.red()).bg(colors.bg())
+            } else if entry.starts_with("Done:") {
+                Style::default().fg(colors.green()).bg(colors.bg())
+            } else if entry.starts_with("Indexing:") {
+                Style::default().fg(colors.cyan()).bg(colors.bg())
+            } else if entry.starts_with("Scanning:") {
+                Style::default().fg(colors.yellow()).bg(colors.bg())
+            } else {
+                Style::default().fg(colors.grey()).bg(colors.bg())
+            };
+
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(format!("  {}", entry), style)],
+            );
+            row += 1;
+        }
+        row += 1;
     }
 
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "Press R to rebuild index (recursive, respects .gitignore)",
-            Style::default().fg(colors.grey()).bg(colors.bg()),
-        )],
-    );
+    // Show status message if any (and not currently indexing)
+    if !state.indexing {
+        if let Some(ref msg) = state.status_message {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    msg.as_str(),
+                    Style::default().fg(colors.cyan()).bg(colors.bg()),
+                )],
+            );
+            row += 1;
+        }
+    }
 
-    view.render_help(frame, vec![("R", "rebuild"), ("Esc", "back")]);
+    if !state.indexing {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "Press R to rebuild index (recursive, respects .gitignore)",
+                Style::default().fg(colors.grey()).bg(colors.bg()),
+            )],
+        );
+    }
+
+    if state.indexing {
+        view.render_help(frame, vec![("Esc", "cancel")]);
+    } else {
+        view.render_help(
+            frame,
+            vec![("R", "rebuild"), ("C", "clear"), ("Esc", "back")],
+        );
+    }
 }
 
 /// Draw file summary view

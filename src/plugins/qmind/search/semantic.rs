@@ -106,16 +106,22 @@ impl SemanticSearch {
 
     /// Index a single file
     pub fn index_file(&mut self, path: &Path) -> Result<bool, SearchError> {
-        let indexed = self
+        let (indexed, _tokens) = self.index_file_with_tokens(path)?;
+        Ok(indexed)
+    }
+
+    /// Index a single file and return tokens used
+    pub fn index_file_with_tokens(&mut self, path: &Path) -> Result<(bool, u32), SearchError> {
+        let (indexed, tokens) = self
             .indexer
-            .index_file(path)
+            .index_file_with_tokens(path)
             .map_err(|e| SearchError::IndexError(e.to_string()))?;
 
         // Save index after indexing
         if indexed {
             let _ = self.indexer.save();
         }
-        Ok(indexed)
+        Ok((indexed, tokens))
     }
 
     /// Search files with a natural language query
@@ -173,14 +179,58 @@ impl SemanticSearch {
         self.indexer.stats()
     }
 
-    /// Clear the search index
+    /// Clear the search index and save empty index to disk
     pub fn clear(&mut self) {
         self.indexer.clear();
+        // Save the cleared index to disk
+        let _ = self.indexer.save();
+    }
+
+    /// Get the batch size configuration
+    pub fn batch_size(&self) -> usize {
+        self.indexer.batch_size()
+    }
+
+    /// Prepare a file for batch indexing
+    pub fn prepare_file_for_batch(
+        &self,
+        path: &std::path::Path,
+    ) -> Option<(String, crate::plugins::qmind::vector::EntryMetadata, u64)> {
+        self.indexer.prepare_file_for_batch(path)
+    }
+
+    /// Index multiple files in a batch
+    pub fn index_batch(
+        &mut self,
+        files: Vec<(
+            std::path::PathBuf,
+            String,
+            crate::plugins::qmind::vector::EntryMetadata,
+        )>,
+    ) -> Result<(usize, u32), SearchError> {
+        let result = self
+            .indexer
+            .index_batch(files)
+            .map_err(|e| SearchError::IndexError(e.to_string()))?;
+
+        // Save index after batch
+        let _ = self.indexer.save();
+        Ok(result)
     }
 
     /// Get number of indexed files
     pub fn indexed_count(&self) -> usize {
         self.indexer.store().len()
+    }
+
+    /// Get the AI provider used for this index
+    pub fn provider(&self) -> &str {
+        self.indexer.provider()
+    }
+
+    /// Get the embedding model used for this index
+    pub fn embedding_model(&self) -> &str {
+        self.indexer.embedding_model()
     }
 }
 
@@ -216,8 +266,18 @@ mod tests {
 
     #[test]
     fn test_semantic_search_creation() {
-        let search = SemanticSearch::from_env();
-        // Will be unconfigured without API key in env
+        // Use new() with default config to get a fresh indexer (not load_or_new)
+        // This avoids loading from disk where an existing index may exist
+        use crate::plugins::qmind::indexer::{FileIndexer, IndexConfig};
+
+        let config = AIApiConfig::default();
+        let search = SemanticSearch {
+            indexer: FileIndexer::new(config.clone(), IndexConfig::default()),
+            config,
+            min_score: 0.3,
+            max_results: 20,
+        };
+        // Fresh indexer should have 0 indexed files
         assert_eq!(search.indexed_count(), 0);
     }
 
