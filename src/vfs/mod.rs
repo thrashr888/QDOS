@@ -5,12 +5,16 @@
 //!
 //! The default implementation (`LocalFS`) wraps the standard library's `std::fs` functions.
 
-// VFS infrastructure for Q-LINK - types and methods will be used when MCP integration is complete
+// VFS infrastructure for Q-LINK
 #![allow(dead_code)]
 
 mod local;
+mod mcp;
+mod routing;
 
 pub use local::LocalFS;
+pub use mcp::McpFS;
+pub use routing::RoutingFS;
 
 use anyhow::Result;
 use std::fs::Permissions;

@@ -33,8 +33,8 @@ use crate::plugins::{
     DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
     GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin,
     Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QMindPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin,
-    SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    QEditPlugin, QLinkPlugin, QMindPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin,
+    ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, LocalFS};
@@ -159,6 +159,7 @@ impl App {
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(QEditPlugin::new()));
+        plugin_manager.register(Box::new(QLinkPlugin::new()));
         plugin_manager.register(Box::new(QMindPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(SftpPlugin::new()));

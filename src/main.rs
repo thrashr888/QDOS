@@ -15,6 +15,7 @@ mod config;
 mod errors;
 mod event;
 mod file_ops;
+mod mcp;
 mod plugins;
 mod rg;
 mod ui;
