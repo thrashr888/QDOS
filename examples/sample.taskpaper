@@ -1,0 +1,30 @@
+Inbox:
+	- Review Q-DOS II documentation @priority(high)
+	- Set up development environment
+	- Create initial project structure @done(2024-01-10)
+
+Q-LINK Implementation:
+	- MCP async client (JSON-RPC 2.0 over stdio) @done(2024-01-09)
+	- McpFS provider (implements VFS trait) @done(2024-01-09)
+	- Drive letter mapping system @done(2024-01-09)
+	- VFS TTL cache layer @priority(low)
+	- Loading spinner for async VFS @priority(low)
+	- MCP Tools context menu F9 @priority(low)
+
+Q-TASK Implementation:
+	- Create TaskPaper parser @done(2024-01-10)
+	- Add syntax highlighting for projects, tasks, notes @done(2024-01-10)
+	- Implement folding with Tab key @done(2024-01-10)
+	- Add @done tag toggling with Space @done(2024-01-10)
+	- Add tag filtering with / key @done(2024-01-10)
+	- Save changes with Ctrl+S @done(2024-01-10)
+
+Testing:
+	- Write unit tests for parser @today
+	- Integration tests with TestBackend @done(2024-01-09)
+	- Manual testing with sample files
+
+Archive @done:
+	- Research TaskPaper format @done(2024-01-05)
+	- Design plugin architecture @done(2024-01-06)
+	This section contains completed historical items.

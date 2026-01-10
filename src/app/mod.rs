@@ -36,8 +36,8 @@ use crate::plugins::{
     DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
     GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin,
     Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QLinkPlugin, QMindPlugin, QdconfigPlugin, SearchSpecPlugin, SftpPlugin,
-    ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, SearchSpecPlugin,
+    SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
@@ -170,6 +170,7 @@ impl App {
             &routing_fs,
         ))));
         plugin_manager.register(Box::new(QMindPlugin::new()));
+        plugin_manager.register(Box::new(QTaskPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(SftpPlugin::new()));
         plugin_manager.register(Box::new(ShellPlugin::new()));
@@ -1971,69 +1972,88 @@ impl App {
                     let file_path = file.path.clone();
                     let cwd = self.current_path.clone();
 
-                    // Check if this is a VFS path - if so, read via VFS
-                    let is_vfs = self.routing_fs.is_mounted_path(&file_path);
-
-                    // Debug log
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/rdos-keys.log")
-                    {
-                        use std::io::Write;
-                        let _ = writeln!(
-                            f,
-                            "NavItem::View: file_path={:?}, is_vfs={}",
-                            file_path, is_vfs
-                        );
-                    }
-
-                    if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
-                        let result = if is_vfs {
-                            // Read file content via VFS
-                            match self.routing_fs.read_file(&file_path) {
-                                Ok(content) => {
-                                    // Log success
-                                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                                        .create(true)
-                                        .append(true)
-                                        .open("/tmp/rdos-keys.log")
-                                    {
-                                        use std::io::Write;
-                                        let _ = writeln!(
-                                            f,
-                                            "VFS read success: {} bytes",
-                                            content.len()
-                                        );
-                                    }
-                                    plugin.open_file_with_content(file_path, content, &cwd)
+                    // Check for .taskpaper files - use Q-TASK plugin
+                    let ext = file_path
+                        .extension()
+                        .map(|e| e.to_string_lossy().to_lowercase());
+                    if ext.as_deref() == Some("taskpaper") {
+                        if let Some(plugin) = self.plugin_manager.qtask_plugin_mut() {
+                            match plugin.open_file(file_path.clone()) {
+                                Ok(()) => {
+                                    self.plugin_manager.set_active_modal(Some("qtask"));
+                                    self.modal = Modal::Plugin("qtask".to_string());
                                 }
                                 Err(e) => {
-                                    // Log error
-                                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                                        .create(true)
-                                        .append(true)
-                                        .open("/tmp/rdos-keys.log")
-                                    {
-                                        use std::io::Write;
-                                        let _ = writeln!(f, "VFS read error: {}", e);
-                                    }
-                                    Err(format!("VFS read error: {}", e))
+                                    self.modal = Modal::Error(format!("Failed to open: {}", e));
                                 }
                             }
-                        } else {
-                            // Use standard file reading
-                            plugin.open_file(file_path, &cwd)
-                        };
+                        }
+                    } else {
+                        // Check if this is a VFS path - if so, read via VFS
+                        let is_vfs = self.routing_fs.is_mounted_path(&file_path);
 
-                        match result {
-                            Ok(()) => {
-                                self.plugin_manager.set_active_modal(Some("viewer"));
-                                self.modal = Modal::Plugin("viewer".to_string());
-                            }
-                            Err(_e) => {
-                                self.modal =
-                                    Modal::Error(errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string());
+                        // Debug log
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/rdos-keys.log")
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(
+                                f,
+                                "NavItem::View: file_path={:?}, is_vfs={}",
+                                file_path, is_vfs
+                            );
+                        }
+
+                        if let Some(plugin) = self.plugin_manager.viewer_plugin_mut() {
+                            let result = if is_vfs {
+                                // Read file content via VFS
+                                match self.routing_fs.read_file(&file_path) {
+                                    Ok(content) => {
+                                        // Log success
+                                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                                            .create(true)
+                                            .append(true)
+                                            .open("/tmp/rdos-keys.log")
+                                        {
+                                            use std::io::Write;
+                                            let _ = writeln!(
+                                                f,
+                                                "VFS read success: {} bytes",
+                                                content.len()
+                                            );
+                                        }
+                                        plugin.open_file_with_content(file_path, content, &cwd)
+                                    }
+                                    Err(e) => {
+                                        // Log error
+                                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                                            .create(true)
+                                            .append(true)
+                                            .open("/tmp/rdos-keys.log")
+                                        {
+                                            use std::io::Write;
+                                            let _ = writeln!(f, "VFS read error: {}", e);
+                                        }
+                                        Err(format!("VFS read error: {}", e))
+                                    }
+                                }
+                            } else {
+                                // Use standard file reading
+                                plugin.open_file(file_path, &cwd)
+                            };
+
+                            match result {
+                                Ok(()) => {
+                                    self.plugin_manager.set_active_modal(Some("viewer"));
+                                    self.modal = Modal::Plugin("viewer".to_string());
+                                }
+                                Err(_e) => {
+                                    self.modal = Modal::Error(
+                                        errors::file::CANNOT_OPEN_HIGHLIGHTED.to_string(),
+                                    );
+                                }
                             }
                         }
                     }

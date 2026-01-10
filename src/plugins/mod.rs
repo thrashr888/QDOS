@@ -40,6 +40,7 @@ pub mod qdconfig;
 pub mod qedit;
 pub mod qlink;
 pub mod qmind;
+pub mod qtask;
 pub mod searchspec;
 pub mod sftp;
 pub mod shell;
@@ -73,6 +74,7 @@ pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
 pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
+pub use qtask::QTaskPlugin;
 pub use searchspec::SearchSpecPlugin;
 pub use sftp::SftpPlugin;
 pub use shell::ShellPlugin;
@@ -618,6 +620,13 @@ impl PluginManager {
         self.plugins
             .get_mut("qedit")
             .and_then(|p| p.as_any_mut().downcast_mut::<qedit::QEditPlugin>())
+    }
+
+    /// Get mutable reference to QTaskPlugin
+    pub fn qtask_plugin_mut(&mut self) -> Option<&mut qtask::QTaskPlugin> {
+        self.plugins
+            .get_mut("qtask")
+            .and_then(|p| p.as_any_mut().downcast_mut::<qtask::QTaskPlugin>())
     }
 
     /// Get mutable reference to JjPlugin
