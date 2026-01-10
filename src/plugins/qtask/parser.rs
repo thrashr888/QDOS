@@ -226,6 +226,15 @@ impl TaskPaperDocument {
         }
     }
 
+    /// Set fold state of a node
+    pub fn set_folded(&mut self, line_number: usize, folded: bool) {
+        if let Some(idx) = self.line_to_index.get(&line_number) {
+            if let Some(node) = self.nodes.get_mut(*idx) {
+                node.folded = folded;
+            }
+        }
+    }
+
     /// Insert a new line at the given position
     pub fn insert_line(&mut self, at_line: usize, content: &str) {
         let new_node = parse_line(at_line, content);

@@ -148,6 +148,28 @@ impl QTaskState {
         }
     }
 
+    /// Fold (collapse) selected node
+    pub fn fold(&mut self) {
+        if let Some(doc) = &mut self.document {
+            let visible = doc.visible_nodes();
+            if let Some(node) = visible.get(self.selected_index) {
+                let line_num = node.line_number;
+                doc.set_folded(line_num, true);
+            }
+        }
+    }
+
+    /// Unfold (expand) selected node
+    pub fn unfold(&mut self) {
+        if let Some(doc) = &mut self.document {
+            let visible = doc.visible_nodes();
+            if let Some(node) = visible.get(self.selected_index) {
+                let line_num = node.line_number;
+                doc.set_folded(line_num, false);
+            }
+        }
+    }
+
     /// Apply tag filter
     pub fn apply_filter(&mut self, tag: &str) {
         if let Some(doc) = &mut self.document {

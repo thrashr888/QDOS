@@ -389,11 +389,12 @@ impl Plugin for QTaskPlugin {
 
                 // Help footer for document mode
                 let help = vec![
-                    ("n", "new task"),
-                    ("N", "new project"),
+                    ("n", "new"),
                     ("e", "edit"),
-                    ("d", "delete"),
+                    ("d", "del"),
                     ("Space", "done"),
+                    ("</>", "fold"),
+                    ("/", "filter"),
                     ("?", "help"),
                 ];
                 view.render_help(frame, help);
@@ -446,6 +447,14 @@ impl QTaskPlugin {
             // Fold/unfold
             (KeyCode::Tab, _) => {
                 self.state.toggle_fold();
+                KeyHandleResult::Handled
+            }
+            (KeyCode::Left, _) => {
+                self.state.fold();
+                KeyHandleResult::Handled
+            }
+            (KeyCode::Right, _) => {
+                self.state.unfold();
                 KeyHandleResult::Handled
             }
 
