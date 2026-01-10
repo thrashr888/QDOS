@@ -67,7 +67,8 @@ impl QLinkPlugin {
                     "@modelcontextprotocol/server-filesystem".to_string(),
                     "/tmp".to_string(),
                 ])
-                .with_mount_path("/tmp/mcp/filesystem"),
+                .with_mount_path("/tmp/mcp/filesystem")
+                .with_server_root("/tmp"),
         );
 
         Self {
@@ -102,11 +103,11 @@ impl QLinkPlugin {
                 s.config.args.clone(),
                 s.config.mount_path.clone(),
                 s.config.name.clone(),
-                s.config.base_uri.clone(),
+                s.config.server_root.clone(),
             )
         });
 
-        let Some((is_connected, command, args, mount_path, server_name, base_uri)) = server_info
+        let Some((is_connected, command, args, mount_path, server_name, server_root)) = server_info
         else {
             return;
         };
@@ -133,7 +134,7 @@ impl QLinkPlugin {
 
         // Spawn background thread
         let handle = thread::spawn(move || {
-            let result = match McpFS::spawn(&config, server_name.clone(), base_uri) {
+            let result = match McpFS::spawn(&config, server_name.clone(), server_root) {
                 Ok(mcp_fs) => Ok(Arc::new(mcp_fs) as Arc<dyn FileSystemProvider>),
                 Err(e) => Err(format!("{}", e)),
             };

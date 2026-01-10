@@ -44,8 +44,9 @@ pub struct ServerConfig {
     pub args: Vec<String>,
     /// Mount point path (e.g., "/mcp/github")
     pub mount_path: PathBuf,
-    /// Base URI for resources (e.g., "file://")
-    pub base_uri: String,
+    /// Server's root path (e.g., "/tmp" for filesystem server)
+    /// This is the base path that the MCP server exposes
+    pub server_root: String,
     /// Whether to auto-mount on startup
     pub auto_mount: bool,
 }
@@ -60,7 +61,7 @@ impl ServerConfig {
             name: name.into(),
             command: command.into(),
             args: Vec::new(),
-            base_uri: "file://".to_string(),
+            server_root: "/".to_string(),
             auto_mount: false,
         }
     }
@@ -77,9 +78,9 @@ impl ServerConfig {
         self
     }
 
-    /// Set base URI
-    pub fn with_base_uri(mut self, uri: impl Into<String>) -> Self {
-        self.base_uri = uri.into();
+    /// Set the server's root path (the base path the MCP server exposes)
+    pub fn with_server_root(mut self, root: impl Into<String>) -> Self {
+        self.server_root = root.into();
         self
     }
 

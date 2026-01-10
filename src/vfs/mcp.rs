@@ -36,7 +36,6 @@ pub struct McpFS {
     /// Server name for display
     server_name: String,
     /// Base path for the MCP server (e.g., "/tmp")
-    #[allow(dead_code)]
     base_path: String,
     /// Directory cache
     dir_cache: Arc<Mutex<HashMap<PathBuf, CachedDir>>>,
@@ -149,9 +148,22 @@ impl McpFS {
         Err(anyhow!("No text content in MCP response"))
     }
 
+    /// Convert a relative path to an absolute path using the server's base path
+    fn to_server_path(&self, path: &Path) -> PathBuf {
+        let path_str = path.to_string_lossy();
+        if path_str == "/" || path_str.is_empty() {
+            PathBuf::from(&self.base_path)
+        } else {
+            // Strip leading slash if present and join with base_path
+            let relative = path_str.trim_start_matches('/');
+            PathBuf::from(&self.base_path).join(relative)
+        }
+    }
+
     /// Call the list_directory tool
     fn call_list_directory(&self, path: &Path) -> Result<Vec<VfsDirEntry>> {
-        let path_str = path.to_string_lossy().to_string();
+        let server_path = self.to_server_path(path);
+        let path_str = server_path.to_string_lossy().to_string();
 
         let result = {
             let mut client = self
@@ -216,7 +228,8 @@ impl McpFS {
 
     /// Call the read_text_file tool
     fn call_read_text_file(&self, path: &Path) -> Result<String> {
-        let path_str = path.to_string_lossy().to_string();
+        let server_path = self.to_server_path(path);
+        let path_str = server_path.to_string_lossy().to_string();
 
         let result = {
             let mut client = self
@@ -235,7 +248,8 @@ impl McpFS {
     /// Call the get_file_info tool
     #[allow(dead_code)]
     fn call_get_file_info(&self, path: &Path) -> Result<VfsMetadata> {
-        let path_str = path.to_string_lossy().to_string();
+        let server_path = self.to_server_path(path);
+        let path_str = server_path.to_string_lossy().to_string();
 
         let result = {
             let mut client = self
@@ -450,8 +464,7 @@ mod tests {
     #[test]
     fn test_parse_list_directory() {
         let content = "[DIR] subdir\n[FILE] file.txt\n[DIR] another";
-        let entries =
-            McpFS::parse_list_directory_result(content, Path::new("/tmp")).unwrap();
+        let entries = McpFS::parse_list_directory_result(content, Path::new("/tmp")).unwrap();
 
         assert_eq!(entries.len(), 3);
         assert!(entries[0].is_dir);
