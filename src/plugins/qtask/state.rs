@@ -13,6 +13,14 @@ pub enum QTaskView {
     Filter,
     /// Help overlay
     Help,
+    /// Adding a new task
+    NewTask,
+    /// Adding a new project
+    NewProject,
+    /// Editing current line
+    EditLine,
+    /// Confirm delete
+    ConfirmDelete,
 }
 
 /// State for the Q-TASK plugin
@@ -38,6 +46,10 @@ pub struct QTaskState {
     pub error: Option<String>,
     /// Success message to display
     pub message: Option<String>,
+    /// Edit buffer for new/edit modes
+    pub edit_buffer: String,
+    /// Cursor position in edit buffer
+    pub edit_cursor: usize,
 }
 
 impl QTaskState {
@@ -161,5 +173,184 @@ impl QTaskState {
                 .get(self.selected_index)
                 .map(|n| n.line_number)
         })
+    }
+
+    /// Start new task mode
+    pub fn start_new_task(&mut self) {
+        self.edit_buffer.clear();
+        self.edit_cursor = 0;
+        self.view = QTaskView::NewTask;
+    }
+
+    /// Start new project mode
+    pub fn start_new_project(&mut self) {
+        self.edit_buffer.clear();
+        self.edit_cursor = 0;
+        self.view = QTaskView::NewProject;
+    }
+
+    /// Start edit mode for current line
+    pub fn start_edit(&mut self) {
+        if let Some(doc) = &self.document {
+            let visible = doc.visible_nodes();
+            if let Some(node) = visible.get(self.selected_index) {
+                // Load current content into buffer
+                self.edit_buffer = node.content.clone();
+                self.edit_cursor = self.edit_buffer.len();
+                self.view = QTaskView::EditLine;
+            }
+        }
+    }
+
+    /// Start delete confirmation
+    pub fn start_delete(&mut self) {
+        self.view = QTaskView::ConfirmDelete;
+    }
+
+    /// Cancel edit mode
+    pub fn cancel_edit(&mut self) {
+        self.edit_buffer.clear();
+        self.edit_cursor = 0;
+        self.view = QTaskView::Document;
+    }
+
+    /// Get the indent level for new items (based on current selection)
+    fn get_insert_indent(&self) -> usize {
+        self.document
+            .as_ref()
+            .and_then(|doc| {
+                doc.visible_nodes()
+                    .get(self.selected_index)
+                    .map(|n| n.indent_level)
+            })
+            .unwrap_or(0)
+    }
+
+    /// Get the line number to insert after
+    fn get_insert_line(&self) -> usize {
+        self.document
+            .as_ref()
+            .and_then(|doc| {
+                doc.visible_nodes()
+                    .get(self.selected_index)
+                    .map(|n| n.line_number)
+            })
+            .unwrap_or(0)
+    }
+
+    /// Confirm adding new task
+    pub fn confirm_new_task(&mut self) {
+        if self.edit_buffer.is_empty() {
+            self.cancel_edit();
+            return;
+        }
+
+        let indent = self.get_insert_indent();
+        let after_line = self.get_insert_line();
+        let task_line = format!("{}- {}", "\t".repeat(indent), self.edit_buffer);
+
+        if let Some(doc) = &mut self.document {
+            doc.insert_line(after_line + 1, &task_line);
+            self.modified = true;
+            self.selected_index += 1;
+        }
+
+        self.cancel_edit();
+    }
+
+    /// Confirm adding new project
+    pub fn confirm_new_project(&mut self) {
+        if self.edit_buffer.is_empty() {
+            self.cancel_edit();
+            return;
+        }
+
+        let after_line = self.get_insert_line();
+        let project_line = format!("{}:", self.edit_buffer);
+
+        if let Some(doc) = &mut self.document {
+            // Add blank line before project if not at start
+            if after_line > 0 {
+                doc.insert_line(after_line + 1, "");
+                doc.insert_line(after_line + 2, &project_line);
+            } else {
+                doc.insert_line(after_line + 1, &project_line);
+            }
+            self.modified = true;
+        }
+
+        self.cancel_edit();
+    }
+
+    /// Confirm editing current line
+    pub fn confirm_edit(&mut self) {
+        if let Some(line_num) = self.selected_line_number() {
+            if let Some(doc) = &mut self.document {
+                doc.update_content(line_num, &self.edit_buffer);
+                self.modified = true;
+            }
+        }
+        self.cancel_edit();
+    }
+
+    /// Delete selected item
+    pub fn delete_selected(&mut self) {
+        if let Some(line_num) = self.selected_line_number() {
+            if let Some(doc) = &mut self.document {
+                doc.delete_line(line_num);
+                self.modified = true;
+                // Adjust selection if needed
+                let max = self.visible_count().saturating_sub(1);
+                if self.selected_index > max {
+                    self.selected_index = max;
+                }
+            }
+        }
+        self.view = QTaskView::Document;
+    }
+
+    /// Insert character at cursor
+    pub fn insert_char(&mut self, c: char) {
+        self.edit_buffer.insert(self.edit_cursor, c);
+        self.edit_cursor += 1;
+    }
+
+    /// Delete character before cursor
+    pub fn backspace(&mut self) {
+        if self.edit_cursor > 0 {
+            self.edit_cursor -= 1;
+            self.edit_buffer.remove(self.edit_cursor);
+        }
+    }
+
+    /// Delete character at cursor
+    pub fn delete_char(&mut self) {
+        if self.edit_cursor < self.edit_buffer.len() {
+            self.edit_buffer.remove(self.edit_cursor);
+        }
+    }
+
+    /// Move cursor left
+    pub fn cursor_left(&mut self) {
+        if self.edit_cursor > 0 {
+            self.edit_cursor -= 1;
+        }
+    }
+
+    /// Move cursor right
+    pub fn cursor_right(&mut self) {
+        if self.edit_cursor < self.edit_buffer.len() {
+            self.edit_cursor += 1;
+        }
+    }
+
+    /// Move cursor to start
+    pub fn cursor_home(&mut self) {
+        self.edit_cursor = 0;
+    }
+
+    /// Move cursor to end
+    pub fn cursor_end(&mut self) {
+        self.edit_cursor = self.edit_buffer.len();
     }
 }

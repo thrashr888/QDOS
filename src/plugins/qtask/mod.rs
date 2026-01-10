@@ -250,6 +250,10 @@ impl Plugin for QTaskPlugin {
             QTaskView::Document => self.handle_document_key(key),
             QTaskView::Filter => self.handle_filter_key(key),
             QTaskView::Help => self.handle_help_key(key),
+            QTaskView::NewTask | QTaskView::NewProject | QTaskView::EditLine => {
+                self.handle_edit_key(key)
+            }
+            QTaskView::ConfirmDelete => self.handle_delete_confirm_key(key),
         }
     }
 
@@ -295,34 +299,106 @@ impl Plugin for QTaskPlugin {
             view.render_row(frame, i as u16, line.spans);
         }
 
-        // Status line with filter info
-        let mut status_parts = Vec::new();
-        if let Some(filter) = &self.state.active_filter {
-            status_parts.push(format!("Filter: @{}", filter));
-        }
-        status_parts.push(format!(
-            "{}/{}",
-            self.state.selected_index + 1,
-            visible_nodes.len()
-        ));
+        // Render edit input or delete confirmation if in those modes
+        match self.state.view {
+            QTaskView::NewTask | QTaskView::NewProject | QTaskView::EditLine => {
+                // Show input field at bottom of content area
+                let prompt = match self.state.view {
+                    QTaskView::NewTask => "New task: ",
+                    QTaskView::NewProject => "New project: ",
+                    QTaskView::EditLine => "Edit: ",
+                    _ => "",
+                };
 
-        if let Some(msg) = &self.state.message {
-            status_parts.push(msg.clone());
-        }
-        if let Some(err) = &self.state.error {
-            status_parts.push(format!("Error: {}", err));
-        }
+                let row = content_height.saturating_sub(1) as u16;
 
-        // Help footer
-        let help = vec![
-            ("Space", "toggle done"),
-            ("Tab", "fold"),
-            ("/", "filter"),
-            ("Ctrl+S", "save"),
-            ("?", "help"),
-            ("Esc", "close"),
-        ];
-        view.render_help(frame, help);
+                // Render input with cursor
+                let mut spans = vec![Span::styled(prompt, Style::default().fg(colors.cyan()))];
+
+                // Split buffer at cursor for visual cursor
+                let before = &self.state.edit_buffer[..self.state.edit_cursor];
+                let cursor_char = self
+                    .state
+                    .edit_buffer
+                    .chars()
+                    .nth(self.state.edit_cursor)
+                    .map(|c| c.to_string())
+                    .unwrap_or_else(|| " ".to_string());
+                let after = if self.state.edit_cursor < self.state.edit_buffer.len() {
+                    &self.state.edit_buffer[self.state.edit_cursor + 1..]
+                } else {
+                    ""
+                };
+
+                spans.push(Span::raw(before.to_string()));
+                spans.push(Span::styled(
+                    cursor_char,
+                    Style::default().fg(colors.bg()).bg(colors.fg()),
+                ));
+                spans.push(Span::raw(after.to_string()));
+
+                view.render_row(frame, row, spans);
+
+                // Help for edit mode
+                let help = vec![("Enter", "confirm"), ("Esc", "cancel")];
+                view.render_help(frame, help);
+            }
+            QTaskView::ConfirmDelete => {
+                // Show delete confirmation
+                let row = content_height.saturating_sub(1) as u16;
+                let spans = vec![
+                    Span::styled("Delete this item? ", Style::default().fg(colors.red())),
+                    Span::styled("(Y/N)", Style::default().fg(colors.yellow())),
+                ];
+                view.render_row(frame, row, spans);
+
+                let help = vec![("Y", "delete"), ("N", "cancel")];
+                view.render_help(frame, help);
+            }
+            QTaskView::Filter => {
+                // Show filter input
+                let row = content_height.saturating_sub(1) as u16;
+                let spans = vec![
+                    Span::styled("Filter by tag: @", Style::default().fg(colors.cyan())),
+                    Span::raw(self.state.filter_text.clone()),
+                    Span::styled("_", Style::default().fg(colors.fg()).bg(colors.fg())),
+                ];
+                view.render_row(frame, row, spans);
+
+                let help = vec![("Enter", "apply"), ("Esc", "cancel")];
+                view.render_help(frame, help);
+            }
+            _ => {
+                // Status line with filter info
+                let mut status_parts = Vec::new();
+                if let Some(filter) = &self.state.active_filter {
+                    status_parts.push(format!("Filter: @{}", filter));
+                }
+                status_parts.push(format!(
+                    "{}/{}",
+                    self.state.selected_index + 1,
+                    visible_nodes.len()
+                ));
+
+                if let Some(msg) = &self.state.message {
+                    status_parts.push(msg.clone());
+                }
+                if let Some(err) = &self.state.error {
+                    status_parts.push(format!("Error: {}", err));
+                }
+
+                // Help footer for document mode
+                let help = vec![
+                    ("n", "new task"),
+                    ("N", "new project"),
+                    ("e", "edit"),
+                    ("d", "delete"),
+                    ("Space", "done"),
+                    ("?", "help"),
+                ];
+                view.render_help(frame, help);
+            }
+        }
     }
 }
 
@@ -400,6 +476,30 @@ impl QTaskPlugin {
                 KeyHandleResult::Handled
             }
 
+            // New task
+            (KeyCode::Char('n'), KeyModifiers::NONE) => {
+                self.state.start_new_task();
+                KeyHandleResult::Handled
+            }
+
+            // New project
+            (KeyCode::Char('N'), KeyModifiers::SHIFT) => {
+                self.state.start_new_project();
+                KeyHandleResult::Handled
+            }
+
+            // Edit current line
+            (KeyCode::Char('e'), KeyModifiers::NONE) | (KeyCode::Enter, _) => {
+                self.state.start_edit();
+                KeyHandleResult::Handled
+            }
+
+            // Delete
+            (KeyCode::Char('d'), KeyModifiers::NONE) | (KeyCode::Delete, _) => {
+                self.state.start_delete();
+                KeyHandleResult::Handled
+            }
+
             // Close
             (KeyCode::Esc, _) | (KeyCode::Char('q'), _) => {
                 self.modal_open = false;
@@ -439,6 +539,67 @@ impl QTaskPlugin {
     fn handle_help_key(&mut self, key: KeyEvent) -> KeyHandleResult {
         match key.code {
             KeyCode::Esc | KeyCode::Char('?') | KeyCode::Enter => {
+                self.state.view = QTaskView::Document;
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_edit_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Esc => {
+                self.state.cancel_edit();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Enter => {
+                match self.state.view {
+                    QTaskView::NewTask => self.state.confirm_new_task(),
+                    QTaskView::NewProject => self.state.confirm_new_project(),
+                    QTaskView::EditLine => self.state.confirm_edit(),
+                    _ => {}
+                }
+                KeyHandleResult::Handled
+            }
+            KeyCode::Backspace => {
+                self.state.backspace();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Delete => {
+                self.state.delete_char();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Left => {
+                self.state.cursor_left();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right => {
+                self.state.cursor_right();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Home => {
+                self.state.cursor_home();
+                KeyHandleResult::Handled
+            }
+            KeyCode::End => {
+                self.state.cursor_end();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(c) => {
+                self.state.insert_char(c);
+                KeyHandleResult::Handled
+            }
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
+    fn handle_delete_confirm_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.state.delete_selected();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 self.state.view = QTaskView::Document;
                 KeyHandleResult::Handled
             }

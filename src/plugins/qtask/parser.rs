@@ -225,6 +225,65 @@ impl TaskPaperDocument {
             }
         }
     }
+
+    /// Insert a new line at the given position
+    pub fn insert_line(&mut self, at_line: usize, content: &str) {
+        let new_node = parse_line(at_line, content);
+
+        // Find insertion index
+        let insert_idx = self
+            .line_to_index
+            .get(&at_line)
+            .copied()
+            .unwrap_or(self.nodes.len());
+
+        // Insert the node
+        self.nodes.insert(insert_idx, new_node);
+
+        // Rebuild line_to_index (renumber all lines after insertion)
+        self.rebuild_line_numbers();
+    }
+
+    /// Delete a line
+    pub fn delete_line(&mut self, line_number: usize) {
+        if let Some(idx) = self.line_to_index.get(&line_number).copied() {
+            if idx < self.nodes.len() {
+                self.nodes.remove(idx);
+                self.rebuild_line_numbers();
+            }
+        }
+    }
+
+    /// Update the content of a line (preserving type-specific formatting)
+    pub fn update_content(&mut self, line_number: usize, new_content: &str) {
+        if let Some(idx) = self.line_to_index.get(&line_number).copied() {
+            if let Some(node) = self.nodes.get_mut(idx) {
+                // Rebuild the raw line based on node type
+                let indent = "\t".repeat(node.indent_level);
+                let new_raw = match node.node_type {
+                    NodeType::Project => format!("{}{}:", indent, new_content),
+                    NodeType::Task => format!("{}- {}", indent, new_content),
+                    NodeType::Note => format!("{}{}", indent, new_content),
+                };
+
+                // Re-parse the modified line
+                let mut new_node = parse_line(line_number, &new_raw);
+                new_node.folded = node.folded;
+                new_node.visible = node.visible;
+
+                self.nodes[idx] = new_node;
+            }
+        }
+    }
+
+    /// Rebuild line numbers after insert/delete
+    fn rebuild_line_numbers(&mut self) {
+        self.line_to_index.clear();
+        for (idx, node) in self.nodes.iter_mut().enumerate() {
+            node.line_number = idx;
+            self.line_to_index.insert(idx, idx);
+        }
+    }
 }
 
 /// Parse a single line into a TaskNode
