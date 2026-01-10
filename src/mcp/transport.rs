@@ -72,7 +72,7 @@ impl StdioTransport {
         cmd.args(&config.args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null()); // Ignore stderr for now
+            .stderr(Stdio::null()); // Suppress stderr to avoid corrupting TUI
 
         // Set environment variables
         for (key, value) in &config.env {

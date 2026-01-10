@@ -19,7 +19,20 @@ use ratatui::{layout::Rect, Frame};
 use state::{QLinkState, QLinkView, ServerConfig};
 use std::any::Any;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::thread::{self, JoinHandle};
+
+/// Result of a connection attempt
+type ConnectResult = Result<Arc<dyn FileSystemProvider>, String>;
+
+/// Message sent from background thread
+struct ConnectComplete {
+    server_index: usize,
+    server_name: String,
+    mount_path: PathBuf,
+    result: ConnectResult,
+}
 
 /// Q-LINK MCP Client Plugin
 pub struct QLinkPlugin {
@@ -27,8 +40,11 @@ pub struct QLinkPlugin {
     pub state: QLinkState,
     /// Routing filesystem for mounts
     routing_fs: Arc<RoutingFS>,
-    /// Whether currently connecting
-    connecting: bool,
+    /// Background connection thread
+    #[allow(dead_code)]
+    connect_thread: Option<JoinHandle<()>>,
+    /// Channel to receive connection results (wrapped in Mutex for Sync)
+    connect_rx: Arc<Mutex<Option<Receiver<ConnectComplete>>>>,
 }
 
 impl Default for QLinkPlugin {
@@ -51,13 +67,14 @@ impl QLinkPlugin {
                     "@modelcontextprotocol/server-filesystem".to_string(),
                     "/tmp".to_string(),
                 ])
-                .with_mount_path("/mcp/filesystem"),
+                .with_mount_path("/tmp/mcp/filesystem"),
         );
 
         Self {
             state,
             routing_fs,
-            connecting: false,
+            connect_thread: None,
+            connect_rx: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -69,64 +86,132 @@ impl QLinkPlugin {
     }
 
     /// Get the routing filesystem
+    #[allow(dead_code)]
     pub fn routing_fs(&self) -> Arc<RoutingFS> {
         Arc::clone(&self.routing_fs)
     }
 
-    /// Connect to the selected server
+    /// Connect to the selected server (spawns background thread)
     fn connect_selected(&mut self) {
-        if let Some(server) = self.state.selected_server_mut() {
-            if server.is_connected() {
-                // Already connected, navigate instead
-                return;
-            }
+        // Get server info before borrowing state mutably
+        let server_index = self.state.selected_index;
+        let server_info = self.state.servers.get(server_index).map(|s| {
+            (
+                s.is_connected(),
+                s.config.command.clone(),
+                s.config.args.clone(),
+                s.config.mount_path.clone(),
+                s.config.name.clone(),
+                s.config.base_uri.clone(),
+            )
+        });
 
-            server.set_connecting();
-            self.state.view = QLinkView::Mounting;
-            self.connecting = true;
+        let Some((is_connected, command, args, mount_path, server_name, base_uri)) = server_info
+        else {
+            return;
+        };
+
+        if is_connected {
+            // Already connected, navigate instead
+            return;
         }
+
+        // Now we can mutate state
+        if let Some(server) = self.state.servers.get_mut(server_index) {
+            server.set_connecting();
+        }
+        self.state.view = QLinkView::Mounting;
+
+        // Create MCP config
+        let config = McpServerConfig::new(&command, args);
+
+        // Create channel for result
+        let (tx, rx): (Sender<ConnectComplete>, Receiver<ConnectComplete>) = channel();
+        if let Ok(mut rx_guard) = self.connect_rx.lock() {
+            *rx_guard = Some(rx);
+        }
+
+        // Spawn background thread
+        let handle = thread::spawn(move || {
+            let result = match McpFS::spawn(&config, server_name.clone(), base_uri) {
+                Ok(mcp_fs) => Ok(Arc::new(mcp_fs) as Arc<dyn FileSystemProvider>),
+                Err(e) => Err(format!("{}", e)),
+            };
+
+            let _ = tx.send(ConnectComplete {
+                server_index,
+                server_name,
+                mount_path,
+                result,
+            });
+        });
+
+        self.connect_thread = Some(handle);
     }
 
-    /// Actually perform the connection (called from tick)
-    fn do_connect(&mut self) {
-        let server_index = self.state.selected_index;
+    /// Check for connection completion (called from tick)
+    fn check_connection(&mut self) {
+        // Try to get the receiver from the mutex
+        let complete = if let Ok(mut rx_guard) = self.connect_rx.lock() {
+            if let Some(ref rx) = *rx_guard {
+                match rx.try_recv() {
+                    Ok(c) => {
+                        // Clear the receiver since we got the result
+                        *rx_guard = None;
+                        Some(c)
+                    }
+                    Err(_) => None,
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
-        if let Some(server) = self.state.servers.get(server_index) {
-            let config = McpServerConfig::new(&server.config.command, server.config.args.clone());
-            let mount_path = server.config.mount_path.clone();
-            let server_name = server.config.name.clone();
-            let base_uri = server.config.base_uri.clone();
+        if let Some(complete) = complete {
+            // Connection attempt finished
+            self.connect_thread = None;
 
-            // Try to create the MCP filesystem
-            match McpFS::spawn(&config, server_name.clone(), base_uri) {
-                Ok(mcp_fs) => {
-                    let provider: Arc<dyn FileSystemProvider> = Arc::new(mcp_fs);
-
+            match complete.result {
+                Ok(provider) => {
                     // Mount the filesystem
-                    if let Err(e) = self.routing_fs.mount(mount_path.clone(), provider) {
-                        if let Some(s) = self.state.servers.get_mut(server_index) {
+                    if let Err(e) = self.routing_fs.mount(complete.mount_path.clone(), provider) {
+                        if let Some(s) = self.state.servers.get_mut(complete.server_index) {
                             s.set_error(format!("Mount failed: {}", e));
                         }
-                        self.state.view = QLinkView::ServerList;
                     } else {
-                        if let Some(s) = self.state.servers.get_mut(server_index) {
+                        if let Some(s) = self.state.servers.get_mut(complete.server_index) {
                             s.set_connected();
                         }
                         self.state
-                            .set_status(format!("Connected to {}", server_name));
-                        self.state.view = QLinkView::ServerList;
+                            .set_status(format!("Connected to {}", complete.server_name));
                     }
                 }
                 Err(e) => {
-                    if let Some(s) = self.state.servers.get_mut(server_index) {
-                        s.set_error(format!("{}", e));
+                    if let Some(s) = self.state.servers.get_mut(complete.server_index) {
+                        s.set_error(e);
                     }
-                    self.state.view = QLinkView::ServerList;
                 }
             }
-        }
 
-        self.connecting = false;
+            self.state.view = QLinkView::ServerList;
+        }
+    }
+
+    /// Cancel ongoing connection
+    fn cancel_connection(&mut self) {
+        // Drop the receiver to signal we don't care about the result
+        if let Ok(mut rx_guard) = self.connect_rx.lock() {
+            *rx_guard = None;
+        }
+        // The thread will finish on its own, we just won't use its result
+        self.connect_thread = None;
+
+        if let Some(server) = self.state.selected_server_mut() {
+            server.set_disconnected();
+        }
+        self.state.view = QLinkView::ServerList;
     }
 
     /// Disconnect the selected server
@@ -227,9 +312,9 @@ impl Plugin for QLinkPlugin {
                 KeyCode::Enter => {
                     if let Some(server) = self.state.selected_server() {
                         if server.is_connected() {
-                            // Navigate to mount point
+                            // Navigate to mount point directory
                             let path = server.config.mount_path.clone();
-                            return KeyHandleResult::NavigateToFile(path);
+                            return KeyHandleResult::NavigateToDir(path);
                         } else {
                             // Connect
                             self.connect_selected();
@@ -250,11 +335,7 @@ impl Plugin for QLinkPlugin {
             QLinkView::Mounting => match key.code {
                 KeyCode::Esc => {
                     // Cancel connection
-                    self.connecting = false;
-                    if let Some(server) = self.state.selected_server_mut() {
-                        server.set_disconnected();
-                    }
-                    self.state.view = QLinkView::ServerList;
+                    self.cancel_connection();
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -274,10 +355,8 @@ impl Plugin for QLinkPlugin {
     }
 
     fn tick(&mut self) {
-        // Handle async connection
-        if self.connecting {
-            self.do_connect();
-        }
+        // Check for connection completion
+        self.check_connection();
     }
 
     fn help_content(&self) -> Vec<String> {

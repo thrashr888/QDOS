@@ -60,7 +60,10 @@ impl RoutingFS {
             self.local.create_dir_all(&path)?;
         }
 
-        mounts.insert(path, provider);
+        // Canonicalize the path to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
+        let canonical_path = self.local.canonicalize(&path).unwrap_or(path);
+
+        mounts.insert(canonical_path, provider);
         Ok(())
     }
 
@@ -70,16 +73,42 @@ impl RoutingFS {
             .mounts
             .write()
             .map_err(|_| anyhow!("Failed to lock mounts"))?;
-        Ok(mounts.remove(path))
+        // Canonicalize to match how we stored the mount
+        let canonical_path = self
+            .local
+            .canonicalize(path)
+            .unwrap_or_else(|_| path.to_path_buf());
+        Ok(mounts.remove(&canonical_path))
     }
 
-    /// Check if a path is mounted
+    /// Check if a path is a mount point
     pub fn is_mounted(&self, path: &Path) -> bool {
+        let canonical_path = self
+            .local
+            .canonicalize(path)
+            .unwrap_or_else(|_| path.to_path_buf());
         if let Ok(mounts) = self.mounts.read() {
-            mounts.contains_key(path)
+            mounts.contains_key(&canonical_path)
         } else {
             false
         }
+    }
+
+    /// Check if a path is under any mount point
+    pub fn is_mounted_path(&self, path: &Path) -> bool {
+        // Canonicalize the path to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
+        let canonical_path = self
+            .local
+            .canonicalize(path)
+            .unwrap_or_else(|_| path.to_path_buf());
+        if let Ok(mounts) = self.mounts.read() {
+            for mount_point in mounts.keys() {
+                if canonical_path.starts_with(mount_point) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     /// Get all mount points
@@ -97,11 +126,17 @@ impl RoutingFS {
     fn find_provider(&self, path: &Path) -> Option<(Arc<dyn FileSystemProvider>, PathBuf)> {
         let mounts = self.mounts.read().ok()?;
 
+        // Canonicalize the path to handle symlinks
+        let canonical_path = self
+            .local
+            .canonicalize(path)
+            .unwrap_or_else(|_| path.to_path_buf());
+
         // Find the longest matching prefix
         let mut best_match: Option<(&PathBuf, &Arc<dyn FileSystemProvider>)> = None;
 
         for (mount_path, provider) in mounts.iter() {
-            if path.starts_with(mount_path) {
+            if canonical_path.starts_with(mount_path) {
                 match &best_match {
                     None => best_match = Some((mount_path, provider)),
                     Some((best_path, _)) => {
@@ -114,8 +149,10 @@ impl RoutingFS {
         }
 
         best_match.map(|(mount_path, provider)| {
-            // Calculate relative path
-            let relative = path.strip_prefix(mount_path).unwrap_or(Path::new("/"));
+            // Calculate relative path using the canonical path
+            let relative = canonical_path
+                .strip_prefix(mount_path)
+                .unwrap_or(Path::new("/"));
             let relative_path = if relative.as_os_str().is_empty() {
                 PathBuf::from("/")
             } else {

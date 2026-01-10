@@ -196,6 +196,8 @@ pub enum KeyHandleResult {
     RefreshFiles,
     /// Key was handled, navigate to a file (close modal and select file)
     NavigateToFile(std::path::PathBuf),
+    /// Key was handled, navigate to a directory (close modal and enter directory)
+    NavigateToDir(std::path::PathBuf),
 }
 
 /// The core Plugin trait that all plugins must implement

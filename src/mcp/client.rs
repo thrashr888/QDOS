@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 /// Default timeout for MCP operations
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// MCP client for communicating with an MCP server
 pub struct McpClient {

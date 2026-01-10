@@ -113,8 +113,9 @@ impl Plugin for AppsPlugin {
         _selected_file: Option<&PathBuf>,
     ) -> KeyHandleResult {
         match key.code {
-            KeyCode::F(12) => {
+            KeyCode::F(12) | KeyCode::Tab => {
                 // Open Apps launcher (entries are collected dynamically via set_entries)
+                // Tab is an alternative shortcut for quick access
                 self.state.clear_filter();
                 self.launch_plugin = None;
                 KeyHandleResult::OpenModal

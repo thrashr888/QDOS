@@ -1,16 +1,18 @@
 //! MCP-based virtual filesystem provider
 //!
-//! Implements the FileSystemProvider trait using MCP resources.
+//! Implements the FileSystemProvider trait using MCP tools.
+//! Uses tools like `list_directory` and `read_text_file` from
+//! the MCP filesystem server.
 
 use super::{FileSystemProvider, VfsDirEntry, VfsMetadata};
-use crate::mcp::types::Resource;
 use crate::mcp::{McpClient, ServerConfig};
 use anyhow::{anyhow, Result};
+use serde_json::json;
 use std::collections::HashMap;
 use std::fs::Permissions;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 /// Cache entry for directory listings
 struct CachedDir {
@@ -26,15 +28,16 @@ struct CachedFile {
 
 /// MCP-based filesystem provider
 ///
-/// Provides read-only access to resources exposed by an MCP server.
-/// Write operations are not supported and will return errors.
+/// Provides read-only access to files via MCP server tools.
+/// Uses `list_directory`, `read_text_file`, and `get_file_info` tools.
 pub struct McpFS {
     /// MCP client connection
     client: Arc<Mutex<McpClient>>,
     /// Server name for display
     server_name: String,
-    /// Base URI prefix for resources (e.g., "file://")
-    base_uri: String,
+    /// Base path for the MCP server (e.g., "/tmp")
+    #[allow(dead_code)]
+    base_path: String,
     /// Directory cache
     dir_cache: Arc<Mutex<HashMap<PathBuf, CachedDir>>>,
     /// File cache
@@ -45,11 +48,11 @@ pub struct McpFS {
 
 impl McpFS {
     /// Create a new MCP filesystem from a client
-    pub fn new(client: McpClient, server_name: String, base_uri: String) -> Self {
+    pub fn new(client: McpClient, server_name: String, base_path: String) -> Self {
         Self {
             client: Arc::new(Mutex::new(client)),
             server_name,
-            base_uri,
+            base_path,
             dir_cache: Arc::new(Mutex::new(HashMap::new())),
             file_cache: Arc::new(Mutex::new(HashMap::new())),
             cache_ttl: Duration::from_secs(60), // 1 minute default
@@ -57,21 +60,23 @@ impl McpFS {
     }
 
     /// Create a new MCP filesystem by spawning a server
-    pub fn spawn(config: &ServerConfig, server_name: String, base_uri: String) -> Result<Self> {
+    pub fn spawn(config: &ServerConfig, server_name: String, base_path: String) -> Result<Self> {
         let mut client =
             McpClient::spawn(config).map_err(|e| anyhow!("Failed to spawn MCP server: {}", e))?;
         client
             .initialize()
             .map_err(|e| anyhow!("Failed to initialize MCP: {}", e))?;
-        Ok(Self::new(client, server_name, base_uri))
+        Ok(Self::new(client, server_name, base_path))
     }
 
     /// Set the cache TTL
+    #[allow(dead_code)]
     pub fn set_cache_ttl(&mut self, ttl: Duration) {
         self.cache_ttl = ttl;
     }
 
     /// Clear all caches
+    #[allow(dead_code)]
     pub fn clear_cache(&self) {
         if let Ok(mut cache) = self.dir_cache.lock() {
             cache.clear();
@@ -79,26 +84,6 @@ impl McpFS {
         if let Ok(mut cache) = self.file_cache.lock() {
             cache.clear();
         }
-    }
-
-    /// Convert a path to an MCP resource URI
-    fn path_to_uri(&self, path: &Path) -> String {
-        // Handle different path formats
-        let path_str = path.to_string_lossy();
-
-        // If the path is already absolute, use it directly
-        if path_str.starts_with('/') {
-            format!("{}{}", self.base_uri, path_str)
-        } else {
-            format!("{}/{}", self.base_uri, path_str)
-        }
-    }
-
-    /// Convert an MCP resource URI to a path
-    fn uri_to_path(&self, uri: &str) -> PathBuf {
-        // Strip the base URI prefix
-        let path_str = uri.strip_prefix(&self.base_uri).unwrap_or(uri);
-        PathBuf::from(path_str)
     }
 
     /// Check if a cached entry is still valid
@@ -154,49 +139,145 @@ impl McpFS {
         }
     }
 
-    /// Convert MCP resources to VfsDirEntry list
-    fn resources_to_entries(&self, resources: &[Resource], parent: &Path) -> Vec<VfsDirEntry> {
-        resources
-            .iter()
-            .filter_map(|r| {
-                let path = self.uri_to_path(&r.uri);
+    /// Extract text content from MCP tool result
+    fn extract_text_content(&self, content: &[crate::mcp::types::Content]) -> Result<String> {
+        for item in content {
+            if let Some(text) = item.as_text() {
+                return Ok(text.to_string());
+            }
+        }
+        Err(anyhow!("No text content in MCP response"))
+    }
 
-                // Filter to only direct children of parent
-                if let Some(p) = path.parent() {
-                    if p != parent {
-                        return None;
-                    }
-                }
+    /// Call the list_directory tool
+    fn call_list_directory(&self, path: &Path) -> Result<Vec<VfsDirEntry>> {
+        let path_str = path.to_string_lossy().to_string();
 
-                let file_name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| r.name.clone());
+        let result = {
+            let mut client = self
+                .client
+                .lock()
+                .map_err(|_| anyhow!("Failed to lock MCP client"))?;
 
-                // Determine if this is a directory based on URI or mime type
-                let is_dir = r.uri.ends_with('/')
-                    || r.mime_type.as_deref() == Some("inode/directory")
-                    || r.mime_type.is_none() && !r.uri.contains('.');
+            client
+                .call_tool("list_directory", Some(json!({"path": path_str})))
+                .map_err(|e| anyhow!("MCP list_directory error: {}", e))?
+        };
 
-                Some(VfsDirEntry {
-                    path: path.clone(),
-                    file_name,
-                    metadata: Some(VfsMetadata {
-                        len: 0, // MCP doesn't provide size in list
-                        is_dir,
-                        is_file: !is_dir,
-                        is_symlink: false,
-                        modified: None,
-                        created: None,
-                        permissions: None,
-                        readonly: true, // MCP resources are read-only for now
-                    }),
+        // Extract text content from result
+        let content = self.extract_text_content(&result.content)?;
+
+        // Parse the result - format is "[DIR] name" or "[FILE] name" per line
+        McpFS::parse_list_directory_result(&content, path)
+    }
+
+    /// Parse the list_directory tool result into VfsDirEntry list
+    fn parse_list_directory_result(content: &str, parent: &Path) -> Result<Vec<VfsDirEntry>> {
+        let mut entries = Vec::new();
+
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            let (is_dir, name) = if let Some(name) = line.strip_prefix("[DIR] ") {
+                (true, name.to_string())
+            } else if let Some(name) = line.strip_prefix("[FILE] ") {
+                (false, name.to_string())
+            } else {
+                // Unknown format, skip
+                continue;
+            };
+
+            let entry_path = parent.join(&name);
+
+            entries.push(VfsDirEntry {
+                path: entry_path,
+                file_name: name,
+                metadata: Some(VfsMetadata {
+                    len: 0, // Size not provided by list_directory
                     is_dir,
                     is_file: !is_dir,
                     is_symlink: false,
-                })
-            })
-            .collect()
+                    modified: None,
+                    created: None,
+                    permissions: None,
+                    readonly: true,
+                }),
+                is_dir,
+                is_file: !is_dir,
+                is_symlink: false,
+            });
+        }
+
+        Ok(entries)
+    }
+
+    /// Call the read_text_file tool
+    fn call_read_text_file(&self, path: &Path) -> Result<String> {
+        let path_str = path.to_string_lossy().to_string();
+
+        let result = {
+            let mut client = self
+                .client
+                .lock()
+                .map_err(|_| anyhow!("Failed to lock MCP client"))?;
+
+            client
+                .call_tool("read_text_file", Some(json!({"path": path_str})))
+                .map_err(|e| anyhow!("MCP read_text_file error: {}", e))?
+        };
+
+        self.extract_text_content(&result.content)
+    }
+
+    /// Call the get_file_info tool
+    #[allow(dead_code)]
+    fn call_get_file_info(&self, path: &Path) -> Result<VfsMetadata> {
+        let path_str = path.to_string_lossy().to_string();
+
+        let result = {
+            let mut client = self
+                .client
+                .lock()
+                .map_err(|_| anyhow!("Failed to lock MCP client"))?;
+
+            client
+                .call_tool("get_file_info", Some(json!({"path": path_str})))
+                .map_err(|e| anyhow!("MCP get_file_info error: {}", e))?
+        };
+
+        // Extract text and parse
+        let content = self.extract_text_content(&result.content)?;
+        self.parse_file_info_result(&content)
+    }
+
+    /// Parse the get_file_info tool result
+    fn parse_file_info_result(&self, content: &str) -> Result<VfsMetadata> {
+        // The result is a formatted string, parse it
+        let is_dir = content.contains("Type: directory");
+        let is_file = content.contains("Type: file");
+
+        // Try to extract size
+        let len = content
+            .lines()
+            .find(|l| l.starts_with("Size:"))
+            .and_then(|l| l.split(':').nth(1))
+            .and_then(|s| s.split_whitespace().next())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+
+        Ok(VfsMetadata {
+            len,
+            is_dir,
+            is_file,
+            is_symlink: false,
+            modified: None,
+            created: None,
+            permissions: None,
+            readonly: true,
+        })
     }
 }
 
@@ -207,19 +288,8 @@ impl FileSystemProvider for McpFS {
             return Ok(cached);
         }
 
-        // Fetch from MCP server
-        let resources = {
-            let mut client = self
-                .client
-                .lock()
-                .map_err(|_| anyhow!("Failed to lock MCP client"))?;
-            client
-                .list_resources()
-                .map_err(|e| anyhow!("MCP error: {}", e))?
-        };
-
-        // Convert to entries for this directory
-        let entries = self.resources_to_entries(&resources, path);
+        // Call list_directory tool
+        let entries = self.call_list_directory(path)?;
 
         // Cache result
         self.cache_dir(path, entries.clone());
@@ -233,36 +303,14 @@ impl FileSystemProvider for McpFS {
             return Ok(cached);
         }
 
-        // Read from MCP server
-        let uri = self.path_to_uri(path);
-        let result = {
-            let mut client = self
-                .client
-                .lock()
-                .map_err(|_| anyhow!("Failed to lock MCP client"))?;
-            client
-                .read_resource(&uri)
-                .map_err(|e| anyhow!("MCP error: {}", e))?
-        };
-
-        // Extract content
-        let content = if let Some(first) = result.contents.first() {
-            if let Some(text) = &first.text {
-                text.as_bytes().to_vec()
-            } else if let Some(blob) = &first.blob {
-                // Base64 decode blob
-                base64_decode(blob)?
-            } else {
-                Vec::new()
-            }
-        } else {
-            Vec::new()
-        };
+        // Call read_text_file tool
+        let content = self.call_read_text_file(path)?;
+        let bytes = content.into_bytes();
 
         // Cache result
-        self.cache_file(path, content.clone());
+        self.cache_file(path, bytes.clone());
 
-        Ok(content)
+        Ok(bytes)
     }
 
     fn read_to_string(&self, path: &Path) -> Result<String> {
@@ -293,7 +341,7 @@ impl FileSystemProvider for McpFS {
             is_dir: true,
             is_file: false,
             is_symlink: false,
-            modified: Some(SystemTime::now()),
+            modified: None,
             created: None,
             permissions: None,
             readonly: true,
@@ -301,68 +349,59 @@ impl FileSystemProvider for McpFS {
     }
 
     fn exists(&self, path: &Path) -> bool {
-        // Check if it's the root
-        if path.as_os_str().is_empty() || path == Path::new("/") {
+        // Check if in cache
+        if self.get_cached_dir(path).is_some() {
             return true;
         }
 
-        // Try to read parent directory and check if this entry exists
-        if let Some(parent) = path.parent() {
-            if let Ok(entries) = self.read_dir(parent) {
-                return entries.iter().any(|e| e.path == path);
-            }
-        }
-
-        false
+        // Try to list it as a directory
+        self.call_list_directory(path).is_ok()
     }
 
     fn is_dir(&self, path: &Path) -> bool {
-        if let Ok(meta) = self.metadata(path) {
-            meta.is_dir
-        } else {
-            false
-        }
+        self.metadata(path).map(|m| m.is_dir).unwrap_or(false)
     }
 
     fn is_file(&self, path: &Path) -> bool {
-        if let Ok(meta) = self.metadata(path) {
-            meta.is_file
-        } else {
-            false
-        }
+        self.metadata(path).map(|m| m.is_file).unwrap_or(false)
+    }
+
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
+        // MCP paths are already canonical
+        Ok(path.to_path_buf())
     }
 
     fn create_dir(&self, _path: &Path) -> Result<()> {
         Err(anyhow!(
-            "Create directory not supported on MCP filesystem '{}'",
+            "Directory creation not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
 
     fn create_dir_all(&self, _path: &Path) -> Result<()> {
         Err(anyhow!(
-            "Create directory not supported on MCP filesystem '{}'",
+            "Directory creation not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
 
     fn remove_file(&self, _path: &Path) -> Result<()> {
         Err(anyhow!(
-            "Remove file not supported on MCP filesystem '{}'",
+            "File removal not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
 
     fn remove_dir(&self, _path: &Path) -> Result<()> {
         Err(anyhow!(
-            "Remove directory not supported on MCP filesystem '{}'",
+            "Directory removal not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
 
     fn remove_dir_all(&self, _path: &Path) -> Result<()> {
         Err(anyhow!(
-            "Remove directory not supported on MCP filesystem '{}'",
+            "Directory removal not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
@@ -383,66 +422,25 @@ impl FileSystemProvider for McpFS {
 
     fn read_link(&self, _path: &Path) -> Result<PathBuf> {
         Err(anyhow!(
-            "Symlinks not supported on MCP filesystem '{}'",
+            "Symlink reading not supported on MCP filesystem '{}'",
             self.server_name
         ))
     }
 
-    fn set_permissions(&self, _path: &Path, _permissions: Permissions) -> Result<()> {
+    fn set_permissions(&self, _path: &Path, _perm: Permissions) -> Result<()> {
         Err(anyhow!(
-            "Permissions not supported on MCP filesystem '{}'",
+            "Permission changes not supported on MCP filesystem '{}'",
             self.server_name
         ))
-    }
-
-    fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
-        // For MCP, just return the path as-is (no symlinks to resolve)
-        Ok(path.to_path_buf())
-    }
-
-    fn provider_name(&self) -> &str {
-        &self.server_name
     }
 
     fn is_local(&self) -> bool {
-        false
-    }
-}
-
-/// Simple base64 decoder (no external dependency)
-fn base64_decode(input: &str) -> Result<Vec<u8>> {
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    fn decode_char(c: u8) -> Option<u8> {
-        ALPHABET.iter().position(|&x| x == c).map(|p| p as u8)
+        false // This is a remote filesystem
     }
 
-    let input = input.as_bytes();
-    let mut output = Vec::with_capacity(input.len() * 3 / 4);
-
-    let mut buffer: u32 = 0;
-    let mut bits_collected = 0;
-
-    for &byte in input {
-        if byte == b'=' {
-            break;
-        }
-        if byte == b'\n' || byte == b'\r' || byte == b' ' {
-            continue;
-        }
-
-        let value = decode_char(byte).ok_or_else(|| anyhow!("Invalid base64 character"))?;
-        buffer = (buffer << 6) | (value as u32);
-        bits_collected += 6;
-
-        if bits_collected >= 8 {
-            bits_collected -= 8;
-            output.push((buffer >> bits_collected) as u8);
-            buffer &= (1 << bits_collected) - 1;
-        }
+    fn provider_name(&self) -> &str {
+        "mcp"
     }
-
-    Ok(output)
 }
 
 #[cfg(test)]
@@ -450,28 +448,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_path_to_uri() {
-        // Create a mock MCP FS (we can't actually connect in tests)
-        // Just test the path conversion logic
-        let base_uri = "file://".to_string();
+    fn test_parse_list_directory() {
+        let content = "[DIR] subdir\n[FILE] file.txt\n[DIR] another";
+        let entries =
+            McpFS::parse_list_directory_result(content, Path::new("/tmp")).unwrap();
 
-        // Test absolute path
-        let path = Path::new("/tmp/test.txt");
-        let expected = format!("{}{}", base_uri, "/tmp/test.txt");
-        assert_eq!(format!("{}{}", base_uri, path.to_string_lossy()), expected);
-    }
-
-    #[test]
-    fn test_base64_decode() {
-        let encoded = "SGVsbG8gV29ybGQ="; // "Hello World"
-        let decoded = base64_decode(encoded).unwrap();
-        assert_eq!(decoded, b"Hello World");
-    }
-
-    #[test]
-    fn test_base64_decode_with_newlines() {
-        let encoded = "SGVs\nbG8g\nV29y\nbGQ=";
-        let decoded = base64_decode(encoded).unwrap();
-        assert_eq!(decoded, b"Hello World");
+        assert_eq!(entries.len(), 3);
+        assert!(entries[0].is_dir);
+        assert_eq!(entries[0].file_name, "subdir");
+        assert!(!entries[1].is_dir);
+        assert_eq!(entries[1].file_name, "file.txt");
+        assert!(entries[2].is_dir);
+        assert_eq!(entries[2].file_name, "another");
     }
 }

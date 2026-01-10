@@ -27,7 +27,10 @@ pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue};
 use crate::config::Config;
 use crate::errors;
 use crate::event::EventHandler;
-use crate::file_ops::{apply_attributes, find_files_recursive, get_directory_contents, FileEntry};
+use crate::file_ops::{
+    apply_attributes, find_files_recursive, get_directory_contents,
+    get_directory_contents_with_provider, FileEntry,
+};
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
     DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
@@ -37,7 +40,7 @@ use crate::plugins::{
     ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
-use crate::vfs::{FileSystemProvider, LocalFS};
+use crate::vfs::RoutingFS;
 use crate::watcher::DirWatcher;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -118,10 +121,10 @@ pub struct App {
     pub terminal_luma: Option<f32>,
     /// Directory jump database (zoxide, z, autojump, fasd)
     pub z_db: Option<JumpDatabase>,
-    /// Virtual filesystem provider (default: LocalFS)
-    /// Used for Q-LINK MCP integration - will be utilized when remote filesystems are supported
-    #[allow(dead_code)]
-    pub fs_provider: Arc<dyn FileSystemProvider>,
+    /// Virtual filesystem provider with routing for MCP mounts
+    /// Used for Q-LINK MCP integration - routes to MCP providers for mounted paths
+    #[allow(dead_code)] // Will be used when file operations are routed through VFS
+    pub routing_fs: Arc<RoutingFS>,
 }
 
 impl App {
@@ -134,6 +137,10 @@ impl App {
         let color_theme: ColorTheme = config.display.theme.clone().into();
         let search_spec = config.general.search_spec.clone();
         let show_hidden = config.general.show_hidden;
+
+        // Initialize the VFS provider with routing for MCP mounts
+        // This must be created before Q-LINK plugin so it can share the routing filesystem
+        let routing_fs = Arc::new(RoutingFS::new());
 
         // Initialize plugin manager with config and register built-in plugins
         let mut plugin_manager = PluginManager::with_config(config.plugins.clone());
@@ -159,7 +166,9 @@ impl App {
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
         plugin_manager.register(Box::new(QEditPlugin::new()));
-        plugin_manager.register(Box::new(QLinkPlugin::new()));
+        plugin_manager.register(Box::new(QLinkPlugin::with_routing_fs(Arc::clone(
+            &routing_fs,
+        ))));
         plugin_manager.register(Box::new(QMindPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(SftpPlugin::new()));
@@ -175,9 +184,6 @@ impl App {
         if let Some(help_plugin) = plugin_manager.help_plugin_mut() {
             help_plugin.load_plugin_help(plugin_help);
         }
-
-        // Initialize the VFS provider (default to local filesystem)
-        let fs_provider: Arc<dyn FileSystemProvider> = Arc::new(LocalFS::new());
 
         let current_path = PathBuf::from(start_path).canonicalize()?;
         let files = get_directory_contents(&current_path, sort_mode)?;
@@ -212,7 +218,7 @@ impl App {
             dir_watcher: watcher,
             terminal_luma: None,
             z_db,
-            fs_provider,
+            routing_fs,
         };
 
         // Detect terminal light/dark mode using OSC 10/11 query
@@ -234,6 +240,17 @@ impl App {
     /// Get theme colors adjusted for the terminal's light/dark mode
     pub fn theme_colors(&self) -> ThemeColors {
         self.color_theme.colors_for_luma(self.terminal_luma)
+    }
+
+    /// Read directory contents using the routing filesystem
+    /// This routes to MCP providers for mounted paths
+    fn read_directory(&self, path: &std::path::Path) -> Result<Vec<FileEntry>> {
+        // Check if this path is under a mount point
+        if self.routing_fs.is_mounted_path(path) {
+            get_directory_contents_with_provider(path, self.sort_mode, self.routing_fs.as_ref())
+        } else {
+            get_directory_contents(&path.to_path_buf(), self.sort_mode)
+        }
     }
 
     /// Save current settings to config file
@@ -1654,7 +1671,7 @@ impl App {
 
         // Update state
         self.current_path = canonical.clone();
-        self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+        self.files = self.read_directory(&self.current_path)?;
         self.selected_index = 0;
         self.scroll_offset = 0;
 
@@ -1683,7 +1700,7 @@ impl App {
 
             // Navigate to previous path
             self.current_path = prev_path.clone();
-            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.files = self.read_directory(&self.current_path)?;
             self.selected_index = 0;
             self.scroll_offset = 0;
 
@@ -1705,7 +1722,7 @@ impl App {
 
             // Navigate to next path
             self.current_path = next_path.clone();
-            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.files = self.read_directory(&self.current_path)?;
             self.selected_index = 0;
             self.scroll_offset = 0;
 
@@ -1722,7 +1739,7 @@ impl App {
     /// Cycle through sort modes
     fn cycle_sort_mode(&mut self) -> Result<()> {
         self.sort_mode = self.sort_mode.next();
-        self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+        self.files = self.read_directory(&self.current_path)?;
         Ok(())
     }
 
@@ -2024,7 +2041,7 @@ impl App {
             self.sort_mode = new_sort_mode;
             changes.push("sort");
             // Re-sort files
-            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.files = self.read_directory(&self.current_path)?;
         }
 
         // Update theme
@@ -2045,7 +2062,7 @@ impl App {
             self.show_hidden = config.general.show_hidden;
             changes.push("show_hidden");
             // Refresh file list
-            self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+            self.files = self.read_directory(&self.current_path)?;
         }
 
         // Update plugin config
@@ -2126,7 +2143,7 @@ impl App {
 
     /// Refresh the current file list and status bar
     fn refresh_files(&mut self) -> Result<()> {
-        self.files = get_directory_contents(&self.current_path, self.sort_mode)?;
+        self.files = self.read_directory(&self.current_path)?;
         if self.selected_index >= self.files.len() && !self.files.is_empty() {
             self.selected_index = self.files.len() - 1;
         }
@@ -2922,6 +2939,15 @@ impl App {
                         self.selected_index = idx;
                     }
                 }
+
+                true
+            }
+            KeyHandleResult::NavigateToDir(path) => {
+                // Close any active modal
+                self.modal = Modal::None;
+
+                // Navigate directly into the directory
+                let _ = self.navigate_to(&path);
 
                 true
             }
