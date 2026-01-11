@@ -56,10 +56,25 @@ R-DOS features a modular plugin system accessible via the F12 Apps launcher. Bui
 | J | Jujutsu | Jujutsu VCS |
 | B | Beads | Issue tracker |
 
+### AI & Productivity
+| Key | App | Description |
+|-----|-----|-------------|
+| ? | Q-MIND | AI intelligence layer with file summaries and natural language commands |
+| A | AI Agents | Monitor AI coding tools (Claude, Cursor, Copilot) |
+| K | Q-TASK | TaskPaper file editor for task management |
+| L | Q-LINK | Browse virtual filesystems via MCP servers |
+
+### Infrastructure & DevOps
+| Key | App | Description |
+|-----|-----|-------------|
+| o | Docker | Container, image, volume, and network management |
+| t | Terraform | Infrastructure as code with plan/apply workflow |
+| R | Redis | Key-value browser with connection profiles |
+| y | Dependencies | Multi-language package manager (Cargo, npm, pip, Go) |
+
 ### Tools
 | Key | App | Description |
 |-----|-----|-------------|
-| A | AI Assistant | Monitor AI coding tools |
 | D | Database | SQLite, PostgreSQL, MySQL browser |
 | Y | Homebrew | Browse Homebrew packages |
 | S | Shell | Interactive shell |
