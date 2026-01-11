@@ -109,6 +109,9 @@ search-tools = { path = "crates/search" }
 glob = "0.3.3"
 ignore = "0.4.25"
 
+# Random number generation (for games)
+rand = "0.8"
+
 [dev-dependencies]
 tempfile = "3.15"
 

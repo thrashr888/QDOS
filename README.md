@@ -6,7 +6,7 @@ R-DOS is inspired by the classic Q-DOS file manager, reimagined as a modern Term
 
 ![The real Q-DOS II](./images/qdos.png)
 
-I loved Q-DOS so here it is as a terminal app (TUI). Watch it in action: [Q-DOS II Demo on YouTube](https://www.youtube.com/watch?v=82j6NpSDTWQ)
+I loved Q-DOS so here it is as a terminal app (TUI). Watch the original in action: [Q-DOS II Demo on YouTube](https://www.youtube.com/watch?v=82j6NpSDTWQ)
 
 Since it's somewhat tough to find, I'm rehosting [Q-DOS II for DOSBox](http://thrashr888.s3.amazonaws.com/Q-DOS%20II%20Version%202.0%20-%205.25.7z).
 
@@ -30,71 +30,86 @@ Q-DOS II is Copyright (c) 1991 Gazelle Systems.
 R-DOS features a modular plugin system accessible via the F12 Apps launcher. Built-in apps include:
 
 ### File Management
-| Key | App | Description |
-|-----|-----|-------------|
-| E | Editor | Built-in text editor |
-| V | Viewer | File content viewer |
-| D | Dir Map | Directory tree view |
-| N | Drives | Browse mounted volumes |
-| O | File Ops | Copy, move, delete files |
-| R | Print | Print file contents |
-| W | Search Spec | File filter pattern |
-| U | Disk Space | Disk usage analyzer |
+
+| Key | App         | Description              |
+| --- | ----------- | ------------------------ |
+| E   | Editor      | Built-in text editor     |
+| V   | Viewer      | File content viewer      |
+| D   | Dir Map     | Directory tree view      |
+| N   | Drives      | Browse mounted volumes   |
+| O   | File Ops    | Copy, move, delete files |
+| R   | Print       | Print file contents      |
+| W   | Search Spec | File filter pattern      |
+| U   | Disk Space  | Disk usage analyzer      |
 
 ### Cloud Storage
-| Key | App | Description |
-|-----|-----|-------------|
-| D | Dropbox | Browse Dropbox with sync status |
-| O | Google Drive | Browse Google Drive |
-| I | iCloud Drive | Browse iCloud with cloud-only file support |
-| F | SFTP | Browse remote SFTP servers |
+
+| Key | App          | Description                                |
+| --- | ------------ | ------------------------------------------ |
+| D   | Dropbox      | Browse Dropbox with sync status            |
+| O   | Google Drive | Browse Google Drive                        |
+| I   | iCloud Drive | Browse iCloud with cloud-only file support |
+| F   | SFTP         | Browse remote SFTP servers                 |
 
 ### Version Control
-| Key | App | Description |
-|-----|-----|-------------|
-| G | Git | Git version control |
-| J | Jujutsu | Jujutsu VCS |
-| B | Beads | Issue tracker |
+
+| Key | App     | Description         |
+| --- | ------- | ------------------- |
+| G   | Git     | Git version control |
+| J   | Jujutsu | Jujutsu VCS         |
+| B   | Beads   | Issue tracker       |
 
 ### AI & Productivity
-| Key | App | Description |
-|-----|-----|-------------|
-| ? | Q-MIND | AI intelligence layer with file summaries and natural language commands |
-| A | AI Agents | Monitor AI coding tools (Claude, Cursor, Copilot) |
-| K | Q-TASK | TaskPaper file editor for task management |
-| L | Q-LINK | Browse virtual filesystems via MCP servers |
+
+| Key | App       | Description                                                             |
+| --- | --------- | ----------------------------------------------------------------------- |
+| ?   | Q-MIND    | AI intelligence layer with file summaries and natural language commands |
+| A   | AI Agents | Monitor AI coding tools (Claude, Cursor, Copilot)                       |
+| K   | Q-TASK    | TaskPaper file editor for task management                               |
+| L   | Q-LINK    | Browse virtual filesystems via MCP servers                              |
 
 ### Infrastructure & DevOps
-| Key | App | Description |
-|-----|-----|-------------|
-| o | Docker | Container, image, volume, and network management |
-| t | Terraform | Infrastructure as code with plan/apply workflow |
-| R | Redis | Key-value browser with connection profiles |
-| y | Dependencies | Multi-language package manager (Cargo, npm, pip, Go) |
+
+| Key | App          | Description                                          |
+| --- | ------------ | ---------------------------------------------------- |
+| o   | Docker       | Container, image, volume, and network management     |
+| t   | Terraform    | Infrastructure as code with plan/apply workflow      |
+| R   | Redis        | Key-value browser with connection profiles           |
+| y   | Dependencies | Multi-language package manager (Cargo, npm, pip, Go) |
 
 ### Tools
-| Key | App | Description |
-|-----|-----|-------------|
-| D | Database | SQLite, PostgreSQL, MySQL browser |
-| Y | Homebrew | Browse Homebrew packages |
-| S | Shell | Interactive shell |
-| 3 | 3D Model | View 3D model files |
+
+| Key | App      | Description                       |
+| --- | -------- | --------------------------------- |
+| D   | Database | SQLite, PostgreSQL, MySQL browser |
+| Y   | Homebrew | Browse Homebrew packages          |
+| S   | Shell    | Interactive shell                 |
+| 3   | 3D Model | View 3D model files               |
 
 ### System
-| Key | App | Description |
-|-----|-----|-------------|
-| H | Help | Help and documentation |
-| P | Processes | System process monitor |
-| C | Config | RDOS configuration |
-| X | Status | Status bar plugin |
-| T | Theme | Color theme settings |
+
+| Key | App       | Description            |
+| --- | --------- | ---------------------- |
+| H   | Help      | Help and documentation |
+| P   | Processes | System process monitor |
+| C   | Config    | RDOS configuration     |
+| X   | Status    | Status bar plugin      |
+| T   | Theme     | Color theme settings   |
 
 ### Media
-| Key | App | Description |
-|-----|-----|-------------|
-| M | Audio | Play audio & MIDI files |
-| Z | Video | Play video files |
-| I | BASIC | Run BASIC programs |
+
+| Key | App   | Description             |
+| --- | ----- | ----------------------- |
+| M   | Audio | Play audio & MIDI files |
+| Z   | Video | Play video files        |
+| I   | BASIC | Run BASIC programs      |
+
+### Games
+
+| Key | App      | Description                                             |
+| --- | -------- | ------------------------------------------------------- |
+| G   | Games    | Play retro games (Tetris, Snake, Breakout, Rogue, Trek) |
+| X   | Emulator | Run DOS programs in DOSBox-X                            |
 
 See [spec/PLUGIN.md](spec/PLUGIN.md) for plugin development documentation.
 

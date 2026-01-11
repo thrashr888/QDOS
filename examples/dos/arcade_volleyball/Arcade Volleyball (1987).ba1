@@ -1,0 +1,16 @@
+@echo off 
+cd .. 
+cd .. 
+cd .. 
+IF NOT EXIST ".\games\3DCube\" goto none 
+".\dosbox\dosbox.exe" -conf ".\games\games\3DCube\dosbox.conf" -noconsole -exit 
+del stdout.txt 
+del stderr.txt 
+goto end
+:none
+cls
+echo.
+echo Game has not been installed 
+echo.
+pause
+:end 

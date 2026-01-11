@@ -34,11 +34,12 @@ use crate::file_ops::{
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
     DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DrivesPlugin, DropboxPlugin,
-    FileOpsPlugin, GDrivePlugin, GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin,
-    KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo,
-    PrintPlugin, ProcPlugin, QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin,
-    RedisPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
+    HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin,
+    PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin,
+    QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, RedisPlugin, SearchSpecPlugin,
+    SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, TerraformPlugin, ThemePlugin, VideoPlugin,
+    ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
@@ -155,9 +156,11 @@ impl App {
         plugin_manager.register(Box::new(DockerPlugin::new()));
         plugin_manager.register(Box::new(DrivesPlugin::new()));
         plugin_manager.register(Box::new(DropboxPlugin::new()));
+        plugin_manager.register(Box::new(EmulatorPlugin::new()));
         plugin_manager.register(Box::new(GDrivePlugin::new()));
         plugin_manager.register(Box::new(ICloudPlugin::new()));
         plugin_manager.register(Box::new(FileOpsPlugin::new()));
+        plugin_manager.register(Box::new(GamesPlugin::new()));
         plugin_manager.register(Box::new(GitPlugin::new()));
         plugin_manager.register(Box::new(HelpPlugin::new()));
         plugin_manager.register(Box::new(HomebrewPlugin::new()));

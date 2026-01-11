@@ -8,7 +8,37 @@ use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::fs::Permissions;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
+
+/// Default TTL for cached directory listings (5 seconds)
+const DEFAULT_CACHE_TTL: Duration = Duration::from_secs(5);
+
+/// A cached directory listing entry
+#[derive(Clone)]
+struct CacheEntry {
+    /// The cached entries
+    entries: Vec<VfsDirEntry>,
+    /// When this entry was cached
+    cached_at: Instant,
+    /// TTL for this entry
+    ttl: Duration,
+}
+
+impl CacheEntry {
+    fn new(entries: Vec<VfsDirEntry>, ttl: Duration) -> Self {
+        Self {
+            entries,
+            cached_at: Instant::now(),
+            ttl,
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        self.cached_at.elapsed() < self.ttl
+    }
+}
 
 /// A mount point configuration
 #[derive(Clone)]
@@ -28,6 +58,14 @@ pub struct RoutingFS {
     local: LocalFS,
     /// Mount points (path prefix -> provider)
     mounts: RwLock<HashMap<PathBuf, Arc<dyn FileSystemProvider>>>,
+    /// TTL cache for directory listings
+    dir_cache: RwLock<HashMap<PathBuf, CacheEntry>>,
+    /// Cache TTL
+    cache_ttl: Duration,
+    /// Whether a VFS operation is currently loading
+    loading: AtomicBool,
+    /// Count of active loading operations (for nested calls)
+    loading_count: AtomicUsize,
 }
 
 impl Default for RoutingFS {
@@ -42,6 +80,73 @@ impl RoutingFS {
         Self {
             local: LocalFS::new(),
             mounts: RwLock::new(HashMap::new()),
+            dir_cache: RwLock::new(HashMap::new()),
+            cache_ttl: DEFAULT_CACHE_TTL,
+            loading: AtomicBool::new(false),
+            loading_count: AtomicUsize::new(0),
+        }
+    }
+
+    /// Check if a VFS operation is currently loading
+    pub fn is_loading(&self) -> bool {
+        self.loading.load(Ordering::Relaxed)
+    }
+
+    /// Start a loading operation
+    fn start_loading(&self) {
+        let count = self.loading_count.fetch_add(1, Ordering::SeqCst);
+        if count == 0 {
+            self.loading.store(true, Ordering::SeqCst);
+        }
+    }
+
+    /// End a loading operation
+    fn end_loading(&self) {
+        let count = self.loading_count.fetch_sub(1, Ordering::SeqCst);
+        if count == 1 {
+            self.loading.store(false, Ordering::SeqCst);
+        }
+    }
+
+    /// Set the cache TTL
+    pub fn set_cache_ttl(&mut self, ttl: Duration) {
+        self.cache_ttl = ttl;
+    }
+
+    /// Clear the directory cache
+    pub fn clear_cache(&self) {
+        if let Ok(mut cache) = self.dir_cache.write() {
+            cache.clear();
+        }
+    }
+
+    /// Invalidate a specific path in the cache
+    pub fn invalidate_cache(&self, path: &Path) {
+        if let Ok(mut cache) = self.dir_cache.write() {
+            cache.remove(path);
+            // Also invalidate parent directory
+            if let Some(parent) = path.parent() {
+                cache.remove(parent);
+            }
+        }
+    }
+
+    /// Get cached directory listing if valid
+    fn get_cached(&self, path: &Path) -> Option<Vec<VfsDirEntry>> {
+        if let Ok(cache) = self.dir_cache.read() {
+            if let Some(entry) = cache.get(path) {
+                if entry.is_valid() {
+                    return Some(entry.entries.clone());
+                }
+            }
+        }
+        None
+    }
+
+    /// Store directory listing in cache
+    fn cache_dir(&self, path: &Path, entries: Vec<VfsDirEntry>) {
+        if let Ok(mut cache) = self.dir_cache.write() {
+            cache.insert(path.to_path_buf(), CacheEntry::new(entries, self.cache_ttl));
         }
     }
 
@@ -258,7 +363,18 @@ impl FileSystemProvider for RoutingFS {
         // Special handling for mount point directories
         // Show both local entries and mount points
         if let Some((provider, relative_path)) = self.find_provider(path) {
-            let mut entries = provider.read_dir(&relative_path)?;
+            // Check cache first for remote paths
+            if let Some(cached) = self.get_cached(path) {
+                return Ok(cached);
+            }
+
+            // Signal loading start for remote operations
+            self.start_loading();
+            let result = provider.read_dir(&relative_path);
+            self.end_loading();
+
+            let mut entries = result?;
+
             // Adjust paths to be absolute
             for entry in &mut entries {
                 if let Some((mount_path, _)) = self.find_provider(path).map(|(_, rp)| {
@@ -273,6 +389,10 @@ impl FileSystemProvider for RoutingFS {
                     entry.path = full_path;
                 }
             }
+
+            // Cache the result
+            self.cache_dir(path, entries.clone());
+
             Ok(entries)
         } else {
             let mut entries = self.local.read_dir(path)?;
@@ -324,7 +444,11 @@ impl FileSystemProvider for RoutingFS {
     }
 
     fn write_file(&self, path: &Path, content: &[u8]) -> Result<()> {
-        self.route(path, |p, path| p.write_file(path, content))
+        let result = self.route(path, |p, path| p.write_file(path, content));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn metadata(&self, path: &Path) -> Result<VfsMetadata> {
@@ -364,23 +488,43 @@ impl FileSystemProvider for RoutingFS {
     }
 
     fn create_dir(&self, path: &Path) -> Result<()> {
-        self.route(path, |p, path| p.create_dir(path))
+        let result = self.route(path, |p, path| p.create_dir(path));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn create_dir_all(&self, path: &Path) -> Result<()> {
-        self.route(path, |p, path| p.create_dir_all(path))
+        let result = self.route(path, |p, path| p.create_dir_all(path));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn remove_file(&self, path: &Path) -> Result<()> {
-        self.route(path, |p, path| p.remove_file(path))
+        let result = self.route(path, |p, path| p.remove_file(path));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn remove_dir(&self, path: &Path) -> Result<()> {
-        self.route(path, |p, path| p.remove_dir(path))
+        let result = self.route(path, |p, path| p.remove_dir(path));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn remove_dir_all(&self, path: &Path) -> Result<()> {
-        self.route(path, |p, path| p.remove_dir_all(path))
+        let result = self.route(path, |p, path| p.remove_dir_all(path));
+        if result.is_ok() {
+            self.invalidate_cache(path);
+        }
+        result
     }
 
     fn rename(&self, from: &Path, to: &Path) -> Result<()> {
@@ -388,7 +532,7 @@ impl FileSystemProvider for RoutingFS {
         let from_provider = self.find_provider(from);
         let to_provider = self.find_provider(to);
 
-        match (from_provider, to_provider) {
+        let result = match (from_provider, to_provider) {
             (Some((fp, from_rel)), Some((tp, to_rel))) => {
                 // Check if same provider (by name)
                 if fp.provider_name() == tp.provider_name() {
@@ -399,7 +543,13 @@ impl FileSystemProvider for RoutingFS {
             }
             (None, None) => self.local.rename(from, to),
             _ => Err(anyhow!("Cannot rename across local and remote filesystems")),
+        };
+
+        if result.is_ok() {
+            self.invalidate_cache(from);
+            self.invalidate_cache(to);
         }
+        result
     }
 
     fn copy(&self, from: &Path, to: &Path) -> Result<u64> {

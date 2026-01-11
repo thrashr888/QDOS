@@ -3262,6 +3262,7 @@ dependencies = [
  "notify",
  "portable-pty",
  "postgres",
+ "rand 0.8.5",
  "ratatui",
  "ratatui-image",
  "redis",
