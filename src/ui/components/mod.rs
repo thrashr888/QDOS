@@ -13,6 +13,8 @@
 //! - [`Table`] - Column-based table with alignment
 //! - [`InputField`] - Text input with cursor and editing support
 //! - [`ConfirmDialog`] - Yes/No confirmation dialog
+//! - [`TabBar`] - Horizontal tab navigation bar
+//! - [`LogViewer`] - Streaming log output with auto-scroll
 //! - [`colors`] - Status color helpers for consistent theming
 //!
 //! ## Usage
@@ -70,6 +72,8 @@ mod input;
 #[allow(dead_code)]
 mod list;
 #[allow(dead_code)]
+mod log_viewer;
+#[allow(dead_code)]
 mod message;
 mod modal;
 #[allow(dead_code)]
@@ -78,6 +82,8 @@ mod progress;
 mod screen;
 #[allow(dead_code)]
 mod table;
+#[allow(dead_code)]
+mod tabs;
 
 #[allow(unused_imports)]
 pub use confirm::{ConfirmDialog, ConfirmResult};
@@ -85,6 +91,8 @@ pub use confirm::{ConfirmDialog, ConfirmResult};
 pub use input::InputField;
 #[allow(unused_imports)]
 pub use list::{truncate_with_ellipsis, ListState, ScrollableList};
+#[allow(unused_imports)]
+pub use log_viewer::{default_line_style, LogStatus, LogViewer, LogViewerState};
 #[allow(unused_imports)]
 pub use message::{MessageModal, MessageType};
 pub use modal::ModalFrame;
@@ -94,3 +102,5 @@ pub use progress::{ProgressBar, ProgressStyle};
 pub use screen::FullScreenView;
 #[allow(unused_imports)]
 pub use table::{Align, Column, Table};
+#[allow(unused_imports)]
+pub use tabs::{TabBar, TabState};

@@ -13,6 +13,7 @@
       "Bash(bd reopen:*)",
       "Bash(bd search:*)",
       "Bash(bd show:*)",
+      "Bash(bd stats:*)",
       "Bash(bd update:*)",
       "Bash(cargo build:*)",
       "Bash(cargo check:*)",

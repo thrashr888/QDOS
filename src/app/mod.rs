@@ -33,11 +33,12 @@ use crate::file_ops::{
 };
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
-    DatabasePlugin, DirMapPlugin, DrivesPlugin, DropboxPlugin, FileOpsPlugin, GDrivePlugin,
-    GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin,
-    Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
-    QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, SearchSpecPlugin,
-    SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DrivesPlugin, DropboxPlugin,
+    FileOpsPlugin, GDrivePlugin, GitPlugin, HelpPlugin, HomebrewPlugin, ICloudPlugin, JjPlugin,
+    KeyHandleResult, MidiPlugin, Model3dPlugin, PluginManager, PluginMenuItem, PluginStatusInfo,
+    PrintPlugin, ProcPlugin, QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin,
+    RedisPlugin, SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
+    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
@@ -149,7 +150,9 @@ impl App {
         plugin_manager.register(Box::new(BasicPlugin::new()));
         plugin_manager.register(Box::new(BeadsPlugin::new()));
         plugin_manager.register(Box::new(DatabasePlugin::new()));
+        plugin_manager.register(Box::new(DepsPlugin::new()));
         plugin_manager.register(Box::new(DirMapPlugin::new()));
+        plugin_manager.register(Box::new(DockerPlugin::new()));
         plugin_manager.register(Box::new(DrivesPlugin::new()));
         plugin_manager.register(Box::new(DropboxPlugin::new()));
         plugin_manager.register(Box::new(GDrivePlugin::new()));
@@ -171,11 +174,13 @@ impl App {
         ))));
         plugin_manager.register(Box::new(QMindPlugin::new()));
         plugin_manager.register(Box::new(QTaskPlugin::new()));
+        plugin_manager.register(Box::new(RedisPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));
         plugin_manager.register(Box::new(SftpPlugin::new()));
         plugin_manager.register(Box::new(ShellPlugin::new()));
         plugin_manager.register(Box::new(SpacePlugin::new()));
         plugin_manager.register(Box::new(StatusPlugin::new()));
+        plugin_manager.register(Box::new(TerraformPlugin::new()));
         plugin_manager.register(Box::new(ThemePlugin::new()));
         plugin_manager.register(Box::new(VideoPlugin::new()));
         plugin_manager.register(Box::new(ViewerPlugin::new()));

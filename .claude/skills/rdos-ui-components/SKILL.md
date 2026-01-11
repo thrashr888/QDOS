@@ -61,8 +61,72 @@ use crate::ui::components::{
     Table,            // Columnar data
     InputField,       // Text input
     ConfirmDialog,    // Y/N prompts
+    TabBar,           // Horizontal tab navigation
+    TabState,         // Tab navigation state management
+    LogViewer,        // Streaming log viewer with auto-scroll
+    LogViewerState,   // Log viewer state management
+    LogStatus,        // Running/Success/Failed status
 };
 ```
+
+## TabBar Component
+
+For plugins with multiple views (Containers/Images/Volumes/Networks):
+
+```rust
+use crate::ui::components::TabBar;
+
+// Define tabs and render
+let tabs = vec!["Containers", "Images", "Volumes", "Networks"];
+let tab_bar = TabBar::new(&tabs, selected_index);
+let spans = tab_bar.render(&colors);
+view.render_row(frame, 0, spans);
+
+// Navigation with TabState
+let mut state = TabState::new(4);  // 4 tabs
+state.next();  // Tab key
+state.prev();  // Shift+Tab
+```
+
+## LogViewer Component
+
+For streaming command output (builds, terraform plan/apply):
+
+```rust
+use crate::ui::components::{LogViewer, LogViewerState, LogStatus};
+
+// Create state
+let mut state = LogViewerState::new().with_visible_height(18);
+
+// Add lines (typically from background process)
+state.push_line("Step 1/5: Starting...");
+state.push_line("Downloading dependencies...");
+
+// Render
+let viewer = LogViewer::new(&state)
+    .title("Build Output")
+    .status(LogStatus::Running);
+viewer.render(frame, &view, &colors);
+
+// Handle scroll keys
+state.scroll_up();     // Up arrow
+state.scroll_down();   // Down arrow
+state.page_up(18);     // PageUp
+state.page_down(18);   // PageDown
+state.scroll_to_top(); // Home
+state.scroll_to_bottom(); // End (re-enables following)
+
+// Get help items based on status
+let help = viewer.help_items();
+view.render_help(frame, help);
+```
+
+### LogStatus Values
+
+- `LogStatus::Idle` - Ready, not running
+- `LogStatus::Running` - In progress (yellow)
+- `LogStatus::Success` - Completed successfully (green)
+- `LogStatus::Failed` - Command failed (red)
 
 ## Theme Colors
 
