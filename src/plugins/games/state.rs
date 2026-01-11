@@ -1,6 +1,7 @@
 //! Games plugin state
 
 use super::breakout::BreakoutState;
+use super::clicker::ClickerState;
 use super::rogue::RogueState;
 use super::snake::SnakeState;
 use super::tetris::TetrisState;
@@ -14,6 +15,7 @@ pub enum GameType {
     Breakout,
     Rogue,
     Trek,
+    Clicker,
 }
 
 impl GameType {
@@ -24,6 +26,7 @@ impl GameType {
             GameType::Breakout,
             GameType::Rogue,
             GameType::Trek,
+            GameType::Clicker,
         ]
     }
 
@@ -34,6 +37,7 @@ impl GameType {
             GameType::Breakout => "Breakout",
             GameType::Rogue => "Rogue",
             GameType::Trek => "Star Trek",
+            GameType::Clicker => "Clicker",
         }
     }
 
@@ -44,6 +48,7 @@ impl GameType {
             GameType::Breakout => "Bounce the ball to break all the bricks",
             GameType::Rogue => "Explore the dungeon and defeat monsters",
             GameType::Trek => "Command the Enterprise, destroy Klingons",
+            GameType::Clicker => "Kill monsters, gain gold, buy upgrades",
         }
     }
 }
@@ -64,7 +69,8 @@ pub struct GamesState {
     pub selected_game: usize,
     pub current_game: Option<GameType>,
     pub score: u32,
-    pub high_scores: [u32; 5], // One for each game
+    pub high_scores: [u32; 6], // One for each game
+    pub menu_tick: u32,        // Animation tick for menu effects
 
     // Individual game states
     pub tetris: TetrisState,
@@ -72,6 +78,7 @@ pub struct GamesState {
     pub breakout: BreakoutState,
     pub rogue: RogueState,
     pub trek: TrekState,
+    pub clicker: ClickerState,
 }
 
 impl Default for GamesState {
@@ -87,13 +94,20 @@ impl GamesState {
             selected_game: 0,
             current_game: None,
             score: 0,
-            high_scores: [0; 5],
+            high_scores: [0; 6],
+            menu_tick: 0,
             tetris: TetrisState::new(),
             snake: SnakeState::new(),
             breakout: BreakoutState::new(),
             rogue: RogueState::new(),
             trek: TrekState::new(),
+            clicker: ClickerState::new(),
         }
+    }
+
+    /// Increment menu animation tick
+    pub fn tick_menu(&mut self) {
+        self.menu_tick = self.menu_tick.wrapping_add(1);
     }
 
     pub fn selected_game_type(&self) -> GameType {
@@ -123,6 +137,7 @@ impl GamesState {
             GameType::Breakout => self.breakout.reset(),
             GameType::Rogue => self.rogue.reset(),
             GameType::Trek => self.trek.reset(),
+            GameType::Clicker => self.clicker.reset(),
         }
     }
 
@@ -145,6 +160,7 @@ impl GamesState {
                 GameType::Breakout => 2,
                 GameType::Rogue => 3,
                 GameType::Trek => 4,
+                GameType::Clicker => 5,
             };
             if self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

@@ -1,8 +1,9 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, and Star Trek.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, and Clicker.
 
 pub mod breakout;
+pub mod clicker;
 mod modal;
 pub mod rogue;
 pub mod snake;
@@ -110,6 +111,37 @@ impl Plugin for GamesPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Enter => {
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                // Number keys 1-6 to directly select and start games
+                KeyCode::Char('1') => {
+                    self.state.selected_game = 0;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('2') => {
+                    self.state.selected_game = 1;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('3') => {
+                    self.state.selected_game = 2;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('4') => {
+                    self.state.selected_game = 3;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('5') => {
+                    self.state.selected_game = 4;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('6') => {
+                    self.state.selected_game = 5;
                     self.state.start_game();
                     KeyHandleResult::Handled
                 }
@@ -270,6 +302,131 @@ impl Plugin for GamesPlugin {
                     }
                     _ => KeyHandleResult::Handled,
                 },
+                Some(GameType::Clicker) => {
+                    use clicker::ClickerView;
+                    match self.state.clicker.view {
+                        ClickerView::Playing => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            // Hit / Attack
+                            KeyCode::Char('h') | KeyCode::Char(' ') => {
+                                self.state.clicker.hit();
+                                if self.state.clicker.game_over {
+                                    self.state.clicker.show_death_screen();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            // Eat food
+                            KeyCode::Char('e') => {
+                                self.state.clicker.eat();
+                                KeyHandleResult::Handled
+                            }
+                            // Quaff/Read/Zap - use selected inventory item
+                            KeyCode::Char('q') | KeyCode::Char('r') | KeyCode::Char('z') => {
+                                self.state.clicker.use_selected();
+                                if self.state.clicker.game_over {
+                                    self.state.clicker.show_death_screen();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            // Use inventory item by slot (1-8)
+                            KeyCode::Char(c @ '1'..='8') => {
+                                let slot = (c as usize) - ('1' as usize);
+                                self.state.clicker.use_item(slot);
+                                if self.state.clicker.game_over {
+                                    self.state.clicker.show_death_screen();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            // Descend stairs
+                            KeyCode::Char('>') => {
+                                self.state.clicker.descend_stairs();
+                                KeyHandleResult::Handled
+                            }
+                            // Open soul shop
+                            KeyCode::Char('s') | KeyCode::Tab => {
+                                self.state.clicker.open_soul_shop();
+                                KeyHandleResult::Handled
+                            }
+                            // Buy selected shop item
+                            KeyCode::Char('b') | KeyCode::Enter => {
+                                self.state.clicker.buy_selected();
+                                KeyHandleResult::Handled
+                            }
+                            // Shop navigation (up/down)
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                self.state.clicker.shop_prev();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                self.state.clicker.shop_next();
+                                KeyHandleResult::Handled
+                            }
+                            // Inventory navigation (left/right)
+                            KeyCode::Left => {
+                                self.state.clicker.inv_prev();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Right => {
+                                self.state.clicker.inv_next();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        ClickerView::Dead => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            // Start new run (prestige)
+                            KeyCode::Enter | KeyCode::Char('r') => {
+                                self.state.clicker.start_new_run();
+                                KeyHandleResult::Handled
+                            }
+                            // Open soul shop
+                            KeyCode::Char('s') | KeyCode::Tab => {
+                                self.state.clicker.open_soul_shop();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        ClickerView::SoulShop => match key.code {
+                            KeyCode::Esc => {
+                                // Return to playing or dead based on game_over state
+                                if self.state.clicker.game_over {
+                                    self.state.clicker.view = ClickerView::Dead;
+                                } else {
+                                    self.state.clicker.view = ClickerView::Playing;
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            // Buy selected soul upgrade
+                            KeyCode::Enter | KeyCode::Char('b') => {
+                                self.state.clicker.buy_soul_upgrade();
+                                KeyHandleResult::Handled
+                            }
+                            // Navigation
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                self.state.clicker.soul_shop_prev();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                self.state.clicker.soul_shop_next();
+                                KeyHandleResult::Handled
+                            }
+                            // Start new run from shop
+                            KeyCode::Char('r') => {
+                                if self.state.clicker.game_over {
+                                    self.state.clicker.start_new_run();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                    }
+                }
                 None => KeyHandleResult::Handled,
             },
             GamesView::Paused => match key.code {
@@ -299,6 +456,12 @@ impl Plugin for GamesPlugin {
     }
 
     fn tick(&mut self) {
+        // Always tick menu animation
+        if self.state.view == GamesView::Menu {
+            self.state.tick_menu();
+            return;
+        }
+
         if self.state.view != GamesView::Playing {
             return;
         }
@@ -341,6 +504,13 @@ impl Plugin for GamesPlugin {
                     self.state.game_over();
                 }
             }
+            Some(GameType::Clicker) => {
+                self.state.clicker.tick();
+                self.state.score = self.state.clicker.score();
+                if self.state.clicker.game_over {
+                    self.state.game_over();
+                }
+            }
             None => {}
         }
     }
@@ -361,6 +531,7 @@ impl Plugin for GamesPlugin {
             "  Breakout  - Bounce the ball to break all the bricks".to_string(),
             "  Rogue     - Explore dungeons and defeat monsters".to_string(),
             "  Star Trek - Command the Enterprise, destroy Klingons".to_string(),
+            "  Clicker   - Kill monsters, gain gold, buy upgrades".to_string(),
             "".to_string(),
             "Common Controls:".to_string(),
             "  P         Pause/Resume".to_string(),
@@ -371,6 +542,13 @@ impl Plugin for GamesPlugin {
             "Breakout: ←→ paddle, Space launch".to_string(),
             "Rogue: ←↑↓→/hjkl move, yubn diagonal, s search, > stairs".to_string(),
             "Star Trek: NSLPTHCD commands (see in-game help)".to_string(),
+            "Clicker: h/Space hit, e eat, b shop, s soul shop, > stairs".to_string(),
+            "".to_string(),
+            "Clicker Soul System:".to_string(),
+            "  Die to earn Souls based on progress".to_string(),
+            "  Press 's' to open Soul Shop for permanent upgrades".to_string(),
+            "  Gold scales exponentially by floor (×1.5 per level)".to_string(),
+            "  Upgrades persist across runs - true incremental!".to_string(),
         ]
     }
 
@@ -378,7 +556,7 @@ impl Plugin for GamesPlugin {
         Some(AppEntry {
             id: self.id().to_string(),
             name: "Games".to_string(),
-            description: "Retro games (Tetris, Snake, Breakout, Rogue, Trek)".to_string(),
+            description: "Retro games (Tetris, Snake, Breakout, Rogue, Trek, Clicker)".to_string(),
             category: PluginCategory::Games,
             key: 'G',
         })
