@@ -227,6 +227,28 @@ impl TetrisState {
         self.lock_piece();
     }
 
+    /// Get the ghost piece position (where the piece will land)
+    pub fn ghost_blocks(&self) -> Vec<(i32, i32)> {
+        if let Some(piece) = &self.current_piece {
+            let mut ghost = piece.clone();
+            // Drop until we hit something
+            loop {
+                let mut test = ghost.clone();
+                test.y += 1;
+                if self.is_valid_position(&test) {
+                    ghost.y += 1;
+                } else {
+                    break;
+                }
+            }
+            // Only return if ghost is different from current piece
+            if ghost.y != piece.y {
+                return ghost.blocks();
+            }
+        }
+        Vec::new()
+    }
+
     pub fn lock_piece(&mut self) {
         if let Some(piece) = self.current_piece.take() {
             for (x, y) in piece.blocks() {

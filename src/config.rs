@@ -21,6 +21,19 @@ pub struct Config {
     pub editor: EditorConfig,
     #[serde(default)]
     pub plugins: PluginsConfig,
+    #[serde(default)]
+    pub games: GamesConfig,
+}
+
+/// Games plugin configuration (leaderboards, etc.)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GamesConfig {
+    /// Game leaderboards (high scores with initials)
+    #[serde(default)]
+    pub leaderboards: crate::plugins::games::state::Leaderboards,
+    /// Clicker game full state (souls + current run)
+    #[serde(default)]
+    pub clicker_state: Option<crate::plugins::games::clicker::ClickerState>,
 }
 
 /// General settings

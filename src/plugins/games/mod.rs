@@ -12,6 +12,7 @@ pub mod tetris;
 pub mod trek;
 
 use crate::app::ThemeColors;
+use crate::config::Config;
 use crate::plugins::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
     PluginStatusInfo,
@@ -35,13 +36,35 @@ impl Default for GamesPlugin {
 
 impl GamesPlugin {
     pub fn new() -> Self {
-        Self {
+        let mut plugin = Self {
             state: GamesState::new(),
+        };
+        plugin.load_from_config();
+        plugin
+    }
+
+    /// Load persisted data from config file
+    pub fn load_from_config(&mut self) {
+        if let Ok(config) = Config::load() {
+            self.state.load_leaderboards(config.games.leaderboards);
+            if let Some(clicker_state) = config.games.clicker_state {
+                self.state.clicker = clicker_state;
+            }
+        }
+    }
+
+    /// Save persisted data to config file
+    pub fn save_to_config(&self) {
+        if let Ok(mut config) = Config::load() {
+            config.games.leaderboards = self.state.leaderboards.clone();
+            config.games.clicker_state = Some(self.state.clicker.clone());
+            let _ = config.save();
         }
     }
 
     pub fn open_modal(&mut self) {
-        self.state = GamesState::new();
+        // Reload config when opening modal (in case it changed externally)
+        self.load_from_config();
         self.state.view = GamesView::Menu;
     }
 }
@@ -143,6 +166,10 @@ impl Plugin for GamesPlugin {
                 KeyCode::Char('6') => {
                     self.state.selected_game = 5;
                     self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('l') | KeyCode::Char('L') => {
+                    self.state.show_leaderboard();
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -307,7 +334,14 @@ impl Plugin for GamesPlugin {
                     match self.state.clicker.view {
                         ClickerView::Playing => match key.code {
                             KeyCode::Esc => {
+                                self.save_to_config(); // Save before leaving
                                 self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            // Manual save
+                            KeyCode::Char('w') | KeyCode::Char('W') => {
+                                self.save_to_config();
+                                self.state.clicker.message = Some("Game saved!".to_string());
                                 KeyHandleResult::Handled
                             }
                             // Hit / Attack
@@ -315,6 +349,7 @@ impl Plugin for GamesPlugin {
                                 self.state.clicker.hit();
                                 if self.state.clicker.game_over {
                                     self.state.clicker.show_death_screen();
+                                    self.save_to_config(); // Auto-save on death
                                 }
                                 KeyHandleResult::Handled
                             }
@@ -328,6 +363,7 @@ impl Plugin for GamesPlugin {
                                 self.state.clicker.use_selected();
                                 if self.state.clicker.game_over {
                                     self.state.clicker.show_death_screen();
+                                    self.save_to_config(); // Auto-save on death
                                 }
                                 KeyHandleResult::Handled
                             }
@@ -337,6 +373,7 @@ impl Plugin for GamesPlugin {
                                 self.state.clicker.use_item(slot);
                                 if self.state.clicker.game_over {
                                     self.state.clicker.show_death_screen();
+                                    self.save_to_config(); // Auto-save on death
                                 }
                                 KeyHandleResult::Handled
                             }
@@ -377,12 +414,14 @@ impl Plugin for GamesPlugin {
                         },
                         ClickerView::Dead => match key.code {
                             KeyCode::Esc => {
+                                self.save_to_config(); // Save before leaving
                                 self.state.return_to_menu();
                                 KeyHandleResult::Handled
                             }
                             // Start new run (prestige)
                             KeyCode::Enter | KeyCode::Char('r') => {
                                 self.state.clicker.start_new_run();
+                                self.save_to_config(); // Save after prestige
                                 KeyHandleResult::Handled
                             }
                             // Open soul shop
@@ -405,6 +444,7 @@ impl Plugin for GamesPlugin {
                             // Buy selected soul upgrade
                             KeyCode::Enter | KeyCode::Char('b') => {
                                 self.state.clicker.buy_soul_upgrade();
+                                self.save_to_config(); // Save after soul purchase
                                 KeyHandleResult::Handled
                             }
                             // Navigation
@@ -442,12 +482,71 @@ impl Plugin for GamesPlugin {
             },
             GamesView::GameOver => match key.code {
                 KeyCode::Esc => {
+                    self.save_to_config(); // Save leaderboards before leaving
                     self.state.return_to_menu();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Enter => {
                     // Restart the same game
                     self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('l') | KeyCode::Char('L') => {
+                    self.state.show_leaderboard();
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            },
+            GamesView::EnteringInitials => match key.code {
+                KeyCode::Left => {
+                    self.state.initials_cursor_left();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Right => {
+                    self.state.initials_cursor_right();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Up => {
+                    self.state.initials_next_char();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.state.initials_prev_char();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter => {
+                    self.state.confirm_initials();
+                    self.save_to_config(); // Persist leaderboard
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => {
+                    self.state.cancel_initials();
+                    KeyHandleResult::Handled
+                }
+                // Allow typing letters directly
+                KeyCode::Char(c) if c.is_ascii_alphabetic() => {
+                    let c = c.to_ascii_uppercase();
+                    let mut chars: Vec<char> = self.state.initials_buffer.chars().collect();
+                    if self.state.initials_cursor < 3 && self.state.initials_cursor < chars.len() {
+                        chars[self.state.initials_cursor] = c;
+                        self.state.initials_buffer = chars.into_iter().collect();
+                        self.state.initials_cursor_right();
+                    }
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            },
+            GamesView::Leaderboard => match key.code {
+                KeyCode::Esc | KeyCode::Enter => {
+                    self.state.close_leaderboard();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Left | KeyCode::Char('h') => {
+                    self.state.prev_leaderboard_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Right | KeyCode::Char('l') => {
+                    self.state.next_leaderboard_game();
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -507,8 +606,13 @@ impl Plugin for GamesPlugin {
             Some(GameType::Clicker) => {
                 self.state.clicker.tick();
                 self.state.score = self.state.clicker.score();
-                if self.state.clicker.game_over {
-                    self.state.game_over();
+                // Clicker has its own death screen (ClickerView::Dead), so only transition
+                // to the generic GameOver screen if NOT in the Dead view
+                if self.state.clicker.game_over
+                    && self.state.clicker.view != clicker::ClickerView::Dead
+                    && self.state.clicker.view != clicker::ClickerView::SoulShop
+                {
+                    self.state.clicker.show_death_screen();
                 }
             }
             None => {}
@@ -542,13 +646,18 @@ impl Plugin for GamesPlugin {
             "Breakout: ←→ paddle, Space launch".to_string(),
             "Rogue: ←↑↓→/hjkl move, yubn diagonal, s search, > stairs".to_string(),
             "Star Trek: NSLPTHCD commands (see in-game help)".to_string(),
-            "Clicker: h/Space hit, e eat, b shop, s soul shop, > stairs".to_string(),
+            "Clicker: h/Space hit, e eat, b shop, s soul shop, > stairs, w save".to_string(),
             "".to_string(),
             "Clicker Soul System:".to_string(),
             "  Die to earn Souls based on progress".to_string(),
             "  Press 's' to open Soul Shop for permanent upgrades".to_string(),
             "  Gold scales exponentially by floor (×1.5 per level)".to_string(),
             "  Upgrades persist across runs - true incremental!".to_string(),
+            "".to_string(),
+            "Clicker Save System:".to_string(),
+            "  Press 'w' to manually save your game".to_string(),
+            "  Auto-saves on death, prestige, and soul upgrades".to_string(),
+            "  Your full game state persists between sessions!".to_string(),
         ]
     }
 

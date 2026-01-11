@@ -100,6 +100,8 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
+        GamesView::EnteringInitials => " High Score! ",
+        GamesView::Leaderboard => " Leaderboard ",
     };
 
     let view = FullScreenView::new(area, title, colors);
@@ -110,6 +112,8 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
         GamesView::Playing => draw_game(frame, &view, state, colors),
         GamesView::Paused => draw_paused(frame, &view, state, colors),
         GamesView::GameOver => draw_game_over(frame, &view, state, colors),
+        GamesView::EnteringInitials => draw_initials_entry(frame, &view, state, colors),
+        GamesView::Leaderboard => draw_leaderboard(frame, &view, state, colors),
     }
 }
 
@@ -273,7 +277,12 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         }
     }
 
-    let help = vec![("↑↓/1-6", "select"), ("Enter", "play"), ("Esc", "close")];
+    let help = vec![
+        ("↑↓/1-6", "select"),
+        ("Enter", "play"),
+        ("L", "scores"),
+        ("Esc", "close"),
+    ];
     view.render_help(frame, help);
 }
 
@@ -318,43 +327,60 @@ fn draw_tetris(
         ],
     );
 
-    // Draw board
-    for y in 0..tetris::BOARD_HEIGHT {
-        let mut row_content = String::new();
+    // Get ghost piece blocks for preview
+    let ghost_blocks = state.ghost_blocks();
 
-        // Left border
-        row_content.push('║');
+    // Draw board with ghost piece
+    for y in 0..tetris::BOARD_HEIGHT {
+        let mut row_spans: Vec<Span> = vec![
+            Span::raw(" ".repeat(board_start_x)),
+            Span::styled("║", Style::default().fg(colors.blue())),
+        ];
 
         for x in 0..tetris::BOARD_WIDTH {
-            let cell = if let Some(piece) = &state.current_piece {
-                let blocks = piece.blocks();
-                if blocks.contains(&(x as i32, y as i32)) {
-                    Some(piece.piece_type)
-                } else {
-                    state.board[y][x]
-                }
-            } else {
-                state.board[y][x]
-            };
+            let coord = (x as i32, y as i32);
 
-            if cell.is_some() {
-                row_content.push_str("██");
+            // Priority 1: Active piece (solid, bright)
+            if let Some(piece) = &state.current_piece {
+                if piece.blocks().contains(&coord) {
+                    row_spans.push(Span::styled("██", Style::default().fg(colors.cyan())));
+                    continue;
+                }
+            }
+
+            // Priority 2: Ghost piece (textured, dim)
+            if ghost_blocks.contains(&coord) {
+                row_spans.push(Span::styled(
+                    "░░",
+                    Style::default()
+                        .fg(colors.grey())
+                        .add_modifier(Modifier::DIM),
+                ));
+                continue;
+            }
+
+            // Priority 3: Placed blocks (solid)
+            if state.board[y][x].is_some() {
+                row_spans.push(Span::styled("▓▓", Style::default().fg(colors.fg())));
+                continue;
+            }
+
+            // Priority 4: Empty space (subtle checkerboard pattern)
+            if (x + y) % 2 == 0 {
+                row_spans.push(Span::styled(
+                    "· ",
+                    Style::default()
+                        .fg(colors.grey())
+                        .add_modifier(Modifier::DIM),
+                ));
             } else {
-                row_content.push_str("  ");
+                row_spans.push(Span::raw("  "));
             }
         }
 
-        // Right border
-        row_content.push('║');
+        row_spans.push(Span::styled("║", Style::default().fg(colors.blue())));
 
-        view.render_row(
-            frame,
-            1 + y as u16,
-            vec![
-                Span::raw(" ".repeat(board_start_x)),
-                Span::styled(row_content, Style::default().fg(colors.cyan())),
-            ],
-        );
+        view.render_row(frame, 1 + y as u16, row_spans);
     }
 
     // Bottom border
@@ -409,81 +435,92 @@ fn draw_tetris(
 }
 
 fn draw_snake(frame: &mut Frame, view: &FullScreenView, state: &SnakeState, colors: &ThemeColors) {
-    // Score
+    // Score with snake length
     view.render_row(
         frame,
         0,
-        vec![Span::styled(
-            format!("Score: {}", state.score),
-            Style::default().fg(colors.green()),
-        )],
+        vec![
+            Span::styled("Score: ", Style::default().fg(colors.grey())),
+            Span::styled(
+                format!("{}", state.score),
+                Style::default()
+                    .fg(colors.green())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("  Length: {}", state.body.len()),
+                Style::default().fg(colors.cyan()),
+            ),
+        ],
     );
 
-    // Draw top border
+    // Draw solid top border
+    let border_color = colors.cyan();
     view.render_row(
         frame,
         1,
         vec![Span::styled(
             format!("╔{}╗", "═".repeat(snake::BOARD_WIDTH)),
-            Style::default().fg(colors.cyan()),
+            Style::default().fg(border_color),
         )],
     );
 
-    // Draw board
+    // Draw board with enhanced visuals
     for y in 0..snake::BOARD_HEIGHT {
-        let mut row_content = String::new();
-        row_content.push('║');
+        let mut row_spans: Vec<Span> = vec![Span::styled("║", Style::default().fg(border_color))];
 
         for x in 0..snake::BOARD_WIDTH {
             let pos = Position::new(x as i32, y as i32);
 
             if state.is_head(pos) {
-                row_content.push('@');
+                // Head is solid and bold - show direction
+                let head_char = match state.direction {
+                    Direction::Up => "▲",
+                    Direction::Down => "▼",
+                    Direction::Left => "◄",
+                    Direction::Right => "►",
+                };
+                row_spans.push(Span::styled(
+                    head_char,
+                    Style::default()
+                        .fg(colors.green())
+                        .add_modifier(Modifier::BOLD),
+                ));
             } else if state.is_snake(pos) {
-                row_content.push('O');
+                // Body is textured
+                row_spans.push(Span::styled("▓", Style::default().fg(colors.green())));
             } else if pos == state.food {
-                row_content.push('*');
+                // Food pulses based on tick
+                let pulse = (state.tick_count / 5).is_multiple_of(2);
+                let food_char = if pulse { "●" } else { "○" };
+                row_spans.push(Span::styled(
+                    food_char,
+                    Style::default()
+                        .fg(colors.red())
+                        .add_modifier(Modifier::BOLD),
+                ));
             } else {
-                row_content.push(' ');
+                // Subtle floor texture
+                row_spans.push(Span::styled(
+                    "·",
+                    Style::default()
+                        .fg(colors.grey())
+                        .add_modifier(Modifier::DIM),
+                ));
             }
         }
 
-        row_content.push('║');
-
-        let style = Style::default().fg(colors.cyan());
-        let content_style = if state.game_over {
-            Style::default().fg(colors.red())
-        } else {
-            Style::default().fg(colors.green())
-        };
-
-        // Render border and content separately for colors
-        let border_left = "║";
-        let content: String = row_content
-            .chars()
-            .skip(1)
-            .take(snake::BOARD_WIDTH)
-            .collect();
-        let border_right = "║";
-
-        view.render_row(
-            frame,
-            2 + y as u16,
-            vec![
-                Span::styled(border_left, style),
-                Span::styled(content, content_style),
-                Span::styled(border_right, style),
-            ],
-        );
+        row_spans.push(Span::styled("║", Style::default().fg(border_color)));
+        view.render_row(frame, 2 + y as u16, row_spans);
     }
 
-    // Draw bottom border
+    // Draw solid bottom border
     view.render_row(
         frame,
         2 + snake::BOARD_HEIGHT as u16,
         vec![Span::styled(
             format!("╚{}╝", "═".repeat(snake::BOARD_WIDTH)),
-            Style::default().fg(colors.cyan()),
+            Style::default().fg(border_color),
         )],
     );
 
@@ -704,21 +741,33 @@ fn draw_rogue(frame: &mut Frame, view: &FullScreenView, state: &RogueState, colo
                 }
             }
 
-            // Draw tile
+            // Draw tile with enhanced atmosphere
             let tile = state.board[y][x];
             if is_visible {
-                let (ch, color) = match tile {
-                    rogue::Tile::Floor | rogue::Tile::Corridor => ('.', colors.grey()),
-                    rogue::Tile::Wall => ('#', colors.fg()),
-                    rogue::Tile::Door => ('+', colors.yellow()),
-                    rogue::Tile::StairsDown => ('%', colors.cyan()),
-                    rogue::Tile::StairsUp => ('<', colors.cyan()),
-                    rogue::Tile::Trap => ('^', colors.red()),
-                    rogue::Tile::HiddenTrap => ('.', colors.grey()), // Looks like floor
+                // Visible area - high contrast, atmospheric
+                let (ch, color, modifier) = match tile {
+                    rogue::Tile::Floor => ('·', colors.grey(), Modifier::empty()),
+                    rogue::Tile::Corridor => ('▒', colors.grey(), Modifier::DIM),
+                    rogue::Tile::Wall => ('█', colors.fg(), Modifier::empty()),
+                    rogue::Tile::Door => ('+', colors.yellow(), Modifier::BOLD),
+                    rogue::Tile::StairsDown => ('▓', colors.cyan(), Modifier::BOLD),
+                    rogue::Tile::StairsUp => ('◄', colors.cyan(), Modifier::BOLD),
+                    rogue::Tile::Trap => ('^', colors.red(), Modifier::BOLD),
+                    rogue::Tile::HiddenTrap => ('·', colors.grey(), Modifier::empty()),
                 };
-                row_spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
+                row_spans.push(Span::styled(
+                    ch.to_string(),
+                    Style::default().fg(color).add_modifier(modifier),
+                ));
             } else if is_explored {
-                let ch = tile.char();
+                // Explored but not visible - "memory" with dim shadows
+                let ch = match tile {
+                    rogue::Tile::Wall => '░', // Walls look like shadows in memory
+                    rogue::Tile::Door => '+',
+                    rogue::Tile::StairsDown => '▓',
+                    rogue::Tile::StairsUp => '◄',
+                    _ => ' ', // Floors fade to nothing
+                };
                 row_spans.push(Span::styled(
                     ch.to_string(),
                     Style::default()
@@ -726,6 +775,7 @@ fn draw_rogue(frame: &mut Frame, view: &FullScreenView, state: &RogueState, colo
                         .add_modifier(Modifier::DIM),
                 ));
             } else {
+                // True darkness
                 row_spans.push(Span::raw(" "));
             }
         }
@@ -733,14 +783,27 @@ fn draw_rogue(frame: &mut Frame, view: &FullScreenView, state: &RogueState, colo
         view.render_row(frame, 1 + y as u16, row_spans);
     }
 
-    // Message area
-    if let Some(ref msg) = state.message {
+    // Message area - show recent messages (up to 2 lines)
+    let msg_start_row = (1 + rogue::BOARD_HEIGHT) as u16;
+    let messages_to_show = state.messages.len().min(2);
+    for (i, msg) in state
+        .messages
+        .iter()
+        .rev()
+        .take(messages_to_show)
+        .rev()
+        .enumerate()
+    {
         view.render_row(
             frame,
-            (1 + rogue::BOARD_HEIGHT) as u16,
+            msg_start_row + i as u16,
             vec![Span::styled(
                 msg.clone(),
-                Style::default().fg(colors.yellow()),
+                Style::default().fg(if i == messages_to_show - 1 {
+                    colors.yellow() // Most recent message is bright
+                } else {
+                    colors.grey() // Older messages are dimmer
+                }),
             )],
         );
     }
@@ -1152,10 +1215,7 @@ fn draw_clicker_dead(
         vec![Span::styled(
             format!(
                 "║{:^50}║",
-                format!(
-                    "Total Souls: {}",
-                    state.souls.total_souls + state.souls.souls_earned_this_run
-                )
+                format!("Total Souls: {}", state.souls.total_souls)
             ),
             Style::default().fg(colors.cyan()),
         )],
@@ -1380,6 +1440,7 @@ fn draw_clicker_playing(
     let base_arm = state.armor + state.armor_equip.as_ref().map_or(0, |a| a.bonus);
     let arm_gear_bonus = total_arm - base_arm;
 
+    // First row: main stats
     view.render_row(
         frame,
         0,
@@ -1436,14 +1497,76 @@ fn draw_clicker_playing(
                     colors.fg()
                 }),
             ),
+        ],
+    );
+
+    // Second row: biome, floor, class, alchemy, souls, dust
+    let class_name = state.souls.selected_class.name();
+    let alchemy_tier = state.alchemy_tier();
+    let biome_name = state.biome.name();
+
+    view.render_row(
+        frame,
+        1,
+        vec![
             Span::styled(
-                format!(" Crit:{}%", state.crit_chance),
-                Style::default().fg(colors.yellow()),
+                format!("Floor:{}", state.dungeon_floor),
+                Style::default().fg(colors.cyan()),
             ),
+            Span::styled(
+                format!(" {}", biome_name),
+                Style::default()
+                    .fg(match state.biome.color_idx() {
+                        3 => colors.red(),
+                        4 => colors.green(),
+                        5 => colors.blue(),
+                        _ => colors.grey(),
+                    })
+                    .add_modifier(Modifier::DIM),
+            ),
+            if class_name != "Peasant" {
+                Span::styled(
+                    format!(" [{}]", class_name),
+                    Style::default().fg(colors.yellow()),
+                )
+            } else {
+                Span::styled("", Style::default())
+            },
+            if state.souls.alchemy_level > 0 {
+                Span::styled(
+                    format!(" Alch:{}", alchemy_tier.name()),
+                    Style::default().fg(colors.green()),
+                )
+            } else {
+                Span::styled("", Style::default())
+            },
             if state.souls.total_souls > 0 {
                 Span::styled(
                     format!(" Souls:{}", state.souls.total_souls),
                     Style::default().fg(colors.cyan()),
+                )
+            } else {
+                Span::styled("", Style::default())
+            },
+            if state.souls.dust > 0 {
+                Span::styled(
+                    format!(" Dust:{}", state.souls.dust),
+                    Style::default().fg(colors.blue()),
+                )
+            } else {
+                Span::styled("", Style::default())
+            },
+            // Monster Zoo event indicator
+            if state.zoo_event.active {
+                Span::styled(
+                    format!(
+                        " ZOO! {}left {:0.1}s",
+                        state.zoo_event.monsters_remaining,
+                        state.zoo_event.time_remaining as f32 / 20.0
+                    ),
+                    Style::default()
+                        .fg(colors.red())
+                        .add_modifier(Modifier::BOLD | Modifier::RAPID_BLINK),
                 )
             } else {
                 Span::styled("", Style::default())
@@ -1822,9 +1945,9 @@ fn draw_clicker_playing(
             Style::default().fg(colors.green()),
         ));
     }
-    if state.auto_heal {
+    if state.auto_eat {
         auto_spans.push(Span::styled(
-            " [AUTO-HEAL]",
+            format!(" [AUTO-EAT@{}%]", state.auto_eat_threshold),
             Style::default().fg(colors.cyan()),
         ));
     }
@@ -2053,6 +2176,395 @@ fn draw_game_over(
         )],
     );
 
-    let help = vec![("Enter", "play again"), ("Esc", "menu")];
+    let help = vec![
+        ("Enter", "play again"),
+        ("L", "leaderboard"),
+        ("Esc", "menu"),
+    ];
+    view.render_help(frame, help);
+}
+
+/// Draw the initials entry screen for high scores
+fn draw_initials_entry(
+    frame: &mut Frame,
+    view: &FullScreenView,
+    state: &GamesState,
+    colors: &ThemeColors,
+) {
+    let center_row = 6u16;
+    let title_color = colors.yellow();
+
+    // Celebratory header
+    view.render_row(
+        frame,
+        center_row - 2,
+        vec![Span::styled(
+            "╔═══════════════════════════════════════════╗",
+            Style::default().fg(title_color),
+        )],
+    );
+    view.render_row(
+        frame,
+        center_row - 1,
+        vec![Span::styled(
+            "║       ★  N E W   H I G H   S C O R E  ★       ║",
+            Style::default()
+                .fg(colors.green())
+                .add_modifier(Modifier::BOLD),
+        )],
+    );
+    view.render_row(
+        frame,
+        center_row,
+        vec![Span::styled(
+            "╠═══════════════════════════════════════════╣",
+            Style::default().fg(title_color),
+        )],
+    );
+
+    // Score display
+    view.render_row(
+        frame,
+        center_row + 1,
+        vec![Span::styled(
+            format!("║{:^43}║", format!("Score: {}", state.score)),
+            Style::default().fg(colors.cyan()),
+        )],
+    );
+
+    // Initials entry
+    view.render_row(
+        frame,
+        center_row + 3,
+        vec![Span::styled(
+            format!("║{:^43}║", "Enter your initials:"),
+            Style::default().fg(colors.fg()),
+        )],
+    );
+
+    // Draw the 3-character entry with cursor
+    let chars: Vec<char> = state.initials_buffer.chars().collect();
+    let mut initials_spans: Vec<Span> = vec![Span::styled(
+        "║                    ",
+        Style::default().fg(title_color),
+    )];
+
+    for (i, ch) in chars.iter().enumerate() {
+        let style = if i == state.initials_cursor {
+            Style::default()
+                .fg(colors.yellow())
+                .bg(colors.red())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+                .fg(colors.cyan())
+                .add_modifier(Modifier::BOLD)
+        };
+        initials_spans.push(Span::styled(format!(" {} ", ch), style));
+    }
+
+    initials_spans.push(Span::styled(
+        "                    ║",
+        Style::default().fg(title_color),
+    ));
+
+    view.render_row(frame, center_row + 5, initials_spans);
+
+    // Instructions
+    view.render_row(
+        frame,
+        center_row + 7,
+        vec![Span::styled(
+            format!("║{:^43}║", "←→ move   ↑↓ change letter"),
+            Style::default().fg(colors.grey()),
+        )],
+    );
+
+    view.render_row(
+        frame,
+        center_row + 8,
+        vec![Span::styled(
+            "╚═══════════════════════════════════════════╝",
+            Style::default().fg(title_color),
+        )],
+    );
+
+    let help = vec![("←→", "move"), ("↑↓", "change"), ("Enter", "confirm")];
+    view.render_help(frame, help);
+}
+
+/// Draw the leaderboard view
+fn draw_leaderboard(
+    frame: &mut Frame,
+    view: &FullScreenView,
+    state: &GamesState,
+    colors: &ThemeColors,
+) {
+    let game = state.leaderboard_game.unwrap_or(state.selected_game_type());
+    let leaderboard = state.leaderboards.get(game);
+    let title_color = colors.cyan();
+
+    // Game selector tabs at top
+    let games = GameType::all();
+    let mut tab_spans = Vec::new();
+    tab_spans.push(Span::raw("  "));
+    for g in games {
+        let is_selected = *g == game;
+        let style = if is_selected {
+            Style::default()
+                .fg(colors.yellow())
+                .bg(colors.blue())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.grey())
+        };
+        let name = match g {
+            GameType::Tetris => "TET",
+            GameType::Snake => "SNK",
+            GameType::Breakout => "BRK",
+            GameType::Rogue => "ROG",
+            GameType::Trek => "TRK",
+            GameType::Clicker => "CLK",
+        };
+        tab_spans.push(Span::styled(format!(" {} ", name), style));
+    }
+    view.render_row(frame, 0, tab_spans);
+
+    // Header
+    view.render_row(
+        frame,
+        1,
+        vec![Span::styled(
+            "╔═══════════════════════════════════════════════════╗",
+            Style::default().fg(title_color),
+        )],
+    );
+    view.render_row(
+        frame,
+        2,
+        vec![Span::styled(
+            format!("║{:^51}║", format!("{} Leaderboard", game.name())),
+            Style::default()
+                .fg(colors.yellow())
+                .add_modifier(Modifier::BOLD),
+        )],
+    );
+    view.render_row(
+        frame,
+        3,
+        vec![Span::styled(
+            "╠═══════════════════════════════════════════════════╣",
+            Style::default().fg(title_color),
+        )],
+    );
+
+    // Special view for Clicker - show stats instead of just leaderboard
+    if game == GameType::Clicker {
+        let souls = &state.clicker.souls;
+
+        // Stats header
+        view.render_row(
+            frame,
+            4,
+            vec![Span::styled(
+                "║                   SOUL STATISTICS                   ║",
+                Style::default().fg(colors.cyan()),
+            )],
+        );
+        view.render_row(
+            frame,
+            5,
+            vec![Span::styled(
+                "╠═══════════════════════════════════════════════════╣",
+                Style::default().fg(title_color),
+            )],
+        );
+
+        // Stats
+        let stats = [
+            ("Total Souls", format!("{}", souls.total_souls)),
+            ("Total Runs", format!("{}", souls.total_runs)),
+            ("Best Floor", format!("{}", souls.best_floor)),
+            (
+                "Monsters Killed",
+                format!("{}", souls.total_monsters_killed),
+            ),
+            ("Gold Earned", format!("{}", souls.total_gold_earned)),
+            ("Zoo Cleared", format!("{}", souls.total_zoo_cleared)),
+            ("Arcane Dust", format!("{}", souls.dust)),
+            ("Alchemy Level", format!("{}", souls.alchemy_level)),
+        ];
+
+        for (i, (label, value)) in stats.iter().enumerate() {
+            let row = 6 + i as u16;
+            let style = Style::default().fg(if i % 2 == 0 {
+                colors.fg()
+            } else {
+                colors.grey()
+            });
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("║  {:<20}  {:>24}  ║", label, value),
+                    style,
+                )],
+            );
+        }
+
+        // Heirloom info
+        if let Some(ref heirloom) = souls.heirloom {
+            view.render_row(
+                frame,
+                14,
+                vec![Span::styled(
+                    format!(
+                        "║  Heirloom: {:<36}  ║",
+                        format!(
+                            "{} (STR+{} CRIT+{}% LS+{}%)",
+                            heirloom.name,
+                            heirloom.str_bonus,
+                            heirloom.crit_bonus,
+                            heirloom.life_steal_bonus
+                        )
+                    ),
+                    Style::default()
+                        .fg(colors.yellow())
+                        .add_modifier(Modifier::BOLD),
+                )],
+            );
+        } else {
+            view.render_row(
+                frame,
+                14,
+                vec![Span::styled(
+                    "║  Heirloom: None                                   ║",
+                    Style::default().fg(colors.grey()),
+                )],
+            );
+        }
+
+        // Show top 3 scores at bottom
+        view.render_row(
+            frame,
+            15,
+            vec![Span::styled(
+                "╠═══════════════════════════════════════════════════╣",
+                Style::default().fg(title_color),
+            )],
+        );
+
+        let top3: String = leaderboard
+            .entries
+            .iter()
+            .take(3)
+            .enumerate()
+            .map(|(i, e)| {
+                let medal = match i {
+                    0 => "🥇",
+                    1 => "🥈",
+                    _ => "🥉",
+                };
+                format!("{}{} {}", medal, e.initials, e.score)
+            })
+            .collect::<Vec<_>>()
+            .join("  ");
+
+        view.render_row(
+            frame,
+            16,
+            vec![Span::styled(
+                format!("║  Top: {:<42}  ║", top3),
+                Style::default().fg(colors.green()),
+            )],
+        );
+    } else {
+        // Standard leaderboard for other games
+        // Column headers
+        view.render_row(
+            frame,
+            4,
+            vec![Span::styled(
+                "║  Rank   Initials              Score              ║",
+                Style::default().fg(colors.grey()),
+            )],
+        );
+        view.render_row(
+            frame,
+            5,
+            vec![Span::styled(
+                "║  ────   ────────              ─────              ║",
+                Style::default().fg(colors.grey()),
+            )],
+        );
+
+        // Entries
+        for i in 0..10 {
+            let row = 6 + i as u16;
+            if let Some(entry) = leaderboard.entries.get(i) {
+                let rank_str = format!("{}.", i + 1);
+                let medal = match i {
+                    0 => "🥇",
+                    1 => "🥈",
+                    2 => "🥉",
+                    _ => "  ",
+                };
+                let style = match i {
+                    0 => Style::default()
+                        .fg(colors.yellow())
+                        .add_modifier(Modifier::BOLD),
+                    1 => Style::default().fg(colors.fg()),
+                    2 => Style::default().fg(colors.cyan()),
+                    _ => Style::default().fg(colors.grey()),
+                };
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!(
+                            "║  {:>3} {}  {:<3}              {:>10}              ║",
+                            rank_str, medal, entry.initials, entry.score
+                        ),
+                        style,
+                    )],
+                );
+            } else {
+                view.render_row(
+                    frame,
+                    row,
+                    vec![Span::styled(
+                        format!(
+                            "║  {:>3}     ---              ---------              ║",
+                            format!("{}.", i + 1)
+                        ),
+                        Style::default()
+                            .fg(colors.grey())
+                            .add_modifier(Modifier::DIM),
+                    )],
+                );
+            }
+        }
+
+        view.render_row(
+            frame,
+            16,
+            vec![Span::styled(
+                "║                                                   ║",
+                Style::default().fg(title_color),
+            )],
+        );
+    }
+
+    // Footer
+    view.render_row(
+        frame,
+        17,
+        vec![Span::styled(
+            "╚═══════════════════════════════════════════════════╝",
+            Style::default().fg(title_color),
+        )],
+    );
+
+    let help = vec![("←→", "switch game"), ("Esc", "back")];
     view.render_help(frame, help);
 }

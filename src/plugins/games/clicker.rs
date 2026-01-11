@@ -4,6 +4,7 @@
 //! Fight monsters, gain gold and XP, level up, buy upgrades.
 
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 /// Enemy types with their display characters
 const ENEMIES: &[(&str, char, &str)] = &[
@@ -42,7 +43,7 @@ const SCENERY: &[(&str, char, &str)] = &[
 ];
 
 /// Scenery elements for the dungeon floor
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Scenery {
     pub char: char,
     pub color_idx: u8, // 0=grey, 1=yellow, 2=cyan, 3=red, 4=green
@@ -101,8 +102,455 @@ impl Scenery {
     }
 }
 
-/// Elite monster affixes (Diablo-style)
+// =============================================================================
+// BIOMES - Visual variety per floor range
+// =============================================================================
+
+/// Dungeon biomes change every 20 floors
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+pub enum Biome {
+    #[default]
+    Mines, // Floors 1-20: Basic dungeon
+    Swamp, // Floors 21-40: Murky wetlands
+    Crypt, // Floors 41-60: Undead themed
+    Halls, // Floors 61-80: Grand demon halls
+    Abyss, // Floors 81-100: The final depths
+}
+
+impl Biome {
+    pub fn from_floor(floor: i32) -> Self {
+        match floor {
+            1..=20 => Biome::Mines,
+            21..=40 => Biome::Swamp,
+            41..=60 => Biome::Crypt,
+            61..=80 => Biome::Halls,
+            _ => Biome::Abyss,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Biome::Mines => "The Mines",
+            Biome::Swamp => "The Swamp",
+            Biome::Crypt => "The Crypt",
+            Biome::Halls => "Demon Halls",
+            Biome::Abyss => "The Abyss",
+        }
+    }
+
+    pub fn floor_char(&self) -> char {
+        match self {
+            Biome::Mines => '.',
+            Biome::Swamp => ',',
+            Biome::Crypt => '_',
+            Biome::Halls => '+',
+            Biome::Abyss => '~',
+        }
+    }
+
+    pub fn wall_char(&self) -> char {
+        match self {
+            Biome::Mines => '#',
+            Biome::Swamp => 'T',
+            Biome::Crypt => '▓',
+            Biome::Halls => '║',
+            Biome::Abyss => '░',
+        }
+    }
+
+    /// Color index for biome: 0=grey, 1=yellow, 2=cyan, 3=red, 4=green, 5=blue
+    pub fn color_idx(&self) -> u8 {
+        match self {
+            Biome::Mines => 0, // Grey
+            Biome::Swamp => 4, // Green
+            Biome::Crypt => 0, // Grey
+            Biome::Halls => 3, // Red
+            Biome::Abyss => 5, // Blue
+        }
+    }
+}
+
+// =============================================================================
+// ASCENSION CLASSES - Soul-purchased starting bonuses
+// =============================================================================
+
+/// Ascension classes change playstyle
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+pub enum AscensionClass {
+    #[default]
+    Peasant, // Default, no bonuses
+    Rogue,         // +15% crit, +10% gold
+    Warrior,       // +5 STR, +5 ARM
+    Wizard,        // Scrolls 2x potency, -20% HP
+    Tourist,       // +50% gold, -30% damage
+    Archaeologist, // +25% item drops, starts with artifact
+}
+
+impl AscensionClass {
+    pub fn all() -> &'static [AscensionClass] {
+        &[
+            AscensionClass::Peasant,
+            AscensionClass::Rogue,
+            AscensionClass::Warrior,
+            AscensionClass::Wizard,
+            AscensionClass::Tourist,
+            AscensionClass::Archaeologist,
+        ]
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            AscensionClass::Peasant => "Peasant",
+            AscensionClass::Rogue => "Rogue",
+            AscensionClass::Warrior => "Warrior",
+            AscensionClass::Wizard => "Wizard",
+            AscensionClass::Tourist => "Tourist",
+            AscensionClass::Archaeologist => "Archaeologist",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            AscensionClass::Peasant => "No bonuses. The humble beginning.",
+            AscensionClass::Rogue => "+15% crit, +10% gold find",
+            AscensionClass::Warrior => "+5 STR, +5 ARM at start",
+            AscensionClass::Wizard => "Scrolls 2x potent, -20% HP",
+            AscensionClass::Tourist => "+50% gold, -30% damage",
+            AscensionClass::Archaeologist => "+25% drops, start with artifact",
+        }
+    }
+
+    pub fn unlock_cost(&self) -> i64 {
+        match self {
+            AscensionClass::Peasant => 0,
+            AscensionClass::Rogue => 50,
+            AscensionClass::Warrior => 100,
+            AscensionClass::Wizard => 200,
+            AscensionClass::Tourist => 150,
+            AscensionClass::Archaeologist => 500,
+        }
+    }
+}
+
+// =============================================================================
+// ALCHEMY MASTERY - Knowledge progression for potions
+// =============================================================================
+
+/// Alchemy mastery levels and bonuses
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AlchemyTier {
+    Novice,      // Lv 0-9: No bonus
+    Apprentice,  // Lv 10-24: +25% potion duration
+    Journeyman,  // Lv 25-49: +50% duration, auto-ID potions
+    Expert,      // Lv 50-74: +75% duration, refine bad potions
+    Master,      // Lv 75-99: +100% duration, potions never fail
+    Grandmaster, // Lv 100+: 2x effects, instant auto-quaff
+}
+
+impl AlchemyTier {
+    pub fn from_level(level: i32) -> Self {
+        match level {
+            0..=9 => AlchemyTier::Novice,
+            10..=24 => AlchemyTier::Apprentice,
+            25..=49 => AlchemyTier::Journeyman,
+            50..=74 => AlchemyTier::Expert,
+            75..=99 => AlchemyTier::Master,
+            _ => AlchemyTier::Grandmaster,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            AlchemyTier::Novice => "Novice",
+            AlchemyTier::Apprentice => "Apprentice",
+            AlchemyTier::Journeyman => "Journeyman",
+            AlchemyTier::Expert => "Expert",
+            AlchemyTier::Master => "Master",
+            AlchemyTier::Grandmaster => "Grandmaster",
+        }
+    }
+
+    /// Duration multiplier (percentage bonus)
+    pub fn duration_bonus(&self) -> i32 {
+        match self {
+            AlchemyTier::Novice => 0,
+            AlchemyTier::Apprentice => 25,
+            AlchemyTier::Journeyman => 50,
+            AlchemyTier::Expert => 75,
+            AlchemyTier::Master => 100,
+            AlchemyTier::Grandmaster => 100, // Same but 2x effect
+        }
+    }
+
+    /// Effect multiplier for Grandmaster
+    pub fn effect_multiplier(&self) -> i32 {
+        match self {
+            AlchemyTier::Grandmaster => 2,
+            _ => 1,
+        }
+    }
+}
+
+// =============================================================================
+// TRANSMUTATION - Convert items to Arcane Dust
+// =============================================================================
+
+/// Transmutation filter levels
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+pub enum TransmuteFilter {
+    #[default]
+    Off, // No auto-transmute
+    Common,   // Auto-transmute common items
+    Uncommon, // Auto-transmute uncommon and below
+    Rare,     // Auto-transmute rare and below
+    All,      // Transmute everything immediately
+}
+
+impl TransmuteFilter {
+    pub fn all() -> &'static [TransmuteFilter] {
+        &[
+            TransmuteFilter::Off,
+            TransmuteFilter::Common,
+            TransmuteFilter::Uncommon,
+            TransmuteFilter::Rare,
+            TransmuteFilter::All,
+        ]
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            TransmuteFilter::Off => "Off",
+            TransmuteFilter::Common => "Common",
+            TransmuteFilter::Uncommon => "Uncommon",
+            TransmuteFilter::Rare => "Rare",
+            TransmuteFilter::All => "All",
+        }
+    }
+}
+
+/// The Heirloom - a weapon that persists across runs
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Heirloom {
+    pub name: String,
+    pub enchant_level: i32, // +1, +2, etc.
+    pub str_bonus: i32,
+    pub crit_bonus: i32,
+    pub life_steal_bonus: i32,
+}
+
+impl Heirloom {
+    pub fn new() -> Self {
+        Self {
+            name: "Ancestral Blade".to_string(),
+            enchant_level: 0,
+            str_bonus: 1,
+            crit_bonus: 0,
+            life_steal_bonus: 0,
+        }
+    }
+
+    /// Cost to upgrade to next level
+    pub fn upgrade_cost(&self) -> i64 {
+        // Exponential scaling: 10 * 2^level
+        10 * (2_i64.pow(self.enchant_level as u32))
+    }
+
+    /// Apply enchantment (costs dust)
+    pub fn enchant(&mut self) {
+        self.enchant_level += 1;
+        // Every level: +1 STR
+        self.str_bonus += 1;
+        // Every 3 levels: +1% crit
+        if self.enchant_level % 3 == 0 {
+            self.crit_bonus += 1;
+        }
+        // Every 5 levels: +1% life steal
+        if self.enchant_level % 5 == 0 {
+            self.life_steal_bonus += 1;
+        }
+        // Update name
+        self.name = format!("Ancestral Blade +{}", self.enchant_level);
+    }
+}
+
+// =============================================================================
+// YENDOR SHARDS - End-game meta progression
+// =============================================================================
+
+/// Types of Yendor shards for the matrix
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum ShardType {
+    Gold,     // +10% gold
+    Power,    // +5% damage
+    Vitality, // +10 max HP
+    Speed,    // +5% attack speed
+    Fortune,  // +5% item drops
+    Vampiric, // +2% life steal
+}
+
+impl ShardType {
+    pub fn all() -> &'static [ShardType] {
+        &[
+            ShardType::Gold,
+            ShardType::Power,
+            ShardType::Vitality,
+            ShardType::Speed,
+            ShardType::Fortune,
+            ShardType::Vampiric,
+        ]
+    }
+
+    pub fn char(&self) -> char {
+        match self {
+            ShardType::Gold => '$',
+            ShardType::Power => '!',
+            ShardType::Vitality => '♥',
+            ShardType::Speed => '>',
+            ShardType::Fortune => '?',
+            ShardType::Vampiric => '%',
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            ShardType::Gold => "Greed",
+            ShardType::Power => "Power",
+            ShardType::Vitality => "Vitality",
+            ShardType::Speed => "Haste",
+            ShardType::Fortune => "Fortune",
+            ShardType::Vampiric => "Vampirism",
+        }
+    }
+
+    /// Get a random shard
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        let all = Self::all();
+        all[rng.gen_range(0..all.len())]
+    }
+}
+
+/// Yendor shard synergies when adjacent
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ShardSynergy {
+    Avarice,   // Gold + Gold: Enemies drop gold on hit
+    Bloodlust, // Power + Vampiric: Heal on kill
+    Fortress,  // Vitality + Vitality: +5 armor
+    Fury,      // Speed + Power: Crits deal 3x
+    Treasure,  // Fortune + Gold: Double item drops
+}
+
+impl ShardSynergy {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ShardSynergy::Avarice => "Avarice",
+            ShardSynergy::Bloodlust => "Bloodlust",
+            ShardSynergy::Fortress => "Fortress",
+            ShardSynergy::Fury => "Fury",
+            ShardSynergy::Treasure => "Treasure Hunter",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            ShardSynergy::Avarice => "Enemies drop gold on every hit",
+            ShardSynergy::Bloodlust => "Heal 5 HP on each kill",
+            ShardSynergy::Fortress => "+5 armor from shard power",
+            ShardSynergy::Fury => "Critical hits deal 3x damage",
+            ShardSynergy::Treasure => "Double item drop chance",
+        }
+    }
+}
+
+// =============================================================================
+// MONSTER ZOO - DPS check events
+// =============================================================================
+
+/// Monster Zoo event state
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ZooEvent {
+    pub active: bool,
+    pub monsters_remaining: i32,
+    pub time_remaining: u32, // Ticks
+    pub reward_pending: bool,
+}
+
+impl ZooEvent {
+    pub fn start() -> Self {
+        Self {
+            active: true,
+            monsters_remaining: 20, // Clear 20 monsters
+            time_remaining: 200,    // 10 seconds at 20 ticks/sec
+            reward_pending: false,
+        }
+    }
+
+    pub fn tick(&mut self) {
+        if self.active && self.time_remaining > 0 {
+            self.time_remaining -= 1;
+            if self.time_remaining == 0 && self.monsters_remaining > 0 {
+                // Failed the zoo
+                self.active = false;
+            }
+        }
+    }
+
+    pub fn monster_killed(&mut self) {
+        if self.active {
+            self.monsters_remaining -= 1;
+            if self.monsters_remaining <= 0 {
+                // Completed!
+                self.active = false;
+                self.reward_pending = true;
+            }
+        }
+    }
+}
+
+// =============================================================================
+// PARTICLE EFFECTS - Visual juice on crits
+// =============================================================================
+
+/// Particle effect for visual feedback
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Particle {
+    pub x: i32,
+    pub y: i32,
+    pub char: char,
+    pub color_idx: u8,
+    pub life: u8, // Frames remaining
+}
+
+impl Particle {
+    pub fn spawn_crit(x: i32, y: i32) -> Vec<Self> {
+        let mut rng = rand::thread_rng();
+        let chars = ['*', '^', '\'', '!', '+'];
+        let mut particles = Vec::new();
+
+        for _ in 0..5 {
+            particles.push(Self {
+                x: x + rng.gen_range(-2..=2),
+                y: y + rng.gen_range(-1..=1),
+                char: chars[rng.gen_range(0..chars.len())],
+                color_idx: if rng.gen_bool(0.5) { 1 } else { 3 }, // Yellow or red
+                life: rng.gen_range(2..5),
+            });
+        }
+        particles
+    }
+
+    pub fn tick(&mut self) -> bool {
+        if self.life > 0 {
+            self.life -= 1;
+            true // Still alive
+        } else {
+            false // Dead
+        }
+    }
+}
+
+/// Elite monster affixes (Diablo-style)
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum MonsterAffix {
     Fast,     // Attacks more frequently
     Deadly,   // Higher damage
@@ -124,7 +572,7 @@ impl MonsterAffix {
 }
 
 /// A monster in the dungeon
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Monster {
     pub name: String,
     pub char: char,
@@ -286,7 +734,7 @@ impl Monster {
 }
 
 /// Equipment that can drop from monsters
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Equipment {
     pub name: String,
     pub bonus: i32,
@@ -298,7 +746,7 @@ pub struct Equipment {
 // ============================================================================
 
 /// Potion types with their effects
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum PotionType {
     Healing,       // Restore 50% max HP
     Strength,      // +10 STR for 30 ticks
@@ -334,7 +782,7 @@ impl PotionType {
 }
 
 /// Scroll types with powerful one-time effects
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ScrollType {
     Destruction, // Deal 100 damage to current enemy
     Enchant,     // +3 to weapon or armor permanently
@@ -370,7 +818,7 @@ impl ScrollType {
 }
 
 /// Ring types with passive effects when equipped
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RingType {
     Protection,   // +5 ARM
     Strength,     // +5 STR
@@ -406,7 +854,7 @@ impl RingType {
 }
 
 /// Wand types with limited charges
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum WandType {
     Fire,      // 30 damage
     Lightning, // 50 damage
@@ -439,7 +887,7 @@ impl WandType {
 }
 
 /// An item in the inventory
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Item {
     Potion(PotionType),
     Scroll(ScrollType),
@@ -533,7 +981,7 @@ impl Item {
 }
 
 /// Active buff with remaining duration
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Buff {
     Strength(i32, u32), // bonus amount, ticks remaining
     Speed(u32),         // ticks remaining (2x attack speed)
@@ -559,21 +1007,31 @@ impl Buff {
 /// Soul upgrades - permanent bonuses across runs
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SoulUpgrade {
-    StartingStr,    // +1 starting STR per level
-    StartingArm,    // +1 starting ARM per level
-    StartingGold,   // +50 starting gold per level
-    AttackSpeed,    // +10% attack speed per level (permanent!)
-    CritDamage,     // +50% crit multiplier (2x → 2.5x → 3x...)
-    GoldMultiplier, // +25% gold from all sources
-    ItemDropRate,   // +3% item drop chance
-    StartingHp,     // +10 starting HP per level
-    FloorSkip,      // Start on floor 1 + level
+    StartingStr,        // +1 starting STR per level
+    StartingArm,        // +1 starting ARM per level
+    StartingGold,       // +50 starting gold per level
+    AttackSpeed,        // +10% attack speed per level (permanent!)
+    CritDamage,         // +50% crit multiplier (2x → 2.5x → 3x...)
+    GoldMultiplier,     // +25% gold from all sources
+    ItemDropRate,       // +3% item drop chance
+    StartingHp,         // +10 starting HP per level
+    FloorSkip,          // Start on floor 1 + level
+    AutoEatThreshold,   // +10% auto-eat HP threshold (50% → 60% → 70% → 80%)
+    StartWithAutoHit,   // Start runs with auto-attack unlocked
+    StartWithAutoEat,   // Start runs with auto-eat unlocked
+    StartWithAutoQuaff, // Start runs with auto-quaff unlocked
+    StartWithAutoEquip, // Start runs with auto-equip unlocked
 }
 
 impl SoulUpgrade {
     pub fn all() -> &'static [SoulUpgrade] {
         &[
             SoulUpgrade::AttackSpeed,
+            SoulUpgrade::AutoEatThreshold,
+            SoulUpgrade::StartWithAutoHit,
+            SoulUpgrade::StartWithAutoEat,
+            SoulUpgrade::StartWithAutoQuaff,
+            SoulUpgrade::StartWithAutoEquip,
             SoulUpgrade::StartingStr,
             SoulUpgrade::StartingArm,
             SoulUpgrade::StartingHp,
@@ -596,6 +1054,11 @@ impl SoulUpgrade {
             SoulUpgrade::ItemDropRate => "Soul Fortune",
             SoulUpgrade::StartingHp => "Soul Vitality",
             SoulUpgrade::FloorSkip => "Soul Warp",
+            SoulUpgrade::AutoEatThreshold => "Soul Gluttony",
+            SoulUpgrade::StartWithAutoHit => "Innate Fury",
+            SoulUpgrade::StartWithAutoEat => "Innate Hunger",
+            SoulUpgrade::StartWithAutoQuaff => "Innate Thirst",
+            SoulUpgrade::StartWithAutoEquip => "Innate Style",
         }
     }
 
@@ -610,6 +1073,11 @@ impl SoulUpgrade {
             SoulUpgrade::ItemDropRate => "+3% item drop chance",
             SoulUpgrade::StartingHp => "+10 starting HP",
             SoulUpgrade::FloorSkip => "Start 1 floor deeper",
+            SoulUpgrade::AutoEatThreshold => "+10% auto-eat threshold",
+            SoulUpgrade::StartWithAutoHit => "Start with Auto-Hit unlocked",
+            SoulUpgrade::StartWithAutoEat => "Start with Auto-Eat unlocked",
+            SoulUpgrade::StartWithAutoQuaff => "Start with Auto-Quaff unlocked",
+            SoulUpgrade::StartWithAutoEquip => "Start with Auto-Equip unlocked",
         }
     }
 
@@ -624,21 +1092,31 @@ impl SoulUpgrade {
             SoulUpgrade::ItemDropRate => 25,
             SoulUpgrade::StartingHp => 20,
             SoulUpgrade::FloorSkip => 100,
+            SoulUpgrade::AutoEatThreshold => 75,
+            SoulUpgrade::StartWithAutoHit => 150, // One-time unlocks are expensive
+            SoulUpgrade::StartWithAutoEat => 200,
+            SoulUpgrade::StartWithAutoQuaff => 250,
+            SoulUpgrade::StartWithAutoEquip => 300,
         }
     }
 
     pub fn max_level(&self) -> i32 {
         match self {
-            SoulUpgrade::AttackSpeed => 10, // Max +100% speed (2x)
-            SoulUpgrade::CritDamage => 8,   // Max 6x crit damage
-            SoulUpgrade::FloorSkip => 10,   // Max start on floor 11
-            _ => 99,                        // Effectively unlimited
+            SoulUpgrade::AttackSpeed => 10,     // Max +100% speed (2x)
+            SoulUpgrade::CritDamage => 8,       // Max 6x crit damage
+            SoulUpgrade::FloorSkip => 10,       // Max start on floor 11
+            SoulUpgrade::AutoEatThreshold => 3, // Max 80% (50+10+10+10)
+            SoulUpgrade::StartWithAutoHit => 1, // One-time purchase
+            SoulUpgrade::StartWithAutoEat => 1,
+            SoulUpgrade::StartWithAutoQuaff => 1,
+            SoulUpgrade::StartWithAutoEquip => 1,
+            _ => 99, // Effectively unlimited
         }
     }
 }
 
 /// Persistent soul data (survives across runs)
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SoulData {
     pub total_souls: i64,
     pub souls_earned_this_run: i64,
@@ -653,12 +1131,36 @@ pub struct SoulData {
     pub item_drop_rate: i32,  // Each level = +3% drop
     pub starting_hp: i32,
     pub floor_skip: i32,
+    pub auto_eat_threshold: i32, // Each level = +10% (0=50%, 1=60%, 2=70%, 3=80%)
+
+    // Start-with unlocks (boolean, 0 or 1)
+    pub start_with_auto_hit: i32,
+    pub start_with_auto_eat: i32,
+    pub start_with_auto_quaff: i32,
+    pub start_with_auto_equip: i32,
+
+    // === TRANSMUTATION SYSTEM ===
+    pub dust: i64,                  // Arcane Dust currency
+    pub heirloom: Option<Heirloom>, // Persistent weapon
+
+    // === ALCHEMY MASTERY ===
+    pub alchemy_xp: i64,
+    pub alchemy_level: i32,
+
+    // === ASCENSION CLASSES ===
+    pub selected_class: AscensionClass,
+    pub unlocked_classes: Vec<AscensionClass>,
+
+    // === YENDOR SHARDS ===
+    pub yendor_shards: i32,
+    pub shard_grid: [[Option<ShardType>; 3]; 3],
 
     // Stats for fun
     pub total_runs: i32,
     pub best_floor: i32,
     pub total_monsters_killed: i64,
     pub total_gold_earned: i64,
+    pub total_zoo_cleared: i32,
 }
 
 impl SoulData {
@@ -673,6 +1175,11 @@ impl SoulData {
             SoulUpgrade::ItemDropRate => self.item_drop_rate,
             SoulUpgrade::StartingHp => self.starting_hp,
             SoulUpgrade::FloorSkip => self.floor_skip,
+            SoulUpgrade::AutoEatThreshold => self.auto_eat_threshold,
+            SoulUpgrade::StartWithAutoHit => self.start_with_auto_hit,
+            SoulUpgrade::StartWithAutoEat => self.start_with_auto_eat,
+            SoulUpgrade::StartWithAutoQuaff => self.start_with_auto_quaff,
+            SoulUpgrade::StartWithAutoEquip => self.start_with_auto_equip,
         }
     }
 
@@ -708,6 +1215,11 @@ impl SoulData {
             SoulUpgrade::ItemDropRate => self.item_drop_rate += 1,
             SoulUpgrade::StartingHp => self.starting_hp += 1,
             SoulUpgrade::FloorSkip => self.floor_skip += 1,
+            SoulUpgrade::AutoEatThreshold => self.auto_eat_threshold += 1,
+            SoulUpgrade::StartWithAutoHit => self.start_with_auto_hit = 1,
+            SoulUpgrade::StartWithAutoEat => self.start_with_auto_eat = 1,
+            SoulUpgrade::StartWithAutoQuaff => self.start_with_auto_quaff = 1,
+            SoulUpgrade::StartWithAutoEquip => self.start_with_auto_equip = 1,
         }
         true
     }
@@ -743,7 +1255,7 @@ impl SoulData {
 }
 
 /// View state for clicker (playing, dead, soul shop)
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 pub enum ClickerView {
     #[default]
     Playing,
@@ -761,7 +1273,7 @@ pub enum ShopItem {
     CritChance,
     GoldMultiplier,
     LifeSteal,
-    AutoHeal,
+    AutoEat,
     AutoQuaff,
     AutoEquip,
 }
@@ -776,7 +1288,7 @@ impl ShopItem {
             ShopItem::GoldMultiplier,
             ShopItem::LifeSteal,
             ShopItem::AutoAttack,
-            ShopItem::AutoHeal,
+            ShopItem::AutoEat,
             ShopItem::AutoQuaff,
             ShopItem::AutoEquip,
         ]
@@ -791,7 +1303,7 @@ impl ShopItem {
             ShopItem::CritChance => "+5% Crit",
             ShopItem::GoldMultiplier => "+25% Gold",
             ShopItem::LifeSteal => "+5% Lifesteal",
-            ShopItem::AutoHeal => "Auto-Heal",
+            ShopItem::AutoEat => "Auto-Eat",
             ShopItem::AutoQuaff => "Auto-Quaff",
             ShopItem::AutoEquip => "Auto-Equip",
         }
@@ -806,7 +1318,7 @@ impl ShopItem {
             ShopItem::CritChance => "Chance for 2x damage",
             ShopItem::GoldMultiplier => "More gold per kill",
             ShopItem::LifeSteal => "Heal from damage dealt",
-            ShopItem::AutoHeal => "Eat food automatically",
+            ShopItem::AutoEat => "Eat food automatically",
             ShopItem::AutoQuaff => "Auto-use potions smartly",
             ShopItem::AutoEquip => "Auto-equip better gear",
         }
@@ -821,7 +1333,7 @@ impl ShopItem {
             ShopItem::CritChance => 40,
             ShopItem::GoldMultiplier => 60,
             ShopItem::LifeSteal => 50,
-            ShopItem::AutoHeal => 200,
+            ShopItem::AutoEat => 200,
             ShopItem::AutoQuaff => 250,
             ShopItem::AutoEquip => 300,
         }
@@ -832,7 +1344,7 @@ impl ShopItem {
 pub const INVENTORY_SIZE: usize = 8;
 
 /// Equipment slot types
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum EquipSlot {
     Weapon,
     Armor,
@@ -860,7 +1372,7 @@ impl EquipSlot {
 }
 
 /// Extended equipment with multiple stat bonuses
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Gear {
     pub name: String,
     pub slot: EquipSlot,
@@ -946,6 +1458,7 @@ impl Gear {
 }
 
 /// Main clicker game state
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClickerState {
     // View state
     pub view: ClickerView,
@@ -969,11 +1482,12 @@ pub struct ClickerState {
     // Upgrades
     pub auto_attack: bool,
     pub auto_attack_timer: u32,
-    pub auto_heal: bool,
-    pub auto_heal_timer: u32,
+    pub auto_eat: bool,
+    pub auto_eat_timer: u32,
     pub auto_quaff: bool, // Auto-use healing potions
     pub auto_quaff_timer: u32,
-    pub auto_equip: bool, // Auto-equip better gear
+    pub auto_equip: bool,        // Auto-equip better gear
+    pub auto_eat_threshold: i32, // HP% threshold for auto-eat (0=off, 20-80)
     pub crit_chance: i32,
     pub gold_multiplier: i32,
     pub life_steal: i32,
@@ -1020,6 +1534,20 @@ pub struct ClickerState {
 
     // Game state
     pub game_over: bool,
+
+    // === NEW SYSTEMS ===
+    // Biome (visual variety)
+    pub biome: Biome,
+
+    // Monster Zoo event
+    pub zoo_event: ZooEvent,
+    pub zoo_kill_counter: i32, // Triggers zoo every 100 kills
+
+    // Particle effects
+    pub particles: Vec<Particle>,
+
+    // Transmutation filter (auto-transmute setting)
+    pub transmute_filter: TransmuteFilter,
 }
 
 impl Default for ClickerState {
@@ -1082,11 +1610,12 @@ impl ClickerState {
             gold: starting_gold,
             auto_attack: false,
             auto_attack_timer: 0,
-            auto_heal: false,
-            auto_heal_timer: 0,
+            auto_eat: false,
+            auto_eat_timer: 0,
             auto_quaff: false,
             auto_quaff_timer: 0,
             auto_equip: false,
+            auto_eat_threshold: 0, // 0 = off, set to 50 when auto_eat purchased
             crit_chance: 5,
             gold_multiplier: 0,
             life_steal: 0,
@@ -1124,7 +1653,33 @@ impl ClickerState {
             last_crit: false,
             last_drop: None,
             game_over: false,
+            // New systems
+            biome: Biome::from_floor(starting_floor),
+            zoo_event: ZooEvent::default(),
+            zoo_kill_counter: 0,
+            particles: Vec::new(),
+            transmute_filter: TransmuteFilter::Off,
         };
+
+        // Apply ascension class bonuses
+        state.apply_class_bonuses();
+
+        // Apply start-with soul upgrades
+        if state.souls.start_with_auto_hit > 0 {
+            state.auto_attack = true;
+        }
+        if state.souls.start_with_auto_eat > 0 {
+            state.auto_eat = true;
+            // Set threshold based on soul upgrade level
+            state.auto_eat_threshold = 50 + state.souls.auto_eat_threshold * 10;
+        }
+        if state.souls.start_with_auto_quaff > 0 {
+            state.auto_quaff = true;
+        }
+        if state.souls.start_with_auto_equip > 0 {
+            state.auto_equip = true;
+        }
+
         state.spawn_all_monsters(false);
         state
     }
@@ -1135,30 +1690,25 @@ impl ClickerState {
         *self = Self::new_with_souls(souls);
     }
 
-    /// Reset with prestige - calculate souls earned and start fresh
+    /// Reset with prestige - start fresh with current soul data
+    /// Note: Souls are added in show_death_screen(), so we don't add them here
     pub fn prestige(&mut self) {
-        // Calculate souls earned this run
-        let earned = self.souls.calculate_souls(
-            self.dungeon_floor,
-            self.monsters_killed,
-            self.total_gold_earned,
-            self.bosses_killed,
-        );
-        self.souls.souls_earned_this_run = earned;
-        self.souls.total_souls += earned;
-        self.souls.total_runs += 1;
+        // Track best floor and lifetime stats
         if self.dungeon_floor > self.souls.best_floor {
             self.souls.best_floor = self.dungeon_floor;
         }
         self.souls.total_monsters_killed += self.monsters_killed as i64;
         self.souls.total_gold_earned += self.total_gold_earned;
 
+        // Clear souls earned this run (they've been claimed)
+        self.souls.souls_earned_this_run = 0;
+
         // Reset with updated soul data
         let souls = self.souls.clone();
         *self = Self::new_with_souls(souls);
     }
 
-    /// Total strength including all equipment and rings
+    /// Total strength including all equipment, rings, heirloom, and shards
     pub fn total_strength(&self) -> i32 {
         let base = self.strength + self.weapon.as_ref().map_or(0, |w| w.bonus);
         let gear_bonus: i32 = [
@@ -1187,10 +1737,12 @@ impl ClickerState {
                 _ => None,
             })
             .sum();
-        base + gear_bonus + ring_bonus + buff_bonus
+        let heirloom_bonus = self.heirloom_str_bonus();
+        let (_, shard_damage, _, _, _, _) = self.shard_bonuses();
+        base + gear_bonus + ring_bonus + buff_bonus + heirloom_bonus + shard_damage
     }
 
-    /// Total armor including all equipment and rings
+    /// Total armor including all equipment, rings, and shard synergies
     pub fn total_armor(&self) -> i32 {
         let base = self.armor + self.armor_equip.as_ref().map_or(0, |a| a.bonus);
         let gear_bonus: i32 = [
@@ -1211,10 +1763,11 @@ impl ClickerState {
                 _ => None,
             })
             .sum();
-        base + gear_bonus + ring_bonus
+        let shard_bonus = self.shard_armor_bonus();
+        base + gear_bonus + ring_bonus + shard_bonus
     }
 
-    /// Total crit chance including equipment
+    /// Total crit chance including equipment and heirloom
     pub fn total_crit_chance(&self) -> i32 {
         let base = self.crit_chance;
         let gear_bonus: i32 = [
@@ -1227,7 +1780,8 @@ impl ClickerState {
         ]
         .iter()
         .sum();
-        base + gear_bonus
+        let heirloom_bonus = self.heirloom_crit_bonus();
+        base + gear_bonus + heirloom_bonus
     }
 
     /// Total speed bonus from equipment (percentage)
@@ -1258,7 +1812,7 @@ impl ClickerState {
         .sum()
     }
 
-    /// Total gold multiplier including rings
+    /// Total gold multiplier including rings and shards
     pub fn total_gold_multiplier(&self) -> i32 {
         let base = self.gold_multiplier;
         let ring_bonus: i32 = self
@@ -1279,10 +1833,11 @@ impl ClickerState {
                 }
             })
             .sum();
-        base + ring_bonus + buff_bonus
+        let (shard_gold, _, _, _, _, _) = self.shard_bonuses();
+        base + ring_bonus + buff_bonus + shard_gold
     }
 
-    /// Total life steal including rings
+    /// Total life steal including rings, heirloom, and shards
     pub fn total_life_steal(&self) -> i32 {
         let base = self.life_steal;
         let ring_bonus: i32 = self
@@ -1293,7 +1848,9 @@ impl ClickerState {
                 _ => None,
             })
             .sum();
-        base + ring_bonus
+        let heirloom_bonus = self.heirloom_life_steal_bonus();
+        let (_, _, _, _, _, shard_lifesteal) = self.shard_bonuses();
+        base + ring_bonus + heirloom_bonus + shard_lifesteal
     }
 
     /// Check if speed buff is active (2x attack speed)
@@ -1537,6 +2094,15 @@ impl ClickerState {
                     }
                 }
                 self.inventory.remove(slot);
+                // Gain alchemy XP for using potion
+                let xp_value = match potion {
+                    PotionType::Healing => 5,
+                    PotionType::Strength => 8,
+                    PotionType::Speed => 8,
+                    PotionType::GiantStrength => 12,
+                    PotionType::Poison => 10,
+                };
+                self.gain_alchemy_xp(xp_value);
                 true
             }
             Item::Scroll(scroll) => {
@@ -1737,21 +2303,42 @@ impl ClickerState {
             return;
         }
 
+        let old_biome = self.biome;
         self.dungeon_floor += 1;
         self.floor_kills = 0;
         self.stairs_available = false;
         self.current_monster = None;
 
+        // Update biome based on floor
+        self.update_biome();
+        let new_biome = self.biome;
+
         // Check for floor boss on milestone floors (10, 20, 30...)
         if self.dungeon_floor % 10 == 0 {
             self.current_monster = Some(Monster::spawn_floor_boss(self.dungeon_floor));
-            self.message = Some(format!(
-                "⚔ FLOOR {} BOSS! ⚔ A powerful enemy blocks your path!",
-                self.dungeon_floor
-            ));
+            if old_biome != new_biome {
+                self.message = Some(format!(
+                    "⚔ FLOOR {} BOSS in {}! ⚔ A powerful enemy blocks your path!",
+                    self.dungeon_floor,
+                    new_biome.name()
+                ));
+            } else {
+                self.message = Some(format!(
+                    "⚔ FLOOR {} BOSS! ⚔ A powerful enemy blocks your path!",
+                    self.dungeon_floor
+                ));
+            }
         } else {
             self.spawn_monster(false);
-            self.message = Some(format!("You descend to level {}.", self.dungeon_floor));
+            if old_biome != new_biome {
+                self.message = Some(format!(
+                    "You enter {}! Floor {}.",
+                    new_biome.name(),
+                    self.dungeon_floor
+                ));
+            } else {
+                self.message = Some(format!("You descend to floor {}.", self.dungeon_floor));
+            }
         }
     }
 
@@ -1824,8 +2411,8 @@ impl ClickerState {
                     base
                 }
             }
-            ShopItem::AutoHeal => {
-                if self.auto_heal {
+            ShopItem::AutoEat => {
+                if self.auto_eat {
                     0
                 } else {
                     base
@@ -1855,7 +2442,7 @@ impl ClickerState {
     pub fn can_afford(&self, item: ShopItem) -> bool {
         match item {
             ShopItem::AutoAttack if self.auto_attack => false,
-            ShopItem::AutoHeal if self.auto_heal => false,
+            ShopItem::AutoEat if self.auto_eat => false,
             ShopItem::AutoQuaff if self.auto_quaff => false,
             ShopItem::AutoEquip if self.auto_equip => false,
             ShopItem::CritChance if self.crit_chance >= 50 => false, // Max 50%
@@ -1869,7 +2456,7 @@ impl ClickerState {
     pub fn is_maxed(&self, item: ShopItem) -> bool {
         match item {
             ShopItem::AutoAttack => self.auto_attack,
-            ShopItem::AutoHeal => self.auto_heal,
+            ShopItem::AutoEat => self.auto_eat,
             ShopItem::AutoQuaff => self.auto_quaff,
             ShopItem::AutoEquip => self.auto_equip,
             ShopItem::CritChance => self.crit_chance >= 50,
@@ -1905,9 +2492,14 @@ impl ClickerState {
                 self.auto_attack = true;
                 self.message = Some("Auto-attack enabled!".to_string());
             }
-            ShopItem::AutoHeal => {
-                self.auto_heal = true;
-                self.message = Some("Auto-heal enabled!".to_string());
+            ShopItem::AutoEat => {
+                self.auto_eat = true;
+                // Set threshold based on soul upgrade level (50% base + 10% per level)
+                self.auto_eat_threshold = 50 + self.souls.auto_eat_threshold * 10;
+                self.message = Some(format!(
+                    "Auto-eat enabled at {}% HP!",
+                    self.auto_eat_threshold
+                ));
             }
             ShopItem::AutoQuaff => {
                 self.auto_quaff = true;
@@ -1946,11 +2538,16 @@ impl ClickerState {
         // Get values before borrowing monster
         let total_str = self.total_strength();
         let total_arm = self.total_armor();
-        let crit_chance = self.crit_chance;
+        let crit_chance = self.total_crit_chance();
         let life_steal = self.total_life_steal();
         let gold_mult = self.total_gold_multiplier();
         let has_ice = self.has_ice_slow();
-        let crit_mult = self.crit_damage_multiplier();
+        let has_fury = self.has_fury_synergy();
+        let crit_mult = if has_fury {
+            3.0 // Fury synergy: 3x crit damage
+        } else {
+            self.crit_damage_multiplier()
+        };
 
         if let Some(ref mut monster) = self.current_monster {
             // Calculate player damage
@@ -2012,6 +2609,9 @@ impl ClickerState {
                     self.bosses_killed += 1;
                 }
 
+                // Track zoo kills
+                self.zoo_monster_killed();
+
                 // Decrement gold rush kills if active
                 for buff in &mut self.buffs {
                     if let Buff::GoldRush(ref mut kills) = buff {
@@ -2069,6 +2669,11 @@ impl ClickerState {
                         .push(Monster::spawn(self.dungeon_floor, false));
                 }
             }
+        }
+
+        // Spawn crit particles if we had a crit
+        if self.last_crit {
+            self.spawn_crit_particles(40, 10);
         }
 
         // Check for death
@@ -2220,12 +2825,15 @@ impl ClickerState {
             }
         }
 
-        // Auto-heal when HP is low
-        if self.auto_heal && self.hp < self.max_hp / 2 && self.food > 0 {
-            self.auto_heal_timer += 1;
-            if self.auto_heal_timer >= 40 {
-                self.auto_heal_timer = 0;
-                self.eat();
+        // Auto-eat when HP is below threshold
+        if self.auto_eat && self.auto_eat_threshold > 0 && self.food > 0 {
+            let threshold_hp = self.max_hp * self.auto_eat_threshold / 100;
+            if self.hp < threshold_hp {
+                self.auto_eat_timer += 1;
+                if self.auto_eat_timer >= 40 {
+                    self.auto_eat_timer = 0;
+                    self.eat();
+                }
             }
         }
 
@@ -2315,6 +2923,15 @@ impl ClickerState {
                 }
             }
         }
+
+        // === NEW SYSTEMS ===
+
+        // Monster Zoo event processing
+        self.tick_zoo();
+        self.check_zoo_trigger();
+
+        // Particle effects
+        self.tick_particles();
     }
 
     /// Get current score (gold + xp + level bonus)
@@ -2392,6 +3009,8 @@ impl ClickerState {
             self.bosses_killed,
         );
         self.souls.souls_earned_this_run = earned;
+        self.souls.total_souls += earned; // Add souls to total
+        self.souls.total_runs += 1;
         self.view = ClickerView::Dead;
     }
 
@@ -2405,5 +3024,378 @@ impl ClickerState {
     /// Get effective crit damage multiplier (from soul upgrades)
     pub fn crit_damage_multiplier(&self) -> f32 {
         self.souls.crit_damage_multiplier()
+    }
+
+    // ========================================================================
+    // TRANSMUTATION SYSTEM
+    // ========================================================================
+
+    /// Get dust value of an item
+    pub fn item_dust_value(item: &Item) -> i64 {
+        match item {
+            // Potions
+            Item::Potion(PotionType::Healing) => 1,
+            Item::Potion(PotionType::Strength) => 2,
+            Item::Potion(PotionType::Speed) => 2,
+            Item::Potion(PotionType::Poison) => 3,
+            Item::Potion(PotionType::GiantStrength) => 5,
+            // Scrolls
+            Item::Scroll(ScrollType::Teleport) => 4,
+            Item::Scroll(ScrollType::Destruction) => 3,
+            Item::Scroll(ScrollType::Enchant) => 8,
+            Item::Scroll(ScrollType::MagicMap) => 2,
+            Item::Scroll(ScrollType::GoldRush) => 6,
+            // Wands (value increases with charges)
+            Item::Wand(WandType::Fire, charges) => 3 + (*charges as i64),
+            Item::Wand(WandType::Ice, charges) => 3 + (*charges as i64),
+            Item::Wand(WandType::Lightning, charges) => 4 + (*charges as i64),
+            Item::Wand(WandType::Polymorph, charges) => 5 + (*charges as i64),
+            // Rings are valuable
+            Item::Ring(_) => 10,
+        }
+    }
+
+    /// Transmute an inventory item at index to dust
+    pub fn transmute_item(&mut self, idx: usize) -> Option<i64> {
+        if idx >= self.inventory.len() {
+            return None;
+        }
+        let item = self.inventory.remove(idx);
+        let dust = Self::item_dust_value(&item);
+        self.souls.dust += dust;
+        Some(dust)
+    }
+
+    /// Upgrade the heirloom (requires dust)
+    pub fn upgrade_heirloom(&mut self) -> bool {
+        // Create heirloom if not exists
+        if self.souls.heirloom.is_none() {
+            self.souls.heirloom = Some(Heirloom::new());
+            return true;
+        }
+
+        if let Some(ref mut heirloom) = self.souls.heirloom {
+            let cost = heirloom.upgrade_cost();
+            if self.souls.dust >= cost {
+                self.souls.dust -= cost;
+                heirloom.enchant();
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Get heirloom strength bonus
+    pub fn heirloom_str_bonus(&self) -> i32 {
+        self.souls.heirloom.as_ref().map_or(0, |h| h.str_bonus)
+    }
+
+    /// Get heirloom crit bonus
+    pub fn heirloom_crit_bonus(&self) -> i32 {
+        self.souls.heirloom.as_ref().map_or(0, |h| h.crit_bonus)
+    }
+
+    /// Get heirloom life steal bonus
+    pub fn heirloom_life_steal_bonus(&self) -> i32 {
+        self.souls
+            .heirloom
+            .as_ref()
+            .map_or(0, |h| h.life_steal_bonus)
+    }
+
+    // ========================================================================
+    // ALCHEMY MASTERY SYSTEM
+    // ========================================================================
+
+    /// Gain alchemy XP when using a potion
+    pub fn gain_alchemy_xp(&mut self, base_xp: i64) {
+        self.souls.alchemy_xp += base_xp;
+        // Level up every 100 XP
+        let new_level = (self.souls.alchemy_xp / 100) as i32;
+        if new_level > self.souls.alchemy_level {
+            self.souls.alchemy_level = new_level;
+            self.message = Some(format!("Alchemy Mastery increased to level {}!", new_level));
+        }
+    }
+
+    /// Get current alchemy tier
+    pub fn alchemy_tier(&self) -> AlchemyTier {
+        AlchemyTier::from_level(self.souls.alchemy_level)
+    }
+
+    /// Get buff duration multiplier from alchemy mastery
+    pub fn alchemy_duration_multiplier(&self) -> f32 {
+        let tier = self.alchemy_tier();
+        1.0 + (tier.duration_bonus() as f32 / 100.0)
+    }
+
+    /// Get effect multiplier from alchemy mastery (Grandmaster gets 2x)
+    pub fn alchemy_effect_multiplier(&self) -> i32 {
+        self.alchemy_tier().effect_multiplier()
+    }
+
+    // ========================================================================
+    // ASCENSION CLASSES SYSTEM
+    // ========================================================================
+
+    /// Get the selected class bonuses description
+    pub fn class_bonus_description(&self) -> &'static str {
+        self.souls.selected_class.description()
+    }
+
+    /// Apply class-specific starting bonuses (called in new_with_souls)
+    fn apply_class_bonuses(&mut self) {
+        match self.souls.selected_class {
+            AscensionClass::Peasant => {}
+            AscensionClass::Rogue => {
+                self.crit_chance += 15;
+                self.gold_multiplier += 10;
+            }
+            AscensionClass::Warrior => {
+                self.strength += 5;
+                self.armor += 5;
+            }
+            AscensionClass::Wizard => {
+                self.max_hp = (self.max_hp * 80) / 100;
+                self.hp = self.max_hp;
+            }
+            AscensionClass::Tourist => {
+                self.gold_multiplier += 50;
+            }
+            AscensionClass::Archaeologist => {
+                // Handled in drop logic
+            }
+        }
+    }
+
+    /// Unlock an ascension class (costs souls)
+    pub fn unlock_class(&mut self, class: AscensionClass) -> bool {
+        if self.souls.unlocked_classes.contains(&class) {
+            return false;
+        }
+        let cost = class.unlock_cost();
+        if self.souls.total_souls >= cost {
+            self.souls.total_souls -= cost;
+            self.souls.unlocked_classes.push(class);
+            return true;
+        }
+        false
+    }
+
+    /// Select an ascension class for next run
+    pub fn select_class(&mut self, class: AscensionClass) -> bool {
+        if class == AscensionClass::Peasant || self.souls.unlocked_classes.contains(&class) {
+            self.souls.selected_class = class;
+            return true;
+        }
+        false
+    }
+
+    // ========================================================================
+    // BIOME SYSTEM
+    // ========================================================================
+
+    /// Update biome based on current floor
+    pub fn update_biome(&mut self) {
+        self.biome = Biome::from_floor(self.dungeon_floor);
+    }
+
+    /// Get biome-themed scenery
+    pub fn biome_scenery(&self) -> Scenery {
+        Scenery {
+            char: self.biome.floor_char(),
+            color_idx: self.biome.color_idx(),
+        }
+    }
+
+    // ========================================================================
+    // MONSTER ZOO SYSTEM
+    // ========================================================================
+
+    /// Check if zoo should trigger (every 100 kills)
+    pub fn check_zoo_trigger(&mut self) {
+        if !self.zoo_event.active && self.zoo_kill_counter >= 100 && self.dungeon_floor >= 5 {
+            self.zoo_kill_counter = 0;
+            self.zoo_event = ZooEvent::start();
+            self.message =
+                Some("*** MONSTER ZOO! Clear 20 monsters in 10 seconds! ***".to_string());
+        }
+    }
+
+    /// Process zoo event tick
+    pub fn tick_zoo(&mut self) {
+        if self.zoo_event.active {
+            self.zoo_event.tick();
+            if !self.zoo_event.active && !self.zoo_event.reward_pending {
+                self.message = Some("Monster Zoo failed! The monsters escaped.".to_string());
+            }
+        }
+
+        // Claim reward if pending
+        if self.zoo_event.reward_pending {
+            self.zoo_event.reward_pending = false;
+            self.souls.total_zoo_cleared += 1;
+            // Bonus gold and XP
+            let bonus_gold = (self.dungeon_floor as i64) * 100;
+            let bonus_xp = self.dungeon_floor * 50;
+            self.gold += bonus_gold;
+            self.xp += bonus_xp;
+            self.message = Some(format!(
+                "Monster Zoo cleared! +{} gold, +{} XP!",
+                bonus_gold, bonus_xp
+            ));
+        }
+    }
+
+    /// Called when a monster is killed during zoo
+    pub fn zoo_monster_killed(&mut self) {
+        if self.zoo_event.active {
+            self.zoo_event.monster_killed();
+        }
+        self.zoo_kill_counter += 1;
+    }
+
+    // ========================================================================
+    // PARTICLE EFFECTS SYSTEM
+    // ========================================================================
+
+    /// Spawn crit particles at a position
+    pub fn spawn_crit_particles(&mut self, x: i32, y: i32) {
+        let new_particles = Particle::spawn_crit(x, y);
+        self.particles.extend(new_particles);
+    }
+
+    /// Tick all particles (remove dead ones)
+    pub fn tick_particles(&mut self) {
+        self.particles.retain_mut(|p| p.tick());
+    }
+
+    // ========================================================================
+    // YENDOR SHARDS SYSTEM
+    // ========================================================================
+
+    /// Grant a Yendor shard (earned from floor 100+ bosses)
+    pub fn grant_yendor_shard(&mut self) {
+        self.souls.yendor_shards += 1;
+    }
+
+    /// Place a shard in the grid
+    pub fn place_shard(&mut self, row: usize, col: usize, shard: ShardType) -> bool {
+        if row >= 3 || col >= 3 {
+            return false;
+        }
+        if self.souls.shard_grid[row][col].is_some() {
+            return false;
+        }
+        if self.souls.yendor_shards <= 0 {
+            return false;
+        }
+        self.souls.yendor_shards -= 1;
+        self.souls.shard_grid[row][col] = Some(shard);
+        true
+    }
+
+    /// Get active synergies from the shard grid
+    pub fn active_synergies(&self) -> Vec<ShardSynergy> {
+        let mut synergies = Vec::new();
+        let grid = &self.souls.shard_grid;
+
+        // Check horizontal and vertical adjacencies
+        for row in 0..3 {
+            for col in 0..3 {
+                if let Some(shard) = grid[row][col] {
+                    // Check right neighbor
+                    if col + 1 < 3 {
+                        if let Some(right) = grid[row][col + 1] {
+                            if let Some(syn) = Self::check_synergy(shard, right) {
+                                if !synergies.contains(&syn) {
+                                    synergies.push(syn);
+                                }
+                            }
+                        }
+                    }
+                    // Check bottom neighbor
+                    if row + 1 < 3 {
+                        if let Some(bottom) = grid[row + 1][col] {
+                            if let Some(syn) = Self::check_synergy(shard, bottom) {
+                                if !synergies.contains(&syn) {
+                                    synergies.push(syn);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        synergies
+    }
+
+    /// Check if two adjacent shards create a synergy
+    fn check_synergy(a: ShardType, b: ShardType) -> Option<ShardSynergy> {
+        match (a, b) {
+            (ShardType::Gold, ShardType::Gold) => Some(ShardSynergy::Avarice),
+            (ShardType::Power, ShardType::Vampiric) | (ShardType::Vampiric, ShardType::Power) => {
+                Some(ShardSynergy::Bloodlust)
+            }
+            (ShardType::Vitality, ShardType::Vitality) => Some(ShardSynergy::Fortress),
+            (ShardType::Speed, ShardType::Power) | (ShardType::Power, ShardType::Speed) => {
+                Some(ShardSynergy::Fury)
+            }
+            (ShardType::Fortune, ShardType::Gold) | (ShardType::Gold, ShardType::Fortune) => {
+                Some(ShardSynergy::Treasure)
+            }
+            _ => None,
+        }
+    }
+
+    /// Calculate total shard bonuses
+    pub fn shard_bonuses(&self) -> (i32, i32, i32, i32, i32, i32) {
+        // (gold%, damage%, hp, speed%, drops%, lifesteal%)
+        let mut gold = 0;
+        let mut damage = 0;
+        let mut hp = 0;
+        let mut speed = 0;
+        let mut drops = 0;
+        let mut lifesteal = 0;
+
+        for row in &self.souls.shard_grid {
+            for shard in row.iter().flatten() {
+                match shard {
+                    ShardType::Gold => gold += 10,
+                    ShardType::Power => damage += 5,
+                    ShardType::Vitality => hp += 10,
+                    ShardType::Speed => speed += 5,
+                    ShardType::Fortune => drops += 5,
+                    ShardType::Vampiric => lifesteal += 2,
+                }
+            }
+        }
+
+        // Apply synergy bonuses
+        for syn in self.active_synergies() {
+            match syn {
+                ShardSynergy::Avarice => gold += 25,
+                ShardSynergy::Bloodlust => lifesteal += 5,
+                ShardSynergy::Fortress => {} // Armor handled separately
+                ShardSynergy::Fury => {}     // Crit damage handled separately
+                ShardSynergy::Treasure => drops += 25,
+            }
+        }
+
+        (gold, damage, hp, speed, drops, lifesteal)
+    }
+
+    /// Get armor bonus from Fortress synergy
+    pub fn shard_armor_bonus(&self) -> i32 {
+        if self.active_synergies().contains(&ShardSynergy::Fortress) {
+            5
+        } else {
+            0
+        }
+    }
+
+    /// Check if Fury synergy is active (3x crit damage)
+    pub fn has_fury_synergy(&self) -> bool {
+        self.active_synergies().contains(&ShardSynergy::Fury)
     }
 }

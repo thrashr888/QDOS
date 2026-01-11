@@ -255,10 +255,12 @@ pub struct RogueState {
     pub max_hunger: i32,
     pub monsters: Vec<Monster>,
     pub entities: Vec<Entity>,
-    pub message: Option<String>,
+    pub messages: Vec<String>, // Message log (shows last N messages)
+    pub max_messages: usize,   // Max messages to keep
     pub game_over: bool,
     pub game_won: bool,
     pub explored: [[bool; BOARD_WIDTH]; BOARD_HEIGHT],
+    pub visible: [[bool; BOARD_WIDTH]; BOARD_HEIGHT], // Currently visible tiles (shadowcasting)
     tick_counter: u32,
 }
 
@@ -288,14 +290,29 @@ impl RogueState {
             max_hunger: 1000,
             monsters: Vec::new(),
             entities: Vec::new(),
-            message: Some("Welcome to the Dungeons of Doom!".to_string()),
+            messages: vec!["Welcome to the Dungeons of Doom!".to_string()],
+            max_messages: 5,
             game_over: false,
             game_won: false,
             explored: [[false; BOARD_WIDTH]; BOARD_HEIGHT],
+            visible: [[false; BOARD_WIDTH]; BOARD_HEIGHT],
             tick_counter: 0,
         };
         state.generate_dungeon();
         state
+    }
+
+    /// Add a message to the log
+    pub fn add_message(&mut self, msg: impl Into<String>) {
+        self.messages.push(msg.into());
+        while self.messages.len() > self.max_messages {
+            self.messages.remove(0);
+        }
+    }
+
+    /// Get the most recent message (for compatibility)
+    pub fn last_message(&self) -> Option<&String> {
+        self.messages.last()
     }
 
     pub fn reset(&mut self) {
@@ -449,20 +466,124 @@ impl RogueState {
         }
     }
 
+    /// Update visibility using recursive shadowcasting algorithm
+    /// This properly handles line-of-sight - you can't see through walls
     fn update_visibility(&mut self) {
-        // Simple visibility: reveal tiles in a radius around player
-        let radius: i32 = 5;
-        for dy in -radius..=radius {
-            for dx in -radius..=radius {
-                let nx = (self.player_x as i32 + dx) as usize;
-                let ny = (self.player_y as i32 + dy) as usize;
-                if nx < BOARD_WIDTH && ny < BOARD_HEIGHT {
-                    // Check line of sight (simple version)
-                    if dx * dx + dy * dy <= radius * radius {
-                        self.explored[ny][nx] = true;
+        let radius = 8;
+
+        // Clear current visibility
+        for y in 0..BOARD_HEIGHT {
+            for x in 0..BOARD_WIDTH {
+                self.visible[y][x] = false;
+            }
+        }
+
+        // Player position is always visible
+        self.visible[self.player_y][self.player_x] = true;
+        self.explored[self.player_y][self.player_x] = true;
+
+        // Cast light in all 8 octants
+        for octant in 0..8 {
+            self.cast_light(
+                self.player_x as i32,
+                self.player_y as i32,
+                radius,
+                1,
+                1.0,
+                0.0,
+                octant,
+            );
+        }
+    }
+
+    /// Recursive shadowcasting for a single octant
+    /// Based on the algorithm from RogueBasin
+    fn cast_light(
+        &mut self,
+        cx: i32,
+        cy: i32,
+        radius: i32,
+        row: i32,
+        mut start_slope: f64,
+        end_slope: f64,
+        octant: u8,
+    ) {
+        if start_slope < end_slope {
+            return;
+        }
+
+        let mut blocked = false;
+        let mut next_start_slope = start_slope;
+
+        for j in row..=radius {
+            if blocked {
+                break;
+            }
+
+            for dx in (-j)..=0 {
+                let dy = -j;
+
+                // Calculate slopes
+                let l_slope = (dx as f64 - 0.5) / (dy as f64 + 0.5);
+                let r_slope = (dx as f64 + 0.5) / (dy as f64 - 0.5);
+
+                if start_slope < r_slope {
+                    continue;
+                }
+                if end_slope > l_slope {
+                    break;
+                }
+
+                // Transform to actual coordinates based on octant
+                let (ax, ay) = self.transform_octant(cx, cy, dx, dy, octant);
+
+                // Check bounds
+                if ax < 0 || ax >= BOARD_WIDTH as i32 || ay < 0 || ay >= BOARD_HEIGHT as i32 {
+                    continue;
+                }
+
+                let ax = ax as usize;
+                let ay = ay as usize;
+
+                // Check if within radius (circular)
+                let dist_sq = dx * dx + dy * dy;
+                if dist_sq <= radius * radius {
+                    self.visible[ay][ax] = true;
+                    self.explored[ay][ax] = true;
+                }
+
+                // Check if this tile blocks light
+                let tile = self.board[ay][ax];
+                let blocks = matches!(tile, Tile::Wall);
+
+                if blocked {
+                    if blocks {
+                        next_start_slope = r_slope;
+                    } else {
+                        blocked = false;
+                        start_slope = next_start_slope;
                     }
+                } else if blocks && j < radius {
+                    blocked = true;
+                    self.cast_light(cx, cy, radius, j + 1, start_slope, l_slope, octant);
+                    next_start_slope = r_slope;
                 }
             }
+        }
+    }
+
+    /// Transform coordinates based on octant (for shadowcasting)
+    fn transform_octant(&self, cx: i32, cy: i32, dx: i32, dy: i32, octant: u8) -> (i32, i32) {
+        match octant {
+            0 => (cx + dx, cy + dy),
+            1 => (cx + dy, cy + dx),
+            2 => (cx + dy, cy - dx),
+            3 => (cx + dx, cy - dy),
+            4 => (cx - dx, cy - dy),
+            5 => (cx - dy, cy - dx),
+            6 => (cx - dy, cy + dx),
+            7 => (cx - dx, cy + dy),
+            _ => (cx, cy),
         }
     }
 
@@ -491,7 +612,6 @@ impl RogueState {
         if self.board[new_y][new_x].is_passable() {
             self.player_x = new_x;
             self.player_y = new_y;
-            self.message = None;
 
             // Check for traps
             self.check_trap();
@@ -516,7 +636,7 @@ impl RogueState {
         let monster = &self.monsters[idx];
         if monster.health <= 0 {
             let xp = monster.monster_type.xp();
-            self.message = Some(format!(
+            self.add_message(format!(
                 "Killed {}! +{} XP",
                 monster.monster_type.char(),
                 xp
@@ -528,7 +648,7 @@ impl RogueState {
             // Monster attacks back
             let monster_dmg = (monster.monster_type.damage() - self.defense).max(1);
             self.health -= monster_dmg;
-            self.message = Some(format!(
+            self.add_message(format!(
                 "Hit {}! Took {} damage",
                 monster.monster_type.char(),
                 monster_dmg
@@ -536,7 +656,7 @@ impl RogueState {
 
             if self.health <= 0 {
                 self.game_over = true;
-                self.message = Some("You died!".to_string());
+                self.add_message("You died!");
             }
         }
     }
@@ -550,7 +670,7 @@ impl RogueState {
             self.health = self.max_health;
             self.attack += 2;
             self.defense += 1;
-            self.message = Some(format!("Level up! Now level {}", self.level));
+            self.add_message(format!("Level up! Now level {}", self.level));
         }
     }
 
@@ -564,12 +684,12 @@ impl RogueState {
                     EntityType::Gold => {
                         let amount = 10 + self.dungeon_level * 5;
                         self.gold += amount;
-                        self.message = Some(format!("Found {} gold!", amount));
+                        self.add_message(format!("Found {} gold!", amount));
                     }
                     EntityType::Food => {
                         // Food restores hunger
                         self.hunger = self.max_hunger;
-                        self.message = Some("You feel full.".to_string());
+                        self.add_message("You feel full.");
                     }
                     EntityType::Potion => {
                         // Random potion effect
@@ -578,16 +698,16 @@ impl RogueState {
                             0 => {
                                 let heal = rng.gen_range(5..15);
                                 self.health = (self.health + heal).min(self.max_health);
-                                self.message = Some(format!("Healing potion! +{} HP", heal));
+                                self.add_message(format!("Healing potion! +{} HP", heal));
                             }
                             1 => {
                                 self.strength += 1;
-                                self.message = Some("Potion of strength! +1 STR".to_string());
+                                self.add_message("Potion of strength! +1 STR");
                             }
                             _ => {
                                 let damage = rng.gen_range(1..5);
                                 self.health -= damage;
-                                self.message = Some(format!("Poison! -{} HP", damage));
+                                self.add_message(format!("Poison! -{} HP", damage));
                             }
                         }
                     }
@@ -597,17 +717,17 @@ impl RogueState {
                         match effect {
                             0 => {
                                 // Scroll of identify - reveal all items
-                                self.message = Some("Scroll of light! Area revealed.".to_string());
+                                self.add_message("Scroll of light! Area revealed.");
                                 self.reveal_area();
                             }
                             1 => {
                                 // Scroll of teleport
-                                self.message = Some("Scroll of teleport!".to_string());
+                                self.add_message("Scroll of teleport!");
                                 self.teleport_random();
                             }
                             2 => {
                                 // Scroll of monster confusion
-                                self.message = Some("Scroll of scare monster!".to_string());
+                                self.add_message("Scroll of scare monster!");
                             }
                             _ => {
                                 // Scroll of magic mapping
@@ -616,19 +736,19 @@ impl RogueState {
                                         self.explored[y][x] = true;
                                     }
                                 }
-                                self.message = Some("Scroll of magic mapping!".to_string());
+                                self.add_message("Scroll of magic mapping!");
                             }
                         }
                     }
                     EntityType::Weapon => {
                         let bonus = rng.gen_range(1..=3);
                         self.attack += bonus;
-                        self.message = Some(format!("Found weapon! +{} ATK", bonus));
+                        self.add_message(format!("Found weapon! +{} ATK", bonus));
                     }
                     EntityType::Armor => {
                         let bonus = rng.gen_range(1..=2);
                         self.defense += bonus;
-                        self.message = Some(format!("Found armor! +{} DEF", bonus));
+                        self.add_message(format!("Found armor! +{} DEF", bonus));
                     }
                 }
                 self.entities.remove(i);
@@ -642,9 +762,9 @@ impl RogueState {
         self.dungeon_level += 1;
         if self.dungeon_level > 10 {
             self.game_won = true;
-            self.message = Some("You escaped the dungeon! You win!".to_string());
+            self.add_message("You escaped the dungeon! You win!");
         } else {
-            self.message = Some(format!("Descending to level {}...", self.dungeon_level));
+            self.add_message(format!("Descending to level {}...", self.dungeon_level));
             self.generate_dungeon();
         }
     }
@@ -667,17 +787,15 @@ impl RogueState {
             if self.hunger == 0 {
                 // Starving - take damage
                 self.health -= 1;
-                if self.message.is_none() {
-                    self.message = Some("You are starving!".to_string());
-                }
+                self.add_message("You are starving!");
                 if self.health <= 0 {
                     self.game_over = true;
-                    self.message = Some("You starved to death!".to_string());
+                    self.add_message("You starved to death!");
                 }
             } else if self.hunger == 300 {
-                self.message = Some("You are getting hungry.".to_string());
+                self.add_message("You are getting hungry.");
             } else if self.hunger == 100 {
-                self.message = Some("You are weak from hunger!".to_string());
+                self.add_message("You are weak from hunger!");
             }
         }
     }
@@ -687,16 +805,18 @@ impl RogueState {
 
         for i in 0..self.monsters.len() {
             let monster = &self.monsters[i];
+            let mx = monster.x;
+            let my = monster.y;
 
             // Check if player is adjacent
-            let dx = self.player_x as i32 - monster.x as i32;
-            let dy = self.player_y as i32 - monster.y as i32;
+            let dx = self.player_x as i32 - mx as i32;
+            let dy = self.player_y as i32 - my as i32;
 
             if dx.abs() <= 1 && dy.abs() <= 1 && (dx != 0 || dy != 0) {
                 // Attack player
                 let damage = (monster.monster_type.damage() - self.defense).max(1);
                 self.health -= damage;
-                self.message = Some(format!(
+                self.add_message(format!(
                     "{} attacks! -{} HP",
                     monster.monster_type.char(),
                     damage
@@ -704,44 +824,25 @@ impl RogueState {
 
                 if self.health <= 0 {
                     self.game_over = true;
-                    self.message = Some("You died!".to_string());
+                    self.add_message("You died!");
                 }
-            } else if dx.abs() + dy.abs() < 10 {
-                // Move toward player
-                let move_x = if dx > 0 {
-                    1
-                } else if dx < 0 {
-                    -1
-                } else {
-                    0
-                };
-                let move_y = if dy > 0 {
-                    1
-                } else if dy < 0 {
-                    -1
-                } else {
-                    0
-                };
-
-                let new_x = (monster.x as i32 + move_x) as usize;
-                let new_y = (monster.y as i32 + move_y) as usize;
-
-                // Check if target is passable and not occupied
-                if new_x < BOARD_WIDTH
-                    && new_y < BOARD_HEIGHT
-                    && self.board[new_y][new_x].is_passable()
-                    && !self.monsters.iter().any(|m| m.x == new_x && m.y == new_y)
-                    && !(new_x == self.player_x && new_y == self.player_y)
-                {
-                    self.monsters[i].x = new_x;
-                    self.monsters[i].y = new_y;
+            } else if dx.abs() + dy.abs() < 15 {
+                // Use A* pathfinding to find path to player
+                if let Some((next_x, next_y)) = self.find_path_astar(mx, my) {
+                    // Check if target is not occupied by another monster
+                    let occupied = self.monsters.iter().any(|m| m.x == next_x && m.y == next_y);
+                    let is_player = next_x == self.player_x && next_y == self.player_y;
+                    if !occupied && !is_player {
+                        self.monsters[i].x = next_x;
+                        self.monsters[i].y = next_y;
+                    }
                 }
             } else {
-                // Random movement
+                // Random movement when far from player
                 let dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)];
                 let (ddx, ddy) = dirs[rng.gen_range(0..4)];
-                let new_x = (monster.x as i32 + ddx) as usize;
-                let new_y = (monster.y as i32 + ddy) as usize;
+                let new_x = (mx as i32 + ddx) as usize;
+                let new_y = (my as i32 + ddy) as usize;
 
                 if new_x < BOARD_WIDTH
                     && new_y < BOARD_HEIGHT
@@ -756,11 +857,142 @@ impl RogueState {
         }
     }
 
-    /// Check if a position is visible (within player's sight range)
+    /// A* pathfinding - returns the next step toward the player
+    fn find_path_astar(&self, start_x: usize, start_y: usize) -> Option<(usize, usize)> {
+        use std::cmp::Ordering;
+        use std::collections::{BinaryHeap, HashMap, HashSet};
+
+        #[derive(Copy, Clone, Eq, PartialEq)]
+        struct Node {
+            x: usize,
+            y: usize,
+            f: i32, // f = g + h
+        }
+
+        impl Ord for Node {
+            fn cmp(&self, other: &Self) -> Ordering {
+                // Reverse order for min-heap behavior
+                other.f.cmp(&self.f)
+            }
+        }
+
+        impl PartialOrd for Node {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        let goal_x = self.player_x;
+        let goal_y = self.player_y;
+
+        // Heuristic: Manhattan distance
+        let heuristic = |x: usize, y: usize| -> i32 {
+            (x as i32 - goal_x as i32).abs() + (y as i32 - goal_y as i32).abs()
+        };
+
+        let mut open_set = BinaryHeap::new();
+        let mut came_from: HashMap<(usize, usize), (usize, usize)> = HashMap::new();
+        let mut g_score: HashMap<(usize, usize), i32> = HashMap::new();
+        let mut closed_set: HashSet<(usize, usize)> = HashSet::new();
+
+        g_score.insert((start_x, start_y), 0);
+        open_set.push(Node {
+            x: start_x,
+            y: start_y,
+            f: heuristic(start_x, start_y),
+        });
+
+        // Limit iterations to prevent infinite loops
+        let mut iterations = 0;
+        let max_iterations = 200;
+
+        while let Some(current) = open_set.pop() {
+            iterations += 1;
+            if iterations > max_iterations {
+                break;
+            }
+
+            let (cx, cy) = (current.x, current.y);
+
+            // Check if we're adjacent to the goal (one step away)
+            let dx = (cx as i32 - goal_x as i32).abs();
+            let dy = (cy as i32 - goal_y as i32).abs();
+            if dx <= 1 && dy <= 1 && (dx + dy > 0) {
+                // Reconstruct path and return first step
+                return self.reconstruct_first_step(&came_from, (cx, cy), (start_x, start_y));
+            }
+
+            if closed_set.contains(&(cx, cy)) {
+                continue;
+            }
+            closed_set.insert((cx, cy));
+
+            // 4-directional neighbors (8-directional for diagonal movement)
+            let neighbors = [
+                (cx.wrapping_sub(1), cy),
+                (cx + 1, cy),
+                (cx, cy.wrapping_sub(1)),
+                (cx, cy + 1),
+            ];
+
+            for (nx, ny) in neighbors {
+                if nx >= BOARD_WIDTH || ny >= BOARD_HEIGHT {
+                    continue;
+                }
+                if closed_set.contains(&(nx, ny)) {
+                    continue;
+                }
+                if !self.board[ny][nx].is_passable() {
+                    continue;
+                }
+
+                let tentative_g = g_score
+                    .get(&(cx, cy))
+                    .unwrap_or(&i32::MAX)
+                    .saturating_add(1);
+
+                if tentative_g < *g_score.get(&(nx, ny)).unwrap_or(&i32::MAX) {
+                    came_from.insert((nx, ny), (cx, cy));
+                    g_score.insert((nx, ny), tentative_g);
+                    let f = tentative_g + heuristic(nx, ny);
+                    open_set.push(Node { x: nx, y: ny, f });
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Reconstruct the first step in the path from start to goal
+    fn reconstruct_first_step(
+        &self,
+        came_from: &std::collections::HashMap<(usize, usize), (usize, usize)>,
+        goal: (usize, usize),
+        start: (usize, usize),
+    ) -> Option<(usize, usize)> {
+        let mut current = goal;
+        let mut prev = goal;
+
+        // Walk backwards until we find the step right after start
+        while current != start {
+            if let Some(&parent) = came_from.get(&current) {
+                prev = current;
+                current = parent;
+            } else {
+                return None;
+            }
+        }
+
+        Some(prev)
+    }
+
+    /// Check if a position is currently visible (calculated by shadowcasting)
     pub fn is_visible(&self, x: usize, y: usize) -> bool {
-        let dx = (self.player_x as i32 - x as i32).abs();
-        let dy = (self.player_y as i32 - y as i32).abs();
-        dx * dx + dy * dy <= 25 // radius of 5
+        if x < BOARD_WIDTH && y < BOARD_HEIGHT {
+            self.visible[y][x]
+        } else {
+            false
+        }
     }
 
     /// Reveal a larger area around the player (scroll of light effect)
@@ -818,9 +1050,9 @@ impl RogueState {
         }
 
         if found {
-            self.message = Some("You found a trap!".to_string());
+            self.add_message("You found a trap!");
         } else {
-            self.message = Some("You search but find nothing.".to_string());
+            self.add_message("You search but find nothing.");
         }
     }
 
@@ -848,30 +1080,30 @@ impl RogueState {
             match trap_type {
                 0 => {
                     // Teleport trap
-                    self.message = Some("A teleport trap!".to_string());
+                    self.add_message("A teleport trap!");
                     self.teleport_random();
                 }
                 1 => {
                     // Dart trap
                     let damage = rng.gen_range(1..4);
                     self.health -= damage;
-                    self.message = Some(format!("A dart trap! -{} HP", damage));
+                    self.add_message(format!("A dart trap! -{} HP", damage));
                 }
                 2 => {
                     // Bear trap - lose a turn
-                    self.message = Some("A bear trap! You're stuck!".to_string());
+                    self.add_message("A bear trap! You're stuck!");
                 }
                 _ => {
                     // Pit trap
                     let damage = rng.gen_range(2..6);
                     self.health -= damage;
-                    self.message = Some(format!("You fell into a pit! -{} HP", damage));
+                    self.add_message(format!("You fell into a pit! -{} HP", damage));
                 }
             }
 
             if self.health <= 0 {
                 self.game_over = true;
-                self.message = Some("You died!".to_string());
+                self.add_message("You died!");
             }
         }
     }
