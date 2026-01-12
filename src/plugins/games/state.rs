@@ -1,9 +1,11 @@
 //! Games plugin state
 
+use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::clicker::ClickerState;
 use super::rogue::RogueState;
 use super::snake::SnakeState;
+use super::storyweaver::StoryweaverState;
 use super::tetris::TetrisState;
 use super::trek::TrekState;
 use serde::{Deserialize, Serialize};
@@ -94,6 +96,10 @@ pub struct Leaderboards {
     pub rogue: GameLeaderboard,
     pub trek: GameLeaderboard,
     pub clicker: GameLeaderboard,
+    #[serde(default)]
+    pub brainiac: GameLeaderboard,
+    #[serde(default)]
+    pub storyweaver: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -110,6 +116,8 @@ impl Leaderboards {
             GameType::Rogue => &self.rogue,
             GameType::Trek => &self.trek,
             GameType::Clicker => &self.clicker,
+            GameType::Brainiac => &self.brainiac,
+            GameType::Storyweaver => &self.storyweaver,
         }
     }
 
@@ -122,6 +130,8 @@ impl Leaderboards {
             GameType::Rogue => &mut self.rogue,
             GameType::Trek => &mut self.trek,
             GameType::Clicker => &mut self.clicker,
+            GameType::Brainiac => &mut self.brainiac,
+            GameType::Storyweaver => &mut self.storyweaver,
         }
     }
 }
@@ -135,6 +145,8 @@ pub enum GameType {
     Rogue,
     Trek,
     Clicker,
+    Brainiac,
+    Storyweaver,
 }
 
 impl GameType {
@@ -146,6 +158,8 @@ impl GameType {
             GameType::Rogue,
             GameType::Trek,
             GameType::Clicker,
+            GameType::Brainiac,
+            GameType::Storyweaver,
         ]
     }
 
@@ -157,6 +171,8 @@ impl GameType {
             GameType::Rogue => "Rogue",
             GameType::Trek => "Star Trek",
             GameType::Clicker => "Clicker",
+            GameType::Brainiac => "Brainiac",
+            GameType::Storyweaver => "Storyweaver",
         }
     }
 
@@ -168,6 +184,8 @@ impl GameType {
             GameType::Rogue => "Explore the dungeon and defeat monsters",
             GameType::Trek => "Command the Enterprise, destroy Klingons",
             GameType::Clicker => "Kill monsters, gain gold, buy upgrades",
+            GameType::Brainiac => "AI trivia - test your knowledge!",
+            GameType::Storyweaver => "AI choose-your-own-adventure books",
         }
     }
 }
@@ -190,7 +208,7 @@ pub struct GamesState {
     pub selected_game: usize,
     pub current_game: Option<GameType>,
     pub score: u32,
-    pub high_scores: [u32; 6], // One for each game (legacy, kept for compatibility)
+    pub high_scores: [u32; 8], // One for each game (legacy, kept for compatibility)
     pub menu_tick: u32,        // Animation tick for menu effects
 
     // Leaderboard system
@@ -207,6 +225,8 @@ pub struct GamesState {
     pub rogue: RogueState,
     pub trek: TrekState,
     pub clicker: ClickerState,
+    pub brainiac: BrainiacState,
+    pub storyweaver: StoryweaverState,
 }
 
 impl Default for GamesState {
@@ -222,7 +242,7 @@ impl GamesState {
             selected_game: 0,
             current_game: None,
             score: 0,
-            high_scores: [0; 6],
+            high_scores: [0; 8],
             menu_tick: 0,
             leaderboards: Leaderboards::new(),
             initials_buffer: String::new(),
@@ -235,6 +255,8 @@ impl GamesState {
             rogue: RogueState::new(),
             trek: TrekState::new(),
             clicker: ClickerState::new(),
+            brainiac: BrainiacState::new(),
+            storyweaver: StoryweaverState::new(),
         }
     }
 
@@ -276,6 +298,8 @@ impl GamesState {
             GameType::Rogue => self.rogue.reset(),
             GameType::Trek => self.trek.reset(),
             GameType::Clicker => self.clicker.reset(),
+            GameType::Brainiac => self.brainiac.reset(),
+            GameType::Storyweaver => self.storyweaver.reset(),
         }
     }
 
@@ -297,6 +321,8 @@ impl GamesState {
                 GameType::Rogue => 3,
                 GameType::Trek => 4,
                 GameType::Clicker => 5,
+                GameType::Brainiac => 6,
+                GameType::Storyweaver => 7,
             };
             if self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

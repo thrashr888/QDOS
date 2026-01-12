@@ -1,13 +1,15 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, and Clicker.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, and Storyweaver.
 
+pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
 mod modal;
 pub mod rogue;
 pub mod snake;
 pub mod state;
+pub mod storyweaver;
 pub mod tetris;
 pub mod trek;
 
@@ -173,6 +175,11 @@ impl Plugin for GamesPlugin {
                 }
                 KeyCode::Char('6') => {
                     self.state.selected_game = 5;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('7') => {
+                    self.state.selected_game = 6;
                     self.state.start_game();
                     KeyHandleResult::Handled
                 }
@@ -483,6 +490,252 @@ impl Plugin for GamesPlugin {
                         },
                     }
                 }
+                Some(GameType::Brainiac) => {
+                    use brainiac::BrainiacView;
+                    match self.state.brainiac.view {
+                        BrainiacView::Setup => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up => {
+                                self.state.brainiac.setup_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down => {
+                                self.state.brainiac.setup_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Left => {
+                                self.state.brainiac.setup_left();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Right => {
+                                self.state.brainiac.setup_right();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter => {
+                                if self.state.brainiac.setup_cursor == 3 {
+                                    // Start button - generation deferred to tick()
+                                    self.state.brainiac.start_game();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        BrainiacView::Loading => {
+                            // No input during loading
+                            KeyHandleResult::Handled
+                        }
+                        BrainiacView::Playing => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up => {
+                                self.state.brainiac.answer_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down => {
+                                self.state.brainiac.answer_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter | KeyCode::Char(' ') => {
+                                self.state.brainiac.select_answer();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('1') => {
+                                self.state.brainiac.selected_answer = 0;
+                                self.state.brainiac.select_answer();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('2') => {
+                                self.state.brainiac.selected_answer = 1;
+                                self.state.brainiac.select_answer();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('3') => {
+                                self.state.brainiac.selected_answer = 2;
+                                self.state.brainiac.select_answer();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('4') => {
+                                self.state.brainiac.selected_answer = 3;
+                                self.state.brainiac.select_answer();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        BrainiacView::Feedback => {
+                            // No input during feedback
+                            KeyHandleResult::Handled
+                        }
+                        BrainiacView::GameOver => match key.code {
+                            KeyCode::Esc | KeyCode::Enter => {
+                                self.state.score = self.state.brainiac.final_score();
+                                self.state.game_over();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('r') | KeyCode::Char('R') => {
+                                self.state.brainiac.reset();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        BrainiacView::Error => match key.code {
+                            KeyCode::Esc | KeyCode::Enter => {
+                                self.state.brainiac.reset();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                    }
+                }
+                Some(GameType::Storyweaver) => {
+                    use storyweaver::StoryweaverView;
+                    match self.state.storyweaver.view {
+                        StoryweaverView::StorySelect => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up => {
+                                self.state.storyweaver.story_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down => {
+                                self.state.storyweaver.story_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter => {
+                                let templates = storyweaver::StoryTemplate::all();
+                                if self.state.storyweaver.selected_story < templates.len() {
+                                    let template = templates[self.state.storyweaver.selected_story];
+                                    // Generation deferred to tick()
+                                    self.state.storyweaver.start_story(template);
+                                } else {
+                                    // Custom story
+                                    self.state.storyweaver.view = StoryweaverView::CustomCreate;
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        StoryweaverView::CustomCreate => match key.code {
+                            KeyCode::Esc => {
+                                self.state.storyweaver.view = StoryweaverView::StorySelect;
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up => {
+                                self.state.storyweaver.custom_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down => {
+                                self.state.storyweaver.custom_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Left => {
+                                if self.state.storyweaver.custom_cursor == 1 {
+                                    self.state.storyweaver.tone_left();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Right => {
+                                if self.state.storyweaver.custom_cursor == 1 {
+                                    self.state.storyweaver.tone_right();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter => {
+                                if self.state.storyweaver.custom_cursor == 2 {
+                                    // Generation deferred to tick()
+                                    self.state.storyweaver.start_custom_story();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Backspace => {
+                                if self.state.storyweaver.custom_cursor == 0 {
+                                    self.state.storyweaver.backspace_premise();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char(c) => {
+                                if self.state.storyweaver.custom_cursor == 0 {
+                                    self.state.storyweaver.add_premise_char(c);
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        StoryweaverView::Loading => KeyHandleResult::Handled,
+                        StoryweaverView::Playing => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up => {
+                                self.state.storyweaver.choice_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down => {
+                                self.state.storyweaver.choice_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter => {
+                                self.state.storyweaver.make_choice();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char(' ') => {
+                                // Skip text reveal
+                                if let Some(chapter) = self.state.storyweaver.current_chapter_data()
+                                {
+                                    self.state.storyweaver.text_reveal = chapter.narrative.len();
+                                }
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('a') | KeyCode::Char('A') => {
+                                self.state.storyweaver.selected_choice = 0;
+                                self.state.storyweaver.make_choice();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('b') | KeyCode::Char('B') => {
+                                self.state.storyweaver.selected_choice = 1;
+                                self.state.storyweaver.make_choice();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('c') | KeyCode::Char('C') => {
+                                self.state.storyweaver.selected_choice = 2;
+                                self.state.storyweaver.make_choice();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('d') | KeyCode::Char('D') => {
+                                self.state.storyweaver.selected_choice = 3;
+                                self.state.storyweaver.make_choice();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        StoryweaverView::GameOver => match key.code {
+                            KeyCode::Esc => {
+                                self.state.score = self.state.storyweaver.final_score();
+                                self.state.game_over();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter => {
+                                self.state.storyweaver.reset();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        StoryweaverView::Error => match key.code {
+                            KeyCode::Esc | KeyCode::Enter => {
+                                self.state.storyweaver.reset();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                    }
+                }
                 None => KeyHandleResult::Handled,
             },
             GamesView::Paused => match key.code {
@@ -636,6 +889,16 @@ impl Plugin for GamesPlugin {
                     self.save_to_config();
                 }
             }
+            Some(GameType::Brainiac) => {
+                self.state.brainiac.tick();
+                self.state.score = self.state.brainiac.score;
+                // Brainiac handles its own game over state
+            }
+            Some(GameType::Storyweaver) => {
+                self.state.storyweaver.tick();
+                self.state.score = self.state.storyweaver.final_score();
+                // Storyweaver handles its own game over state
+            }
             None => {}
         }
     }
@@ -657,6 +920,8 @@ impl Plugin for GamesPlugin {
             "  Rogue     - Explore dungeons and defeat monsters".to_string(),
             "  Star Trek - Command the Enterprise, destroy Klingons".to_string(),
             "  Clicker   - Kill monsters, gain gold, buy upgrades".to_string(),
+            "  Brainiac  - AI trivia with age-adaptive questions".to_string(),
+            "  Storyweaver - AI choose-your-own-adventure books".to_string(),
             "".to_string(),
             "Common Controls:".to_string(),
             "  P         Pause/Resume".to_string(),
@@ -668,6 +933,8 @@ impl Plugin for GamesPlugin {
             "Rogue: ←↑↓→/hjkl move, yubn diagonal, s search, > stairs".to_string(),
             "Star Trek: NSLPTHCD commands (see in-game help)".to_string(),
             "Clicker: h/Space hit, e eat, b shop, s soul shop, > stairs, w save".to_string(),
+            "Brainiac: ↑↓ select, Enter answer, 1-4 quick answer".to_string(),
+            "Storyweaver: ↑↓ navigate, Enter choose, A-D quick choice, Space skip".to_string(),
             "".to_string(),
             "Clicker Soul System:".to_string(),
             "  Die to earn Souls based on progress".to_string(),
