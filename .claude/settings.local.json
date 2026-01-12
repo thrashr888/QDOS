@@ -58,7 +58,8 @@
       "WebFetch(domain:docs.rs)",
       "Bash(gh release edit:*)",
       "WebFetch(domain:www.pcjs.org)",
-      "WebFetch(domain:www.dosgamesarchive.com)"
+      "WebFetch(domain:www.dosgamesarchive.com)",
+      "Bash(cargo clean:*)"
     ]
   }
 }

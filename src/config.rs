@@ -26,14 +26,62 @@ pub struct Config {
 }
 
 /// Games plugin configuration (leaderboards, etc.)
+/// Data is stored as base64-encoded JSON strings for portability and to handle
+/// complex types that TOML doesn't support (like Option::None).
+/// Users can copy/paste these strings to backup or share their saves.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GamesConfig {
-    /// Game leaderboards (high scores with initials)
+    /// Game leaderboards as base64-encoded JSON (portable, copy-pasteable)
     #[serde(default)]
-    pub leaderboards: crate::plugins::games::state::Leaderboards,
-    /// Clicker game full state (souls + current run)
+    pub leaderboards_b64: String,
+    /// Clicker game state as base64-encoded JSON (handles Option fields that TOML can't)
     #[serde(default)]
-    pub clicker_state: Option<crate::plugins::games::clicker::ClickerState>,
+    pub clicker_state_b64: String,
+}
+
+impl GamesConfig {
+    /// Decode leaderboards from base64 JSON
+    pub fn get_leaderboards(&self) -> crate::plugins::games::state::Leaderboards {
+        if self.leaderboards_b64.is_empty() {
+            return crate::plugins::games::state::Leaderboards::default();
+        }
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        STANDARD
+            .decode(&self.leaderboards_b64)
+            .ok()
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
+            .unwrap_or_default()
+    }
+
+    /// Encode leaderboards to base64 JSON
+    pub fn set_leaderboards(&mut self, leaderboards: &crate::plugins::games::state::Leaderboards) {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        if let Ok(json) = serde_json::to_string(leaderboards) {
+            self.leaderboards_b64 = STANDARD.encode(json.as_bytes());
+        }
+    }
+
+    /// Decode clicker state from base64 JSON
+    pub fn get_clicker_state(&self) -> Option<crate::plugins::games::clicker::ClickerState> {
+        if self.clicker_state_b64.is_empty() {
+            return None;
+        }
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        STANDARD
+            .decode(&self.clicker_state_b64)
+            .ok()
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
+    }
+
+    /// Encode clicker state to base64 JSON
+    pub fn set_clicker_state(&mut self, state: &crate::plugins::games::clicker::ClickerState) {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        if let Ok(json) = serde_json::to_string(state) {
+            self.clicker_state_b64 = STANDARD.encode(json.as_bytes());
+        }
+    }
 }
 
 /// General settings
@@ -633,5 +681,61 @@ mod tests {
             git_settings.options.get("show_branch"),
             Some(&toml::Value::Boolean(true))
         );
+    }
+
+    #[test]
+    fn test_games_config_base64_clicker_roundtrip() {
+        use crate::plugins::games::clicker::ClickerState;
+
+        let mut games_config = GamesConfig::default();
+
+        // Create a clicker state with some data
+        let mut state = ClickerState::new();
+        state.souls.total_souls = 1234;
+        state.souls.starting_str = 5;
+        state.souls.total_deaths = 10;
+
+        // Encode to base64
+        games_config.set_clicker_state(&state);
+        assert!(!games_config.clicker_state_b64.is_empty());
+
+        // Decode and verify
+        let loaded = games_config.get_clicker_state().expect("Should decode");
+        assert_eq!(loaded.souls.total_souls, 1234);
+        assert_eq!(loaded.souls.starting_str, 5);
+        assert_eq!(loaded.souls.total_deaths, 10);
+    }
+
+    #[test]
+    fn test_games_config_base64_leaderboards_roundtrip() {
+        use crate::plugins::games::state::Leaderboards;
+
+        let mut games_config = GamesConfig::default();
+
+        // Create leaderboards with some data
+        let mut leaderboards = Leaderboards::default();
+        leaderboards.tetris.add_score("ABC", 9999);
+        leaderboards.snake.add_score("XYZ", 5000);
+
+        // Encode to base64
+        games_config.set_leaderboards(&leaderboards);
+        assert!(!games_config.leaderboards_b64.is_empty());
+
+        // Decode and verify
+        let loaded = games_config.get_leaderboards();
+        assert_eq!(loaded.tetris.top_score(), Some(9999));
+        assert_eq!(loaded.snake.top_score(), Some(5000));
+    }
+
+    #[test]
+    fn test_games_config_empty_returns_defaults() {
+        let games_config = GamesConfig::default();
+
+        // Empty base64 should return defaults
+        let clicker = games_config.get_clicker_state();
+        assert!(clicker.is_none());
+
+        let leaderboards = games_config.get_leaderboards();
+        assert!(leaderboards.tetris.entries.is_empty());
     }
 }

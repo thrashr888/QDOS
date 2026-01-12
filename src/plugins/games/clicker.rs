@@ -1068,7 +1068,7 @@ impl SoulUpgrade {
             SoulUpgrade::StartingArm => "+1 starting ARM",
             SoulUpgrade::StartingGold => "+50 starting gold",
             SoulUpgrade::AttackSpeed => "+10% attack speed (permanent!)",
-            SoulUpgrade::CritDamage => "+50% crit damage (2x→2.5x→3x...)",
+            SoulUpgrade::CritDamage => "+50% crit dmg (2x→2.5x→3x...)",
             SoulUpgrade::GoldMultiplier => "+25% gold from all sources",
             SoulUpgrade::ItemDropRate => "+3% item drop chance",
             SoulUpgrade::StartingHp => "+10 starting HP",
@@ -1165,6 +1165,11 @@ pub struct SoulData {
 }
 
 impl SoulData {
+    /// Full reset - wipe all soul data and start fresh
+    pub fn full_reset(&mut self) {
+        *self = Self::default();
+    }
+
     pub fn upgrade_level(&self, upgrade: SoulUpgrade) -> i32 {
         match upgrade {
             SoulUpgrade::StartingStr => self.starting_str,
@@ -1689,6 +1694,11 @@ impl ClickerState {
         // Preserve soul data across resets
         let souls = self.souls.clone();
         *self = Self::new_with_souls(souls);
+    }
+
+    /// Full reset - wipe ALL progress including soul shop (start completely fresh)
+    pub fn full_reset(&mut self) {
+        *self = Self::new();
     }
 
     /// Reset with prestige - start fresh with current soul data
@@ -3400,5 +3410,121 @@ impl ClickerState {
     /// Check if Fury synergy is active (3x crit damage)
     pub fn has_fury_synergy(&self) -> bool {
         self.active_synergies().contains(&ShardSynergy::Fury)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clicker_state_json_serialization() {
+        // Create a state with some soul data
+        let mut state = ClickerState::new();
+        state.souls.total_souls = 1000;
+        state.souls.starting_str = 5;
+        state.souls.total_runs = 10;
+        state.souls.total_deaths = 3;
+
+        // Try JSON serialization (TOML doesn't support None values)
+        let json_result = serde_json::to_string_pretty(&state);
+        assert!(
+            json_result.is_ok(),
+            "JSON serialization failed: {:?}",
+            json_result.err()
+        );
+
+        let json_str = json_result.unwrap();
+        assert!(!json_str.is_empty(), "JSON string is empty");
+
+        // Verify deserialization roundtrip
+        let deserialized: Result<ClickerState, _> = serde_json::from_str(&json_str);
+        assert!(
+            deserialized.is_ok(),
+            "JSON deserialization failed: {:?}",
+            deserialized.err()
+        );
+
+        let loaded = deserialized.unwrap();
+        assert_eq!(
+            loaded.souls.total_souls, 1000,
+            "Souls not preserved after roundtrip"
+        );
+        assert_eq!(loaded.souls.starting_str, 5, "Starting str not preserved");
+        assert_eq!(loaded.souls.total_runs, 10, "Total runs not preserved");
+        assert_eq!(loaded.souls.total_deaths, 3, "Total deaths not preserved");
+    }
+
+    #[test]
+    fn test_soul_data_json_serialization() {
+        let mut souls = SoulData::default();
+        souls.total_souls = 500;
+        souls.attack_speed = 3;
+        souls.gold_multiplier = 2;
+
+        // Serialize
+        let json_result = serde_json::to_string_pretty(&souls);
+        assert!(
+            json_result.is_ok(),
+            "SoulData JSON serialization failed: {:?}",
+            json_result.err()
+        );
+
+        // Deserialize
+        let json_str = json_result.unwrap();
+        let loaded: SoulData =
+            serde_json::from_str(&json_str).expect("Failed to deserialize SoulData");
+
+        assert_eq!(loaded.total_souls, 500);
+        assert_eq!(loaded.attack_speed, 3);
+        assert_eq!(loaded.gold_multiplier, 2);
+    }
+
+    #[test]
+    fn test_reset_preserves_souls() {
+        let mut state = ClickerState::new();
+        state.souls.total_souls = 1000;
+        state.souls.starting_str = 5;
+        state.souls.total_runs = 10;
+
+        // Reset should preserve souls
+        state.reset();
+
+        assert_eq!(state.souls.total_souls, 1000, "Souls lost after reset");
+        assert_eq!(state.souls.starting_str, 5, "Starting str lost after reset");
+        assert_eq!(state.souls.total_runs, 10, "Total runs lost after reset");
+    }
+
+    #[test]
+    fn test_full_reset_wipes_everything() {
+        let mut state = ClickerState::new();
+        state.souls.total_souls = 1000;
+        state.souls.starting_str = 5;
+        state.souls.total_runs = 10;
+        state.souls.total_deaths = 5;
+        state.gold = 9999;
+        state.level = 50;
+
+        // Full reset should wipe EVERYTHING
+        state.full_reset();
+
+        assert_eq!(
+            state.souls.total_souls, 0,
+            "Souls not wiped after full reset"
+        );
+        assert_eq!(
+            state.souls.starting_str, 0,
+            "Starting str not wiped after full reset"
+        );
+        assert_eq!(
+            state.souls.total_runs, 0,
+            "Total runs not wiped after full reset"
+        );
+        assert_eq!(
+            state.souls.total_deaths, 0,
+            "Total deaths not wiped after full reset"
+        );
+        // Game state should also be fresh
+        assert_eq!(state.level, 1, "Level not reset after full reset");
     }
 }

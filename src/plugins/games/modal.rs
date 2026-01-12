@@ -1394,10 +1394,16 @@ fn draw_clicker_soul_shop(
             ("↑↓", "select"),
             ("Enter/b", "buy"),
             ("r", "new run"),
+            ("X", "reset ALL"),
             ("Esc", "back"),
         ]
     } else {
-        vec![("↑↓", "select"), ("Enter/b", "buy"), ("Esc", "back")]
+        vec![
+            ("↑↓", "select"),
+            ("Enter/b", "buy"),
+            ("X", "reset ALL"),
+            ("Esc", "back"),
+        ]
     };
     view.render_help(frame, help);
 }

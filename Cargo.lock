@@ -3245,6 +3245,7 @@ version = "0.13.0"
 dependencies = [
  "anyhow",
  "arboard",
+ "base64 0.22.1",
  "beads-cli",
  "chrono",
  "crossterm 0.28.1",

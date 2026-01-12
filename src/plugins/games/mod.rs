@@ -46,8 +46,12 @@ impl GamesPlugin {
     /// Load persisted data from config file
     pub fn load_from_config(&mut self) {
         if let Ok(config) = Config::load() {
-            self.state.load_leaderboards(config.games.leaderboards);
-            if let Some(clicker_state) = config.games.clicker_state {
+            // Decode leaderboards from base64 JSON
+            self.state
+                .load_leaderboards(config.games.get_leaderboards());
+
+            // Decode clicker state from base64 JSON
+            if let Some(clicker_state) = config.games.get_clicker_state() {
                 self.state.clicker = clicker_state;
             }
         }
@@ -56,8 +60,12 @@ impl GamesPlugin {
     /// Save persisted data to config file
     pub fn save_to_config(&self) {
         if let Ok(mut config) = Config::load() {
-            config.games.leaderboards = self.state.leaderboards.clone();
-            config.games.clicker_state = Some(self.state.clicker.clone());
+            // Encode leaderboards to base64 JSON
+            config.games.set_leaderboards(&self.state.leaderboards);
+
+            // Encode clicker state to base64 JSON
+            config.games.set_clicker_state(&self.state.clicker);
+
             let _ = config.save();
         }
     }
@@ -461,6 +469,14 @@ impl Plugin for GamesPlugin {
                                 if self.state.clicker.game_over {
                                     self.state.clicker.start_new_run();
                                 }
+                                KeyHandleResult::Handled
+                            }
+                            // Full reset - wipe ALL progress
+                            KeyCode::Char('X') => {
+                                self.state.clicker.full_reset();
+                                self.save_to_config();
+                                self.state.clicker.message =
+                                    Some("All progress wiped. Starting fresh!".to_string());
                                 KeyHandleResult::Handled
                             }
                             _ => KeyHandleResult::Handled,

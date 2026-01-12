@@ -111,6 +111,7 @@ ignore = "0.4.25"
 
 # Random number generation (for games)
 rand = "0.8"
+base64 = "0.22.1"
 
 [dev-dependencies]
 tempfile = "3.15"
