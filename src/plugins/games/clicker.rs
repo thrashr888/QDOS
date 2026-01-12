@@ -1157,6 +1157,7 @@ pub struct SoulData {
 
     // Stats for fun
     pub total_runs: i32,
+    pub total_deaths: i32,
     pub best_floor: i32,
     pub total_monsters_killed: i64,
     pub total_gold_earned: i64,
@@ -2679,6 +2680,7 @@ impl ClickerState {
         // Check for death
         if self.hp <= 0 {
             self.game_over = true;
+            self.souls.total_deaths += 1;
             self.message = Some(format!(
                 "You died! Floor {}, killed {} monsters, level {}.",
                 self.dungeon_floor, self.monsters_killed, self.level
@@ -2776,6 +2778,7 @@ impl ClickerState {
         // Check for death
         if self.hp <= 0 {
             self.game_over = true;
+            self.souls.total_deaths += 1;
             self.message = Some(format!(
                 "You died! Floor {}, killed {} monsters, level {}.",
                 self.dungeon_floor, self.monsters_killed, self.level

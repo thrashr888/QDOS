@@ -604,6 +604,7 @@ impl Plugin for GamesPlugin {
                 }
             }
             Some(GameType::Clicker) => {
+                let was_alive = !self.state.clicker.game_over;
                 self.state.clicker.tick();
                 self.state.score = self.state.clicker.score();
                 // Clicker has its own death screen (ClickerView::Dead), so only transition
@@ -613,6 +614,10 @@ impl Plugin for GamesPlugin {
                     && self.state.clicker.view != clicker::ClickerView::SoulShop
                 {
                     self.state.clicker.show_death_screen();
+                }
+                // Auto-save when death happens during tick (from auto-attack damage)
+                if was_alive && self.state.clicker.game_over {
+                    self.save_to_config();
                 }
             }
             None => {}

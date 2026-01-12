@@ -1141,7 +1141,7 @@ fn draw_clicker_dead(
         frame,
         center_row + 2,
         vec![Span::styled(
-            format!("║  {:.<22} {:>22}  ║", "Floor Reached", state.dungeon_floor),
+            format!("║  {:.<23} {:>22}  ║", "Floor Reached", state.dungeon_floor),
             Style::default().fg(colors.fg()),
         )],
     );
@@ -1149,7 +1149,7 @@ fn draw_clicker_dead(
         frame,
         center_row + 3,
         vec![Span::styled(
-            format!("║  {:.<22} {:>22}  ║", "Level Reached", state.level),
+            format!("║  {:.<23} {:>22}  ║", "Level Reached", state.level),
             Style::default().fg(colors.fg()),
         )],
     );
@@ -1158,7 +1158,7 @@ fn draw_clicker_dead(
         center_row + 4,
         vec![Span::styled(
             format!(
-                "║  {:.<22} {:>22}  ║",
+                "║  {:.<23} {:>22}  ║",
                 "Monsters Slain", state.monsters_killed
             ),
             Style::default().fg(colors.fg()),
@@ -1169,7 +1169,7 @@ fn draw_clicker_dead(
         center_row + 5,
         vec![Span::styled(
             format!(
-                "║  {:.<22} {:>22}  ║",
+                "║  {:.<23} {:>22}  ║",
                 "Bosses Defeated", state.bosses_killed
             ),
             Style::default().fg(colors.fg()),
@@ -1180,7 +1180,7 @@ fn draw_clicker_dead(
         center_row + 6,
         vec![Span::styled(
             format!(
-                "║  {:.<22} {:>22}  ║",
+                "║  {:.<23} {:>22}  ║",
                 "Gold Earned", state.total_gold_earned
             ),
             Style::default().fg(colors.yellow()),
@@ -1249,7 +1249,7 @@ fn draw_clicker_soul_shop(
         frame,
         1,
         vec![Span::styled(
-            "╔═══════════════════════════════════════════════════════════════════════╗",
+            "╔════════════════════════════════════════════════════════════════════════╗",
             Style::default().fg(colors.cyan()),
         )],
     );
@@ -1257,7 +1257,7 @@ fn draw_clicker_soul_shop(
         frame,
         2,
         vec![Span::styled(
-            format!("║{:^71}║", CLICKER_SOUL_SHOP_TITLE),
+            format!("║{:^72}║", CLICKER_SOUL_SHOP_TITLE),
             Style::default()
                 .fg(colors.cyan())
                 .add_modifier(Modifier::BOLD),
@@ -1267,7 +1267,7 @@ fn draw_clicker_soul_shop(
         frame,
         3,
         vec![Span::styled(
-            format!("║{:^71}║", format!("Souls: {}", state.souls.total_souls)),
+            format!("║{:^72}║", format!("Souls: {}", state.souls.total_souls)),
             Style::default().fg(colors.yellow()),
         )],
     );
@@ -2384,6 +2384,7 @@ fn draw_leaderboard(
         let stats = [
             ("Total Souls", format!("{}", souls.total_souls)),
             ("Total Runs", format!("{}", souls.total_runs)),
+            ("Total Deaths", format!("{}", souls.total_deaths)),
             ("Best Floor", format!("{}", souls.best_floor)),
             (
                 "Monsters Killed",
