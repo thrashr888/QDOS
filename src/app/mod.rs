@@ -36,10 +36,10 @@ use crate::plugins::{
     DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DrivesPlugin, DropboxPlugin,
     EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
     HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin,
-    PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin, QEditPlugin,
-    QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, RedisPlugin, SearchSpecPlugin,
-    SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, TerraformPlugin, ThemePlugin, VideoPlugin,
-    ViewerPlugin,
+    PalettePlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
+    QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, RedisPlugin,
+    SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, TerraformPlugin,
+    ThemePlugin, VideoPlugin, ViewerPlugin,
 };
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
@@ -168,6 +168,7 @@ impl App {
         plugin_manager.register(Box::new(MidiPlugin::new()));
         plugin_manager.register(Box::new(Model3dPlugin::new()));
         plugin_manager.register(Box::new(AudioPlugin::new()));
+        plugin_manager.register(Box::new(PalettePlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));
         plugin_manager.register(Box::new(ProcPlugin::new()));
         plugin_manager.register(Box::new(QdconfigPlugin::new()));
@@ -2790,6 +2791,23 @@ impl App {
                         }
                     }
 
+                    // Collect app entries for PalettePlugin
+                    if plugin_id == "palette" {
+                        let entries = self.plugin_manager.collect_app_entries(&self.current_path);
+                        let palette_apps: Vec<_> = entries
+                            .into_iter()
+                            .map(|e| crate::plugins::palette::PaletteApp {
+                                id: e.id,
+                                name: e.name,
+                                description: e.description,
+                            })
+                            .collect();
+                        if let Some(palette_plugin) = self.plugin_manager.palette_plugin_mut() {
+                            palette_plugin.set_apps(palette_apps);
+                            palette_plugin.update_results();
+                        }
+                    }
+
                     self.modal = Modal::Plugin(plugin_id);
                 }
                 true
@@ -3006,8 +3024,20 @@ impl App {
                         self.modal = Modal::None;
                     }
                 } else if let Some(plugin_id) = msg.strip_prefix("launch:") {
-                    // Launch a plugin modal from Apps launcher
+                    // Launch a plugin modal from Apps launcher or Command Palette
                     self.launch_plugin_modal(plugin_id);
+                } else if let Some(command_name) = msg.strip_prefix("command:") {
+                    // Execute a NavItem command from Command Palette
+                    self.modal = Modal::None;
+                    if let Some(idx) = NavItem::ALL.iter().position(|n| n.as_str() == command_name)
+                    {
+                        self.nav_index = idx;
+                        let _ = self.execute_action();
+                    }
+                } else if msg.starts_with("Copied:") {
+                    // Clipboard copy from Command Palette - clipboard handled by the palette
+                    // Just close modal and show success
+                    self.modal = Modal::Success(msg);
                 } else if let Some(toggle_info) = msg.strip_prefix("plugin_toggle:") {
                     // Handle plugin enable/disable toggle from Apps launcher
                     // Format: "plugin_toggle:plugin_id:true/false"

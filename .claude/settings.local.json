@@ -55,7 +55,10 @@
       "Skill(beads:epic)",
       "Skill(beads:list)",
       "WebFetch(domain:crates.io)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "Bash(gh release edit:*)",
+      "WebFetch(domain:www.pcjs.org)",
+      "WebFetch(domain:www.dosgamesarchive.com)"
     ]
   }
 }

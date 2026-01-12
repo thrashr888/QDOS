@@ -75,7 +75,7 @@ const GAMES_TITLE_5: &str = " ▀▀▀▀   ▀   ▀  ▀   ▀  ▀▀▀▀�
 const GAMES_SEPARATOR: &str = "─═══════════════════════════════════─";
 
 /// Soul shop title
-const CLICKER_SOUL_SHOP_TITLE: &str = "S O U L   S H O P";
+const CLICKER_SOUL_SHOP_TITLE: &str = "~ S O U L   S H O P ~";
 
 /// Elite monster prefix
 const CLICKER_ELITE_PREFIX: &str = "◆ ";
@@ -1249,7 +1249,7 @@ fn draw_clicker_soul_shop(
         frame,
         1,
         vec![Span::styled(
-            "╔═════════════════════════════════════════════════════════════════════╗",
+            "╔═══════════════════════════════════════════════════════════════════════╗",
             Style::default().fg(colors.cyan()),
         )],
     );
@@ -1275,7 +1275,7 @@ fn draw_clicker_soul_shop(
         frame,
         4,
         vec![Span::styled(
-            "╠═════════════════════════════════════════════════════════════════════╣",
+            "╠════════════════════════════════════════════════════════════════════════╣",
             Style::default().fg(colors.cyan()),
         )],
     );
@@ -1331,7 +1331,7 @@ fn draw_clicker_soul_shop(
         frame,
         footer_row,
         vec![Span::styled(
-            "╚═════════════════════════════════════════════════════════════════════╝",
+            "╚════════════════════════════════════════════════════════════════════════╝",
             Style::default().fg(colors.cyan()),
         )],
     );

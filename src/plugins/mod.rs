@@ -38,6 +38,7 @@ pub mod icloud;
 pub mod jj;
 pub mod midi;
 pub mod model3d;
+pub mod palette;
 pub mod print;
 pub mod proc;
 pub mod qdconfig;
@@ -78,6 +79,7 @@ pub use icloud::ICloudPlugin;
 pub use jj::JjPlugin;
 pub use midi::MidiPlugin;
 pub use model3d::Model3dPlugin;
+pub use palette::PalettePlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
@@ -751,6 +753,13 @@ impl PluginManager {
         self.plugins
             .get_mut("qmind")
             .and_then(|p| p.as_any_mut().downcast_mut::<qmind::QMindPlugin>())
+    }
+
+    /// Get mutable reference to PalettePlugin
+    pub fn palette_plugin_mut(&mut self) -> Option<&mut palette::PalettePlugin> {
+        self.plugins
+            .get_mut("palette")
+            .and_then(|p| p.as_any_mut().downcast_mut::<palette::PalettePlugin>())
     }
 
     /// Get list of registered plugins with their info (id, name, description)
