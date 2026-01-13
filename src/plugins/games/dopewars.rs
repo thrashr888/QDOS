@@ -16,6 +16,7 @@ const INTEREST_RATE: f64 = 0.10; // 10% per day
 
 /// Product types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Product {
     Acid,
     Cocaine,
@@ -139,25 +140,27 @@ impl Market {
     }
 
     pub fn get_price(&self, product: Product) -> Option<i64> {
-        self.prices.iter()
+        self.prices
+            .iter()
             .find(|(p, _)| *p == product)
             .and_then(|(_, price)| *price)
     }
 }
 
 /// Player inventory
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Inventory {
     pub items: Vec<(Product, u32)>,
 }
 
 impl Inventory {
     pub fn new() -> Self {
-        Self { items: Vec::new() }
+        Self::default()
     }
 
     pub fn get_quantity(&self, product: Product) -> u32 {
-        self.items.iter()
+        self.items
+            .iter()
             .find(|(p, _)| *p == product)
             .map(|(_, q)| *q)
             .unwrap_or(0)
@@ -255,7 +258,9 @@ impl DopeWarsState {
             selected_product: 0,
             selected_location: 0,
             quantity_buffer: String::new(),
-            message: Some("Welcome to Dope Wars! Buy low, sell high, pay off your debt.".to_string()),
+            message: Some(
+                "Welcome to Dope Wars! Buy low, sell high, pay off your debt.".to_string(),
+            ),
             event: RandomEvent::None,
             game_over: false,
             tick_count: 0,
@@ -269,7 +274,10 @@ impl DopeWarsState {
 
     /// Calculate final score (net worth)
     pub fn score(&self) -> u32 {
-        let inventory_value: i64 = self.inventory.items.iter()
+        let inventory_value: i64 = self
+            .inventory
+            .items
+            .iter()
             .map(|(product, quantity)| {
                 let (min, max) = product.base_price_range();
                 let avg_price = (min + max) / 2;
@@ -288,7 +296,10 @@ impl DopeWarsState {
             let space_available = COAT_CAPACITY - self.inventory.total_items();
 
             if quantity > space_available {
-                self.message = Some(format!("Not enough space! Only {} slots available.", space_available));
+                self.message = Some(format!(
+                    "Not enough space! Only {} slots available.",
+                    space_available
+                ));
                 return;
             }
 
@@ -299,7 +310,12 @@ impl DopeWarsState {
 
             self.cash -= cost;
             self.inventory.add(product, quantity);
-            self.message = Some(format!("Bought {} {} for ${}", quantity, product.name(), cost));
+            self.message = Some(format!(
+                "Bought {} {} for ${}",
+                quantity,
+                product.name(),
+                cost
+            ));
             self.quantity_buffer.clear();
         }
     }
@@ -318,7 +334,12 @@ impl DopeWarsState {
             if self.inventory.remove(product, quantity) {
                 let revenue = price * (quantity as i64);
                 self.cash += revenue;
-                self.message = Some(format!("Sold {} {} for ${}", quantity, product.name(), revenue));
+                self.message = Some(format!(
+                    "Sold {} {} for ${}",
+                    quantity,
+                    product.name(),
+                    revenue
+                ));
                 self.quantity_buffer.clear();
             }
         }
@@ -354,7 +375,11 @@ impl DopeWarsState {
             self.game_over = true;
         } else if self.view != DopeWarsView::Event {
             // Only set arrival message if no event occurred
-            self.message = Some(format!("Day {}: Arrived at {}", self.day, self.location.name()));
+            self.message = Some(format!(
+                "Day {}: Arrived at {}",
+                self.day,
+                self.location.name()
+            ));
         }
 
         // Only return to market if no event is showing
@@ -395,11 +420,20 @@ impl DopeWarsState {
                     for (product, qty) in items_to_lose {
                         self.inventory.remove(product, qty);
                     }
-                    self.message = Some(format!("Officer Hardass raided you! Lost some stash and took {} damage!", damage));
-                    self.event = RandomEvent::CopsRaid { escaped: false, damage };
+                    self.message = Some(format!(
+                        "Officer Hardass raided you! Lost some stash and took {} damage!",
+                        damage
+                    ));
+                    self.event = RandomEvent::CopsRaid {
+                        escaped: false,
+                        damage,
+                    };
                 } else {
                     self.message = Some(format!("Officer Hardass tried to raid you but you fought back with your guns! -{} HP", damage));
-                    self.event = RandomEvent::CopsRaid { escaped: true, damage };
+                    self.event = RandomEvent::CopsRaid {
+                        escaped: true,
+                        damage,
+                    };
                 }
 
                 self.view = DopeWarsView::Event;
@@ -416,10 +450,16 @@ impl DopeWarsState {
 
                 if self.inventory.total_items() + quantity <= COAT_CAPACITY {
                     self.inventory.add(product, quantity);
-                    self.message = Some(format!("You found {} {} on a dead dude in the subway!", quantity, product.name()));
+                    self.message = Some(format!(
+                        "You found {} {} on a dead dude in the subway!",
+                        quantity,
+                        product.name()
+                    ));
                     self.event = RandomEvent::FindStash { product, quantity };
                 } else {
-                    self.message = Some("You found drugs on a dead guy but your trenchcoat is full!".to_string());
+                    self.message = Some(
+                        "You found drugs on a dead guy but your trenchcoat is full!".to_string(),
+                    );
                     self.event = RandomEvent::None;
                 }
                 self.view = DopeWarsView::Event;
@@ -436,12 +476,21 @@ impl DopeWarsState {
                 self.health = self.health.saturating_sub(damage);
 
                 if self.guns > 0 {
-                    self.message = Some(format!("Thugs tried to mug you! You fought back but lost ${} and {} HP", stolen, damage));
+                    self.message = Some(format!(
+                        "Thugs tried to mug you! You fought back but lost ${} and {} HP",
+                        stolen, damage
+                    ));
                 } else {
-                    self.message = Some(format!("Thugs mugged you! Lost ${} and took {} damage", stolen, damage));
+                    self.message = Some(format!(
+                        "Thugs mugged you! Lost ${} and took {} damage",
+                        stolen, damage
+                    ));
                 }
 
-                self.event = RandomEvent::Mugged { amount: stolen, damage };
+                self.event = RandomEvent::Mugged {
+                    amount: stolen,
+                    damage,
+                };
                 self.view = DopeWarsView::Event;
 
                 if self.health == 0 {
@@ -450,13 +499,17 @@ impl DopeWarsState {
                 }
             } else if event_roll < 65 {
                 // 15% of events = Gun shop
-                self.message = Some("You meet a trenchcoat dealer offering guns! Press G to buy.".to_string());
+                self.message =
+                    Some("You meet a trenchcoat dealer offering guns! Press G to buy.".to_string());
                 self.event = RandomEvent::GunShop;
                 self.view = DopeWarsView::Event;
             } else if event_roll < 80 && self.cash > 1000 && self.inventory.total_items() > 0 {
                 // 15% of events = Officer offers bribe
                 let bribe = rng.gen_range(1000..=3000).min(self.cash);
-                self.message = Some(format!("Officer Hardass: I need ${} or I'm taking you in!", bribe));
+                self.message = Some(format!(
+                    "Officer Hardass: I need ${} or I'm taking you in!",
+                    bribe
+                ));
                 self.event = RandomEvent::OfficerOffer { bribe };
                 self.view = DopeWarsView::Event;
             } else if event_roll < 95 && self.debt > 1000 {
@@ -466,7 +519,11 @@ impl DopeWarsState {
                     self.cash -= payment;
                     self.debt -= payment * 2;
                     self.debt = self.debt.max(0);
-                    self.message = Some(format!("The loan shark liked your face. Paid ${}, debt reduced by ${}", payment, payment * 2));
+                    self.message = Some(format!(
+                        "The loan shark liked your face. Paid ${}, debt reduced by ${}",
+                        payment,
+                        payment * 2
+                    ));
                     self.event = RandomEvent::LoanShark { paid_off: payment };
                     self.view = DopeWarsView::Event;
                 }
@@ -474,7 +531,10 @@ impl DopeWarsState {
                 // 5% of events = Free health
                 let heal = rng.gen_range(20..=40);
                 self.health = (self.health + heal).min(100);
-                self.message = Some(format!("A nice old lady bandages your wounds. +{} HP", heal));
+                self.message = Some(format!(
+                    "A nice old lady bandages your wounds. +{} HP",
+                    heal
+                ));
                 self.event = RandomEvent::None;
                 self.view = DopeWarsView::Event;
             }
@@ -506,13 +566,19 @@ impl DopeWarsState {
         if let RandomEvent::OfficerOffer { bribe } = self.event {
             if self.cash >= bribe {
                 self.cash -= bribe;
-                self.message = Some(format!("Paid ${} bribe to Officer Hardass. He let you go.", bribe));
+                self.message = Some(format!(
+                    "Paid ${} bribe to Officer Hardass. He let you go.",
+                    bribe
+                ));
             } else {
                 // Can't afford, lose everything
                 self.cash = 0;
                 self.inventory = Inventory::new();
                 self.health = self.health.saturating_sub(20);
-                self.message = Some("You couldn't pay! Officer Hardass took everything and beat you up!".to_string());
+                self.message = Some(
+                    "You couldn't pay! Officer Hardass took everything and beat you up!"
+                        .to_string(),
+                );
 
                 if self.health == 0 {
                     self.game_over = true;
@@ -556,7 +622,10 @@ impl DopeWarsState {
         if amount > 0 {
             self.cash -= amount;
             self.debt -= amount;
-            self.message = Some(format!("Paid ${} toward debt. Remaining: ${}", amount, self.debt));
+            self.message = Some(format!(
+                "Paid ${} toward debt. Remaining: ${}",
+                amount, self.debt
+            ));
         }
     }
 

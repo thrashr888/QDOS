@@ -2,6 +2,8 @@
 //!
 //! A classic ASCII dungeon crawler roguelike.
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
+use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 
 /// Board dimensions
@@ -262,6 +264,7 @@ pub struct RogueState {
     pub explored: [[bool; BOARD_WIDTH]; BOARD_HEIGHT],
     pub visible: [[bool; BOARD_WIDTH]; BOARD_HEIGHT], // Currently visible tiles (shadowcasting)
     tick_counter: u32,
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for RogueState {
@@ -297,8 +300,10 @@ impl RogueState {
             explored: [[false; BOARD_WIDTH]; BOARD_HEIGHT],
             visible: [[false; BOARD_WIDTH]; BOARD_HEIGHT],
             tick_counter: 0,
+            pending_events: Vec::new(),
         };
         state.generate_dungeon();
+        state.pending_events.push(GameEvent::GameStarted);
         state
     }
 
@@ -317,6 +322,7 @@ impl RogueState {
 
     pub fn reset(&mut self) {
         *self = Self::new();
+        self.pending_events.push(GameEvent::GameStarted);
     }
 
     fn generate_dungeon(&mut self) {
@@ -636,13 +642,25 @@ impl RogueState {
         let monster = &self.monsters[idx];
         if monster.health <= 0 {
             let xp = monster.monster_type.xp();
+            let monster_name = format!("{:?}", monster.monster_type);
             self.add_message(format!(
                 "Killed {}! +{} XP",
                 monster.monster_type.char(),
                 xp
             ));
+            let old_score = self.gold;
             self.xp += xp;
             self.monsters.remove(idx);
+
+            // Emit events
+            self.pending_events.push(GameEvent::EnemyDefeated {
+                enemy_type: monster_name,
+            });
+            self.pending_events.push(GameEvent::ScoreChanged {
+                old: old_score,
+                new: self.gold,
+            });
+
             self.check_level_up();
         } else {
             // Monster attacks back
@@ -657,6 +675,8 @@ impl RogueState {
             if self.health <= 0 {
                 self.game_over = true;
                 self.add_message("You died!");
+                self.pending_events
+                    .push(GameEvent::GameEnded { won: false });
             }
         }
     }
@@ -671,6 +691,8 @@ impl RogueState {
             self.attack += 2;
             self.defense += 1;
             self.add_message(format!("Level up! Now level {}", self.level));
+            self.pending_events
+                .push(GameEvent::LevelReached(self.level));
         }
     }
 
@@ -763,13 +785,16 @@ impl RogueState {
         if self.dungeon_level > 10 {
             self.game_won = true;
             self.add_message("You escaped the dungeon! You win!");
+            self.pending_events.push(GameEvent::GameEnded { won: true });
         } else {
             self.add_message(format!("Descending to level {}...", self.dungeon_level));
+            self.pending_events
+                .push(GameEvent::FloorReached(self.dungeon_level));
             self.generate_dungeon();
         }
     }
 
-    pub fn tick(&mut self) {
+    fn tick_internal(&mut self) {
         if self.game_over || self.game_won {
             return;
         }
@@ -791,6 +816,8 @@ impl RogueState {
                 if self.health <= 0 {
                     self.game_over = true;
                     self.add_message("You starved to death!");
+                    self.pending_events
+                        .push(GameEvent::GameEnded { won: false });
                 }
             } else if self.hunger == 300 {
                 self.add_message("You are getting hungry.");
@@ -1104,7 +1131,95 @@ impl RogueState {
             if self.health <= 0 {
                 self.game_over = true;
                 self.add_message("You died!");
+                self.pending_events
+                    .push(GameEvent::GameEnded { won: false });
             }
+        }
+    }
+}
+
+// === GameEngine Implementation ===
+
+impl GameEngine for RogueState {
+    fn tick(&mut self) {
+        self.tick_internal();
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.move_player(0, -1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.move_player(0, 1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                self.move_player(-1, 0);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right | KeyCode::Char('l') => {
+                self.move_player(1, 0);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('y') => {
+                self.move_player(-1, -1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('u') => {
+                self.move_player(1, -1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('b') => {
+                self.move_player(-1, 1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('n') => {
+                self.move_player(1, 1);
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('s') => {
+                self.search();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('.') | KeyCode::Char(' ') => {
+                // Rest/wait
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => KeyHandleResult::RequestPause,
+            KeyCode::Esc => KeyHandleResult::RequestQuit,
+            _ => KeyHandleResult::NotHandled,
+        }
+    }
+
+    fn get_score(&self) -> u32 {
+        self.gold
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn is_game_won(&self) -> bool {
+        self.game_won
+    }
+
+    fn get_level(&self) -> Option<u32> {
+        Some(self.dungeon_level)
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "dungeon_level" => Some(self.dungeon_level as u64),
+            "player_level" => Some(self.level as u64),
+            "gold" => Some(self.gold as u64),
+            "health" => Some(self.health as u64),
+            _ => None,
         }
     }
 }

@@ -1,5 +1,7 @@
 //! Tetris game implementation
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
+use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 
 pub const BOARD_WIDTH: usize = 10;
@@ -121,6 +123,9 @@ pub struct TetrisState {
     pub lines_cleared: u32,
     pub game_over: bool,
     pub tick_count: u32,
+
+    /// Pending events for platform processing
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for TetrisState {
@@ -140,6 +145,7 @@ impl TetrisState {
             lines_cleared: 0,
             game_over: false,
             tick_count: 0,
+            pending_events: Vec::new(),
         }
     }
 
@@ -152,7 +158,9 @@ impl TetrisState {
         self.lines_cleared = 0;
         self.game_over = false;
         self.tick_count = 0;
+        self.pending_events.clear();
         self.spawn_piece();
+        self.pending_events.push(GameEvent::GameStarted);
     }
 
     pub fn spawn_piece(&mut self) {
@@ -281,6 +289,8 @@ impl TetrisState {
             }
 
             // Update score (classic scoring)
+            let old_score = self.score;
+            let old_level = self.level;
             self.lines_cleared += cleared;
             self.score += match cleared {
                 1 => 100 * self.level,
@@ -292,11 +302,22 @@ impl TetrisState {
 
             // Level up every 10 lines
             self.level = 1 + self.lines_cleared / 10;
+
+            // Emit events
+            self.pending_events.push(GameEvent::LinesCleared(cleared));
+            self.pending_events.push(GameEvent::ScoreChanged {
+                old: old_score,
+                new: self.score,
+            });
+            if self.level > old_level {
+                self.pending_events
+                    .push(GameEvent::LevelReached(self.level));
+            }
         }
     }
 
     /// Called each game tick
-    pub fn tick(&mut self) {
+    fn tick_internal(&mut self) {
         if self.game_over {
             return;
         }
@@ -311,6 +332,66 @@ impl TetrisState {
             if !self.soft_drop() {
                 self.lock_piece();
             }
+        }
+    }
+}
+
+// === GameEngine Implementation ===
+
+impl GameEngine for TetrisState {
+    fn tick(&mut self) {
+        self.tick_internal();
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match key.code {
+            KeyCode::Left => {
+                self.move_left();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Right => {
+                self.move_right();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Up => {
+                self.rotate();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Down => {
+                self.soft_drop();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char(' ') => {
+                self.hard_drop();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => KeyHandleResult::RequestPause,
+            KeyCode::Esc => KeyHandleResult::RequestQuit,
+            _ => KeyHandleResult::NotHandled,
+        }
+    }
+
+    fn get_score(&self) -> u32 {
+        self.score
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn get_level(&self) -> Option<u32> {
+        Some(self.level)
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "lines_cleared" => Some(self.lines_cleared as u64),
+            "level" => Some(self.level as u64),
+            _ => None,
         }
     }
 }

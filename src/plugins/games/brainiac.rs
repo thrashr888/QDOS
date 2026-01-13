@@ -2,7 +2,9 @@
 //!
 //! Dynamic trivia powered by Claude API with age-adaptive difficulty.
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crate::plugins::qmind::api::{chat::create_chat_provider, AIApiConfig};
+use crossterm::event::{KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 
 /// Trivia categories
@@ -201,6 +203,9 @@ pub struct BrainiacState {
 
     // Deferred generation (so Loading UI can render first)
     pub pending_generation: bool,
+
+    // GameEngine events
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for BrainiacState {
@@ -237,6 +242,7 @@ impl BrainiacState {
             celebration_frame: 0,
             api_available: api_config.is_configured(),
             pending_generation: false,
+            pending_events: Vec::new(),
         }
     }
 
@@ -258,6 +264,7 @@ impl BrainiacState {
         self.error_message = None;
         self.setup_cursor = 0;
         self.pending_generation = false;
+        self.pending_events.clear();
     }
 
     /// Check if API is available
@@ -284,6 +291,7 @@ impl BrainiacState {
         self.total_time_bonus = 0;
         self.error_message = None;
         self.pending_generation = true; // Will be processed in tick()
+        self.pending_events.push(GameEvent::GameStarted);
     }
 
     /// Generate questions using AI
@@ -410,14 +418,24 @@ Guidelines for {} age group:
                 1.0
             };
 
+            let old_score = self.score;
             let points = ((base_points + time_bonus) as f64 * streak_multiplier) as u32;
             self.score += points;
             self.correct_count += 1;
+
+            self.pending_events
+                .push(GameEvent::QuestionAnswered { correct: true });
+            self.pending_events.push(GameEvent::ScoreChanged {
+                old: old_score,
+                new: self.score,
+            });
         } else {
             self.streak = 0;
             if self.game_mode == GameMode::Marathon {
                 self.lives = self.lives.saturating_sub(1);
             }
+            self.pending_events
+                .push(GameEvent::QuestionAnswered { correct: false });
         }
 
         self.view = BrainiacView::Feedback;
@@ -433,6 +451,9 @@ Guidelines for {} age group:
             || (self.game_mode == GameMode::Marathon && self.lives == 0)
         {
             self.view = BrainiacView::GameOver;
+            // Winning is completing all questions with lives remaining
+            let won = self.current_question >= self.questions.len() && self.lives > 0;
+            self.pending_events.push(GameEvent::GameEnded { won });
             return;
         }
 
@@ -719,6 +740,134 @@ pub fn fallback_questions() -> Vec<TriviaQuestion> {
             category: TriviaCategory::Literature,
         },
     ]
+}
+
+// === GameEngine Implementation ===
+
+impl GameEngine for BrainiacState {
+    fn tick(&mut self) {
+        self.brain_frame = (self.brain_frame + 1) % 4;
+
+        match self.view {
+            BrainiacView::Playing => {
+                self.tick_counter += 1;
+                if self.tick_counter >= 10 {
+                    self.tick_counter = 0;
+                    if self.time_remaining > 0 {
+                        self.time_remaining -= 1;
+                    } else {
+                        // Time's up - treat as wrong answer
+                        self.last_correct = false;
+                        self.streak = 0;
+                        if self.game_mode == GameMode::Marathon {
+                            self.lives = self.lives.saturating_sub(1);
+                        }
+                        self.pending_events
+                            .push(GameEvent::QuestionAnswered { correct: false });
+                        self.view = BrainiacView::Feedback;
+                        self.feedback_timer = 50;
+                    }
+                }
+            }
+            BrainiacView::Feedback => {
+                if self.feedback_timer > 0 {
+                    self.feedback_timer -= 1;
+                } else {
+                    self.next_question();
+                }
+                self.celebration_frame = (self.celebration_frame + 1) % 8;
+            }
+            BrainiacView::Loading => {
+                if self.pending_generation {
+                    self.pending_generation = false;
+                    self.generate_questions();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match self.view {
+            BrainiacView::Setup => match key.code {
+                KeyCode::Up => {
+                    self.setup_up();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.setup_down();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Left => {
+                    self.setup_left();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Right => {
+                    self.setup_right();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter => {
+                    if self.setup_cursor == 3 {
+                        self.start_game();
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            BrainiacView::Playing => match key.code {
+                KeyCode::Up => {
+                    self.answer_up();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.answer_down();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter | KeyCode::Char(' ') => {
+                    self.select_answer();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            BrainiacView::GameOver | BrainiacView::Error => match key.code {
+                KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('r') | KeyCode::Char('R') => {
+                    self.reset();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            _ => KeyHandleResult::NotHandled,
+        }
+    }
+
+    fn get_score(&self) -> u32 {
+        self.final_score()
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.view == BrainiacView::GameOver
+    }
+
+    fn is_game_won(&self) -> bool {
+        self.view == BrainiacView::GameOver
+            && self.correct_count >= self.game_mode.question_count() as u32
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "correct" => Some(self.correct_count as u64),
+            "streak" => Some(self.best_streak as u64),
+            "accuracy" => Some(self.accuracy() as u64),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

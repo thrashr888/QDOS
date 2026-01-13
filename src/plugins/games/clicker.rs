@@ -3,6 +3,8 @@
 //! Based on "The Rogue Clicker" concept.
 //! Fight monsters, gain gold and XP, level up, buy upgrades.
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
+use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -1554,6 +1556,10 @@ pub struct ClickerState {
 
     // Transmutation filter (auto-transmute setting)
     pub transmute_filter: TransmuteFilter,
+
+    // GameEngine events
+    #[serde(skip)]
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for ClickerState {
@@ -1665,7 +1671,10 @@ impl ClickerState {
             zoo_kill_counter: 0,
             particles: Vec::new(),
             transmute_filter: TransmuteFilter::Off,
+            pending_events: Vec::new(),
         };
+
+        state.pending_events.push(GameEvent::GameStarted);
 
         // Apply ascension class bonuses
         state.apply_class_bonuses();
@@ -1710,6 +1719,9 @@ impl ClickerState {
         }
         self.souls.total_monsters_killed += self.monsters_killed as i64;
         self.souls.total_gold_earned += self.total_gold_earned;
+
+        // Emit prestige event
+        self.pending_events.push(GameEvent::Prestiged);
 
         // Clear souls earned this run (they've been claimed)
         self.souls.souls_earned_this_run = 0;
@@ -2620,6 +2632,13 @@ impl ClickerState {
                     self.bosses_killed += 1;
                 }
 
+                // Emit event
+                self.pending_events.push(GameEvent::EnemyDefeated {
+                    enemy_type: monster_name.clone(),
+                });
+                self.pending_events
+                    .push(GameEvent::GoldEarned(total_gold as u64));
+
                 // Track zoo kills
                 self.zoo_monster_killed();
 
@@ -2763,6 +2782,8 @@ impl ClickerState {
                 let monster_xp = monster.xp;
                 let was_boss = monster.is_boss;
 
+                let monster_name = monster.name.clone();
+
                 self.gold += total_gold;
                 self.total_gold_earned += total_gold;
                 self.xp += monster_xp;
@@ -2770,6 +2791,13 @@ impl ClickerState {
                 if was_boss {
                     self.bosses_killed += 1;
                 }
+
+                // Emit event
+                self.pending_events.push(GameEvent::EnemyDefeated {
+                    enemy_type: monster_name,
+                });
+                self.pending_events
+                    .push(GameEvent::GoldEarned(total_gold as u64));
 
                 // Decrement gold rush kills if active
                 for buff in &mut self.buffs {
@@ -2793,6 +2821,8 @@ impl ClickerState {
                 "You died! Floor {}, killed {} monsters, level {}.",
                 self.dungeon_floor, self.monsters_killed, self.level
             ));
+            self.pending_events
+                .push(GameEvent::GameEnded { won: false });
         }
     }
 
@@ -3410,6 +3440,135 @@ impl ClickerState {
     /// Check if Fury synergy is active (3x crit damage)
     pub fn has_fury_synergy(&self) -> bool {
         self.active_synergies().contains(&ShardSynergy::Fury)
+    }
+}
+
+// === GameEngine Implementation ===
+
+impl GameEngine for ClickerState {
+    fn tick(&mut self) {
+        if self.game_over {
+            return;
+        }
+
+        self.tick += 1;
+
+        // Process buffs
+        self.process_buffs();
+
+        // Auto-attack with soul speed bonus
+        if self.auto_attack {
+            self.auto_attack_timer += 1;
+            let speed_mult = self.attack_speed_multiplier();
+            let attack_interval = (20.0 / speed_mult) as u32;
+            if self.auto_attack_timer >= attack_interval.max(1) {
+                self.auto_attack_timer = 0;
+                if self.combat_lanes > 1 {
+                    self.hit_all_lanes();
+                } else {
+                    self.hit();
+                }
+            }
+        }
+
+        // Auto-eat when HP is below threshold
+        if self.auto_eat && self.auto_eat_threshold > 0 && self.food > 0 {
+            let threshold_hp = self.max_hp * self.auto_eat_threshold / 100;
+            if self.hp < threshold_hp {
+                self.auto_eat_timer += 1;
+                if self.auto_eat_timer >= 40 {
+                    self.auto_eat_timer = 0;
+                    self.eat();
+                }
+            }
+        }
+
+        // Auto-quaff (simplified for GameEngine - let internal handle full logic)
+        if self.auto_quaff {
+            self.auto_quaff_timer += 1;
+            if self.auto_quaff_timer >= 20 {
+                self.auto_quaff_timer = 0;
+                // Priority: healing when HP is low
+                if self.hp < self.max_hp * 3 / 10 {
+                    if let Some(idx) = self
+                        .inventory
+                        .iter()
+                        .position(|item| matches!(item, Item::Potion(PotionType::Healing)))
+                    {
+                        self.use_item(idx);
+                    }
+                }
+            }
+        }
+
+        // Process monster queue
+        if self.current_monster.is_none() && !self.monster_queue.is_empty() {
+            self.current_monster = Some(self.monster_queue.remove(0));
+        }
+
+        // Respawn monsters in empty lanes
+        for i in 0..self.combat_lanes {
+            if i < self.monsters.len() && self.monsters[i].is_none() {
+                self.monsters[i] = Some(Monster::spawn(self.dungeon_level, false));
+            }
+        }
+
+        // Update floor display
+        if self.tick.is_multiple_of(3) {
+            self.floor.rotate_left(1);
+            let last = self.floor.len() - 1;
+            self.floor[last] = Scenery::random();
+
+            for lane_floor in &mut self.floors {
+                if !lane_floor.is_empty() {
+                    lane_floor.rotate_left(1);
+                    let last_idx = lane_floor.len() - 1;
+                    lane_floor[last_idx] = Scenery::random();
+                }
+            }
+        }
+
+        // New systems
+        self.tick_zoo();
+        self.check_zoo_trigger();
+        self.tick_particles();
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        // Clicker uses internal handle_key via mod.rs dispatcher
+        // Just handle basic navigation here
+        match key.code {
+            KeyCode::Char(' ') => {
+                self.hit();
+                KeyHandleResult::Handled
+            }
+            KeyCode::Esc => KeyHandleResult::RequestQuit,
+            _ => KeyHandleResult::NotHandled,
+        }
+    }
+
+    fn get_score(&self) -> u32 {
+        self.score()
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "gold" => Some(self.gold.max(0) as u64),
+            "monsters_killed" => Some(self.monsters_killed as u64),
+            "bosses_killed" => Some(self.bosses_killed as u64),
+            "level" => Some(self.level as u64),
+            "floor" => Some(self.dungeon_floor as u64),
+            "prestige_count" => Some(self.souls.total_runs as u64),
+            _ => None,
+        }
     }
 }
 

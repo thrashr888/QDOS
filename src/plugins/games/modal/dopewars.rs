@@ -42,7 +42,9 @@ fn draw_market(
         vec![
             Span::styled(
                 format!("Day {}/{} ", state.day, 30),
-                Style::default().fg(colors.yellow()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.yellow())
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!("  Location: {} ", state.location.name()),
@@ -59,13 +61,12 @@ fn draw_market(
             Span::styled("Cash: $", Style::default().fg(colors.grey())),
             Span::styled(
                 format!("{}", state.cash),
-                Style::default().fg(colors.green()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.green())
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled("  Debt: $", Style::default().fg(colors.grey())),
-            Span::styled(
-                format!("{}", state.debt),
-                Style::default().fg(colors.red()),
-            ),
+            Span::styled(format!("{}", state.debt), Style::default().fg(colors.red())),
             Span::styled("  Space: ", Style::default().fg(colors.grey())),
             Span::styled(
                 format!("{}/100", state.inventory.total_items()),
@@ -138,7 +139,9 @@ fn draw_market(
         };
 
         let style = if selected {
-            Style::default().fg(colors.yellow()).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(colors.yellow())
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(colors.fg())
         };
@@ -150,7 +153,10 @@ fn draw_market(
                 Span::styled(cursor, Style::default().fg(colors.red())),
                 Span::styled(format!("{:<12} ", product.name()), style),
                 Span::styled(price_str, style),
-                Span::styled(format!("    {}", inv_str), Style::default().fg(colors.cyan())),
+                Span::styled(
+                    format!("    {}", inv_str),
+                    Style::default().fg(colors.cyan()),
+                ),
             ],
         );
         row += 1;
@@ -172,7 +178,9 @@ fn draw_market(
             Span::styled("Quantity: ", Style::default().fg(colors.grey())),
             Span::styled(
                 qty_display,
-                Style::default().fg(colors.green()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.green())
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(" (type number)", Style::default().fg(colors.grey())),
         ],
@@ -243,7 +251,9 @@ fn draw_travel(
             Span::styled(
                 location.name(),
                 if selected {
-                    Style::default().fg(colors.yellow()).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(colors.yellow())
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(colors.fg())
                 },
@@ -264,11 +274,7 @@ fn draw_travel(
     // Help text
     view.render_help(
         frame,
-        vec![
-            ("↑↓", "select"),
-            ("Enter", "travel"),
-            ("Esc", "back"),
-        ],
+        vec![("↑↓", "select"), ("Enter", "travel"), ("Esc", "back")],
     );
 }
 
@@ -299,7 +305,9 @@ fn draw_status(
             Span::styled("Days Remaining: ", Style::default().fg(colors.grey())),
             Span::styled(
                 format!("{}", days_left),
-                Style::default().fg(colors.cyan()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.cyan())
+                    .add_modifier(Modifier::BOLD),
             ),
         ],
     );
@@ -313,7 +321,9 @@ fn draw_status(
             Span::styled("Cash: ", Style::default().fg(colors.grey())),
             Span::styled(
                 format!("${}", state.cash),
-                Style::default().fg(colors.green()).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors.green())
+                    .add_modifier(Modifier::BOLD),
             ),
         ],
     );
@@ -409,7 +419,10 @@ fn draw_status(
     row += 1;
 
     // Net worth
-    let inventory_value: i64 = state.inventory.items.iter()
+    let inventory_value: i64 = state
+        .inventory
+        .items
+        .iter()
         .map(|(product, quantity)| {
             let (min, max) = product.base_price_range();
             let avg_price = (min + max) / 2;
@@ -427,7 +440,9 @@ fn draw_status(
             Span::styled(
                 format!("${}", net_worth),
                 if net_worth >= 0 {
-                    Style::default().fg(colors.green()).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(colors.green())
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(colors.red())
                 },
@@ -489,10 +504,7 @@ fn draw_event(
                 row,
                 vec![
                     Span::styled("Damage taken: ", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{} HP", damage),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{} HP", damage), Style::default().fg(colors.red())),
                     Span::styled("  Health: ", Style::default().fg(colors.grey())),
                     Span::styled(
                         format!("{}/100", state.health),
@@ -516,7 +528,9 @@ fn draw_event(
                     Span::styled("Found: ", Style::default().fg(colors.grey())),
                     Span::styled(
                         format!("{} {} ", quantity, product.name()),
-                        Style::default().fg(colors.green()).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(colors.green())
+                            .add_modifier(Modifier::BOLD),
                     ),
                 ],
             );
@@ -530,15 +544,9 @@ fn draw_event(
                 row,
                 vec![
                     Span::styled("Lost: $", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{}", amount),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{}", amount), Style::default().fg(colors.red())),
                     Span::styled("  Damage: ", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{} HP", damage),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{} HP", damage), Style::default().fg(colors.red())),
                 ],
             );
             row += 1;
@@ -569,14 +577,13 @@ fn draw_event(
                 row,
                 vec![
                     Span::styled("Paid: $", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{}", paid_off),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{}", paid_off), Style::default().fg(colors.red())),
                     Span::styled("  Debt reduced by: $", Style::default().fg(colors.grey())),
                     Span::styled(
                         format!("{}", paid_off * 2),
-                        Style::default().fg(colors.green()).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(colors.green())
+                            .add_modifier(Modifier::BOLD),
                     ),
                 ],
             );
@@ -586,10 +593,7 @@ fn draw_event(
                 row,
                 vec![
                     Span::styled("New debt: $", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{}", state.debt),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{}", state.debt), Style::default().fg(colors.red())),
                 ],
             );
 
@@ -622,10 +626,7 @@ fn draw_event(
                 ],
             );
 
-            view.render_help(
-                frame,
-                vec![("G", "buy guns"), ("N", "no thanks")],
-            );
+            view.render_help(frame, vec![("G", "buy guns"), ("N", "no thanks")]);
         }
         RandomEvent::OfficerOffer { bribe } => {
             row += 1;
@@ -648,10 +649,7 @@ fn draw_event(
                         Style::default().fg(colors.green()),
                     ),
                     Span::styled("  Bribe: $", Style::default().fg(colors.grey())),
-                    Span::styled(
-                        format!("{}", bribe),
-                        Style::default().fg(colors.red()),
-                    ),
+                    Span::styled(format!("{}", bribe), Style::default().fg(colors.red())),
                 ],
             );
             row += 1;
@@ -675,10 +673,7 @@ fn draw_event(
                 ],
             );
 
-            view.render_help(
-                frame,
-                vec![("P", "pay bribe"), ("F", "fight/refuse")],
-            );
+            view.render_help(frame, vec![("P", "pay bribe"), ("F", "fight/refuse")]);
         }
         _ => {
             view.render_help(frame, vec![("Esc/Enter/Space", "continue")]);

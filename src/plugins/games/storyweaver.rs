@@ -2,7 +2,9 @@
 //!
 //! Interactive fiction powered by Claude API with branching paths.
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crate::plugins::qmind::api::{chat::create_chat_provider, AIApiConfig};
+use crossterm::event::{KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 
 /// Pre-made story templates
@@ -232,6 +234,9 @@ pub struct StoryweaverState {
     // Deferred generation (so Loading UI can render first)
     pub pending_generation: bool,
     pub pending_choice: Option<(char, String)>, // (choice_label, choice_text) for continue
+
+    // GameEngine events
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for StoryweaverState {
@@ -263,6 +268,7 @@ impl StoryweaverState {
             api_available: api_config.is_configured(),
             pending_generation: false,
             pending_choice: None,
+            pending_events: Vec::new(),
         }
     }
 
@@ -285,6 +291,7 @@ impl StoryweaverState {
         self.text_reveal = 0;
         self.pending_generation = false;
         self.pending_choice = None;
+        self.pending_events.clear();
     }
 
     pub fn is_api_available(&self) -> bool {
@@ -304,6 +311,7 @@ impl StoryweaverState {
         self.error_message = None;
         self.pending_generation = true; // Will be processed in tick()
         self.pending_choice = None;
+        self.pending_events.push(GameEvent::GameStarted);
     }
 
     /// Start a custom story
@@ -323,6 +331,7 @@ impl StoryweaverState {
         self.error_message = None;
         self.pending_generation = true; // Will be processed in tick()
         self.pending_choice = None;
+        self.pending_events.push(GameEvent::GameStarted);
     }
 
     /// Generate the opening chapter
@@ -387,6 +396,7 @@ Guidelines:
                     self.view = StoryweaverView::Playing;
                     self.text_reveal = 0;
                     self.chapters_read = 1;
+                    self.pending_events.push(GameEvent::ChapterCompleted);
                 } else {
                     self.error_message = Some("Failed to parse story chapter".to_string());
                     self.view = StoryweaverView::Error;
@@ -494,8 +504,12 @@ For an ending, use empty choices array:
                     self.text_reveal = 0;
                     self.chapters_read += 1;
 
+                    self.pending_events.push(GameEvent::ChapterCompleted);
+
                     if is_ending {
                         self.view = StoryweaverView::GameOver;
+                        self.pending_events.push(GameEvent::StoryCompleted);
+                        self.pending_events.push(GameEvent::GameEnded { won: true });
                     } else {
                         self.view = StoryweaverView::Playing;
                     }
@@ -679,6 +693,144 @@ fn parse_chapter(response: &str) -> Result<StoryChapter, ()> {
             .collect(),
         scene_art: parsed.scene_art,
     })
+}
+
+// === GameEngine Implementation ===
+
+impl GameEngine for StoryweaverState {
+    fn tick(&mut self) {
+        self.loading_frame = (self.loading_frame + 1) % 8;
+
+        // Process deferred generation
+        if self.view == StoryweaverView::Loading {
+            if self.pending_generation {
+                self.pending_generation = false;
+                self.generate_opening();
+            } else if let Some((choice_label, choice_text)) = self.pending_choice.take() {
+                self.generate_continuation(choice_label, choice_text);
+            }
+        }
+
+        // Typewriter effect for text reveal
+        if self.view == StoryweaverView::Playing {
+            if let Some(chapter) = self.chapters.get(self.current_chapter) {
+                if self.text_reveal < chapter.narrative.len() {
+                    self.text_reveal += 3;
+                }
+            }
+        }
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match self.view {
+            StoryweaverView::StorySelect => match key.code {
+                KeyCode::Up => {
+                    self.story_up();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.story_down();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter => {
+                    let templates = StoryTemplate::all();
+                    if self.selected_story < templates.len() {
+                        self.start_story(templates[self.selected_story]);
+                    } else {
+                        self.view = StoryweaverView::CustomCreate;
+                    }
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            StoryweaverView::CustomCreate => match key.code {
+                KeyCode::Up => {
+                    self.custom_up();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.custom_down();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Left if self.custom_cursor == 1 => {
+                    self.tone_left();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Right if self.custom_cursor == 1 => {
+                    self.tone_right();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter if self.custom_cursor == 2 => {
+                    self.start_custom_story();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char(c) if self.custom_cursor == 0 => {
+                    self.add_premise_char(c);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Backspace if self.custom_cursor == 0 => {
+                    self.backspace_premise();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => {
+                    self.view = StoryweaverView::StorySelect;
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::NotHandled,
+            },
+            StoryweaverView::Playing => match key.code {
+                KeyCode::Up => {
+                    self.choice_up();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down => {
+                    self.choice_down();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Enter | KeyCode::Char(' ') => {
+                    self.make_choice();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            StoryweaverView::GameOver | StoryweaverView::Error => match key.code {
+                KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('r') | KeyCode::Char('R') => {
+                    self.reset();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Esc => KeyHandleResult::RequestQuit,
+                _ => KeyHandleResult::NotHandled,
+            },
+            _ => KeyHandleResult::NotHandled,
+        }
+    }
+
+    fn get_score(&self) -> u32 {
+        self.final_score()
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.view == StoryweaverView::GameOver
+    }
+
+    fn is_game_won(&self) -> bool {
+        // Story games are always "won" when completed
+        self.view == StoryweaverView::GameOver
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "chapters" => Some(self.chapters_read as u64),
+            "choices" => Some(self.total_choices as u64),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

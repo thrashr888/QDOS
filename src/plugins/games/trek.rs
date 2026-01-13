@@ -3,6 +3,8 @@
 //! A classic tactical space combat game where you command the USS Enterprise
 //! through an 8x8 galaxy, hunting Klingons while managing energy and time.
 
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
+use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 
 /// Galaxy dimensions (8x8 quadrants)
@@ -151,6 +153,8 @@ pub struct TrekState {
     // Navigation target
     pub nav_course: Option<f32>,
     pub nav_warp: Option<f32>,
+
+    pending_events: Vec<GameEvent>,
 }
 
 impl Default for TrekState {
@@ -187,8 +191,10 @@ impl TrekState {
             sector_klingons: Vec::new(),
             nav_course: None,
             nav_warp: None,
+            pending_events: Vec::new(),
         };
         state.initialize_galaxy();
+        state.pending_events.push(GameEvent::GameStarted);
         state
     }
 
@@ -364,7 +370,7 @@ impl TrekState {
         }
     }
 
-    pub fn handle_key(&mut self, key: char) {
+    fn handle_char(&mut self, key: char) {
         if self.game_over || self.game_won {
             return;
         }
@@ -692,6 +698,7 @@ impl TrekState {
                 self.sector_klingons.remove(i);
                 self.klingons_remaining -= 1;
                 self.galaxy[self.quadrant_y][self.quadrant_x].klingons -= 1;
+                self.pending_events.push(GameEvent::KlingonDestroyed);
             } else {
                 i += 1;
             }
@@ -768,6 +775,7 @@ impl TrekState {
                         self.sector_klingons.remove(idx);
                         self.klingons_remaining -= 1;
                         self.galaxy[self.quadrant_y][self.quadrant_x].klingons -= 1;
+                        self.pending_events.push(GameEvent::KlingonDestroyed);
                     }
                     self.sector[ty as usize][tx as usize] = SectorEntity::Empty;
                     self.message = format!("*** KLINGON DESTROYED at {}-{} ***", tx + 1, ty + 1);
@@ -1011,19 +1019,86 @@ impl TrekState {
         if self.klingons_remaining == 0 {
             self.game_won = true;
             self.message = "*** CONGRATULATIONS! All Klingons destroyed! ***".to_string();
+            self.pending_events.push(GameEvent::GameEnded { won: true });
         } else if self.stardate >= self.stardate_end {
             self.game_over = true;
             self.message = "*** TIME EXPIRED! Mission failed! ***".to_string();
+            self.pending_events
+                .push(GameEvent::GameEnded { won: false });
         } else if self.energy <= 0 {
             self.game_over = true;
             self.message = "*** ENTERPRISE DESTROYED! ***".to_string();
+            self.pending_events
+                .push(GameEvent::GameEnded { won: false });
         } else if self.starbases_remaining == 0 && self.energy < 100 && self.shields == 0 {
             self.game_over = true;
             self.message = "*** Stranded in space with no starbases! ***".to_string();
+            self.pending_events
+                .push(GameEvent::GameEnded { won: false });
         }
     }
+}
 
-    pub fn tick(&mut self) {
-        // Game runs on player input, no continuous tick needed
+// === GameEngine Implementation ===
+
+impl GameEngine for TrekState {
+    fn tick(&mut self) {
+        // Trek is turn-based, runs on player input
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        if self.game_over || self.game_won {
+            return KeyHandleResult::NotHandled;
+        }
+
+        // Convert KeyEvent to char for existing handle_char
+        let ch = match key.code {
+            KeyCode::Char(c) => c,
+            KeyCode::Enter => '\n',
+            KeyCode::Backspace => '\x7f',
+            KeyCode::Esc => '\x1b',
+            _ => return KeyHandleResult::NotHandled,
+        };
+
+        self.handle_char(ch);
+
+        // Check for quit request
+        if key.code == KeyCode::Esc && self.mode == CommandMode::Main {
+            return KeyHandleResult::RequestQuit;
+        }
+
+        KeyHandleResult::Handled
+    }
+
+    fn get_score(&self) -> u32 {
+        // Score based on Klingons destroyed and time efficiency
+        let initial_klingons = 10; // Minimum initial count
+        let destroyed = (initial_klingons - self.klingons_remaining.max(0)) as u32;
+        destroyed * 100
+    }
+
+    fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn is_game_won(&self) -> bool {
+        self.game_won
+    }
+
+    fn drain_events(&mut self) -> Vec<GameEvent> {
+        std::mem::take(&mut self.pending_events)
+    }
+
+    fn get_stat(&self, key: &str) -> Option<u64> {
+        match key {
+            "klingons_destroyed" => {
+                let initial = 10_i32; // Minimum initial
+                Some((initial - self.klingons_remaining).max(0) as u64)
+            }
+            "starbases" => Some(self.starbases_remaining as u64),
+            "energy" => Some(self.energy as u64),
+            "torpedoes" => Some(self.torpedoes as u64),
+            _ => None,
+        }
     }
 }
