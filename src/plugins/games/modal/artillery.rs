@@ -71,13 +71,30 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &ArtilleryState, colors: &Them
     let mut aim_positions = Vec::new();
     if state.phase == GamePhase::Aiming && state.current_player {
         let angle_rad = (state.angle as f64).to_radians();
-        let power_factor = (state.power as f64) / 100.0;
-        for i in 1..=5 {
-            let dist = (i as f64) * power_factor * 3.0;
-            let aim_x = (state.player_tank.x as f64 + angle_rad.cos() * dist) as usize;
-            let aim_y = (state.player_tank.y as f64 - angle_rad.sin() * dist) as usize;
-            if aim_x < state.terrain[0].len() && aim_y < state.terrain.len() {
-                aim_positions.push((aim_x, aim_y));
+        let power_factor = state.power as f64 / 200.0;
+        let wind_factor = state.wind as f64 / 400.0;
+        let vx = angle_rad.cos() * power_factor + wind_factor;
+        let mut vy = -angle_rad.sin() * power_factor;
+
+        let mut x = state.player_tank.x as f64;
+        let mut y = state.player_tank.y as f64;
+
+        // Simulate trajectory for aim indicator
+        for _ in 0..30 {
+            x += vx;
+            y += vy;
+            vy += 0.04; // Match GRAVITY constant
+
+            if x >= 0.0
+                && x < state.terrain[0].len() as f64
+                && y >= 0.0
+                && y < state.terrain.len() as f64
+            {
+                aim_positions.push((x as usize, y as usize));
+            }
+
+            if y >= state.terrain.len() as f64 {
+                break;
             }
         }
     }

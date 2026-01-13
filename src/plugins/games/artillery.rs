@@ -57,8 +57,9 @@ pub struct Projectile {
 impl Projectile {
     pub fn new(x: f64, y: f64, angle: i32, power: i32, wind: i32) -> Self {
         let angle_rad = (angle as f64).to_radians();
-        let power_factor = power as f64 / 50.0;
-        let wind_factor = wind as f64 / 100.0;
+        // Reduce speed significantly so projectile is visible (was /50.0)
+        let power_factor = power as f64 / 200.0;
+        let wind_factor = wind as f64 / 400.0;
 
         Self {
             x,
@@ -70,7 +71,7 @@ impl Projectile {
     }
 
     pub fn update(&mut self) {
-        const GRAVITY: f64 = 0.15;
+        const GRAVITY: f64 = 0.04; // Reduced from 0.15 for slower arc
         self.x += self.vx;
         self.y += self.vy;
         self.vy += GRAVITY;
