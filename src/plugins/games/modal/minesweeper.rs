@@ -118,14 +118,19 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &MinesweeperState, colors: &Th
                 }
                 CellState::Revealed => {
                     if cell.is_mine {
-                        (
-                            '*',
-                            Style::default()
-                                .fg(colors.red())
-                                .add_modifier(Modifier::BOLD),
-                        )
+                        let mut style = Style::default()
+                            .fg(colors.red())
+                            .add_modifier(Modifier::BOLD);
+                        if is_cursor {
+                            style = style.bg(colors.grey());
+                        }
+                        ('*', style)
                     } else if cell.adjacent_mines == 0 {
-                        (' ', Style::default().fg(colors.grey()))
+                        let mut style = Style::default().fg(colors.grey());
+                        if is_cursor {
+                            style = style.bg(colors.grey()).add_modifier(Modifier::REVERSED);
+                        }
+                        (' ', style)
                     } else {
                         let digit_char = char::from_digit(cell.adjacent_mines as u32, 10).unwrap();
                         let color = match cell.adjacent_mines {
@@ -135,7 +140,11 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &MinesweeperState, colors: &Th
                             4 => colors.cyan(),
                             _ => colors.yellow(),
                         };
-                        (digit_char, Style::default().fg(color))
+                        let mut style = Style::default().fg(color);
+                        if is_cursor {
+                            style = style.bg(colors.grey()).add_modifier(Modifier::BOLD);
+                        }
+                        (digit_char, style)
                     }
                 }
             };

@@ -67,12 +67,30 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &ArtilleryState, colors: &Them
     );
     row += 1;
 
+    // Calculate aim indicator positions for player (when aiming)
+    let mut aim_positions = Vec::new();
+    if state.phase == GamePhase::Aiming && state.current_player {
+        let angle_rad = (state.angle as f64).to_radians();
+        let power_factor = (state.power as f64) / 100.0;
+        for i in 1..=5 {
+            let dist = (i as f64) * power_factor * 3.0;
+            let aim_x = (state.player_tank.x as f64 + angle_rad.cos() * dist) as usize;
+            let aim_y = (state.player_tank.y as f64 - angle_rad.sin() * dist) as usize;
+            if aim_x < state.terrain[0].len() && aim_y < state.terrain.len() {
+                aim_positions.push((aim_x, aim_y));
+            }
+        }
+    }
+
     // Render battlefield
     for y in 0..state.terrain.len() {
         let mut line = Vec::new();
         line.push(Span::raw(" ")); // Left padding
 
         for x in 0..state.terrain[y].len() {
+            // Check for aim indicator
+            let is_aim_indicator = aim_positions.contains(&(x, y));
+
             // Check for tanks
             let player_tank_here = x >= state.player_tank.x.saturating_sub(1)
                 && x <= state.player_tank.x + 1
@@ -129,6 +147,14 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &ArtilleryState, colors: &Them
                     Style::default()
                         .fg(colors.yellow())
                         .add_modifier(Modifier::BOLD),
+                ));
+            } else if is_aim_indicator {
+                // Draw aim indicator (crosshair/dots showing trajectory)
+                line.push(Span::styled(
+                    "·",
+                    Style::default()
+                        .fg(colors.cyan())
+                        .add_modifier(Modifier::DIM),
                 ));
             } else if state.terrain[y][x] {
                 line.push(Span::styled("▓", Style::default().fg(colors.green())));
