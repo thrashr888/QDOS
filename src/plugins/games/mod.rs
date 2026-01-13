@@ -1,7 +1,8 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, and Dope Wars.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, and Artillery.
 
+pub mod artillery;
 pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
@@ -218,6 +219,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Storyweaver) => self.state.storyweaver.handle_key(key),
                     Some(GameType::DopeWars) => self.state.dopewars.handle_key(key),
                     Some(GameType::Minesweeper) => self.state.minesweeper.handle_key(key),
+                    Some(GameType::Artillery) => self.state.artillery.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -412,6 +414,13 @@ impl Plugin for GamesPlugin {
                 self.state.minesweeper.tick();
                 self.state.score = self.state.minesweeper.get_score();
                 if self.state.minesweeper.is_game_over() {
+                    self.state.game_over();
+                }
+            }
+            Some(GameType::Artillery) => {
+                self.state.artillery.tick();
+                self.state.score = self.state.artillery.get_score();
+                if self.state.artillery.is_game_over() {
                     self.state.game_over();
                 }
             }

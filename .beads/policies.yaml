@@ -1,0 +1,33 @@
+# QDOS Governance Policies
+# Operating system project - strict quality requirements
+
+policies:
+  # All features must be documented
+  - name: require-description
+    enabled: true
+    severity: error  # Strict for OS code
+    type: require_description
+    description: "All beads must have a description - OS code requires documentation"
+
+  # OS development needs focused attention
+  - name: max-in-progress
+    enabled: true
+    severity: warning
+    type: max_in_progress
+    config:
+      max_count: 2  # Stricter limit for complex OS work
+    description: "Limit to 2 concurrent in-progress beads for focused OS development"
+
+  # Critical for OS - no circular dependencies
+  - name: dependency-cycle-check
+    enabled: true
+    severity: error
+    type: dependency_cycle_check
+    description: "Prevent circular dependencies - critical for OS architecture"
+
+  # All active work should have an owner
+  - name: require-assignee
+    enabled: true
+    severity: warning
+    type: require_assignee
+    description: "Active beads should have an assignee for accountability"

@@ -5,6 +5,7 @@
 //! and leaderboards.
 
 // Per-game rendering modules
+mod artillery;
 mod brainiac;
 mod breakout;
 mod clicker;
@@ -17,6 +18,7 @@ mod tetris;
 mod trek;
 
 // Re-export game draw functions
+pub use artillery::draw as draw_artillery;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use clicker::draw_clicker;
@@ -75,6 +77,7 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             Some(GameType::Storyweaver) => " Storyweaver ",
             Some(GameType::DopeWars) => " Dope Wars ",
             Some(GameType::Minesweeper) => " Minesweeper ",
+            Some(GameType::Artillery) => " Artillery ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -198,9 +201,16 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         ],
     );
 
-    // === GAME LIST ===
+    // === GAME LIST WITH SCROLLING ===
     let start_row = 9;
-    for (i, game) in GameType::all().iter().enumerate() {
+    const MAX_VISIBLE_GAMES: usize = 6;
+    let all_games = GameType::all();
+    let scroll_offset = state.menu_scroll_offset;
+    let visible_end = (scroll_offset + MAX_VISIBLE_GAMES).min(all_games.len());
+
+    // Render visible games
+    for (display_idx, i) in (scroll_offset..visible_end).enumerate() {
+        let game = &all_games[i];
         let is_selected = i == state.selected_game;
         let high_score = state.high_scores.get(i).copied().unwrap_or(0);
 
@@ -233,7 +243,7 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
 
         view.render_row(
             frame,
-            start_row + (i as u16 * 2),
+            start_row + (display_idx as u16 * 2),
             vec![
                 Span::styled("   ", Style::default()),
                 Span::styled(arrow, num_style),
@@ -246,7 +256,7 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         if high_score > 0 {
             view.render_row(
                 frame,
-                start_row + (i as u16 * 2) + 1,
+                start_row + (display_idx as u16 * 2) + 1,
                 vec![
                     Span::styled("        ", Style::default()),
                     Span::styled("★ ", Style::default().fg(colors.yellow())),
@@ -259,8 +269,34 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         }
     }
 
+    // Scroll indicators
+    let indicator_row = start_row + (MAX_VISIBLE_GAMES as u16 * 2);
+    if scroll_offset > 0 || visible_end < all_games.len() {
+        let indicator = if scroll_offset > 0 && visible_end < all_games.len() {
+            format!(
+                "        ↑ {}/{} ↓",
+                state.selected_game + 1,
+                all_games.len()
+            )
+        } else if scroll_offset > 0 {
+            format!("        ↑ {}/{}", state.selected_game + 1, all_games.len())
+        } else {
+            format!("        {}/{} ↓", state.selected_game + 1, all_games.len())
+        };
+        view.render_row(
+            frame,
+            indicator_row,
+            vec![Span::styled(
+                indicator,
+                Style::default()
+                    .fg(colors.grey())
+                    .add_modifier(Modifier::DIM),
+            )],
+        );
+    }
+
     let help = vec![
-        ("↑↓/1-7", "select"),
+        ("↑↓/1-11", "select"),
         ("Enter", "play"),
         ("L", "scores"),
         ("Esc", "close"),
@@ -286,6 +322,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Minesweeper) => {
             draw_minesweeper(frame, view.area, &state.minesweeper, colors)
         }
+        Some(GameType::Artillery) => draw_artillery(frame, view.area, &state.artillery, colors),
         None => {}
     }
 }
@@ -391,6 +428,7 @@ fn draw_game_over(
             GameType::Storyweaver => 7,
             GameType::DopeWars => 8,    // No legacy high score
             GameType::Minesweeper => 9, // No legacy high score
+            GameType::Artillery => 10,  // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -577,6 +615,7 @@ fn draw_leaderboard(
             GameType::Storyweaver => "STY",
             GameType::DopeWars => "DOP",
             GameType::Minesweeper => "MIN",
+            GameType::Artillery => "ART",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

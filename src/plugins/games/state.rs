@@ -1,5 +1,6 @@
 //! Games plugin state
 
+use super::artillery::ArtilleryState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::clicker::ClickerState;
@@ -106,6 +107,8 @@ pub struct Leaderboards {
     pub dopewars: GameLeaderboard,
     #[serde(default)]
     pub minesweeper: GameLeaderboard,
+    #[serde(default)]
+    pub artillery: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -126,6 +129,7 @@ impl Leaderboards {
             GameType::Storyweaver => &self.storyweaver,
             GameType::DopeWars => &self.dopewars,
             GameType::Minesweeper => &self.minesweeper,
+            GameType::Artillery => &self.artillery,
         }
     }
 
@@ -142,6 +146,7 @@ impl Leaderboards {
             GameType::Storyweaver => &mut self.storyweaver,
             GameType::DopeWars => &mut self.dopewars,
             GameType::Minesweeper => &mut self.minesweeper,
+            GameType::Artillery => &mut self.artillery,
         }
     }
 }
@@ -159,6 +164,7 @@ pub enum GameType {
     Storyweaver,
     DopeWars,
     Minesweeper,
+    Artillery,
 }
 
 impl GameType {
@@ -174,6 +180,7 @@ impl GameType {
             GameType::Storyweaver,
             GameType::DopeWars,
             GameType::Minesweeper,
+            GameType::Artillery,
         ]
     }
 
@@ -189,6 +196,7 @@ impl GameType {
             GameType::Storyweaver => "Storyweaver",
             GameType::DopeWars => "Dope Wars",
             GameType::Minesweeper => "Minesweeper",
+            GameType::Artillery => "Artillery",
         }
     }
 
@@ -204,6 +212,7 @@ impl GameType {
             GameType::Storyweaver => "AI choose-your-own-adventure books",
             GameType::DopeWars => "Buy low, sell high, pay off your debt",
             GameType::Minesweeper => "Find all mines without triggering them",
+            GameType::Artillery => "Tank battle with physics and explosions",
         }
     }
 }
@@ -224,6 +233,7 @@ pub enum GamesView {
 pub struct GamesState {
     pub view: GamesView,
     pub selected_game: usize,
+    pub menu_scroll_offset: usize, // For scrolling the games menu
     pub current_game: Option<GameType>,
     pub score: u32,
     pub high_scores: [u32; 8], // One for each game (legacy, kept for compatibility)
@@ -247,6 +257,7 @@ pub struct GamesState {
     pub storyweaver: StoryweaverState,
     pub dopewars: DopeWarsState,
     pub minesweeper: MinesweeperState,
+    pub artillery: ArtilleryState,
 }
 
 impl Default for GamesState {
@@ -260,6 +271,7 @@ impl GamesState {
         Self {
             view: GamesView::Menu,
             selected_game: 0,
+            menu_scroll_offset: 0,
             current_game: None,
             score: 0,
             high_scores: [0; 8],
@@ -279,6 +291,7 @@ impl GamesState {
             storyweaver: StoryweaverState::new(),
             dopewars: DopeWarsState::new(),
             minesweeper: MinesweeperState::new(),
+            artillery: ArtilleryState::new(),
         }
     }
 
@@ -299,11 +312,29 @@ impl GamesState {
     pub fn select_next(&mut self) {
         let count = GameType::all().len();
         self.selected_game = (self.selected_game + 1) % count;
+        self.adjust_scroll();
     }
 
     pub fn select_prev(&mut self) {
         let count = GameType::all().len();
         self.selected_game = (self.selected_game + count - 1) % count;
+        self.adjust_scroll();
+    }
+
+    /// Adjust scroll offset to keep selected game visible
+    /// Visible window shows ~6 games (each takes 2 rows, we have ~14 rows available)
+    fn adjust_scroll(&mut self) {
+        const MAX_VISIBLE_GAMES: usize = 6;
+
+        // Scroll down if selection is below visible window
+        if self.selected_game >= self.menu_scroll_offset + MAX_VISIBLE_GAMES {
+            self.menu_scroll_offset = self.selected_game - MAX_VISIBLE_GAMES + 1;
+        }
+
+        // Scroll up if selection is above visible window
+        if self.selected_game < self.menu_scroll_offset {
+            self.menu_scroll_offset = self.selected_game;
+        }
     }
 
     pub fn start_game(&mut self) {
@@ -324,6 +355,7 @@ impl GamesState {
             GameType::Storyweaver => self.storyweaver.reset(),
             GameType::DopeWars => self.dopewars.reset(),
             GameType::Minesweeper => self.minesweeper = MinesweeperState::new(),
+            GameType::Artillery => self.artillery = ArtilleryState::new(),
         }
     }
 
@@ -349,6 +381,7 @@ impl GamesState {
                 GameType::Storyweaver => 7,
                 GameType::DopeWars => 8,    // No legacy high score storage
                 GameType::Minesweeper => 9, // No legacy high score storage
+                GameType::Artillery => 10,  // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

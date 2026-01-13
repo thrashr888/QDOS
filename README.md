@@ -106,10 +106,24 @@ R-DOS features a modular plugin system accessible via the F12 Apps launcher. Bui
 
 ### Games
 
-| Key | App      | Description                                             |
-| --- | -------- | ------------------------------------------------------- |
-| G   | Games    | Play retro games (Tetris, Snake, Breakout, Rogue, Trek) |
-| X   | Emulator | Run DOS programs in DOSBox-X                            |
+| Key | App      | Description                                                      |
+| --- | -------- | ---------------------------------------------------------------- |
+| G   | Games    | Play retro games (Tetris, Snake, Breakout, Rogue, Trek, Clicker) |
+| X   | Emulator | Run DOS programs in DOSBox-X                                     |
+
+**Games** includes the following games:
+
+- Tetris
+- Snake
+- Breakout
+- Rogue
+- Trek
+- Clicker
+- Brainiac
+- Storyweaver
+- Dope Wars
+- Minesweeper
+- Artillery
 
 See [spec/PLUGIN.md](spec/PLUGIN.md) for plugin development documentation.
 

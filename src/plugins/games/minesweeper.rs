@@ -106,10 +106,14 @@ impl MinesweeperState {
                 }
                 let nx = x as i32 + dx;
                 let ny = y as i32 + dy;
-                if nx >= 0 && nx < GRID_WIDTH as i32 && ny >= 0 && ny < GRID_HEIGHT as i32
-                    && self.grid[ny as usize][nx as usize].is_mine {
-                        count += 1;
-                    }
+                if nx >= 0
+                    && nx < GRID_WIDTH as i32
+                    && ny >= 0
+                    && ny < GRID_HEIGHT as i32
+                    && self.grid[ny as usize][nx as usize].is_mine
+                {
+                    count += 1;
+                }
             }
         }
         count
