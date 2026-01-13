@@ -1,11 +1,13 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, and Storyweaver.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, and Dope Wars.
 
 pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
+pub mod dopewars;
 mod modal;
+pub mod platform;
 pub mod rogue;
 pub mod snake;
 pub mod state;
@@ -20,6 +22,7 @@ use crate::plugins::{
     PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
+use platform::GameEngine;
 use ratatui::{layout::Rect, Frame};
 use state::{GameType, GamesState, GamesView};
 use std::any::Any;
@@ -180,6 +183,16 @@ impl Plugin for GamesPlugin {
                 }
                 KeyCode::Char('7') => {
                     self.state.selected_game = 6;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('8') => {
+                    self.state.selected_game = 7;
+                    self.state.start_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('9') => {
+                    self.state.selected_game = 8;
                     self.state.start_game();
                     KeyHandleResult::Handled
                 }
@@ -736,6 +749,122 @@ impl Plugin for GamesPlugin {
                         },
                     }
                 }
+                Some(GameType::DopeWars) => {
+                    use dopewars::DopeWarsView;
+                    match self.state.dopewars.view {
+                        DopeWarsView::Market => match key.code {
+                            KeyCode::Esc => {
+                                self.state.return_to_menu();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('p') | KeyCode::Char('P') => {
+                                self.state.toggle_pause();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                self.state.dopewars.product_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                self.state.dopewars.product_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('b') | KeyCode::Char('B') => {
+                                use dopewars::Product;
+                                let products = Product::all();
+                                let product = products[self.state.dopewars.selected_product];
+                                let quantity = self.state.dopewars.get_quantity();
+                                self.state.dopewars.buy(product, quantity);
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('s') | KeyCode::Char('S') => {
+                                use dopewars::Product;
+                                let products = Product::all();
+                                let product = products[self.state.dopewars.selected_product];
+                                let quantity = self.state.dopewars.get_quantity();
+                                self.state.dopewars.sell(product, quantity);
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char(c @ '0'..='9') => {
+                                self.state.dopewars.add_quantity_digit(c);
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Backspace => {
+                                self.state.dopewars.backspace_quantity();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('t') | KeyCode::Char('T') | KeyCode::Tab => {
+                                self.state.dopewars.view = DopeWarsView::Travel;
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('i') | KeyCode::Char('I') => {
+                                self.state.dopewars.view = DopeWarsView::Status;
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('d') | KeyCode::Char('D') => {
+                                // Pay off debt - pay maximum possible
+                                let payment = self.state.dopewars.cash.min(self.state.dopewars.debt);
+                                self.state.dopewars.pay_debt(payment);
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        DopeWarsView::Travel => match key.code {
+                            KeyCode::Esc => {
+                                self.state.dopewars.view = DopeWarsView::Market;
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                self.state.dopewars.location_up();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                self.state.dopewars.location_down();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Enter | KeyCode::Char(' ') => {
+                                self.state.dopewars.travel();
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        DopeWarsView::Status => match key.code {
+                            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                                self.state.dopewars.view = DopeWarsView::Market;
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                        DopeWarsView::Event => match key.code {
+                            // Gun shop
+                            KeyCode::Char('g') | KeyCode::Char('G') => {
+                                self.state.dopewars.buy_guns();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('n') | KeyCode::Char('N') => {
+                                self.state.dopewars.view = DopeWarsView::Market;
+                                self.state.dopewars.event = dopewars::RandomEvent::None;
+                                KeyHandleResult::Handled
+                            }
+                            // Officer bribe
+                            KeyCode::Char('p') | KeyCode::Char('P') => {
+                                self.state.dopewars.pay_bribe();
+                                KeyHandleResult::Handled
+                            }
+                            KeyCode::Char('f') | KeyCode::Char('F') => {
+                                self.state.dopewars.refuse_bribe();
+                                KeyHandleResult::Handled
+                            }
+                            // Generic continue
+                            KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') => {
+                                self.state.dopewars.view = DopeWarsView::Market;
+                                self.state.dopewars.event = dopewars::RandomEvent::None;
+                                KeyHandleResult::Handled
+                            }
+                            _ => KeyHandleResult::Handled,
+                        },
+                    }
+                }
                 None => KeyHandleResult::Handled,
             },
             GamesView::Paused => match key.code {
@@ -898,6 +1027,13 @@ impl Plugin for GamesPlugin {
                 self.state.storyweaver.tick();
                 self.state.score = self.state.storyweaver.final_score();
                 // Storyweaver handles its own game over state
+            }
+            Some(GameType::DopeWars) => {
+                self.state.dopewars.tick();
+                self.state.score = self.state.dopewars.score();
+                if self.state.dopewars.game_over {
+                    self.state.game_over();
+                }
             }
             None => {}
         }

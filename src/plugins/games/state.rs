@@ -3,6 +3,7 @@
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::clicker::ClickerState;
+use super::dopewars::DopeWarsState;
 use super::rogue::RogueState;
 use super::snake::SnakeState;
 use super::storyweaver::StoryweaverState;
@@ -100,6 +101,8 @@ pub struct Leaderboards {
     pub brainiac: GameLeaderboard,
     #[serde(default)]
     pub storyweaver: GameLeaderboard,
+    #[serde(default)]
+    pub dopewars: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -118,6 +121,7 @@ impl Leaderboards {
             GameType::Clicker => &self.clicker,
             GameType::Brainiac => &self.brainiac,
             GameType::Storyweaver => &self.storyweaver,
+            GameType::DopeWars => &self.dopewars,
         }
     }
 
@@ -132,6 +136,7 @@ impl Leaderboards {
             GameType::Clicker => &mut self.clicker,
             GameType::Brainiac => &mut self.brainiac,
             GameType::Storyweaver => &mut self.storyweaver,
+            GameType::DopeWars => &mut self.dopewars,
         }
     }
 }
@@ -147,6 +152,7 @@ pub enum GameType {
     Clicker,
     Brainiac,
     Storyweaver,
+    DopeWars,
 }
 
 impl GameType {
@@ -160,6 +166,7 @@ impl GameType {
             GameType::Clicker,
             GameType::Brainiac,
             GameType::Storyweaver,
+            GameType::DopeWars,
         ]
     }
 
@@ -173,6 +180,7 @@ impl GameType {
             GameType::Clicker => "Clicker",
             GameType::Brainiac => "Brainiac",
             GameType::Storyweaver => "Storyweaver",
+            GameType::DopeWars => "Dope Wars",
         }
     }
 
@@ -186,6 +194,7 @@ impl GameType {
             GameType::Clicker => "Kill monsters, gain gold, buy upgrades",
             GameType::Brainiac => "AI trivia - test your knowledge!",
             GameType::Storyweaver => "AI choose-your-own-adventure books",
+            GameType::DopeWars => "Buy low, sell high, pay off your debt",
         }
     }
 }
@@ -227,6 +236,7 @@ pub struct GamesState {
     pub clicker: ClickerState,
     pub brainiac: BrainiacState,
     pub storyweaver: StoryweaverState,
+    pub dopewars: DopeWarsState,
 }
 
 impl Default for GamesState {
@@ -257,6 +267,7 @@ impl GamesState {
             clicker: ClickerState::new(),
             brainiac: BrainiacState::new(),
             storyweaver: StoryweaverState::new(),
+            dopewars: DopeWarsState::new(),
         }
     }
 
@@ -300,6 +311,7 @@ impl GamesState {
             GameType::Clicker => self.clicker.reset(),
             GameType::Brainiac => self.brainiac.reset(),
             GameType::Storyweaver => self.storyweaver.reset(),
+            GameType::DopeWars => self.dopewars.reset(),
         }
     }
 
@@ -323,8 +335,9 @@ impl GamesState {
                 GameType::Clicker => 5,
                 GameType::Brainiac => 6,
                 GameType::Storyweaver => 7,
+                GameType::DopeWars => 8, // No legacy high score storage, but need to handle
             };
-            if self.score > self.high_scores[idx] {
+            if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;
             }
 

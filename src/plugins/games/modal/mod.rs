@@ -8,6 +8,7 @@
 mod brainiac;
 mod breakout;
 mod clicker;
+mod dopewars;
 mod rogue;
 mod snake;
 mod storyweaver;
@@ -18,6 +19,7 @@ mod trek;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use clicker::draw_clicker;
+pub use dopewars::draw_dopewars;
 pub use rogue::draw_rogue;
 pub use snake::draw_snake;
 pub use storyweaver::draw_storyweaver;
@@ -69,6 +71,7 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             Some(GameType::Clicker) => " Clicker ",
             Some(GameType::Brainiac) => " Brainiac ",
             Some(GameType::Storyweaver) => " Storyweaver ",
+            Some(GameType::DopeWars) => " Dope Wars ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -196,7 +199,7 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
     let start_row = 9;
     for (i, game) in GameType::all().iter().enumerate() {
         let is_selected = i == state.selected_game;
-        let high_score = state.high_scores[i];
+        let high_score = state.high_scores.get(i).copied().unwrap_or(0);
 
         // Number prefix with color
         let num_style = if is_selected {
@@ -276,6 +279,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Clicker) => draw_clicker(frame, view, &state.clicker, colors),
         Some(GameType::Brainiac) => draw_brainiac(frame, view, &state.brainiac, colors),
         Some(GameType::Storyweaver) => draw_storyweaver(frame, view, &state.storyweaver, colors),
+        Some(GameType::DopeWars) => draw_dopewars(frame, view, &state.dopewars, colors),
         None => {}
     }
 }
@@ -379,8 +383,9 @@ fn draw_game_over(
             GameType::Clicker => 5,
             GameType::Brainiac => 6,
             GameType::Storyweaver => 7,
+            GameType::DopeWars => 8, // No legacy high score, handled by leaderboard
         };
-        if state.score >= state.high_scores[idx] && state.score > 0 {
+        if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
                 frame,
                 center_row + 1,
@@ -563,6 +568,7 @@ fn draw_leaderboard(
             GameType::Clicker => "CLK",
             GameType::Brainiac => "BRN",
             GameType::Storyweaver => "STY",
+            GameType::DopeWars => "DOP",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }
