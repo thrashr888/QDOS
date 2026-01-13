@@ -9,6 +9,7 @@ mod brainiac;
 mod breakout;
 mod clicker;
 mod dopewars;
+mod minesweeper;
 mod rogue;
 mod snake;
 mod storyweaver;
@@ -20,6 +21,7 @@ pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use clicker::draw_clicker;
 pub use dopewars::draw_dopewars;
+pub use minesweeper::draw as draw_minesweeper;
 pub use rogue::draw_rogue;
 pub use snake::draw_snake;
 pub use storyweaver::draw_storyweaver;
@@ -72,6 +74,7 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             Some(GameType::Brainiac) => " Brainiac ",
             Some(GameType::Storyweaver) => " Storyweaver ",
             Some(GameType::DopeWars) => " Dope Wars ",
+            Some(GameType::Minesweeper) => " Minesweeper ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -280,6 +283,9 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Brainiac) => draw_brainiac(frame, view, &state.brainiac, colors),
         Some(GameType::Storyweaver) => draw_storyweaver(frame, view, &state.storyweaver, colors),
         Some(GameType::DopeWars) => draw_dopewars(frame, view, &state.dopewars, colors),
+        Some(GameType::Minesweeper) => {
+            draw_minesweeper(frame, view.area, &state.minesweeper, colors)
+        }
         None => {}
     }
 }
@@ -383,7 +389,8 @@ fn draw_game_over(
             GameType::Clicker => 5,
             GameType::Brainiac => 6,
             GameType::Storyweaver => 7,
-            GameType::DopeWars => 8, // No legacy high score, handled by leaderboard
+            GameType::DopeWars => 8,    // No legacy high score
+            GameType::Minesweeper => 9, // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -569,6 +576,7 @@ fn draw_leaderboard(
             GameType::Brainiac => "BRN",
             GameType::Storyweaver => "STY",
             GameType::DopeWars => "DOP",
+            GameType::Minesweeper => "MIN",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

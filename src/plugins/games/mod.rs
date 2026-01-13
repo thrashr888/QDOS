@@ -6,6 +6,7 @@ pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
 pub mod dopewars;
+pub mod minesweeper;
 mod modal;
 pub mod platform;
 pub mod rogue;
@@ -216,6 +217,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Brainiac) => self.state.brainiac.handle_key(key),
                     Some(GameType::Storyweaver) => self.state.storyweaver.handle_key(key),
                     Some(GameType::DopeWars) => self.state.dopewars.handle_key(key),
+                    Some(GameType::Minesweeper) => self.state.minesweeper.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -403,6 +405,13 @@ impl Plugin for GamesPlugin {
                 self.state.dopewars.tick();
                 self.state.score = self.state.dopewars.score();
                 if self.state.dopewars.game_over {
+                    self.state.game_over();
+                }
+            }
+            Some(GameType::Minesweeper) => {
+                self.state.minesweeper.tick();
+                self.state.score = self.state.minesweeper.get_score();
+                if self.state.minesweeper.is_game_over() {
                     self.state.game_over();
                 }
             }
