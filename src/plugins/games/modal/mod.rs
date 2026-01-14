@@ -15,6 +15,7 @@ mod clicker;
 mod dopewars;
 mod dungeon;
 mod gumshoe;
+mod micropolis;
 mod mindgames;
 mod minesweeper;
 mod neondrive;
@@ -35,6 +36,7 @@ pub use clicker::draw_clicker;
 pub use dopewars::draw_dopewars;
 pub use dungeon::draw_dungeon;
 pub use gumshoe::draw_gumshoe;
+pub use micropolis::draw as draw_micropolis;
 pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
 pub use neondrive::draw as draw_neondrive;
@@ -106,6 +108,7 @@ pub fn draw_games_modal(
             Some(GameType::Caverns) => " Caverns ",
             Some(GameType::Biolab) => " Biolab ",
             Some(GameType::Neondrive) => " Neon Drive ",
+            Some(GameType::Micropolis) => " Micropolis ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -370,6 +373,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Caverns) => draw_caverns(frame, view, &state.caverns, colors),
         Some(GameType::Biolab) => draw_biolab(frame, view, &state.biolab, colors),
         Some(GameType::Neondrive) => draw_neondrive(frame, view.area, &state.neondrive, colors),
+        Some(GameType::Micropolis) => draw_micropolis(frame, view.area, &state.micropolis, colors),
         None => {}
     }
 }
@@ -483,6 +487,7 @@ fn draw_game_over(
             GameType::Caverns => 14,    // No legacy high score
             GameType::Biolab => 15,     // No legacy high score
             GameType::Neondrive => 16,  // No legacy high score
+            GameType::Micropolis => 17, // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -676,6 +681,7 @@ fn draw_leaderboard(
             GameType::Caverns => "CAV",
             GameType::Biolab => "BIO",
             GameType::Neondrive => "NDR",
+            GameType::Micropolis => "MIC",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

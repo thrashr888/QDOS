@@ -11,6 +11,7 @@ pub mod clicker;
 pub mod dopewars;
 pub mod dungeon;
 pub mod gumshoe;
+pub mod micropolis;
 pub mod mindgames;
 pub mod minesweeper;
 mod modal;
@@ -185,6 +186,7 @@ impl GamesPlugin {
             GameType::Caverns => self.state.caverns.is_game_won(),
             GameType::Biolab => self.state.biolab.is_game_won(),
             GameType::Neondrive => self.state.neondrive.is_game_won(),
+            GameType::Micropolis => self.state.micropolis.is_game_won(),
         }
     }
 
@@ -385,6 +387,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Caverns) => self.state.caverns.handle_key(key),
                     Some(GameType::Biolab) => self.state.biolab.handle_key(key),
                     Some(GameType::Neondrive) => self.state.neondrive.handle_key(key),
+                    Some(GameType::Micropolis) => self.state.micropolis.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -637,6 +640,13 @@ impl Plugin for GamesPlugin {
                 self.state.neondrive.tick();
                 self.state.score = self.state.neondrive.get_score();
                 if self.state.neondrive.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Micropolis) => {
+                self.state.micropolis.tick();
+                self.state.score = self.state.micropolis.get_score();
+                if self.state.micropolis.is_game_over() {
                     self.end_game_with_stats();
                 }
             }
