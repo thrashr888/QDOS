@@ -2,6 +2,7 @@
 //!
 //! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, Artillery, Mindgames, and Gumshoe.
 
+pub mod adventure;
 pub mod artillery;
 pub mod biolab;
 pub mod brainiac;
@@ -11,6 +12,7 @@ pub mod clicker;
 pub mod dopewars;
 pub mod dungeon;
 pub mod gumshoe;
+pub mod junglerun;
 pub mod micropolis;
 pub mod mindgames;
 pub mod minesweeper;
@@ -187,6 +189,8 @@ impl GamesPlugin {
             GameType::Biolab => self.state.biolab.is_game_won(),
             GameType::Neondrive => self.state.neondrive.is_game_won(),
             GameType::Micropolis => self.state.micropolis.is_game_won(),
+            GameType::JungleRun => self.state.junglerun.game_won,
+            GameType::Adventure => self.state.adventure.game_won,
         }
     }
 
@@ -388,6 +392,8 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Biolab) => self.state.biolab.handle_key(key),
                     Some(GameType::Neondrive) => self.state.neondrive.handle_key(key),
                     Some(GameType::Micropolis) => self.state.micropolis.handle_key(key),
+                    Some(GameType::JungleRun) => self.state.junglerun.handle_key(key),
+                    Some(GameType::Adventure) => self.state.adventure.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -647,6 +653,20 @@ impl Plugin for GamesPlugin {
                 self.state.micropolis.tick();
                 self.state.score = self.state.micropolis.get_score();
                 if self.state.micropolis.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::JungleRun) => {
+                self.state.junglerun.tick();
+                self.state.score = self.state.junglerun.get_score();
+                if self.state.junglerun.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Adventure) => {
+                self.state.adventure.tick();
+                self.state.score = self.state.adventure.get_score();
+                if self.state.adventure.is_game_over() {
                     self.end_game_with_stats();
                 }
             }

@@ -1,5 +1,6 @@
 //! Games plugin state
 
+use super::adventure::AdventureState;
 use super::artillery::ArtilleryState;
 use super::biolab::BiolabState;
 use super::brainiac::BrainiacState;
@@ -9,6 +10,7 @@ use super::clicker::ClickerState;
 use super::dopewars::DopeWarsState;
 use super::dungeon::DungeonState;
 use super::gumshoe::GumshoeState;
+use super::junglerun::JungleRunState;
 use super::micropolis::MicropolisState;
 use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
@@ -130,6 +132,10 @@ pub struct Leaderboards {
     pub neondrive: GameLeaderboard,
     #[serde(default)]
     pub micropolis: GameLeaderboard,
+    #[serde(default)]
+    pub junglerun: GameLeaderboard,
+    #[serde(default)]
+    pub adventure: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -158,6 +164,8 @@ impl Leaderboards {
             GameType::Biolab => &self.biolab,
             GameType::Neondrive => &self.neondrive,
             GameType::Micropolis => &self.micropolis,
+            GameType::JungleRun => &self.junglerun,
+            GameType::Adventure => &self.adventure,
         }
     }
 
@@ -182,6 +190,8 @@ impl Leaderboards {
             GameType::Biolab => &mut self.biolab,
             GameType::Neondrive => &mut self.neondrive,
             GameType::Micropolis => &mut self.micropolis,
+            GameType::JungleRun => &mut self.junglerun,
+            GameType::Adventure => &mut self.adventure,
         }
     }
 }
@@ -207,6 +217,8 @@ pub enum GameType {
     Biolab,
     Neondrive,
     Micropolis,
+    JungleRun,
+    Adventure,
 }
 
 impl GameType {
@@ -230,6 +242,8 @@ impl GameType {
             GameType::Biolab,
             GameType::Neondrive,
             GameType::Micropolis,
+            GameType::JungleRun,
+            GameType::Adventure,
         ]
     }
 
@@ -253,6 +267,8 @@ impl GameType {
             GameType::Biolab => "Biolab",
             GameType::Neondrive => "Neon Drive",
             GameType::Micropolis => "Micropolis",
+            GameType::JungleRun => "Jungle Run",
+            GameType::Adventure => "Adventure",
         }
     }
 
@@ -276,6 +292,8 @@ impl GameType {
             GameType::Biolab => "Learn biology - cells, DNA, anatomy",
             GameType::Neondrive => "Outrun-style cyberpunk racing",
             GameType::Micropolis => "Build your real estate empire!",
+            GameType::JungleRun => "Pitfall-style jungle platformer",
+            GameType::Adventure => "Dragon Quest - find the chalice!",
         }
     }
 }
@@ -331,6 +349,8 @@ pub struct GamesState {
     pub biolab: BiolabState,
     pub neondrive: NeondriveState,
     pub micropolis: MicropolisState,
+    pub junglerun: JungleRunState,
+    pub adventure: AdventureState,
 }
 
 impl Default for GamesState {
@@ -373,6 +393,8 @@ impl GamesState {
             biolab: BiolabState::new(),
             neondrive: NeondriveState::new(),
             micropolis: MicropolisState::new(),
+            junglerun: JungleRunState::new(),
+            adventure: AdventureState::new(),
         }
     }
 
@@ -444,6 +466,8 @@ impl GamesState {
             GameType::Biolab => self.biolab = BiolabState::new(),
             GameType::Neondrive => self.neondrive = NeondriveState::new(),
             GameType::Micropolis => self.micropolis.reset(),
+            GameType::JungleRun => self.junglerun = JungleRunState::new(),
+            GameType::Adventure => self.adventure = AdventureState::new(),
         }
     }
 
@@ -477,6 +501,8 @@ impl GamesState {
                 GameType::Biolab => 15,     // No legacy high score storage
                 GameType::Neondrive => 16,  // No legacy high score storage
                 GameType::Micropolis => 17, // No legacy high score storage
+                GameType::JungleRun => 18,  // No legacy high score storage
+                GameType::Adventure => 19,  // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;
