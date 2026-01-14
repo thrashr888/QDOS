@@ -1,6 +1,7 @@
 //! Games plugin state
 
 use super::artillery::ArtilleryState;
+use super::biolab::BiolabState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::caverns::CavernsState;
@@ -121,6 +122,8 @@ pub struct Leaderboards {
     pub dungeon: GameLeaderboard,
     #[serde(default)]
     pub caverns: GameLeaderboard,
+    #[serde(default)]
+    pub biolab: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -146,6 +149,7 @@ impl Leaderboards {
             GameType::Gumshoe => &self.gumshoe,
             GameType::Dungeon => &self.dungeon,
             GameType::Caverns => &self.caverns,
+            GameType::Biolab => &self.biolab,
         }
     }
 
@@ -167,6 +171,7 @@ impl Leaderboards {
             GameType::Gumshoe => &mut self.gumshoe,
             GameType::Dungeon => &mut self.dungeon,
             GameType::Caverns => &mut self.caverns,
+            GameType::Biolab => &mut self.biolab,
         }
     }
 }
@@ -189,6 +194,7 @@ pub enum GameType {
     Gumshoe,
     Dungeon,
     Caverns,
+    Biolab,
 }
 
 impl GameType {
@@ -209,6 +215,7 @@ impl GameType {
             GameType::Gumshoe,
             GameType::Dungeon,
             GameType::Caverns,
+            GameType::Biolab,
         ]
     }
 
@@ -229,6 +236,7 @@ impl GameType {
             GameType::Gumshoe => "Gumshoe",
             GameType::Dungeon => "Dungeon",
             GameType::Caverns => "Caverns",
+            GameType::Biolab => "Biolab",
         }
     }
 
@@ -249,6 +257,7 @@ impl GameType {
             GameType::Gumshoe => "Chase criminals across the globe!",
             GameType::Dungeon => "Explore dark mazes, fight monsters",
             GameType::Caverns => "Text adventure - explore, solve puzzles",
+            GameType::Biolab => "Learn biology - cells, DNA, anatomy",
         }
     }
 }
@@ -301,6 +310,7 @@ pub struct GamesState {
     pub gumshoe: GumshoeState,
     pub dungeon: DungeonState,
     pub caverns: CavernsState,
+    pub biolab: BiolabState,
 }
 
 impl Default for GamesState {
@@ -340,6 +350,7 @@ impl GamesState {
             gumshoe: GumshoeState::new(),
             dungeon: DungeonState::new(),
             caverns: CavernsState::new(),
+            biolab: BiolabState::new(),
         }
     }
 
@@ -408,6 +419,7 @@ impl GamesState {
             GameType::Gumshoe => self.gumshoe = GumshoeState::new(),
             GameType::Dungeon => self.dungeon = DungeonState::new(),
             GameType::Caverns => self.caverns = CavernsState::new(),
+            GameType::Biolab => self.biolab = BiolabState::new(),
         }
     }
 
@@ -438,6 +450,7 @@ impl GamesState {
                 GameType::Gumshoe => 12,    // No legacy high score storage
                 GameType::Dungeon => 13,    // No legacy high score storage
                 GameType::Caverns => 14,    // No legacy high score storage
+                GameType::Biolab => 15,     // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

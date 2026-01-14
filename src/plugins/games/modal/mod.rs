@@ -7,6 +7,7 @@
 // Per-game rendering modules
 pub mod achievements;
 mod artillery;
+mod biolab;
 mod brainiac;
 mod breakout;
 mod caverns;
@@ -25,6 +26,7 @@ mod trek;
 
 // Re-export game draw functions
 pub use artillery::draw as draw_artillery;
+pub use biolab::draw_biolab;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use caverns::draw_caverns;
@@ -100,6 +102,7 @@ pub fn draw_games_modal(
             Some(GameType::Gumshoe) => " Gumshoe ",
             Some(GameType::Dungeon) => " Dungeon ",
             Some(GameType::Caverns) => " Caverns ",
+            Some(GameType::Biolab) => " Biolab ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -362,6 +365,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Gumshoe) => draw_gumshoe(frame, view, &state.gumshoe, colors),
         Some(GameType::Dungeon) => draw_dungeon(frame, view, &state.dungeon, colors),
         Some(GameType::Caverns) => draw_caverns(frame, view, &state.caverns, colors),
+        Some(GameType::Biolab) => draw_biolab(frame, view, &state.biolab, colors),
         None => {}
     }
 }
@@ -473,6 +477,7 @@ fn draw_game_over(
             GameType::Gumshoe => 12,    // No legacy high score
             GameType::Dungeon => 13,    // No legacy high score
             GameType::Caverns => 14,    // No legacy high score
+            GameType::Biolab => 15,     // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -664,6 +669,7 @@ fn draw_leaderboard(
             GameType::Gumshoe => "GUM",
             GameType::Dungeon => "DUN",
             GameType::Caverns => "CAV",
+            GameType::Biolab => "BIO",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

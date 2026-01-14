@@ -3,6 +3,7 @@
 //! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, Artillery, Mindgames, and Gumshoe.
 
 pub mod artillery;
+pub mod biolab;
 pub mod brainiac;
 pub mod breakout;
 pub mod caverns;
@@ -181,6 +182,7 @@ impl GamesPlugin {
             GameType::Gumshoe => self.state.gumshoe.is_game_won(),
             GameType::Dungeon => self.state.dungeon.is_game_won(),
             GameType::Caverns => self.state.caverns.is_game_won(),
+            GameType::Biolab => self.state.biolab.is_game_won(),
         }
     }
 
@@ -379,6 +381,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Gumshoe) => self.state.gumshoe.handle_key(key),
                     Some(GameType::Dungeon) => self.state.dungeon.handle_key(key),
                     Some(GameType::Caverns) => self.state.caverns.handle_key(key),
+                    Some(GameType::Biolab) => self.state.biolab.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -621,6 +624,11 @@ impl Plugin for GamesPlugin {
                 if self.state.caverns.is_game_over() {
                     self.end_game_with_stats();
                 }
+            }
+            Some(GameType::Biolab) => {
+                self.state.biolab.tick();
+                self.state.score = self.state.biolab.get_score();
+                // Biolab handles its own game over state
             }
             None => {}
         }
