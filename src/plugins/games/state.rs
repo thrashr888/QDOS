@@ -3,6 +3,7 @@
 use super::adventure::AdventureState;
 use super::artillery::ArtilleryState;
 use super::biolab::BiolabState;
+use super::blackjack::BlackjackState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::caverns::CavernsState;
@@ -16,6 +17,7 @@ use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
 use super::neondrive::NeondriveState;
 use super::rogue::RogueState;
+use super::roulette::RouletteState;
 use super::snake::SnakeState;
 use super::storyweaver::StoryweaverState;
 use super::tetris::TetrisState;
@@ -136,6 +138,10 @@ pub struct Leaderboards {
     pub junglerun: GameLeaderboard,
     #[serde(default)]
     pub adventure: GameLeaderboard,
+    #[serde(default)]
+    pub blackjack: GameLeaderboard,
+    #[serde(default)]
+    pub roulette: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -166,6 +172,8 @@ impl Leaderboards {
             GameType::Micropolis => &self.micropolis,
             GameType::JungleRun => &self.junglerun,
             GameType::Adventure => &self.adventure,
+            GameType::Blackjack => &self.blackjack,
+            GameType::Roulette => &self.roulette,
         }
     }
 
@@ -192,6 +200,8 @@ impl Leaderboards {
             GameType::Micropolis => &mut self.micropolis,
             GameType::JungleRun => &mut self.junglerun,
             GameType::Adventure => &mut self.adventure,
+            GameType::Blackjack => &mut self.blackjack,
+            GameType::Roulette => &mut self.roulette,
         }
     }
 }
@@ -219,6 +229,8 @@ pub enum GameType {
     Micropolis,
     JungleRun,
     Adventure,
+    Blackjack,
+    Roulette,
 }
 
 impl GameType {
@@ -244,6 +256,8 @@ impl GameType {
             GameType::Micropolis,
             GameType::JungleRun,
             GameType::Adventure,
+            GameType::Blackjack,
+            GameType::Roulette,
         ]
     }
 
@@ -269,6 +283,8 @@ impl GameType {
             GameType::Micropolis => "Micropolis",
             GameType::JungleRun => "Jungle Run",
             GameType::Adventure => "Adventure",
+            GameType::Blackjack => "Blackjack",
+            GameType::Roulette => "Roulette",
         }
     }
 
@@ -294,6 +310,8 @@ impl GameType {
             GameType::Micropolis => "Build your real estate empire!",
             GameType::JungleRun => "Pitfall-style jungle platformer",
             GameType::Adventure => "Dragon Quest - find the chalice!",
+            GameType::Blackjack => "Beat the dealer to 21!",
+            GameType::Roulette => "Spin the wheel, place your bets!",
         }
     }
 }
@@ -351,6 +369,11 @@ pub struct GamesState {
     pub micropolis: MicropolisState,
     pub junglerun: JungleRunState,
     pub adventure: AdventureState,
+    pub blackjack: BlackjackState,
+    pub roulette: RouletteState,
+
+    // Casino wallet - shared credits for gambling games
+    pub casino_credits: i64,
 }
 
 impl Default for GamesState {
@@ -395,6 +418,9 @@ impl GamesState {
             micropolis: MicropolisState::new(),
             junglerun: JungleRunState::new(),
             adventure: AdventureState::new(),
+            blackjack: BlackjackState::new(),
+            roulette: RouletteState::new(),
+            casino_credits: 1000, // Starting casino credits
         }
     }
 
@@ -468,6 +494,14 @@ impl GamesState {
             GameType::Micropolis => self.micropolis.reset(),
             GameType::JungleRun => self.junglerun = JungleRunState::new(),
             GameType::Adventure => self.adventure = AdventureState::new(),
+            GameType::Blackjack => {
+                self.blackjack = BlackjackState::new();
+                self.blackjack.set_credits(self.casino_credits);
+            }
+            GameType::Roulette => {
+                self.roulette = RouletteState::new();
+                self.roulette.set_credits(self.casino_credits);
+            }
         }
     }
 
@@ -503,7 +537,21 @@ impl GamesState {
                 GameType::Micropolis => 17, // No legacy high score storage
                 GameType::JungleRun => 18,  // No legacy high score storage
                 GameType::Adventure => 19,  // No legacy high score storage
+                GameType::Blackjack => 20,  // Casino game
+                GameType::Roulette => 21,   // Casino game
             };
+
+            // Update casino credits for gambling games
+            match game {
+                GameType::Blackjack => {
+                    self.casino_credits = self.blackjack.available_credits;
+                }
+                GameType::Roulette => {
+                    self.casino_credits = self.roulette.available_credits;
+                }
+                _ => {}
+            }
+
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;
             }

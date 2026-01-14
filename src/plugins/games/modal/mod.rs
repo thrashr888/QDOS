@@ -9,6 +9,7 @@ pub mod achievements;
 mod adventure;
 mod artillery;
 mod biolab;
+mod blackjack;
 mod brainiac;
 mod breakout;
 mod caverns;
@@ -22,6 +23,7 @@ mod mindgames;
 mod minesweeper;
 mod neondrive;
 mod rogue;
+mod roulette;
 mod snake;
 mod stats;
 mod storyweaver;
@@ -32,6 +34,7 @@ mod trek;
 pub use adventure::draw as draw_adventure;
 pub use artillery::draw as draw_artillery;
 pub use biolab::draw_biolab;
+pub use blackjack::draw as draw_blackjack;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use caverns::draw_caverns;
@@ -45,6 +48,7 @@ pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
 pub use neondrive::draw as draw_neondrive;
 pub use rogue::draw_rogue;
+pub use roulette::draw as draw_roulette;
 pub use snake::draw_snake;
 pub use storyweaver::draw_storyweaver;
 pub use tetris::draw_tetris;
@@ -115,6 +119,8 @@ pub fn draw_games_modal(
             Some(GameType::Micropolis) => " Micropolis ",
             Some(GameType::JungleRun) => " Jungle Run ",
             Some(GameType::Adventure) => " Adventure ",
+            Some(GameType::Blackjack) => " Blackjack ",
+            Some(GameType::Roulette) => " Roulette ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -382,6 +388,8 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Micropolis) => draw_micropolis(frame, view.area, &state.micropolis, colors),
         Some(GameType::JungleRun) => draw_junglerun(frame, view.area, &state.junglerun, colors),
         Some(GameType::Adventure) => draw_adventure(frame, view.area, &state.adventure, colors),
+        Some(GameType::Blackjack) => draw_blackjack(frame, view.area, &state.blackjack, colors),
+        Some(GameType::Roulette) => draw_roulette(frame, view.area, &state.roulette, colors),
         None => {}
     }
 }
@@ -498,6 +506,8 @@ fn draw_game_over(
             GameType::Micropolis => 17, // No legacy high score
             GameType::JungleRun => 18,  // No legacy high score
             GameType::Adventure => 19,  // No legacy high score
+            GameType::Blackjack => 20,  // Casino game
+            GameType::Roulette => 21,   // Casino game
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -694,6 +704,8 @@ fn draw_leaderboard(
             GameType::Micropolis => "MIC",
             GameType::JungleRun => "JGL",
             GameType::Adventure => "ADV",
+            GameType::Blackjack => "BJK",
+            GameType::Roulette => "RLT",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

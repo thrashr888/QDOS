@@ -5,6 +5,7 @@
 pub mod adventure;
 pub mod artillery;
 pub mod biolab;
+pub mod blackjack;
 pub mod brainiac;
 pub mod breakout;
 pub mod caverns;
@@ -20,6 +21,7 @@ mod modal;
 pub mod neondrive;
 pub mod platform;
 pub mod rogue;
+pub mod roulette;
 pub mod snake;
 pub mod state;
 pub mod storyweaver;
@@ -191,6 +193,8 @@ impl GamesPlugin {
             GameType::Micropolis => self.state.micropolis.is_game_won(),
             GameType::JungleRun => self.state.junglerun.game_won,
             GameType::Adventure => self.state.adventure.game_won,
+            GameType::Blackjack => false, // Casino - no win condition
+            GameType::Roulette => false,  // Casino - no win condition
         }
     }
 
@@ -394,6 +398,8 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Micropolis) => self.state.micropolis.handle_key(key),
                     Some(GameType::JungleRun) => self.state.junglerun.handle_key(key),
                     Some(GameType::Adventure) => self.state.adventure.handle_key(key),
+                    Some(GameType::Blackjack) => self.state.blackjack.handle_key(key),
+                    Some(GameType::Roulette) => self.state.roulette.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -667,6 +673,20 @@ impl Plugin for GamesPlugin {
                 self.state.adventure.tick();
                 self.state.score = self.state.adventure.get_score();
                 if self.state.adventure.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Blackjack) => {
+                self.state.blackjack.tick();
+                self.state.score = self.state.blackjack.get_score();
+                if self.state.blackjack.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Roulette) => {
+                self.state.roulette.tick();
+                self.state.score = self.state.roulette.get_score();
+                if self.state.roulette.is_game_over() {
                     self.end_game_with_stats();
                 }
             }
