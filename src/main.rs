@@ -18,6 +18,7 @@ mod file_ops;
 mod mcp;
 mod plugins;
 mod rg;
+mod sound;
 mod ui;
 mod vfs;
 mod watcher;

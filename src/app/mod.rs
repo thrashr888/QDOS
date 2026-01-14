@@ -41,6 +41,7 @@ use crate::plugins::{
     SearchSpecPlugin, SftpPlugin, ShellPlugin, SpacePlugin, StatusPlugin, TerraformPlugin,
     ThemePlugin, VideoPlugin, ViewerPlugin,
 };
+use crate::sound::SoundEffects;
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
 use crate::watcher::DirWatcher;
@@ -127,6 +128,8 @@ pub struct App {
     /// Used for Q-LINK MCP integration - routes to MCP providers for mounted paths
     #[allow(dead_code)] // Will be used when file operations are routed through VFS
     pub routing_fs: Arc<RoutingFS>,
+    /// Sound effects player for system beeps and alerts
+    pub sound: SoundEffects,
 }
 
 impl App {
@@ -202,6 +205,9 @@ impl App {
         // Load directory jump database (auto-detects zoxide, z, autojump, fasd)
         let z_db = JumpDatabase::detect().ok();
 
+        // Initialize sound effects (enabled based on config)
+        let sound = SoundEffects::new(config.general.play_sounds);
+
         let mut app = Self {
             current_path,
             files,
@@ -229,6 +235,7 @@ impl App {
             terminal_luma: None,
             z_db,
             routing_fs,
+            sound,
         };
 
         // Detect terminal light/dark mode using OSC 10/11 query
@@ -310,6 +317,20 @@ impl App {
                         // Tick active plugin modal for auto-refresh (e.g., Proc plugin)
                         if self.plugin_manager.has_active_modal() {
                             self.plugin_manager.tick_active_modal();
+
+                            // Play any sounds emitted by the plugin
+                            for sound_event in self.plugin_manager.drain_active_modal_sounds() {
+                                match sound_event {
+                                    crate::plugins::SoundEvent::Achievement => {
+                                        self.sound.achievement()
+                                    }
+                                    crate::plugins::SoundEvent::GameOver => self.sound.game_over(),
+                                    crate::plugins::SoundEvent::LevelUp => self.sound.level_up(),
+                                    crate::plugins::SoundEvent::Click => self.sound.click(),
+                                    crate::plugins::SoundEvent::Error => self.sound.error(),
+                                    crate::plugins::SoundEvent::Success => self.sound.success(),
+                                }
+                            }
                         }
 
                         // Check for directory changes from watcher (event-based refresh)
@@ -2674,6 +2695,34 @@ impl App {
         }
     }
 
+    // =========================================================================
+    // Sound + Modal Helpers
+    // =========================================================================
+
+    /// Show an error modal and play error sound
+    pub fn show_error(&mut self, msg: impl Into<String>) {
+        self.modal = Modal::Error(msg.into());
+        self.sound.error();
+    }
+
+    /// Show a success modal and play success sound
+    pub fn show_success(&mut self, msg: impl Into<String>) {
+        self.modal = Modal::Success(msg.into());
+        self.sound.success();
+    }
+
+    /// Play a notification sound (for non-modal alerts)
+    #[allow(dead_code)]
+    pub fn play_notify(&self) {
+        self.sound.notify();
+    }
+
+    /// Play achievement sound
+    #[allow(dead_code)]
+    pub fn play_achievement(&self) {
+        self.sound.achievement();
+    }
+
     /// Refresh status bar info (beads, git, and jj)
     pub fn refresh_status_bar(&mut self) {
         // Refresh beads status
@@ -2923,8 +2972,7 @@ impl App {
                                                         .map_err(|e| e.into())
                                                 };
                                                 if let Err(e) = copy_result {
-                                                    self.modal =
-                                                        Modal::Error(format!("Copy failed: {}", e));
+                                                    self.show_error(format!("Copy failed: {}", e));
                                                     self.tagged_files.clear();
                                                     let _ = self.refresh_files();
                                                     return true;
@@ -2934,8 +2982,7 @@ impl App {
                                         }
                                         self.tagged_files.clear();
                                         let _ = self.refresh_files();
-                                        self.modal =
-                                            Modal::Success(format!("Copied {} file(s)", count));
+                                        self.show_success(format!("Copied {} file(s)", count));
                                     }
                                 }
                                 FileOperation::Move => {
@@ -2960,8 +3007,7 @@ impl App {
                                             if let Some(file_name) = src_path.file_name() {
                                                 let dest_path = dest_dir.join(file_name);
                                                 if let Err(e) = fs::rename(src_path, &dest_path) {
-                                                    self.modal =
-                                                        Modal::Error(format!("Move failed: {}", e));
+                                                    self.show_error(format!("Move failed: {}", e));
                                                     self.tagged_files.clear();
                                                     let _ = self.refresh_files();
                                                     return true;
@@ -2971,8 +3017,7 @@ impl App {
                                         }
                                         self.tagged_files.clear();
                                         let _ = self.refresh_files();
-                                        self.modal =
-                                            Modal::Success(format!("Moved {} file(s)", count));
+                                        self.show_success(format!("Moved {} file(s)", count));
                                     }
                                 }
                                 FileOperation::Erase => {
@@ -2984,8 +3029,7 @@ impl App {
                                             fs::remove_file(path)
                                         };
                                         if let Err(e) = remove_result {
-                                            self.modal =
-                                                Modal::Error(format!("Erase failed: {}", e));
+                                            self.show_error(format!("Erase failed: {}", e));
                                             self.tagged_files.clear();
                                             let _ = self.refresh_files();
                                             return true;
@@ -2994,8 +3038,7 @@ impl App {
                                     }
                                     self.tagged_files.clear();
                                     let _ = self.refresh_files();
-                                    self.modal =
-                                        Modal::Success(format!("Erased {} file(s)", count));
+                                    self.show_success(format!("Erased {} file(s)", count));
                                 }
                                 FileOperation::Rename => {
                                     if let Some(new_name) = result.destination {
@@ -3005,13 +3048,12 @@ impl App {
                                                 .unwrap_or(&self.current_path)
                                                 .join(&new_name);
                                             if let Err(e) = fs::rename(old_path, &new_path) {
-                                                self.modal =
-                                                    Modal::Error(format!("Rename failed: {}", e));
+                                                self.show_error(format!("Rename failed: {}", e));
                                                 let _ = self.refresh_files();
                                                 return true;
                                             }
                                             let _ = self.refresh_files();
-                                            self.modal = Modal::Success(format!(
+                                            self.show_success(format!(
                                                 "Renamed to \"{}\"",
                                                 new_name
                                             ));

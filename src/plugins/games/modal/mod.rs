@@ -9,6 +9,7 @@ pub mod achievements;
 mod artillery;
 mod brainiac;
 mod breakout;
+mod caverns;
 mod clicker;
 mod dopewars;
 mod dungeon;
@@ -26,6 +27,7 @@ mod trek;
 pub use artillery::draw as draw_artillery;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
+pub use caverns::draw_caverns;
 pub use clicker::draw_clicker;
 pub use dopewars::draw_dopewars;
 pub use dungeon::draw_dungeon;
@@ -97,6 +99,7 @@ pub fn draw_games_modal(
             Some(GameType::Mindgames) => " Mindgames ",
             Some(GameType::Gumshoe) => " Gumshoe ",
             Some(GameType::Dungeon) => " Dungeon ",
+            Some(GameType::Caverns) => " Caverns ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -358,6 +361,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Mindgames) => draw_mindgames(frame, view, &state.mindgames, colors),
         Some(GameType::Gumshoe) => draw_gumshoe(frame, view, &state.gumshoe, colors),
         Some(GameType::Dungeon) => draw_dungeon(frame, view, &state.dungeon, colors),
+        Some(GameType::Caverns) => draw_caverns(frame, view, &state.caverns, colors),
         None => {}
     }
 }
@@ -418,7 +422,8 @@ fn draw_game_over(
     let is_win = (matches!(state.current_game, Some(GameType::Breakout))
         && state.breakout.game_won)
         || (matches!(state.current_game, Some(GameType::Rogue)) && state.rogue.game_won)
-        || (matches!(state.current_game, Some(GameType::Trek)) && state.trek.game_won);
+        || (matches!(state.current_game, Some(GameType::Trek)) && state.trek.game_won)
+        || (matches!(state.current_game, Some(GameType::Caverns)) && state.caverns.game_won);
 
     let title = if is_win { "YOU WIN!" } else { "GAME OVER" };
     let title_color = if is_win { colors.green() } else { colors.red() };
@@ -467,6 +472,7 @@ fn draw_game_over(
             GameType::Mindgames => 11,  // No legacy high score
             GameType::Gumshoe => 12,    // No legacy high score
             GameType::Dungeon => 13,    // No legacy high score
+            GameType::Caverns => 14,    // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -657,6 +663,7 @@ fn draw_leaderboard(
             GameType::Mindgames => "MND",
             GameType::Gumshoe => "GUM",
             GameType::Dungeon => "DUN",
+            GameType::Caverns => "CAV",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

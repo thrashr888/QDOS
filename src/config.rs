@@ -161,6 +161,9 @@ pub struct GeneralConfig {
     /// Content search tool: auto, rg, ag, grep, ack (default: auto)
     #[serde(default)]
     pub search_tool: SearchTool,
+    /// Play system sounds (default: true)
+    #[serde(default = "default_true")]
+    pub play_sounds: bool,
 }
 
 impl Default for GeneralConfig {
@@ -174,6 +177,7 @@ impl Default for GeneralConfig {
             mouse_support: false,
             auto_refresh_interval: default_auto_refresh(),
             search_tool: SearchTool::default(),
+            play_sounds: true,
         }
     }
 }

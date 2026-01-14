@@ -3,6 +3,7 @@
 use super::artillery::ArtilleryState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
+use super::caverns::CavernsState;
 use super::clicker::ClickerState;
 use super::dopewars::DopeWarsState;
 use super::dungeon::DungeonState;
@@ -118,6 +119,8 @@ pub struct Leaderboards {
     pub gumshoe: GameLeaderboard,
     #[serde(default)]
     pub dungeon: GameLeaderboard,
+    #[serde(default)]
+    pub caverns: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -142,6 +145,7 @@ impl Leaderboards {
             GameType::Mindgames => &self.mindgames,
             GameType::Gumshoe => &self.gumshoe,
             GameType::Dungeon => &self.dungeon,
+            GameType::Caverns => &self.caverns,
         }
     }
 
@@ -162,6 +166,7 @@ impl Leaderboards {
             GameType::Mindgames => &mut self.mindgames,
             GameType::Gumshoe => &mut self.gumshoe,
             GameType::Dungeon => &mut self.dungeon,
+            GameType::Caverns => &mut self.caverns,
         }
     }
 }
@@ -183,6 +188,7 @@ pub enum GameType {
     Mindgames,
     Gumshoe,
     Dungeon,
+    Caverns,
 }
 
 impl GameType {
@@ -202,6 +208,7 @@ impl GameType {
             GameType::Mindgames,
             GameType::Gumshoe,
             GameType::Dungeon,
+            GameType::Caverns,
         ]
     }
 
@@ -221,6 +228,7 @@ impl GameType {
             GameType::Mindgames => "Mindgames",
             GameType::Gumshoe => "Gumshoe",
             GameType::Dungeon => "Dungeon",
+            GameType::Caverns => "Caverns",
         }
     }
 
@@ -240,6 +248,7 @@ impl GameType {
             GameType::Mindgames => "Brain training - patterns, memory, math",
             GameType::Gumshoe => "Chase criminals across the globe!",
             GameType::Dungeon => "Explore dark mazes, fight monsters",
+            GameType::Caverns => "Text adventure - explore, solve puzzles",
         }
     }
 }
@@ -291,6 +300,7 @@ pub struct GamesState {
     pub mindgames: MindgamesState,
     pub gumshoe: GumshoeState,
     pub dungeon: DungeonState,
+    pub caverns: CavernsState,
 }
 
 impl Default for GamesState {
@@ -329,6 +339,7 @@ impl GamesState {
             mindgames: MindgamesState::new(),
             gumshoe: GumshoeState::new(),
             dungeon: DungeonState::new(),
+            caverns: CavernsState::new(),
         }
     }
 
@@ -396,6 +407,7 @@ impl GamesState {
             GameType::Mindgames => self.mindgames.reset(),
             GameType::Gumshoe => self.gumshoe = GumshoeState::new(),
             GameType::Dungeon => self.dungeon = DungeonState::new(),
+            GameType::Caverns => self.caverns = CavernsState::new(),
         }
     }
 
@@ -425,6 +437,7 @@ impl GamesState {
                 GameType::Mindgames => 11,  // No legacy high score storage
                 GameType::Gumshoe => 12,    // No legacy high score storage
                 GameType::Dungeon => 13,    // No legacy high score storage
+                GameType::Caverns => 14,    // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

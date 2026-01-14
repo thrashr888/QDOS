@@ -5,6 +5,7 @@
 pub mod artillery;
 pub mod brainiac;
 pub mod breakout;
+pub mod caverns;
 pub mod clicker;
 pub mod dopewars;
 pub mod dungeon;
@@ -24,8 +25,9 @@ use crate::app::ThemeColors;
 use crate::config::Config;
 use crate::plugins::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-    PluginStatusInfo,
+    PluginStatusInfo, SoundEvent,
 };
+use crate::sound::{ChiptuneMelody, ChiptuneMusic};
 use crossterm::event::{KeyCode, KeyEvent};
 use platform::{AchievementManager, GameEngine, StatsTracker};
 use ratatui::{layout::Rect, Frame};
@@ -38,6 +40,9 @@ pub struct GamesPlugin {
     pub state: GamesState,
     pub stats: StatsTracker,
     pub achievements: AchievementManager,
+    pending_sounds: Vec<SoundEvent>,
+    music: ChiptuneMusic,
+    sounds_enabled: bool,
 }
 
 impl Default for GamesPlugin {
@@ -48,10 +53,18 @@ impl Default for GamesPlugin {
 
 impl GamesPlugin {
     pub fn new() -> Self {
+        // Check if sounds are enabled from config
+        let sounds_enabled = Config::load()
+            .map(|c| c.general.play_sounds)
+            .unwrap_or(true);
+
         let mut plugin = Self {
             state: GamesState::new(),
             stats: StatsTracker::empty(),
             achievements: AchievementManager::new(),
+            pending_sounds: Vec::new(),
+            music: ChiptuneMusic::new(),
+            sounds_enabled,
         };
         plugin.load_from_config();
         plugin
@@ -99,11 +112,21 @@ impl GamesPlugin {
     pub fn open_modal(&mut self) {
         // Reload config when opening modal (in case it changed externally)
         self.load_from_config();
+        // Refresh sound setting
+        self.sounds_enabled = Config::load()
+            .map(|c| c.general.play_sounds)
+            .unwrap_or(true);
         self.state.view = GamesView::Menu;
+        // Start background music if sounds are enabled
+        if self.sounds_enabled {
+            self.music.play(ChiptuneMelody::GameMenu);
+        }
     }
 
     /// Start a game with stats tracking
     fn start_game_with_stats(&mut self) {
+        // Stop menu music when starting a game
+        self.music.stop();
         let game_type = self.state.selected_game_type();
         self.stats.on_game_start(game_type);
         self.state.start_game();
@@ -117,12 +140,27 @@ impl GamesPlugin {
             let level = self.get_game_level(game_type);
             self.stats.on_game_end(game_type, score, won, level);
 
+            // Emit game over sound (won = success, lost = game over)
+            if won {
+                self.pending_sounds.push(SoundEvent::Success);
+            } else {
+                self.pending_sounds.push(SoundEvent::GameOver);
+            }
+
             // Check achievements with final score
             self.achievements
                 .check_all(&self.stats.stats, Some((game_type, score)));
         }
         self.state.game_over();
         self.save_to_config();
+    }
+
+    /// Return to menu and restart background music
+    fn back_to_menu(&mut self) {
+        self.state.return_to_menu();
+        if self.sounds_enabled {
+            self.music.play(ChiptuneMelody::GameMenu);
+        }
     }
 
     /// Check if the current game was won
@@ -142,6 +180,7 @@ impl GamesPlugin {
             GameType::Mindgames => self.state.mindgames.is_game_won(),
             GameType::Gumshoe => self.state.gumshoe.is_game_won(),
             GameType::Dungeon => self.state.dungeon.is_game_won(),
+            GameType::Caverns => self.state.caverns.is_game_won(),
         }
     }
 
@@ -212,7 +251,10 @@ impl Plugin for GamesPlugin {
     fn handle_modal_key(&mut self, key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
         match self.state.view {
             GamesView::Menu => match key.code {
-                KeyCode::Esc => KeyHandleResult::CloseModal,
+                KeyCode::Esc => {
+                    self.music.stop();
+                    KeyHandleResult::CloseModal
+                }
                 KeyCode::Up | KeyCode::Char('k') => {
                     self.state.select_prev();
                     KeyHandleResult::Handled
@@ -336,13 +378,14 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Mindgames) => self.state.mindgames.handle_key(key),
                     Some(GameType::Gumshoe) => self.state.gumshoe.handle_key(key),
                     Some(GameType::Dungeon) => self.state.dungeon.handle_key(key),
+                    Some(GameType::Caverns) => self.state.caverns.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
                 // Handle platform-level actions based on game's response
                 match result {
                     platform::KeyHandleResult::RequestQuit => {
-                        self.state.return_to_menu();
+                        self.back_to_menu();
                         KeyHandleResult::Handled
                     }
                     platform::KeyHandleResult::RequestPause => {
@@ -360,7 +403,7 @@ impl Plugin for GamesPlugin {
             }
             GamesView::Paused => match key.code {
                 KeyCode::Esc => {
-                    self.state.return_to_menu();
+                    self.back_to_menu();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('p') | KeyCode::Char('P') => {
@@ -372,7 +415,7 @@ impl Plugin for GamesPlugin {
             GamesView::GameOver => match key.code {
                 KeyCode::Esc => {
                     self.save_to_config(); // Save leaderboards before leaving
-                    self.state.return_to_menu();
+                    self.back_to_menu();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Enter => {
@@ -444,8 +487,10 @@ impl Plugin for GamesPlugin {
     }
 
     fn tick(&mut self) {
-        // Always tick achievement toasts
-        self.achievements.tick();
+        // Always tick achievement toasts - emit sound if new toast shown
+        if self.achievements.tick() {
+            self.pending_sounds.push(SoundEvent::Achievement);
+        }
 
         // Always tick menu animation
         if self.state.view == GamesView::Menu {
@@ -570,8 +615,19 @@ impl Plugin for GamesPlugin {
                     self.end_game_with_stats();
                 }
             }
+            Some(GameType::Caverns) => {
+                self.state.caverns.tick();
+                self.state.score = self.state.caverns.get_score();
+                if self.state.caverns.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
             None => {}
         }
+    }
+
+    fn drain_sound_events(&mut self) -> Vec<SoundEvent> {
+        std::mem::take(&mut self.pending_sounds)
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {

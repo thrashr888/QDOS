@@ -22,6 +22,7 @@ pub mod file_ops;
 pub mod mcp;
 pub mod plugins;
 pub mod rg;
+pub mod sound;
 pub mod ui;
 pub mod vfs;
 pub mod watcher;

@@ -216,6 +216,23 @@ pub enum KeyHandleResult {
     NavigateToDir(std::path::PathBuf),
 }
 
+/// Sound events that plugins can emit
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SoundEvent {
+    /// Achievement unlocked
+    Achievement,
+    /// Game over
+    GameOver,
+    /// Level up / success
+    LevelUp,
+    /// Click / selection
+    Click,
+    /// Error
+    Error,
+    /// Success
+    Success,
+}
+
 /// The core Plugin trait that all plugins must implement
 pub trait Plugin: Send + Sync {
     /// Unique identifier for this plugin
@@ -257,6 +274,11 @@ pub trait Plugin: Send + Sync {
 
     /// Handle tick event for animations/auto-refresh (called every 100ms when modal is open)
     fn tick(&mut self) {}
+
+    /// Drain pending sound events (called after tick)
+    fn drain_sound_events(&mut self) -> Vec<SoundEvent> {
+        Vec::new()
+    }
 
     /// Draw the plugin's modal
     fn draw_modal(&self, _frame: &mut Frame, _area: Rect, _colors: &crate::app::ThemeColors) {}
@@ -493,6 +515,16 @@ impl PluginManager {
                 plugin.tick();
             }
         }
+    }
+
+    /// Drain sound events from active modal plugin
+    pub fn drain_active_modal_sounds(&mut self) -> Vec<SoundEvent> {
+        if let Some(ref id) = self.active_modal.clone() {
+            if let Some(plugin) = self.plugins.get_mut(id) {
+                return plugin.drain_sound_events();
+            }
+        }
+        Vec::new()
     }
 
     /// Launch a plugin by ID from the Apps launcher.

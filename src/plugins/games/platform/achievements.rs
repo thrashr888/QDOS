@@ -658,7 +658,8 @@ impl AchievementManager {
     }
 
     /// Update toast display (call from tick)
-    pub fn tick(&mut self) {
+    /// Returns true if a NEW toast was just shown (for sound trigger)
+    pub fn tick(&mut self) -> bool {
         // Update current toast timer
         if let Some(toast) = &mut self.current_toast {
             if toast.ticks_remaining > 0 {
@@ -677,7 +678,10 @@ impl AchievementManager {
                 achievement,
                 ticks_remaining: Self::TOAST_DURATION,
             });
+            return true; // New toast shown!
         }
+
+        false
     }
 
     /// Dismiss current toast immediately
