@@ -1,12 +1,14 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, Artillery, and Mindgames.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, Artillery, Mindgames, and Gumshoe.
 
 pub mod artillery;
 pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
 pub mod dopewars;
+pub mod dungeon;
+pub mod gumshoe;
 pub mod mindgames;
 pub mod minesweeper;
 mod modal;
@@ -25,7 +27,7 @@ use crate::plugins::{
     PluginStatusInfo,
 };
 use crossterm::event::{KeyCode, KeyEvent};
-use platform::GameEngine;
+use platform::{AchievementManager, GameEngine, StatsTracker};
 use ratatui::{layout::Rect, Frame};
 use state::{GameType, GamesState, GamesView};
 use std::any::Any;
@@ -34,6 +36,8 @@ use std::path::PathBuf;
 /// Games plugin - built-in retro games
 pub struct GamesPlugin {
     pub state: GamesState,
+    pub stats: StatsTracker,
+    pub achievements: AchievementManager,
 }
 
 impl Default for GamesPlugin {
@@ -46,6 +50,8 @@ impl GamesPlugin {
     pub fn new() -> Self {
         let mut plugin = Self {
             state: GamesState::new(),
+            stats: StatsTracker::empty(),
+            achievements: AchievementManager::new(),
         };
         plugin.load_from_config();
         plugin
@@ -62,6 +68,12 @@ impl GamesPlugin {
             if let Some(clicker_state) = config.games.get_clicker_state() {
                 self.state.clicker = clicker_state;
             }
+
+            // Decode player stats from base64 JSON
+            self.stats = StatsTracker::new(config.games.get_player_stats());
+
+            // Decode achievements from base64 JSON
+            self.achievements = AchievementManager::from_state(config.games.get_achievements());
         }
     }
 
@@ -74,6 +86,12 @@ impl GamesPlugin {
             // Encode clicker state to base64 JSON
             config.games.set_clicker_state(&self.state.clicker);
 
+            // Encode player stats to base64 JSON
+            config.games.set_player_stats(&self.stats.stats);
+
+            // Encode achievements to base64 JSON
+            config.games.set_achievements(&self.achievements.state);
+
             let _ = config.save();
         }
     }
@@ -82,6 +100,60 @@ impl GamesPlugin {
         // Reload config when opening modal (in case it changed externally)
         self.load_from_config();
         self.state.view = GamesView::Menu;
+    }
+
+    /// Start a game with stats tracking
+    fn start_game_with_stats(&mut self) {
+        let game_type = self.state.selected_game_type();
+        self.stats.on_game_start(game_type);
+        self.state.start_game();
+    }
+
+    /// End a game with stats tracking
+    fn end_game_with_stats(&mut self) {
+        if let Some(game_type) = self.state.current_game {
+            let score = self.state.score;
+            let won = self.is_game_won(game_type);
+            let level = self.get_game_level(game_type);
+            self.stats.on_game_end(game_type, score, won, level);
+
+            // Check achievements with final score
+            self.achievements
+                .check_all(&self.stats.stats, Some((game_type, score)));
+        }
+        self.state.game_over();
+        self.save_to_config();
+    }
+
+    /// Check if the current game was won
+    fn is_game_won(&self, game: GameType) -> bool {
+        match game {
+            GameType::Tetris => false, // Endless
+            GameType::Snake => false,  // Endless
+            GameType::Breakout => self.state.breakout.is_game_won(),
+            GameType::Rogue => self.state.rogue.is_game_won(),
+            GameType::Trek => self.state.trek.is_game_won(),
+            GameType::Clicker => false, // Endless
+            GameType::Brainiac => self.state.brainiac.is_game_won(),
+            GameType::Storyweaver => self.state.storyweaver.is_game_won(),
+            GameType::DopeWars => self.state.dopewars.is_game_won(),
+            GameType::Minesweeper => self.state.minesweeper.is_game_won(),
+            GameType::Artillery => self.state.artillery.is_game_won(),
+            GameType::Mindgames => self.state.mindgames.is_game_won(),
+            GameType::Gumshoe => self.state.gumshoe.is_game_won(),
+            GameType::Dungeon => self.state.dungeon.is_game_won(),
+        }
+    }
+
+    /// Get the current level/floor for applicable games
+    fn get_game_level(&self, game: GameType) -> Option<u32> {
+        match game {
+            GameType::Tetris => Some(self.state.tetris.get_level().unwrap_or(1)),
+            GameType::Rogue => Some(self.state.rogue.get_level().unwrap_or(1)),
+            GameType::Clicker => self.state.clicker.get_level(),
+            GameType::Storyweaver => self.state.storyweaver.get_level(),
+            _ => None,
+        }
     }
 }
 
@@ -150,57 +222,97 @@ impl Plugin for GamesPlugin {
                     KeyHandleResult::Handled
                 }
                 KeyCode::Enter => {
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 // Number keys 1-6 to directly select and start games
                 KeyCode::Char('1') => {
                     self.state.selected_game = 0;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('2') => {
                     self.state.selected_game = 1;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('3') => {
                     self.state.selected_game = 2;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('4') => {
                     self.state.selected_game = 3;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('5') => {
                     self.state.selected_game = 4;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('6') => {
                     self.state.selected_game = 5;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('7') => {
                     self.state.selected_game = 6;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('8') => {
                     self.state.selected_game = 7;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('9') => {
                     self.state.selected_game = 8;
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('l') | KeyCode::Char('L') => {
                     self.state.show_leaderboard();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('s') | KeyCode::Char('S') => {
+                    self.state.show_stats();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('a') | KeyCode::Char('A') => {
+                    self.state.show_achievements();
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            },
+            GamesView::Stats => match key.code {
+                KeyCode::Esc => {
+                    self.state.view = GamesView::Menu;
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::Handled,
+            },
+            GamesView::Achievements => match key.code {
+                KeyCode::Esc => {
+                    self.state.view = GamesView::Menu;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.state.achievements_scroll_offset =
+                        self.state.achievements_scroll_offset.saturating_sub(1);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.state.achievements_scroll_offset += 1;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::PageUp => {
+                    self.state.achievements_scroll_offset =
+                        self.state.achievements_scroll_offset.saturating_sub(10);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::PageDown => {
+                    self.state.achievements_scroll_offset += 10;
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
@@ -222,6 +334,8 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Minesweeper) => self.state.minesweeper.handle_key(key),
                     Some(GameType::Artillery) => self.state.artillery.handle_key(key),
                     Some(GameType::Mindgames) => self.state.mindgames.handle_key(key),
+                    Some(GameType::Gumshoe) => self.state.gumshoe.handle_key(key),
+                    Some(GameType::Dungeon) => self.state.dungeon.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -236,7 +350,7 @@ impl Plugin for GamesPlugin {
                         KeyHandleResult::Handled
                     }
                     platform::KeyHandleResult::GameOver => {
-                        self.state.game_over();
+                        self.end_game_with_stats();
                         KeyHandleResult::Handled
                     }
                     platform::KeyHandleResult::Handled | platform::KeyHandleResult::NotHandled => {
@@ -263,7 +377,7 @@ impl Plugin for GamesPlugin {
                 }
                 KeyCode::Enter => {
                     // Restart the same game
-                    self.state.start_game();
+                    self.start_game_with_stats();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Char('l') | KeyCode::Char('L') => {
@@ -330,6 +444,9 @@ impl Plugin for GamesPlugin {
     }
 
     fn tick(&mut self) {
+        // Always tick achievement toasts
+        self.achievements.tick();
+
         // Always tick menu animation
         if self.state.view == GamesView::Menu {
             self.state.tick_menu();
@@ -346,35 +463,35 @@ impl Plugin for GamesPlugin {
                 self.state.tetris.tick();
                 self.state.score = self.state.tetris.get_score();
                 if self.state.tetris.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Snake) => {
                 self.state.snake.tick();
                 self.state.score = self.state.snake.get_score();
                 if self.state.snake.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Breakout) => {
                 self.state.breakout.tick();
                 self.state.score = self.state.breakout.get_score();
                 if self.state.breakout.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Rogue) => {
                 self.state.rogue.tick();
                 self.state.score = self.state.rogue.get_score();
                 if self.state.rogue.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Trek) => {
                 self.state.trek.tick();
                 self.state.score = self.state.trek.get_score();
                 if self.state.trek.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Clicker) => {
@@ -392,8 +509,12 @@ impl Plugin for GamesPlugin {
                     self.state.clicker.show_death_screen();
                 }
 
-                // Auto-save when death happens during tick (from auto-attack damage)
+                // Track stats and auto-save when death happens
                 if was_alive && self.state.clicker.is_game_over() {
+                    let score = self.state.score;
+                    let level = self.state.clicker.get_level();
+                    self.stats
+                        .on_game_end(GameType::Clicker, score, false, level);
                     self.save_to_config();
                 }
             }
@@ -411,28 +532,42 @@ impl Plugin for GamesPlugin {
                 self.state.dopewars.tick();
                 self.state.score = self.state.dopewars.get_score();
                 if self.state.dopewars.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Minesweeper) => {
                 self.state.minesweeper.tick();
                 self.state.score = self.state.minesweeper.get_score();
                 if self.state.minesweeper.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Artillery) => {
                 self.state.artillery.tick();
                 self.state.score = self.state.artillery.get_score();
                 if self.state.artillery.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
                 }
             }
             Some(GameType::Mindgames) => {
                 self.state.mindgames.tick();
                 self.state.score = self.state.mindgames.get_score();
                 if self.state.mindgames.is_game_over() {
-                    self.state.game_over();
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Gumshoe) => {
+                self.state.gumshoe.tick();
+                self.state.score = self.state.gumshoe.get_score();
+                if self.state.gumshoe.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Dungeon) => {
+                self.state.dungeon.tick();
+                self.state.score = self.state.dungeon.get_score();
+                if self.state.dungeon.is_game_over() {
+                    self.end_game_with_stats();
                 }
             }
             None => {}
@@ -440,7 +575,20 @@ impl Plugin for GamesPlugin {
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
-        modal::draw_games_modal(frame, area, &self.state, colors);
+        modal::draw_games_modal(
+            frame,
+            area,
+            &self.state,
+            &self.stats.stats,
+            &self.achievements,
+            self.stats.session_duration_secs(),
+            colors,
+        );
+
+        // Render achievement toast on top if one is active
+        if let Some(toast) = &self.achievements.current_toast {
+            modal::achievements::draw_achievement_toast(frame, toast, colors);
+        }
     }
 
     fn help_content(&self) -> Vec<String> {

@@ -5,6 +5,8 @@ use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::clicker::ClickerState;
 use super::dopewars::DopeWarsState;
+use super::dungeon::DungeonState;
+use super::gumshoe::GumshoeState;
 use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
 use super::rogue::RogueState;
@@ -112,6 +114,10 @@ pub struct Leaderboards {
     pub artillery: GameLeaderboard,
     #[serde(default)]
     pub mindgames: GameLeaderboard,
+    #[serde(default)]
+    pub gumshoe: GameLeaderboard,
+    #[serde(default)]
+    pub dungeon: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -134,6 +140,8 @@ impl Leaderboards {
             GameType::Minesweeper => &self.minesweeper,
             GameType::Artillery => &self.artillery,
             GameType::Mindgames => &self.mindgames,
+            GameType::Gumshoe => &self.gumshoe,
+            GameType::Dungeon => &self.dungeon,
         }
     }
 
@@ -152,6 +160,8 @@ impl Leaderboards {
             GameType::Minesweeper => &mut self.minesweeper,
             GameType::Artillery => &mut self.artillery,
             GameType::Mindgames => &mut self.mindgames,
+            GameType::Gumshoe => &mut self.gumshoe,
+            GameType::Dungeon => &mut self.dungeon,
         }
     }
 }
@@ -171,6 +181,8 @@ pub enum GameType {
     Minesweeper,
     Artillery,
     Mindgames,
+    Gumshoe,
+    Dungeon,
 }
 
 impl GameType {
@@ -188,6 +200,8 @@ impl GameType {
             GameType::Minesweeper,
             GameType::Artillery,
             GameType::Mindgames,
+            GameType::Gumshoe,
+            GameType::Dungeon,
         ]
     }
 
@@ -205,6 +219,8 @@ impl GameType {
             GameType::Minesweeper => "Minesweeper",
             GameType::Artillery => "Artillery",
             GameType::Mindgames => "Mindgames",
+            GameType::Gumshoe => "Gumshoe",
+            GameType::Dungeon => "Dungeon",
         }
     }
 
@@ -222,6 +238,8 @@ impl GameType {
             GameType::Minesweeper => "Find all mines without triggering them",
             GameType::Artillery => "Tank battle with physics and explosions",
             GameType::Mindgames => "Brain training - patterns, memory, math",
+            GameType::Gumshoe => "Chase criminals across the globe!",
+            GameType::Dungeon => "Explore dark mazes, fight monsters",
         }
     }
 }
@@ -236,6 +254,8 @@ pub enum GamesView {
     GameOver,
     EnteringInitials, // High score - enter 3-letter initials
     Leaderboard,      // Viewing the leaderboard
+    Stats,            // Viewing player statistics
+    Achievements,     // Viewing achievements
 }
 
 /// Main games plugin state
@@ -243,6 +263,7 @@ pub struct GamesState {
     pub view: GamesView,
     pub selected_game: usize,
     pub menu_scroll_offset: usize, // For scrolling the games menu
+    pub achievements_scroll_offset: usize, // For scrolling the achievements list
     pub current_game: Option<GameType>,
     pub score: u32,
     pub high_scores: [u32; 8], // One for each game (legacy, kept for compatibility)
@@ -268,6 +289,8 @@ pub struct GamesState {
     pub minesweeper: MinesweeperState,
     pub artillery: ArtilleryState,
     pub mindgames: MindgamesState,
+    pub gumshoe: GumshoeState,
+    pub dungeon: DungeonState,
 }
 
 impl Default for GamesState {
@@ -282,6 +305,7 @@ impl GamesState {
             view: GamesView::Menu,
             selected_game: 0,
             menu_scroll_offset: 0,
+            achievements_scroll_offset: 0,
             current_game: None,
             score: 0,
             high_scores: [0; 8],
@@ -303,6 +327,8 @@ impl GamesState {
             minesweeper: MinesweeperState::new(),
             artillery: ArtilleryState::new(),
             mindgames: MindgamesState::new(),
+            gumshoe: GumshoeState::new(),
+            dungeon: DungeonState::new(),
         }
     }
 
@@ -368,6 +394,8 @@ impl GamesState {
             GameType::Minesweeper => self.minesweeper = MinesweeperState::new(),
             GameType::Artillery => self.artillery = ArtilleryState::new(),
             GameType::Mindgames => self.mindgames.reset(),
+            GameType::Gumshoe => self.gumshoe = GumshoeState::new(),
+            GameType::Dungeon => self.dungeon = DungeonState::new(),
         }
     }
 
@@ -395,6 +423,8 @@ impl GamesState {
                 GameType::Minesweeper => 9, // No legacy high score storage
                 GameType::Artillery => 10,  // No legacy high score storage
                 GameType::Mindgames => 11,  // No legacy high score storage
+                GameType::Gumshoe => 12,    // No legacy high score storage
+                GameType::Dungeon => 13,    // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;
@@ -493,6 +523,16 @@ impl GamesState {
     pub fn show_leaderboard(&mut self) {
         self.leaderboard_game = self.current_game.or(Some(self.selected_game_type()));
         self.view = GamesView::Leaderboard;
+    }
+
+    /// Show player statistics
+    pub fn show_stats(&mut self) {
+        self.view = GamesView::Stats;
+    }
+
+    pub fn show_achievements(&mut self) {
+        self.achievements_scroll_offset = 0;
+        self.view = GamesView::Achievements;
     }
 
     /// Close leaderboard

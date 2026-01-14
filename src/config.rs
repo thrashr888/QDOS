@@ -37,6 +37,12 @@ pub struct GamesConfig {
     /// Clicker game state as base64-encoded JSON (handles Option fields that TOML can't)
     #[serde(default)]
     pub clicker_state_b64: String,
+    /// Player statistics as base64-encoded JSON (playtime, scores, counters)
+    #[serde(default)]
+    pub player_stats_b64: String,
+    /// Achievement state as base64-encoded JSON (unlocked, seen)
+    #[serde(default)]
+    pub achievements_b64: String,
 }
 
 impl GamesConfig {
@@ -80,6 +86,50 @@ impl GamesConfig {
         use base64::{engine::general_purpose::STANDARD, Engine};
         if let Ok(json) = serde_json::to_string(state) {
             self.clicker_state_b64 = STANDARD.encode(json.as_bytes());
+        }
+    }
+
+    /// Decode player stats from base64 JSON
+    pub fn get_player_stats(&self) -> crate::plugins::games::platform::PlayerStats {
+        if self.player_stats_b64.is_empty() {
+            return crate::plugins::games::platform::PlayerStats::default();
+        }
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        STANDARD
+            .decode(&self.player_stats_b64)
+            .ok()
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
+            .unwrap_or_default()
+    }
+
+    /// Encode player stats to base64 JSON
+    pub fn set_player_stats(&mut self, stats: &crate::plugins::games::platform::PlayerStats) {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        if let Ok(json) = serde_json::to_string(stats) {
+            self.player_stats_b64 = STANDARD.encode(json.as_bytes());
+        }
+    }
+
+    /// Decode achievement state from base64 JSON
+    pub fn get_achievements(&self) -> crate::plugins::games::platform::AchievementState {
+        if self.achievements_b64.is_empty() {
+            return crate::plugins::games::platform::AchievementState::default();
+        }
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        STANDARD
+            .decode(&self.achievements_b64)
+            .ok()
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
+            .unwrap_or_default()
+    }
+
+    /// Encode achievement state to base64 JSON
+    pub fn set_achievements(&mut self, state: &crate::plugins::games::platform::AchievementState) {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        if let Ok(json) = serde_json::to_string(state) {
+            self.achievements_b64 = STANDARD.encode(json.as_bytes());
         }
     }
 }

@@ -5,15 +5,19 @@
 //! and leaderboards.
 
 // Per-game rendering modules
+pub mod achievements;
 mod artillery;
 mod brainiac;
 mod breakout;
 mod clicker;
 mod dopewars;
+mod dungeon;
+mod gumshoe;
 mod mindgames;
 mod minesweeper;
 mod rogue;
 mod snake;
+mod stats;
 mod storyweaver;
 mod tetris;
 mod trek;
@@ -24,6 +28,8 @@ pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use clicker::draw_clicker;
 pub use dopewars::draw_dopewars;
+pub use dungeon::draw_dungeon;
+pub use gumshoe::draw_gumshoe;
 pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
 pub use rogue::draw_rogue;
@@ -65,7 +71,15 @@ const GAMES_SEPARATOR: &str = "─═══════════════�
 // =============================================================================
 
 /// Draw the games modal
-pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, colors: &ThemeColors) {
+pub fn draw_games_modal(
+    frame: &mut Frame,
+    area: Rect,
+    state: &GamesState,
+    stats: &super::platform::PlayerStats,
+    achievements: &super::platform::AchievementManager,
+    session_secs: u64,
+    colors: &ThemeColors,
+) {
     let title = match state.view {
         GamesView::Menu => " Games ",
         GamesView::Playing | GamesView::Paused => match state.current_game {
@@ -81,11 +95,15 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             Some(GameType::Minesweeper) => " Minesweeper ",
             Some(GameType::Artillery) => " Artillery ",
             Some(GameType::Mindgames) => " Mindgames ",
+            Some(GameType::Gumshoe) => " Gumshoe ",
+            Some(GameType::Dungeon) => " Dungeon ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
         GamesView::EnteringInitials => " High Score! ",
         GamesView::Leaderboard => " Leaderboard ",
+        GamesView::Stats => " Statistics ",
+        GamesView::Achievements => " Achievements ",
     };
 
     let view = FullScreenView::new(area, title, colors);
@@ -98,6 +116,15 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
         GamesView::GameOver => draw_game_over(frame, &view, state, colors),
         GamesView::EnteringInitials => draw_initials_entry(frame, &view, state, colors),
         GamesView::Leaderboard => draw_leaderboard(frame, &view, state, colors),
+        GamesView::Stats => stats::draw_stats(frame, &view, stats, session_secs, colors),
+        GamesView::Achievements => achievements::draw_achievements(
+            frame,
+            &view,
+            achievements,
+            stats,
+            state.achievements_scroll_offset,
+            colors,
+        ),
     }
 }
 
@@ -302,6 +329,8 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         ("↑↓/1-11", "select"),
         ("Enter", "play"),
         ("L", "scores"),
+        ("S", "stats"),
+        ("A", "achieve"),
         ("Esc", "close"),
     ];
     view.render_help(frame, help);
@@ -327,6 +356,8 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         }
         Some(GameType::Artillery) => draw_artillery(frame, view.area, &state.artillery, colors),
         Some(GameType::Mindgames) => draw_mindgames(frame, view, &state.mindgames, colors),
+        Some(GameType::Gumshoe) => draw_gumshoe(frame, view, &state.gumshoe, colors),
+        Some(GameType::Dungeon) => draw_dungeon(frame, view, &state.dungeon, colors),
         None => {}
     }
 }
@@ -434,6 +465,8 @@ fn draw_game_over(
             GameType::Minesweeper => 9, // No legacy high score
             GameType::Artillery => 10,  // No legacy high score
             GameType::Mindgames => 11,  // No legacy high score
+            GameType::Gumshoe => 12,    // No legacy high score
+            GameType::Dungeon => 13,    // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -622,6 +655,8 @@ fn draw_leaderboard(
             GameType::Minesweeper => "MIN",
             GameType::Artillery => "ART",
             GameType::Mindgames => "MND",
+            GameType::Gumshoe => "GUM",
+            GameType::Dungeon => "DUN",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }
