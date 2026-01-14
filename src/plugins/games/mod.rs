@@ -14,6 +14,7 @@ pub mod gumshoe;
 pub mod mindgames;
 pub mod minesweeper;
 mod modal;
+pub mod neondrive;
 pub mod platform;
 pub mod rogue;
 pub mod snake;
@@ -183,6 +184,7 @@ impl GamesPlugin {
             GameType::Dungeon => self.state.dungeon.is_game_won(),
             GameType::Caverns => self.state.caverns.is_game_won(),
             GameType::Biolab => self.state.biolab.is_game_won(),
+            GameType::Neondrive => self.state.neondrive.is_game_won(),
         }
     }
 
@@ -382,6 +384,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Dungeon) => self.state.dungeon.handle_key(key),
                     Some(GameType::Caverns) => self.state.caverns.handle_key(key),
                     Some(GameType::Biolab) => self.state.biolab.handle_key(key),
+                    Some(GameType::Neondrive) => self.state.neondrive.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -629,6 +632,13 @@ impl Plugin for GamesPlugin {
                 self.state.biolab.tick();
                 self.state.score = self.state.biolab.get_score();
                 // Biolab handles its own game over state
+            }
+            Some(GameType::Neondrive) => {
+                self.state.neondrive.tick();
+                self.state.score = self.state.neondrive.get_score();
+                if self.state.neondrive.is_game_over() {
+                    self.end_game_with_stats();
+                }
             }
             None => {}
         }

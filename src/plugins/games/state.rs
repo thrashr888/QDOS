@@ -11,6 +11,7 @@ use super::dungeon::DungeonState;
 use super::gumshoe::GumshoeState;
 use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
+use super::neondrive::NeondriveState;
 use super::rogue::RogueState;
 use super::snake::SnakeState;
 use super::storyweaver::StoryweaverState;
@@ -124,6 +125,8 @@ pub struct Leaderboards {
     pub caverns: GameLeaderboard,
     #[serde(default)]
     pub biolab: GameLeaderboard,
+    #[serde(default)]
+    pub neondrive: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -150,6 +153,7 @@ impl Leaderboards {
             GameType::Dungeon => &self.dungeon,
             GameType::Caverns => &self.caverns,
             GameType::Biolab => &self.biolab,
+            GameType::Neondrive => &self.neondrive,
         }
     }
 
@@ -172,6 +176,7 @@ impl Leaderboards {
             GameType::Dungeon => &mut self.dungeon,
             GameType::Caverns => &mut self.caverns,
             GameType::Biolab => &mut self.biolab,
+            GameType::Neondrive => &mut self.neondrive,
         }
     }
 }
@@ -195,6 +200,7 @@ pub enum GameType {
     Dungeon,
     Caverns,
     Biolab,
+    Neondrive,
 }
 
 impl GameType {
@@ -216,6 +222,7 @@ impl GameType {
             GameType::Dungeon,
             GameType::Caverns,
             GameType::Biolab,
+            GameType::Neondrive,
         ]
     }
 
@@ -237,6 +244,7 @@ impl GameType {
             GameType::Dungeon => "Dungeon",
             GameType::Caverns => "Caverns",
             GameType::Biolab => "Biolab",
+            GameType::Neondrive => "Neon Drive",
         }
     }
 
@@ -258,6 +266,7 @@ impl GameType {
             GameType::Dungeon => "Explore dark mazes, fight monsters",
             GameType::Caverns => "Text adventure - explore, solve puzzles",
             GameType::Biolab => "Learn biology - cells, DNA, anatomy",
+            GameType::Neondrive => "Outrun-style cyberpunk racing",
         }
     }
 }
@@ -311,6 +320,7 @@ pub struct GamesState {
     pub dungeon: DungeonState,
     pub caverns: CavernsState,
     pub biolab: BiolabState,
+    pub neondrive: NeondriveState,
 }
 
 impl Default for GamesState {
@@ -351,6 +361,7 @@ impl GamesState {
             dungeon: DungeonState::new(),
             caverns: CavernsState::new(),
             biolab: BiolabState::new(),
+            neondrive: NeondriveState::new(),
         }
     }
 
@@ -420,6 +431,7 @@ impl GamesState {
             GameType::Dungeon => self.dungeon = DungeonState::new(),
             GameType::Caverns => self.caverns = CavernsState::new(),
             GameType::Biolab => self.biolab = BiolabState::new(),
+            GameType::Neondrive => self.neondrive = NeondriveState::new(),
         }
     }
 
@@ -451,6 +463,7 @@ impl GamesState {
                 GameType::Dungeon => 13,    // No legacy high score storage
                 GameType::Caverns => 14,    // No legacy high score storage
                 GameType::Biolab => 15,     // No legacy high score storage
+                GameType::Neondrive => 16,  // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

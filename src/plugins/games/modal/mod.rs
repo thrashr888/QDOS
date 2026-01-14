@@ -17,6 +17,7 @@ mod dungeon;
 mod gumshoe;
 mod mindgames;
 mod minesweeper;
+mod neondrive;
 mod rogue;
 mod snake;
 mod stats;
@@ -36,6 +37,7 @@ pub use dungeon::draw_dungeon;
 pub use gumshoe::draw_gumshoe;
 pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
+pub use neondrive::draw as draw_neondrive;
 pub use rogue::draw_rogue;
 pub use snake::draw_snake;
 pub use storyweaver::draw_storyweaver;
@@ -103,6 +105,7 @@ pub fn draw_games_modal(
             Some(GameType::Dungeon) => " Dungeon ",
             Some(GameType::Caverns) => " Caverns ",
             Some(GameType::Biolab) => " Biolab ",
+            Some(GameType::Neondrive) => " Neon Drive ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -366,6 +369,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Dungeon) => draw_dungeon(frame, view, &state.dungeon, colors),
         Some(GameType::Caverns) => draw_caverns(frame, view, &state.caverns, colors),
         Some(GameType::Biolab) => draw_biolab(frame, view, &state.biolab, colors),
+        Some(GameType::Neondrive) => draw_neondrive(frame, view.area, &state.neondrive, colors),
         None => {}
     }
 }
@@ -478,6 +482,7 @@ fn draw_game_over(
             GameType::Dungeon => 13,    // No legacy high score
             GameType::Caverns => 14,    // No legacy high score
             GameType::Biolab => 15,     // No legacy high score
+            GameType::Neondrive => 16,  // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -670,6 +675,7 @@ fn draw_leaderboard(
             GameType::Dungeon => "DUN",
             GameType::Caverns => "CAV",
             GameType::Biolab => "BIO",
+            GameType::Neondrive => "NDR",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }
