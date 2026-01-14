@@ -10,6 +10,7 @@ mod brainiac;
 mod breakout;
 mod clicker;
 mod dopewars;
+mod mindgames;
 mod minesweeper;
 mod rogue;
 mod snake;
@@ -23,6 +24,7 @@ pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use clicker::draw_clicker;
 pub use dopewars::draw_dopewars;
+pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
 pub use rogue::draw_rogue;
 pub use snake::draw_snake;
@@ -78,6 +80,7 @@ pub fn draw_games_modal(frame: &mut Frame, area: Rect, state: &GamesState, color
             Some(GameType::DopeWars) => " Dope Wars ",
             Some(GameType::Minesweeper) => " Minesweeper ",
             Some(GameType::Artillery) => " Artillery ",
+            Some(GameType::Mindgames) => " Mindgames ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -323,6 +326,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
             draw_minesweeper(frame, view.area, &state.minesweeper, colors)
         }
         Some(GameType::Artillery) => draw_artillery(frame, view.area, &state.artillery, colors),
+        Some(GameType::Mindgames) => draw_mindgames(frame, view, &state.mindgames, colors),
         None => {}
     }
 }
@@ -429,6 +433,7 @@ fn draw_game_over(
             GameType::DopeWars => 8,    // No legacy high score
             GameType::Minesweeper => 9, // No legacy high score
             GameType::Artillery => 10,  // No legacy high score
+            GameType::Mindgames => 11,  // No legacy high score
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -616,6 +621,7 @@ fn draw_leaderboard(
             GameType::DopeWars => "DOP",
             GameType::Minesweeper => "MIN",
             GameType::Artillery => "ART",
+            GameType::Mindgames => "MND",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }

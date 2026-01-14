@@ -54,10 +54,24 @@ src/
 - **Idiomatic Rust**: Stick to modern Rust features, best practices, and patterns
 - **Dead code**: Allow dead code to be present in the codebase, but remove it when it's not needed
 
-## Spec & Reference Files
+## Documentation System
 
+**READ FIRST**: `spec/DEVELOPMENT.md` - **The 5-style documentation system** explaining how we develop features
+
+This project uses a living documentation system with 5 doc types:
+1. **Ultra/Plan Mode** - Deep exploration before coding
+2. **Beads Issues** - Track multi-session work with dependencies
+3. **Evergreen Specs** - How the system works (see below)
+4. **Skills** - How agents implement (in `.claude/skills/`)
+5. **User Docs** - README files for humans
+
+### Specs & Reference Files
+
+- `spec/DEVELOPMENT.md` - **5-style documentation system** (meta-process for feature development)
 - `spec/SPEC.md` - Detailed feature specification
 - `spec/PLUGIN.md` - **Plugin development specification** (MUST read before creating plugins)
+- `spec/GAMES.md` - Games architecture and patterns
+- `spec/OFFICE.md` - Office features specification
 - `spec/ui.md` - ASCII layout reference for the 80x25 screen
 - `spec/strings/` - Organized original Q-DOS strings by feature (for authentic messaging)
 

@@ -5,6 +5,7 @@ use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::clicker::ClickerState;
 use super::dopewars::DopeWarsState;
+use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
 use super::rogue::RogueState;
 use super::snake::SnakeState;
@@ -109,6 +110,8 @@ pub struct Leaderboards {
     pub minesweeper: GameLeaderboard,
     #[serde(default)]
     pub artillery: GameLeaderboard,
+    #[serde(default)]
+    pub mindgames: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -130,6 +133,7 @@ impl Leaderboards {
             GameType::DopeWars => &self.dopewars,
             GameType::Minesweeper => &self.minesweeper,
             GameType::Artillery => &self.artillery,
+            GameType::Mindgames => &self.mindgames,
         }
     }
 
@@ -147,6 +151,7 @@ impl Leaderboards {
             GameType::DopeWars => &mut self.dopewars,
             GameType::Minesweeper => &mut self.minesweeper,
             GameType::Artillery => &mut self.artillery,
+            GameType::Mindgames => &mut self.mindgames,
         }
     }
 }
@@ -165,6 +170,7 @@ pub enum GameType {
     DopeWars,
     Minesweeper,
     Artillery,
+    Mindgames,
 }
 
 impl GameType {
@@ -181,6 +187,7 @@ impl GameType {
             GameType::DopeWars,
             GameType::Minesweeper,
             GameType::Artillery,
+            GameType::Mindgames,
         ]
     }
 
@@ -197,6 +204,7 @@ impl GameType {
             GameType::DopeWars => "Dope Wars",
             GameType::Minesweeper => "Minesweeper",
             GameType::Artillery => "Artillery",
+            GameType::Mindgames => "Mindgames",
         }
     }
 
@@ -213,6 +221,7 @@ impl GameType {
             GameType::DopeWars => "Buy low, sell high, pay off your debt",
             GameType::Minesweeper => "Find all mines without triggering them",
             GameType::Artillery => "Tank battle with physics and explosions",
+            GameType::Mindgames => "Brain training - patterns, memory, math",
         }
     }
 }
@@ -258,6 +267,7 @@ pub struct GamesState {
     pub dopewars: DopeWarsState,
     pub minesweeper: MinesweeperState,
     pub artillery: ArtilleryState,
+    pub mindgames: MindgamesState,
 }
 
 impl Default for GamesState {
@@ -292,6 +302,7 @@ impl GamesState {
             dopewars: DopeWarsState::new(),
             minesweeper: MinesweeperState::new(),
             artillery: ArtilleryState::new(),
+            mindgames: MindgamesState::new(),
         }
     }
 
@@ -356,6 +367,7 @@ impl GamesState {
             GameType::DopeWars => self.dopewars.reset(),
             GameType::Minesweeper => self.minesweeper = MinesweeperState::new(),
             GameType::Artillery => self.artillery = ArtilleryState::new(),
+            GameType::Mindgames => self.mindgames.reset(),
         }
     }
 
@@ -382,6 +394,7 @@ impl GamesState {
                 GameType::DopeWars => 8,    // No legacy high score storage
                 GameType::Minesweeper => 9, // No legacy high score storage
                 GameType::Artillery => 10,  // No legacy high score storage
+                GameType::Mindgames => 11,  // No legacy high score storage
             };
             if idx < 8 && self.score > self.high_scores[idx] {
                 self.high_scores[idx] = self.score;

@@ -1,12 +1,13 @@
 //! Games plugin
 //!
-//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, and Artillery.
+//! Built-in retro games including Tetris, Snake, Breakout, Rogue, Star Trek, Clicker, Brainiac, Storyweaver, Dope Wars, Minesweeper, Artillery, and Mindgames.
 
 pub mod artillery;
 pub mod brainiac;
 pub mod breakout;
 pub mod clicker;
 pub mod dopewars;
+pub mod mindgames;
 pub mod minesweeper;
 mod modal;
 pub mod platform;
@@ -220,6 +221,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::DopeWars) => self.state.dopewars.handle_key(key),
                     Some(GameType::Minesweeper) => self.state.minesweeper.handle_key(key),
                     Some(GameType::Artillery) => self.state.artillery.handle_key(key),
+                    Some(GameType::Mindgames) => self.state.mindgames.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -338,75 +340,77 @@ impl Plugin for GamesPlugin {
             return;
         }
 
+        // Unified trait-based game tick dispatch
         match self.state.current_game {
             Some(GameType::Tetris) => {
                 self.state.tetris.tick();
-                self.state.score = self.state.tetris.score;
-                if self.state.tetris.game_over {
+                self.state.score = self.state.tetris.get_score();
+                if self.state.tetris.is_game_over() {
                     self.state.game_over();
                 }
             }
             Some(GameType::Snake) => {
                 self.state.snake.tick();
-                self.state.score = self.state.snake.score;
-                if self.state.snake.game_over {
+                self.state.score = self.state.snake.get_score();
+                if self.state.snake.is_game_over() {
                     self.state.game_over();
                 }
             }
             Some(GameType::Breakout) => {
                 self.state.breakout.tick();
-                self.state.score = self.state.breakout.score;
-                if self.state.breakout.game_over || self.state.breakout.game_won {
+                self.state.score = self.state.breakout.get_score();
+                if self.state.breakout.is_game_over() {
                     self.state.game_over();
                 }
             }
             Some(GameType::Rogue) => {
                 self.state.rogue.tick();
-                self.state.score = self.state.rogue.gold;
-                if self.state.rogue.game_over || self.state.rogue.game_won {
+                self.state.score = self.state.rogue.get_score();
+                if self.state.rogue.is_game_over() {
                     self.state.game_over();
                 }
             }
             Some(GameType::Trek) => {
                 self.state.trek.tick();
-                // Score based on energy remaining and klingons destroyed
-                let klingons_destroyed = 10_i32.saturating_sub(self.state.trek.klingons_remaining);
-                self.state.score = (klingons_destroyed * 100 + self.state.trek.energy / 10) as u32;
-                if self.state.trek.game_over || self.state.trek.game_won {
+                self.state.score = self.state.trek.get_score();
+                if self.state.trek.is_game_over() {
                     self.state.game_over();
                 }
             }
             Some(GameType::Clicker) => {
-                let was_alive = !self.state.clicker.game_over;
+                // Clicker has special death screen and auto-save logic
+                let was_alive = !self.state.clicker.is_game_over();
                 self.state.clicker.tick();
-                self.state.score = self.state.clicker.score();
+                self.state.score = self.state.clicker.get_score();
+
                 // Clicker has its own death screen (ClickerView::Dead), so only transition
                 // to the generic GameOver screen if NOT in the Dead view
-                if self.state.clicker.game_over
+                if self.state.clicker.is_game_over()
                     && self.state.clicker.view != clicker::ClickerView::Dead
                     && self.state.clicker.view != clicker::ClickerView::SoulShop
                 {
                     self.state.clicker.show_death_screen();
                 }
+
                 // Auto-save when death happens during tick (from auto-attack damage)
-                if was_alive && self.state.clicker.game_over {
+                if was_alive && self.state.clicker.is_game_over() {
                     self.save_to_config();
                 }
             }
             Some(GameType::Brainiac) => {
                 self.state.brainiac.tick();
-                self.state.score = self.state.brainiac.score;
+                self.state.score = self.state.brainiac.get_score();
                 // Brainiac handles its own game over state
             }
             Some(GameType::Storyweaver) => {
                 self.state.storyweaver.tick();
-                self.state.score = self.state.storyweaver.final_score();
+                self.state.score = self.state.storyweaver.get_score();
                 // Storyweaver handles its own game over state
             }
             Some(GameType::DopeWars) => {
                 self.state.dopewars.tick();
-                self.state.score = self.state.dopewars.score();
-                if self.state.dopewars.game_over {
+                self.state.score = self.state.dopewars.get_score();
+                if self.state.dopewars.is_game_over() {
                     self.state.game_over();
                 }
             }
@@ -421,6 +425,13 @@ impl Plugin for GamesPlugin {
                 self.state.artillery.tick();
                 self.state.score = self.state.artillery.get_score();
                 if self.state.artillery.is_game_over() {
+                    self.state.game_over();
+                }
+            }
+            Some(GameType::Mindgames) => {
+                self.state.mindgames.tick();
+                self.state.score = self.state.mindgames.get_score();
+                if self.state.mindgames.is_game_over() {
                     self.state.game_over();
                 }
             }
