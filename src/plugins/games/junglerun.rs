@@ -79,8 +79,8 @@ impl TreasureType {
 
     pub fn char(&self) -> char {
         match self {
-            TreasureType::GoldBar => '◊',
-            TreasureType::Diamond => '♦',
+            TreasureType::GoldBar => '$',
+            TreasureType::Diamond => '*',
         }
     }
 }

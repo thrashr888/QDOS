@@ -57,10 +57,10 @@ impl PropertyType {
     pub fn symbol(&self) -> char {
         match self {
             PropertyType::Empty => '.',
-            PropertyType::House => '⌂',
+            PropertyType::House => '^',
             PropertyType::Shop => '$',
             PropertyType::Factory => '*',
-            PropertyType::Park => '♣',
+            PropertyType::Park => '#',
         }
     }
 

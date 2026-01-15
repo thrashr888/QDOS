@@ -243,8 +243,8 @@ fn draw_sky(state: &MicropolisState, width: usize) -> Vec<Span<'static>> {
 
     for i in 0..width {
         let char = match (i + tick / 10) % 20 {
-            0 | 1 => '☁',
-            10 => '☀',
+            0 | 1 => '=',
+            10 => '*',
             _ => ' ',
         };
         sky.push(char);
@@ -333,8 +333,8 @@ fn building_sprite(
             "──".to_string(),
         ),
         PropertyType::Park => (
-            format!("{}♣♣", highlight),
-            format!("{}♣♣", highlight),
+            format!("{}##", highlight),
+            format!("{}##", highlight),
             "──".to_string(),
         ),
     }
@@ -618,7 +618,7 @@ fn draw_disaster(frame: &mut Frame, area: Rect, state: &MicropolisState, colors:
     view.render_row(
         frame,
         9,
-        vec![Span::styled("║          🔥 FIRE! 🔥          ║", red)],
+        vec![Span::styled("║          ^ FIRE! ^          ║", red)],
     );
     view.render_row(
         frame,

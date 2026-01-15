@@ -96,10 +96,10 @@ pub enum ItemType {
 impl ItemType {
     pub fn char(&self) -> char {
         match self {
-            ItemType::Sword => '†',
-            ItemType::GoldKey => '⚷',
-            ItemType::Bridge => '═',
-            ItemType::Chalice => '☗',
+            ItemType::Sword => '+',
+            ItemType::GoldKey => '&',
+            ItemType::Bridge => '=',
+            ItemType::Chalice => 'Y',
         }
     }
 
@@ -123,8 +123,8 @@ pub enum DragonType {
 impl DragonType {
     pub fn char(&self) -> char {
         match self {
-            DragonType::Yorgle => 'Ʃ',
-            DragonType::Grundle => 'Ʃ',
+            DragonType::Yorgle => 'D',
+            DragonType::Grundle => 'D',
         }
     }
 

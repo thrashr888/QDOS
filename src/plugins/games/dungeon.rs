@@ -80,10 +80,10 @@ impl ItemType {
     pub fn char(&self) -> char {
         match self {
             ItemType::Gold => '$',
-            ItemType::Food => '♨',
-            ItemType::Key => '⚷',
+            ItemType::Food => '%',
+            ItemType::Key => '&',
             ItemType::Potion => '!',
-            ItemType::Weapon => '†',
+            ItemType::Weapon => '+',
         }
     }
 

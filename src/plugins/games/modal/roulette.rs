@@ -42,7 +42,7 @@ fn draw_menu(
     let red = Style::default().fg(colors.red());
 
     // Title
-    view.render_row(frame, 1, vec![Span::styled("      ★ ROULETTE ★", yellow)]);
+    view.render_row(frame, 1, vec![Span::styled("      * ROULETTE *", yellow)]);
 
     // Wheel art
     view.render_row(frame, 3, vec![Span::styled("       ╭───────╮", white)]);

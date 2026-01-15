@@ -83,7 +83,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         frame,
         15,
         vec![Span::styled(
-            "  Collect treasures: ◊ Gold (+200) ♦ Diamond (+500)",
+            "  Collect treasures: $ Gold (+200) * Diamond (+500)",
             text_style,
         )],
     );
@@ -339,11 +339,11 @@ fn draw_sky(tick: u32, _width: usize) -> Vec<Span<'static>> {
     for i in 0..40 {
         let pos = (i + cloud_offset as usize) % 40;
         if pos == 5 || pos == 6 {
-            sky.push_str("☁ ");
+            sky.push_str("= ");
         } else if pos == 15 {
-            sky.push_str("☀ ");
+            sky.push_str("* ");
         } else if pos == 25 || pos == 26 {
-            sky.push_str("☁ ");
+            sky.push_str("= ");
         } else {
             sky.push_str("  ");
         }
@@ -359,12 +359,12 @@ fn draw_sky(tick: u32, _width: usize) -> Vec<Span<'static>> {
 fn draw_canopy(screen: usize, _width: usize, colors: &ThemeColors) -> Vec<Span<'static>> {
     let green = Style::default().fg(colors.green());
 
-    // Vary canopy based on screen
+    // Vary canopy based on screen - ASCII palm trees
     let pattern = match screen % 4 {
-        0 => "🌴    🌴🌴      🌴        🌴    🌴🌴    🌴        🌴    🌴🌴",
-        1 => "  🌴      🌴🌴      🌴🌴      🌴    🌴    🌴🌴      🌴    ",
-        2 => "🌴🌴    🌴      🌴    🌴🌴    🌴      🌴🌴    🌴      🌴🌴",
-        _ => "    🌴🌴    🌴      🌴🌴    🌴🌴      🌴    🌴🌴      🌴  ",
+        0 => "Y    YY      Y        Y    YY    Y        Y    YY",
+        1 => "  Y      YY      YY      Y    Y    YY      Y    ",
+        2 => "YY    Y      Y    YY    Y      YY    Y      YY",
+        _ => "    YY    Y      YY    YY      Y    YY      Y  ",
     };
 
     vec![Span::styled(pattern.to_string(), green)]

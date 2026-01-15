@@ -110,7 +110,10 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
     view.render_row(
         frame,
         11,
-        vec![Span::styled("   ║    >>> A Space Odyssey <<<   ║", yellow)],
+        vec![Span::styled(
+            "   ║      >>> A Space Odyssey <<<   ║",
+            yellow,
+        )],
     );
     view.render_row(
         frame,
@@ -163,22 +166,28 @@ fn draw_galaxy_map(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &
     let grey = Style::default().fg(colors.grey());
     let red = Style::default().fg(colors.red());
 
-    // Status bar
+    // Status bar with galaxy info
     let fuel_bar = "█".repeat((state.fuel / 10) as usize);
     let fuel_empty = "░".repeat((10 - state.fuel / 10) as usize);
     view.render_row(
         frame,
         0,
         vec![
-            Span::styled("Fuel: ", white),
+            Span::styled(format!("Galaxy {} ", state.current_galaxy), yellow),
+            Span::styled("Fuel:", white),
             Span::styled(fuel_bar, green),
             Span::styled(fuel_empty, grey),
             Span::styled(format!(" {}%", state.fuel), white),
-            Span::styled("  Data: ", white),
+            Span::styled("  Data:", white),
             Span::styled(format!("{}", state.data_collected), cyan),
+            Span::styled(format!(" ({}x)", state.current_galaxy), grey),
             Span::styled(
-                format!("  Explored: {}%", state.exploration_percentage()),
-                grey,
+                format!("  Crystals:{}/5", state.warp_crystals),
+                if state.warp_crystals >= 5 {
+                    yellow
+                } else {
+                    grey
+                },
             ),
         ],
     );
@@ -277,15 +286,19 @@ fn draw_galaxy_map(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &
         view.render_row(frame, 18, vec![Span::styled(msg.clone(), red)]);
     }
 
-    view.render_help(
-        frame,
-        vec![
-            ("Arrows", "select"),
-            ("W/Enter", "warp"),
-            ("S", "ship"),
-            ("Esc", "quit"),
-        ],
-    );
+    // Show galaxy jump option when ready
+    let mut help = vec![
+        ("Arrows", "select"),
+        ("W/Enter", "warp"),
+        ("S", "ship"),
+        ("I", "info"),
+    ];
+    if state.can_jump_galaxy() {
+        help.push(("G", "JUMP!"));
+    }
+    help.push(("Esc", "quit"));
+
+    view.render_help(frame, help);
 }
 
 fn draw_star_system(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeColors) {
@@ -403,6 +416,7 @@ fn draw_star_system(frame: &mut Frame, area: Rect, state: &CosmosState, colors: 
             ("L", "land"),
             ("R", "refuel"),
             ("M", "map"),
+            ("I", "info"),
         ],
     );
 }
@@ -903,13 +917,24 @@ fn draw_victory(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &The
         frame,
         7,
         vec![
-            Span::styled("  Data Collected:     ", white),
-            Span::styled(format!("{}", state.data_collected), yellow),
+            Span::styled("  Galaxies Explored:  ", white),
+            Span::styled(format!("{}", state.current_galaxy), yellow),
         ],
     );
     view.render_row(
         frame,
         8,
+        vec![
+            Span::styled("  Total Data:         ", white),
+            Span::styled(
+                format!("{}", state.total_data + state.data_collected),
+                yellow,
+            ),
+        ],
+    );
+    view.render_row(
+        frame,
+        9,
         vec![
             Span::styled("  Stars Explored:     ", white),
             Span::styled(
@@ -920,18 +945,10 @@ fn draw_victory(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &The
     );
     view.render_row(
         frame,
-        9,
-        vec![
-            Span::styled("  Planets Scanned:    ", white),
-            Span::styled(format!("{}", state.planets_scanned), green),
-        ],
-    );
-    view.render_row(
-        frame,
         10,
         vec![
-            Span::styled("  Species Contacted:  ", white),
-            Span::styled(format!("{}", state.species_contacted), green),
+            Span::styled("  Warp Crystals:      ", white),
+            Span::styled(format!("{}", state.warp_crystals), cyan),
         ],
     );
 

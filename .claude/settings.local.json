@@ -59,7 +59,9 @@
       "Bash(gh release edit:*)",
       "WebFetch(domain:www.pcjs.org)",
       "WebFetch(domain:www.dosgamesarchive.com)",
-      "Bash(cargo clean:*)"
+      "Bash(cargo clean:*)",
+      "Skill(beads:show)",
+      "WebFetch(domain:en.wikipedia.org)"
     ]
   }
 }

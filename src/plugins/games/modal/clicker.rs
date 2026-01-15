@@ -21,7 +21,7 @@ use ratatui::{
 // =============================================================================
 
 /// Death screen title
-pub const CLICKER_DEATH_TITLE: &str = "☠  Y O U   D I E D  ☠";
+pub const CLICKER_DEATH_TITLE: &str = "X  Y O U   D I E D  X";
 
 /// Castle silhouette - dark and foreboding
 pub const CASTLE_ART: &[&str] = &[
@@ -59,13 +59,13 @@ pub const ROGUE_FALLEN: &[&str] = &["      ╪═─  O   ", "        \\ /|\\  "
 pub const CLICKER_SOUL_SHOP_TITLE: &str = "~ S O U L   S H O P ~";
 
 /// Elite monster prefix
-pub const CLICKER_ELITE_PREFIX: &str = "◆ ";
+pub const CLICKER_ELITE_PREFIX: &str = "* ";
 
 /// Floor boss prefix
-pub const CLICKER_FLOOR_BOSS_PREFIX: &str = "⚔ FLOOR BOSS ⚔ ";
+pub const CLICKER_FLOOR_BOSS_PREFIX: &str = "+ FLOOR BOSS + ";
 
 /// Boss prefix
-pub const CLICKER_BOSS_PREFIX: &str = "★ ";
+pub const CLICKER_BOSS_PREFIX: &str = "* ";
 
 // =============================================================================
 // CLICKER DRAWING FUNCTIONS
@@ -281,7 +281,7 @@ pub fn draw_clicker_dead(
         vec![Span::styled(
             format!(
                 "║{:^50}║",
-                format!("⚔ SOULS EARNED: {} ⚔", state.souls.souls_earned_this_run)
+                format!("+ SOULS EARNED: {} +", state.souls.souls_earned_this_run)
             ),
             Style::default()
                 .fg(colors.cyan())

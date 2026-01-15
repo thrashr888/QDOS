@@ -307,7 +307,7 @@ fn draw_game_over(
     );
 
     let header = if state.game_won {
-        "║          ★ VICTORY! ★                    ║"
+        "║          * VICTORY! *                    ║"
     } else {
         "║           GAME OVER                      ║"
     };

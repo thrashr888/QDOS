@@ -26,6 +26,11 @@ const ASTEROID_COLLISION_DAMAGE: u32 = 10;
 const VOLCANIC_LANDING_DAMAGE: u32 = 8;
 const DEBRIS_FIELD_DAMAGE: u32 = 5;
 
+// Galaxy progression
+const CRYSTALS_FOR_GALAXY_JUMP: u32 = 5;
+const MAX_GALAXIES: u32 = 5;
+const ULTIMATE_VICTORY_DATA: u32 = 5000;
+
 // =============================================================================
 // STAR TYPES
 // =============================================================================
@@ -277,6 +282,11 @@ pub struct CosmosState {
     pub hull: u32,
     pub data_collected: u32, // Knowledge points
 
+    // Galaxy progression
+    pub current_galaxy: u32,
+    pub warp_crystals: u32,
+    pub total_data: u32, // Cumulative across all galaxies
+
     // Alien relations
     pub contacts: Vec<AlienContact>,
     pub active_contact: Option<AlienSpecies>,
@@ -318,6 +328,9 @@ impl CosmosState {
             fuel: STARTING_FUEL,
             hull: STARTING_HULL,
             data_collected: 0,
+            current_galaxy: 1,
+            warp_crystals: 0,
+            total_data: 0,
             contacts: Vec::new(),
             active_contact: None,
             contact_phase: 0,
@@ -365,13 +378,19 @@ impl CosmosState {
             "Arcturus", "Capella", "Aldeb",
         ];
 
+        // Difficulty scaling: later galaxies have more dangerous stars and fewer habitable planets
+        let danger_modifier = (self.current_galaxy.saturating_sub(1) * 5) as i32; // +5% per galaxy
+        let life_penalty = self.current_galaxy.saturating_sub(1) * 3; // -3% life per galaxy
+
         for (i, star_name) in star_names.iter().enumerate().take(GALAXY_SIZE) {
-            let star_type = match rng.gen_range(0..100) {
-                0..=40 => StarType::MType,
-                41..=60 => StarType::KType,
-                61..=80 => StarType::GType,
-                81..=90 => StarType::FType,
-                91..=97 => StarType::Binary,
+            // More neutron stars and binaries in later galaxies
+            let roll = rng.gen_range(0..100);
+            let star_type = match roll - danger_modifier {
+                r if r <= 35 => StarType::MType,
+                36..=55 => StarType::KType,
+                56..=70 => StarType::GType,
+                71..=80 => StarType::FType,
+                81..=90 => StarType::Binary,
                 _ => StarType::Neutron,
             };
 
@@ -379,21 +398,27 @@ impl CosmosState {
             let mut planets = Vec::new();
 
             for p in 0..num_planets {
-                let planet_type = match rng.gen_range(0..100) {
-                    0..=25 => PlanetType::Terrestrial,
-                    26..=40 => PlanetType::GasGiant,
-                    41..=55 => PlanetType::Barren,
-                    56..=65 => PlanetType::Ice,
-                    66..=75 => PlanetType::Desert,
-                    76..=88 => PlanetType::Ocean,
+                // More volcanic and barren planets in later galaxies
+                let proll = rng.gen_range(0..100);
+                let planet_type = match proll - danger_modifier {
+                    r if r <= 20 => PlanetType::Terrestrial,
+                    21..=35 => PlanetType::GasGiant,
+                    36..=50 => PlanetType::Barren,
+                    51..=60 => PlanetType::Ice,
+                    61..=70 => PlanetType::Desert,
+                    71..=82 => PlanetType::Ocean,
                     _ => PlanetType::Volcanic,
                 };
 
                 let life_roll = rng.gen_range(0..100);
-                let has_life =
-                    life_roll < planet_type.life_chance() + star_type.habitability_bonus() as u32;
+                let life_chance = (planet_type.life_chance()
+                    + star_type.habitability_bonus() as u32)
+                    .saturating_sub(life_penalty);
+                let has_life = life_roll < life_chance;
 
-                let has_ruins = has_life && rng.gen_range(0..100) < 20;
+                // More ruins in later galaxies (ancient civilizations!)
+                let ruins_chance = 20 + self.current_galaxy * 5;
+                let has_ruins = has_life && rng.gen_range(0..100) < ruins_chance;
 
                 let alien_species = if has_life && rng.gen_range(0..100) < 30 {
                     Some(match rng.gen_range(0..3) {
@@ -581,7 +606,17 @@ impl CosmosState {
             if has_ruins {
                 self.ruins_discovered += 1;
                 self.data_collected += 50;
-                self.show_message("Ancient ruins discovered! (+50 data)");
+                // 50% chance to find a warp crystal in ruins
+                let mut rng = rand::thread_rng();
+                if rng.gen_range(0..100) < 50 {
+                    self.warp_crystals += 1;
+                    self.show_message(&format!(
+                        "Ancient ruins discovered! (+50 data, +1 Warp Crystal [{}/{}])",
+                        self.warp_crystals, CRYSTALS_FOR_GALAXY_JUMP
+                    ));
+                } else {
+                    self.show_message("Ancient ruins discovered! (+50 data)");
+                }
             }
         }
     }
@@ -656,7 +691,13 @@ impl CosmosState {
                         if contact.times_met >= 10 && contact.status == DiplomaticStatus::Friendly {
                             contact.status = DiplomaticStatus::Allied;
                             self.data_collected += 100;
-                            self.show_message(&format!("Alliance formed with {}!", species.name()));
+                            self.warp_crystals += 1;
+                            self.show_message(&format!(
+                                "Alliance formed with {}! (+100 data, +1 Warp Crystal [{}/{}])",
+                                species.name(),
+                                self.warp_crystals,
+                                CRYSTALS_FOR_GALAXY_JUMP
+                            ));
                             // Check for victory after alliance
                             self.check_victory();
                         }
@@ -679,16 +720,84 @@ impl CosmosState {
     }
 
     pub fn check_victory(&mut self) {
-        // Victory requires:
-        // 1. All systems visited (100% exploration)
-        // 2. At least one Allied species
+        // Update total data (with galaxy multiplier)
+        self.total_data = self.data_collected * self.current_galaxy;
+
+        // Ultimate victory: reach Galaxy 5 or collect enough total data
+        if self.current_galaxy >= MAX_GALAXIES || self.total_data >= ULTIMATE_VICTORY_DATA {
+            self.view = CosmosView::Victory;
+            return;
+        }
+
+        // Galaxy completion: all explored + alliance allows galaxy jump
         let all_explored = self.stars_explored as usize >= self.systems.len();
         let has_alliance = self
             .contacts
             .iter()
             .any(|c| c.status == DiplomaticStatus::Allied);
 
-        if all_explored && has_alliance {
+        // Prompt for galaxy jump if ready
+        if all_explored && has_alliance && self.warp_crystals >= CRYSTALS_FOR_GALAXY_JUMP {
+            self.show_message(&format!(
+                "Galaxy {} complete! Press 'G' to jump to next galaxy!",
+                self.current_galaxy
+            ));
+        }
+    }
+
+    pub fn can_jump_galaxy(&self) -> bool {
+        let all_explored = self.stars_explored as usize >= self.systems.len();
+        let has_alliance = self
+            .contacts
+            .iter()
+            .any(|c| c.status == DiplomaticStatus::Allied);
+        all_explored && has_alliance && self.warp_crystals >= CRYSTALS_FOR_GALAXY_JUMP
+    }
+
+    pub fn jump_to_next_galaxy(&mut self) {
+        if !self.can_jump_galaxy() {
+            self.show_message("Cannot jump yet! Need exploration + alliance + crystals");
+            return;
+        }
+
+        // Consume crystals
+        self.warp_crystals -= CRYSTALS_FOR_GALAXY_JUMP;
+        self.current_galaxy += 1;
+
+        // Carry over total data but reset current galaxy progress
+        self.total_data += self.data_collected;
+
+        // Reset exploration state for new galaxy
+        self.data_collected = 0;
+        self.stars_explored = 0;
+        self.planets_scanned = 0;
+        self.planets_landed = 0;
+        self.ruins_discovered = 0;
+        self.contacts.clear();
+        self.species_contacted = 0;
+
+        // Reset ship (partial refuel/repair as reward)
+        self.fuel = STARTING_FUEL;
+        self.hull = STARTING_HULL;
+
+        // Generate new galaxy with different seed
+        let mut rng = rand::thread_rng();
+        self.galaxy_seed = rng.gen();
+        self.generate_galaxy();
+
+        self.current_system = 0;
+        self.selected_system = 0;
+        self.selected_planet = 0;
+        self.current_planet = None;
+        self.view = CosmosView::GalaxyMap;
+
+        self.show_message(&format!(
+            "Welcome to Galaxy {}! ({}x data multiplier)",
+            self.current_galaxy, self.current_galaxy
+        ));
+
+        // Check for ultimate victory
+        if self.current_galaxy >= MAX_GALAXIES {
             self.view = CosmosView::Victory;
         }
     }
@@ -806,6 +915,10 @@ impl GameEngine for CosmosState {
                 }
                 KeyCode::Char('i') => {
                     self.view = CosmosView::Knowledge;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('g') | KeyCode::Char('G') => {
+                    self.jump_to_next_galaxy();
                     KeyHandleResult::Handled
                 }
                 KeyCode::Esc | KeyCode::Char('q') => {

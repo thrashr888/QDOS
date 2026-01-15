@@ -81,7 +81,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         frame,
         14,
         vec![Span::styled(
-            "  † Sword (slay dragons)  ⚷ Gold Key (open gates)",
+            "  + Sword (slay dragons)  & Gold Key (open gates)",
             text_style,
         )],
     );
@@ -89,7 +89,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         frame,
         15,
         vec![Span::styled(
-            "  ═ Bridge (cross gaps)   ☗ Chalice (the goal!)",
+            "  = Bridge (cross gaps)   Y Chalice (the goal!)",
             text_style,
         )],
     );
@@ -441,7 +441,7 @@ fn draw_victory(frame: &mut Frame, area: Rect, state: &AdventureState, colors: &
         frame,
         8,
         vec![Span::styled(
-            "║             ☗  VICTORY!  ☗               ║",
+            "║             Y  VICTORY!  Y               ║",
             green,
         )],
     );

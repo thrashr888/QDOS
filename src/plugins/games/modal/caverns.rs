@@ -16,23 +16,23 @@ use ratatui::prelude::*;
 
 const ENTRANCE_ART: &[&str] = &[
     r"          /\            /\          ",
-    r"         /  \    ☀    /  \         ",
+    r"         /  \    *    /  \         ",
     r"        /    \      /    \        ",
     r"       /______\    /______\       ",
     r"      |   __   |  |   __   |      ",
-    r"      |  |  |  ████  |  |  |      ",
-    r"      |  |  |  ████  |  |  |      ",
-    r"   ═══╧══╧══╧══════╧══╧══╧═══   ",
+    r"      |  |  |  ####  |  |  |      ",
+    r"      |  |  |  ####  |  |  |      ",
+    r"   ===+==+==+======+==+==+===   ",
     r"        C A V E R N S            ",
 ];
 
 const CRYSTAL_ART: &[&str] = &[
-    r"    ✦  *  ✧     ✦  ✧  *    ",
-    r"   ╱▲╲   ╱▲╲  ╱▲╲   ╱▲╲   ",
-    r"  ╱◇◆╲ ╱◇◆◇╲╱◆◇╲ ╱◆◇╲  ",
-    r" ╱◇◆◇╲╱◇◆◇◆╲◆◇◆╲╱◇◆◇╲ ",
-    r" ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔ ",
-    r"    *  ✧  ✦     ✧  *  ✦    ",
+    r"    +  *  +     +  +  *    ",
+    r"   /^\   /^\  /^\   /^\   ",
+    r"  /<>\  /<><>/><\  /><\  ",
+    r" /<><>\/><><><><\/><><\ ",
+    r" ---------------------- ",
+    r"    *  +  +     +  *  +    ",
 ];
 
 const DRAGON_ART: &[&str] = &[
@@ -43,7 +43,7 @@ const DRAGON_ART: &[&str] = &[
     r"         \   /    `==`   \ |   /   ",
     r"          `.;  __.---._   '/  /    ",
     r"            `-`        `--`-`      ",
-    r"       🔥 The Dragon awaits... 🔥   ",
+    r"       ^ The Dragon awaits... ^   ",
 ];
 
 const LAKE_ART: &[&str] = &[
@@ -57,12 +57,12 @@ const LAKE_ART: &[&str] = &[
 
 const EXIT_ART: &[&str] = &[
     r"                                  ",
-    r"     ╭────────────────────╮     ",
-    r"     │   ☀  DAYLIGHT  ☀   │     ",
-    r"     │                    │     ",
-    r"     │    FREEDOM AT     │     ",
-    r"     │       LAST!        │     ",
-    r"     ╰────────────────────╯     ",
+    r"     +--------------------+     ",
+    r"     |   *  DAYLIGHT  *   |     ",
+    r"     |                    |     ",
+    r"     |    FREEDOM AT     |     ",
+    r"     |       LAST!        |     ",
+    r"     +--------------------+     ",
     r"                                  ",
 ];
 
@@ -179,7 +179,7 @@ fn draw_playing(
         row += 1;
         for item in items {
             let item_def = get_item_def(*item);
-            let treasure_mark = if item_def.is_treasure { " ★" } else { "" };
+            let treasure_mark = if item_def.is_treasure { " *" } else { "" };
             view.render_row(
                 frame,
                 row,
@@ -316,7 +316,7 @@ fn draw_inventory(
             let selected = i == state.selected_item;
             let prefix = if selected { "► " } else { "  " };
             let treasure_mark = if item_def.is_treasure {
-                " ★ TREASURE"
+                " * TREASURE"
             } else {
                 ""
             };
@@ -428,7 +428,7 @@ fn draw_item_select(
         let item_def = get_item_def(*item);
         let selected = i == state.selected_item;
         let prefix = if selected { "► " } else { "  " };
-        let treasure_mark = if item_def.is_treasure { " ★" } else { "" };
+        let treasure_mark = if item_def.is_treasure { " *" } else { "" };
 
         let style = if selected {
             Style::default()
@@ -813,7 +813,7 @@ fn draw_victory(
         frame,
         row,
         vec![Span::styled(
-            "║             ★ ★ ★  CONGRATULATIONS!  ★ ★ ★                              ║",
+            "║             * * *  CONGRATULATIONS!  * * *                              ║",
             Style::default()
                 .fg(colors.yellow())
                 .add_modifier(Modifier::BOLD),

@@ -2341,13 +2341,13 @@ impl ClickerState {
             self.current_monster = Some(Monster::spawn_floor_boss(self.dungeon_floor));
             if old_biome != new_biome {
                 self.message = Some(format!(
-                    "⚔ FLOOR {} BOSS in {}! ⚔ A powerful enemy blocks your path!",
+                    "+ FLOOR {} BOSS in {}! + A powerful enemy blocks your path!",
                     self.dungeon_floor,
                     new_biome.name()
                 ));
             } else {
                 self.message = Some(format!(
-                    "⚔ FLOOR {} BOSS! ⚔ A powerful enemy blocks your path!",
+                    "+ FLOOR {} BOSS! + A powerful enemy blocks your path!",
                     self.dungeon_floor
                 ));
             }

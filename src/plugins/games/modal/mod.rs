@@ -325,7 +325,7 @@ fn draw_menu(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
                 start_row + (display_idx as u16 * 2) + 1,
                 vec![
                     Span::styled("        ", Style::default()),
-                    Span::styled("★ ", Style::default().fg(colors.yellow())),
+                    Span::styled("* ", Style::default().fg(colors.yellow())),
                     Span::styled(
                         format!("High Score: {}", high_score),
                         Style::default().fg(colors.green()),
@@ -586,7 +586,7 @@ fn draw_initials_entry(
         frame,
         center_row - 1,
         vec![Span::styled(
-            "║     ★  N E W   H I G H   S C O R E  ★     ║",
+            "║     *  N E W   H I G H   S C O R E  *     ║",
             Style::default()
                 .fg(colors.green())
                 .add_modifier(Modifier::BOLD),
@@ -970,9 +970,9 @@ fn draw_clicker_leaderboard(
         .enumerate()
         .map(|(i, e)| {
             let medal = match i {
-                0 => "🥇",
-                1 => "🥈",
-                _ => "🥉",
+                0 => "[1]",
+                1 => "[2]",
+                _ => "[3]",
             };
             format!("{}{} {}", medal, e.initials, e.score)
         })
@@ -1020,10 +1020,10 @@ fn draw_standard_leaderboard(
         if let Some(entry) = leaderboard.entries.get(i) {
             let rank_str = format!("{}.", i + 1);
             let medal = match i {
-                0 => "🥇",
-                1 => "🥈",
-                2 => "🥉",
-                _ => "  ",
+                0 => "[1]",
+                1 => "[2]",
+                2 => "[3]",
+                _ => "   ",
             };
             let style = match i {
                 0 => Style::default()

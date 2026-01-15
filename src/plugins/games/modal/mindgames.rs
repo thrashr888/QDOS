@@ -132,7 +132,7 @@ fn draw_pattern(
             ),
             Span::styled("  Streak: ", Style::default().fg(colors.grey())),
             Span::styled(
-                format!("{}🔥", state.streak),
+                format!("{}^", state.streak),
                 Style::default()
                     .fg(colors.red())
                     .add_modifier(Modifier::BOLD),
@@ -460,7 +460,7 @@ fn draw_number(
             ),
             Span::styled("  Streak: ", Style::default().fg(colors.grey())),
             Span::styled(
-                format!("{}🔥", state.streak),
+                format!("{}^", state.streak),
                 Style::default()
                     .fg(colors.red())
                     .add_modifier(Modifier::BOLD),
@@ -644,7 +644,7 @@ fn draw_feedback(
                 vec![
                     Span::styled("Streak: ", Style::default().fg(colors.grey())),
                     Span::styled(
-                        format!("{}🔥", state.streak),
+                        format!("{}^", state.streak),
                         Style::default()
                             .fg(colors.red())
                             .add_modifier(Modifier::BOLD),
@@ -745,7 +745,7 @@ fn draw_game_over(
         vec![
             Span::styled("Best Streak: ", Style::default().fg(colors.grey())),
             Span::styled(
-                format!("{}🔥", state.best_streak),
+                format!("{}^", state.best_streak),
                 Style::default()
                     .fg(colors.red())
                     .add_modifier(Modifier::BOLD),

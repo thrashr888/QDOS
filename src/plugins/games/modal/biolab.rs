@@ -1793,7 +1793,7 @@ fn draw_results(
             frame,
             row,
             vec![Span::styled(
-                "║              ★ TOPIC MASTERED! ★                           ║",
+                "║              * TOPIC MASTERED! *                           ║",
                 Style::default()
                     .fg(colors.green())
                     .add_modifier(Modifier::BOLD),
@@ -1807,7 +1807,7 @@ fn draw_results(
             frame,
             row,
             vec![Span::styled(
-                "║              ★★ PERFECT SCORE! +50 BONUS ★★               ║",
+                "║              ** PERFECT SCORE! +50 BONUS **               ║",
                 Style::default()
                     .fg(colors.yellow())
                     .add_modifier(Modifier::BOLD),

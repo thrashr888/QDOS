@@ -179,8 +179,8 @@ fn draw_hud(
                 Style::default().fg(colors.grey()),
             ),
             Span::styled("  HEAT: ", Style::default().fg(colors.grey())),
-            Span::styled("★".repeat(heat_filled), Style::default().fg(colors.red())),
-            Span::styled("☆".repeat(heat_empty), Style::default().fg(colors.grey())),
+            Span::styled("*".repeat(heat_filled), Style::default().fg(colors.red())),
+            Span::styled(".".repeat(heat_empty), Style::default().fg(colors.grey())),
             Span::styled(
                 format!("  SCORE: {:>8}", state.score),
                 Style::default()
@@ -286,9 +286,9 @@ fn draw_road(
             if car_x > 0 && car_x < content_width.saturating_sub(3) {
                 let car_row = row_idx - (ROAD_ROWS - 3);
                 let car_chars: [(char, char, char); 3] = [
-                    ('╔', '═', '╗'), // Top: ╔═╗
-                    ('║', '◊', '║'), // Middle: ║◊║
-                    ('╚', '▓', '╝'), // Bottom: ╚▓╝
+                    ('[', '=', ']'), // Top: [=]
+                    ('[', '@', ']'), // Middle: [@]
+                    ('[', '#', ']'), // Bottom: [#]
                 ];
 
                 let (c1, c2, c3) = car_chars[car_row];
@@ -302,20 +302,13 @@ fn draw_road(
                 line_chars[car_x] = (c2, Style::default().fg(car_color));
                 line_chars[car_x + 1] = (c3, Style::default().fg(car_color));
 
-                // Nitro flames
+                // Nitro flames - ASCII only for DOS style
                 if state.nitro_active && car_row == 2 && car_x > 3 {
-                    let flame_char = if state.tick_count % 4 < 2 {
-                        '🔥'
-                    } else {
-                        '💨'
-                    };
-                    // Use ASCII for compatibility
                     line_chars[car_x - 3] = ('*', Style::default().fg(colors.red()));
                     line_chars[car_x - 2] = (
                         if state.tick_count % 4 < 2 { '~' } else { '-' },
                         Style::default().fg(colors.yellow()),
                     );
-                    let _ = flame_char; // Suppress unused warning
                 }
             }
         }
