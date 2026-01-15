@@ -1,6 +1,6 @@
 //! Stats UI Modal - Display player statistics
 //!
-//! Shows lifetime and per-game statistics in a formatted table.
+//! Shows lifetime and per-game statistics in a formatted table with scrolling.
 
 use crate::app::ThemeColors;
 use crate::plugins::games::platform::{PlayerStats, StatsTracker};
@@ -10,160 +10,93 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;
 
-/// Draw the stats modal
+/// Draw the stats modal with scrolling support
 pub fn draw_stats(
     frame: &mut Frame,
     view: &FullScreenView,
     stats: &PlayerStats,
+    casino_credits: i64,
+    scroll_offset: usize,
     session_secs: u64,
     colors: &ThemeColors,
 ) {
-    let mut row = 0;
+    // Build all content lines first, then apply scrolling
+    let mut lines: Vec<Vec<Span>> = Vec::new();
+
+    let yellow_bold = Style::default()
+        .fg(colors.yellow())
+        .add_modifier(Modifier::BOLD);
+    let grey = Style::default().fg(colors.grey());
+    let white = Style::default().fg(colors.fg());
+    let cyan = Style::default().fg(colors.cyan());
+    let green = Style::default().fg(colors.green());
+    let blue_bold = Style::default()
+        .fg(colors.blue())
+        .add_modifier(Modifier::BOLD);
 
     // Header section - Lifetime stats
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "LIFETIME STATISTICS",
-            Style::default()
-                .fg(colors.yellow())
-                .add_modifier(Modifier::BOLD),
-        )],
-    );
-    row += 1;
-
-    // Separator
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "─".repeat(40),
-            Style::default().fg(colors.grey()),
-        )],
-    );
-    row += 1;
+    lines.push(vec![Span::styled("LIFETIME STATISTICS", yellow_bold)]);
+    lines.push(vec![Span::styled("─".repeat(40), grey)]);
 
     // Total play time
-    view.render_row(
-        frame,
-        row,
-        vec![
-            Span::styled("Total Play Time:    ", Style::default().fg(colors.fg())),
-            Span::styled(
-                StatsTracker::format_playtime(stats.total_playtime_secs),
-                Style::default().fg(colors.cyan()),
-            ),
-        ],
-    );
-    row += 1;
+    lines.push(vec![
+        Span::styled("Total Play Time:    ", white),
+        Span::styled(
+            StatsTracker::format_playtime(stats.total_playtime_secs),
+            cyan,
+        ),
+    ]);
 
     // Games played
-    view.render_row(
-        frame,
-        row,
-        vec![
-            Span::styled("Games Played:       ", Style::default().fg(colors.fg())),
-            Span::styled(
-                format!("{}", stats.total_games_played),
-                Style::default().fg(colors.cyan()),
-            ),
-        ],
-    );
-    row += 1;
+    lines.push(vec![
+        Span::styled("Games Played:       ", white),
+        Span::styled(format!("{}", stats.total_games_played), cyan),
+    ]);
 
     // Games won
-    view.render_row(
-        frame,
-        row,
-        vec![
-            Span::styled("Games Won:          ", Style::default().fg(colors.fg())),
-            Span::styled(
-                format!("{}", stats.total_games_won),
-                Style::default().fg(colors.cyan()),
-            ),
-        ],
-    );
-    row += 1;
+    lines.push(vec![
+        Span::styled("Games Won:          ", white),
+        Span::styled(format!("{}", stats.total_games_won), cyan),
+    ]);
 
     // First played
     let first_played_str = stats
         .first_played
         .map(|dt| dt.format("%b %d, %Y").to_string())
         .unwrap_or_else(|| "Never".to_string());
-    view.render_row(
-        frame,
-        row,
-        vec![
-            Span::styled("Playing Since:      ", Style::default().fg(colors.fg())),
-            Span::styled(first_played_str, Style::default().fg(colors.cyan())),
-        ],
-    );
-    row += 1;
+    lines.push(vec![
+        Span::styled("Playing Since:      ", white),
+        Span::styled(first_played_str, cyan),
+    ]);
 
     // Session time
-    view.render_row(
-        frame,
-        row,
-        vec![
-            Span::styled("Session Time:       ", Style::default().fg(colors.fg())),
-            Span::styled(
-                StatsTracker::format_playtime(session_secs),
-                Style::default().fg(colors.green()),
-            ),
-        ],
-    );
-    row += 2;
+    lines.push(vec![
+        Span::styled("Session Time:       ", white),
+        Span::styled(StatsTracker::format_playtime(session_secs), green),
+    ]);
+
+    // Casino credits
+    lines.push(vec![
+        Span::styled("Casino Credits:     ", white),
+        Span::styled(format!("{}", casino_credits), yellow_bold),
+    ]);
+
+    // Blank line
+    lines.push(vec![]);
 
     // Per-game stats header
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "PER-GAME STATISTICS",
-            Style::default()
-                .fg(colors.yellow())
-                .add_modifier(Modifier::BOLD),
-        )],
-    );
-    row += 1;
-
-    // Table header
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "─".repeat(72),
-            Style::default().fg(colors.grey()),
-        )],
-    );
-    row += 1;
+    lines.push(vec![Span::styled("PER-GAME STATISTICS", yellow_bold)]);
+    lines.push(vec![Span::styled("─".repeat(72), grey)]);
 
     // Column headers
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            format!(
-                "{:<14} {:>8} {:>6} {:>12} {:>10} {:>10}",
-                "Game", "Played", "Won", "High Score", "Best Lvl", "Time"
-            ),
-            Style::default()
-                .fg(colors.blue())
-                .add_modifier(Modifier::BOLD),
-        )],
-    );
-    row += 1;
-
-    view.render_row(
-        frame,
-        row,
-        vec![Span::styled(
-            "─".repeat(72),
-            Style::default().fg(colors.grey()),
-        )],
-    );
-    row += 1;
+    lines.push(vec![Span::styled(
+        format!(
+            "{:<14} {:>8} {:>6} {:>12} {:>10} {:>10}",
+            "Game", "Played", "Won", "High Score", "Best Lvl", "Time"
+        ),
+        blue_bold,
+    )]);
+    lines.push(vec![Span::styled("─".repeat(72), grey)]);
 
     // Game rows
     for game_type in GameType::all() {
@@ -200,15 +133,51 @@ pub fn draw_stats(
 
         // Highlight games that have been played
         let style = if game_stats.is_some() && game_stats.unwrap().times_played > 0 {
-            Style::default().fg(colors.fg())
+            white
         } else {
-            Style::default().fg(colors.grey())
+            grey
         };
 
-        view.render_row(frame, row, vec![Span::styled(line, style)]);
-        row += 1;
+        lines.push(vec![Span::styled(line, style)]);
     }
 
-    // Help footer
-    view.render_help(frame, vec![("Esc", "close")]);
+    // Calculate visible area (leaving room for help footer)
+    let visible_rows = 19usize; // Approximate visible content rows
+    let total_lines = lines.len();
+    let max_scroll = total_lines.saturating_sub(visible_rows);
+    let effective_scroll = scroll_offset.min(max_scroll);
+
+    // Render visible lines with scroll offset
+    for (i, line) in lines
+        .into_iter()
+        .skip(effective_scroll)
+        .take(visible_rows)
+        .enumerate()
+    {
+        view.render_row(frame, i as u16, line);
+    }
+
+    // Show scroll indicator if there's more content
+    if total_lines > visible_rows {
+        let scroll_indicator = format!(
+            " [{}/{}] ",
+            effective_scroll + 1,
+            max_scroll.saturating_add(1)
+        );
+        view.render_row(
+            frame,
+            visible_rows as u16,
+            vec![Span::styled(scroll_indicator, grey)],
+        );
+    }
+
+    // Help footer with scroll hints
+    if total_lines > visible_rows {
+        view.render_help(
+            frame,
+            vec![("↑/↓", "scroll"), ("PgUp/Dn", "page"), ("Esc", "close")],
+        );
+    } else {
+        view.render_help(frame, vec![("Esc", "close")]);
+    }
 }

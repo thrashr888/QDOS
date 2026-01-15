@@ -346,6 +346,24 @@ impl Plugin for GamesPlugin {
                     self.state.view = GamesView::Menu;
                     KeyHandleResult::Handled
                 }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.state.stats_scroll_offset =
+                        self.state.stats_scroll_offset.saturating_sub(1);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.state.stats_scroll_offset += 1;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::PageUp => {
+                    self.state.stats_scroll_offset =
+                        self.state.stats_scroll_offset.saturating_sub(10);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::PageDown => {
+                    self.state.stats_scroll_offset += 10;
+                    KeyHandleResult::Handled
+                }
                 _ => KeyHandleResult::Handled,
             },
             GamesView::Achievements => match key.code {

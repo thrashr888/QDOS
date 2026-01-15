@@ -336,6 +336,7 @@ pub struct GamesState {
     pub selected_game: usize,
     pub menu_scroll_offset: usize, // For scrolling the games menu
     pub achievements_scroll_offset: usize, // For scrolling the achievements list
+    pub stats_scroll_offset: usize, // For scrolling the stats list
     pub current_game: Option<GameType>,
     pub score: u32,
     pub high_scores: [u32; 8], // One for each game (legacy, kept for compatibility)
@@ -389,6 +390,7 @@ impl GamesState {
             selected_game: 0,
             menu_scroll_offset: 0,
             achievements_scroll_offset: 0,
+            stats_scroll_offset: 0,
             current_game: None,
             score: 0,
             high_scores: [0; 8],
@@ -653,6 +655,7 @@ impl GamesState {
 
     /// Show player statistics
     pub fn show_stats(&mut self) {
+        self.stats_scroll_offset = 0;
         self.view = GamesView::Stats;
     }
 

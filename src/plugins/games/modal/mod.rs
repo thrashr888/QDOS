@@ -140,7 +140,15 @@ pub fn draw_games_modal(
         GamesView::GameOver => draw_game_over(frame, &view, state, colors),
         GamesView::EnteringInitials => draw_initials_entry(frame, &view, state, colors),
         GamesView::Leaderboard => draw_leaderboard(frame, &view, state, colors),
-        GamesView::Stats => stats::draw_stats(frame, &view, stats, session_secs, colors),
+        GamesView::Stats => stats::draw_stats(
+            frame,
+            &view,
+            stats,
+            state.casino_credits,
+            state.stats_scroll_offset,
+            session_secs,
+            colors,
+        ),
         GamesView::Achievements => achievements::draw_achievements(
             frame,
             &view,
