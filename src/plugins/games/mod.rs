@@ -4,13 +4,16 @@
 
 pub mod adventure;
 pub mod artillery;
+pub mod baccarat;
 pub mod biolab;
 pub mod blackjack;
+pub mod blockworld;
 pub mod brainiac;
 pub mod breakout;
 pub mod caverns;
 pub mod clicker;
 pub mod cosmos;
+pub mod craps;
 pub mod dopewars;
 pub mod dungeon;
 pub mod gumshoe;
@@ -21,13 +24,16 @@ pub mod minesweeper;
 mod modal;
 pub mod neondrive;
 pub mod platform;
+pub mod poker;
 pub mod rogue;
 pub mod roulette;
+pub mod slots;
 pub mod snake;
 pub mod state;
 pub mod storyweaver;
 pub mod tetris;
 pub mod trek;
+pub mod westworld;
 
 use crate::app::ThemeColors;
 use crate::config::Config;
@@ -165,7 +171,10 @@ impl GamesPlugin {
 
     /// Return to menu and restart background music
     fn back_to_menu(&mut self) {
+        // Sync casino credits before returning to menu
+        self.state.sync_casino_credits();
         self.state.return_to_menu();
+        self.save_to_config();
         if self.sounds_enabled {
             self.music.play(ChiptuneMelody::GameMenu);
         }
@@ -194,9 +203,15 @@ impl GamesPlugin {
             GameType::Micropolis => self.state.micropolis.is_game_won(),
             GameType::JungleRun => self.state.junglerun.game_won,
             GameType::Adventure => self.state.adventure.game_won,
-            GameType::Blackjack => false, // Casino - no win condition
-            GameType::Roulette => false,  // Casino - no win condition
-            GameType::Cosmos => false,    // Exploration - no end
+            GameType::Blackjack => false,  // Casino - no win condition
+            GameType::Roulette => false,   // Casino - no win condition
+            GameType::Cosmos => false,     // Exploration - no end
+            GameType::Blockworld => false, // Survival - no end
+            GameType::Westworld => self.state.westworld.is_game_won(),
+            GameType::Slots => false,    // Casino - no win condition
+            GameType::Poker => false,    // Casino - no win condition
+            GameType::Baccarat => false, // Casino - no win condition
+            GameType::Craps => false,    // Casino - no win condition
         }
     }
 
@@ -421,6 +436,12 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Blackjack) => self.state.blackjack.handle_key(key),
                     Some(GameType::Roulette) => self.state.roulette.handle_key(key),
                     Some(GameType::Cosmos) => self.state.cosmos.handle_key(key),
+                    Some(GameType::Blockworld) => self.state.blockworld.handle_key(key),
+                    Some(GameType::Westworld) => self.state.westworld.handle_key(key),
+                    Some(GameType::Slots) => self.state.slots.handle_key(key),
+                    Some(GameType::Poker) => self.state.poker.handle_key(key),
+                    Some(GameType::Baccarat) => self.state.baccarat.handle_key(key),
+                    Some(GameType::Craps) => self.state.craps.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -738,6 +759,48 @@ impl Plugin for GamesPlugin {
                 }
 
                 if self.state.cosmos.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Blockworld) => {
+                self.state.blockworld.tick();
+                self.state.score = self.state.blockworld.get_score();
+                if self.state.blockworld.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Westworld) => {
+                self.state.westworld.tick();
+                self.state.score = self.state.westworld.get_score();
+                if self.state.westworld.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Slots) => {
+                self.state.slots.tick();
+                self.state.score = self.state.slots.get_score();
+                if self.state.slots.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Poker) => {
+                self.state.poker.tick();
+                self.state.score = self.state.poker.get_score();
+                if self.state.poker.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Baccarat) => {
+                self.state.baccarat.tick();
+                self.state.score = self.state.baccarat.get_score();
+                if self.state.baccarat.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Craps) => {
+                self.state.craps.tick();
+                self.state.score = self.state.craps.get_score();
+                if self.state.craps.is_game_over() {
                     self.end_game_with_stats();
                 }
             }

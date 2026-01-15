@@ -577,11 +577,12 @@ impl JungleRunState {
 
 impl GameEngine for JungleRunState {
     fn tick(&mut self) {
+        // Always increment for menu animation
+        self.tick_count = self.tick_count.wrapping_add(1);
+
         if self.view != JungleRunView::Playing {
             return;
         }
-
-        self.tick_count += 1;
 
         // Update message timer
         if self.message_timer > 0 {

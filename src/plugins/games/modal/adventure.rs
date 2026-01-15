@@ -19,7 +19,7 @@ const ROOM_HEIGHT: usize = 14;
 /// Main draw function for ADVENTURE
 pub fn draw(frame: &mut Frame, area: Rect, state: &AdventureState, colors: &ThemeColors) {
     match state.view {
-        AdventureView::Menu => draw_menu(frame, area, colors),
+        AdventureView::Menu => draw_menu(frame, area, state, colors),
         AdventureView::Playing => {
             if state.eaten_by.is_some() {
                 draw_eaten(frame, area, state, colors);
@@ -33,13 +33,10 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &AdventureState, colors: &Them
 }
 
 /// Draw the menu screen
-fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
+fn draw_menu(frame: &mut Frame, area: Rect, state: &AdventureState, colors: &ThemeColors) {
     let view = FullScreenView::new(area, " ADVENTURE ", colors);
     view.render_frame(frame);
 
-    let title_style = Style::default()
-        .fg(colors.yellow())
-        .add_modifier(Modifier::BOLD);
     let text_style = Style::default().fg(colors.fg());
     let highlight = Style::default()
         .fg(colors.green())
@@ -55,8 +52,22 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         r"  ╚═╝  ╚═╝╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝",
     ];
 
+    // Title with animated fantasy gradient
+    let phase = (state.tick_count / 10) % 3;
     for (i, line) in title.iter().enumerate() {
-        view.render_row(frame, i as u16 + 1, vec![Span::styled(*line, title_style)]);
+        let row_color = match (i, phase) {
+            (0..=1, 0) => colors.yellow(), // Golden treasure
+            (0..=1, 1) => colors.fg(),     // Sparkle
+            (0..=1, _) => colors.yellow(),
+            (2..=3, 0) => colors.cyan(), // Magic
+            (2..=3, 1) => colors.blue(), // Mystical
+            (2..=3, _) => colors.cyan(),
+            (_, 0) => colors.green(), // Forest
+            (_, 1) => colors.cyan(),  // Forest highlight
+            (_, _) => colors.green(),
+        };
+        let style = Style::default().fg(row_color).add_modifier(Modifier::BOLD);
+        view.render_row(frame, i as u16 + 1, vec![Span::styled(*line, style)]);
     }
 
     view.render_row(
@@ -66,7 +77,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
     );
 
     // Instructions
-    view.render_row(frame, 10, vec![Span::styled("THE QUEST:", title_style)]);
+    view.render_row(frame, 10, vec![Span::styled("THE QUEST:", highlight)]);
     view.render_row(
         frame,
         11,
@@ -76,7 +87,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         )],
     );
 
-    view.render_row(frame, 13, vec![Span::styled("ITEMS:", title_style)]);
+    view.render_row(frame, 13, vec![Span::styled("ITEMS:", highlight)]);
     view.render_row(
         frame,
         14,

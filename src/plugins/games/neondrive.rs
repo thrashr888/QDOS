@@ -390,6 +390,9 @@ impl NeondriveState {
 
 impl GameEngine for NeondriveState {
     fn tick(&mut self) {
+        // Always increment for menu animation
+        self.tick_count = self.tick_count.wrapping_add(1);
+
         if self.view != NeondriveView::Playing || self.game_over {
             return;
         }

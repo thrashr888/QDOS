@@ -2,13 +2,16 @@
 
 use super::adventure::AdventureState;
 use super::artillery::ArtilleryState;
+use super::baccarat::BaccaratState;
 use super::biolab::BiolabState;
 use super::blackjack::BlackjackState;
+use super::blockworld::BlockworldState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::caverns::CavernsState;
 use super::clicker::ClickerState;
 use super::cosmos::CosmosState;
+use super::craps::CrapsState;
 use super::dopewars::DopeWarsState;
 use super::dungeon::DungeonState;
 use super::gumshoe::GumshoeState;
@@ -17,12 +20,15 @@ use super::micropolis::MicropolisState;
 use super::mindgames::MindgamesState;
 use super::minesweeper::MinesweeperState;
 use super::neondrive::NeondriveState;
+use super::poker::PokerState;
 use super::rogue::RogueState;
 use super::roulette::RouletteState;
+use super::slots::SlotsState;
 use super::snake::SnakeState;
 use super::storyweaver::StoryweaverState;
 use super::tetris::TetrisState;
 use super::trek::TrekState;
+use super::westworld::WestworldState;
 use serde::{Deserialize, Serialize};
 
 /// Maximum entries per game leaderboard
@@ -145,6 +151,18 @@ pub struct Leaderboards {
     pub roulette: GameLeaderboard,
     #[serde(default)]
     pub cosmos: GameLeaderboard,
+    #[serde(default)]
+    pub blockworld: GameLeaderboard,
+    #[serde(default)]
+    pub westworld: GameLeaderboard,
+    #[serde(default)]
+    pub slots: GameLeaderboard,
+    #[serde(default)]
+    pub poker: GameLeaderboard,
+    #[serde(default)]
+    pub baccarat: GameLeaderboard,
+    #[serde(default)]
+    pub craps: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -178,6 +196,12 @@ impl Leaderboards {
             GameType::Blackjack => &self.blackjack,
             GameType::Roulette => &self.roulette,
             GameType::Cosmos => &self.cosmos,
+            GameType::Blockworld => &self.blockworld,
+            GameType::Westworld => &self.westworld,
+            GameType::Slots => &self.slots,
+            GameType::Poker => &self.poker,
+            GameType::Baccarat => &self.baccarat,
+            GameType::Craps => &self.craps,
         }
     }
 
@@ -207,6 +231,12 @@ impl Leaderboards {
             GameType::Blackjack => &mut self.blackjack,
             GameType::Roulette => &mut self.roulette,
             GameType::Cosmos => &mut self.cosmos,
+            GameType::Blockworld => &mut self.blockworld,
+            GameType::Westworld => &mut self.westworld,
+            GameType::Slots => &mut self.slots,
+            GameType::Poker => &mut self.poker,
+            GameType::Baccarat => &mut self.baccarat,
+            GameType::Craps => &mut self.craps,
         }
     }
 }
@@ -237,6 +267,12 @@ pub enum GameType {
     Blackjack,
     Roulette,
     Cosmos,
+    Blockworld,
+    Westworld,
+    Slots,
+    Poker,
+    Baccarat,
+    Craps,
 }
 
 impl GameType {
@@ -264,7 +300,13 @@ impl GameType {
             GameType::Adventure,
             GameType::Blackjack,
             GameType::Roulette,
+            GameType::Slots,
+            GameType::Poker,
+            GameType::Baccarat,
+            GameType::Craps,
             GameType::Cosmos,
+            GameType::Blockworld,
+            GameType::Westworld,
         ]
     }
 
@@ -293,6 +335,12 @@ impl GameType {
             GameType::Blackjack => "Blackjack",
             GameType::Roulette => "Roulette",
             GameType::Cosmos => "Cosmos",
+            GameType::Blockworld => "Blockworld",
+            GameType::Westworld => "Westworld",
+            GameType::Slots => "Slots",
+            GameType::Poker => "Video Poker",
+            GameType::Baccarat => "Baccarat",
+            GameType::Craps => "Craps",
         }
     }
 
@@ -321,6 +369,12 @@ impl GameType {
             GameType::Blackjack => "Beat the dealer to 21!",
             GameType::Roulette => "Spin the wheel, place your bets!",
             GameType::Cosmos => "Explore the galaxy, make first contact",
+            GameType::Blockworld => "Terraria-style mining adventure!",
+            GameType::Westworld => "Android uprising - Contra action!",
+            GameType::Slots => "Classic 3-reel slot machine!",
+            GameType::Poker => "Jacks or Better video poker!",
+            GameType::Baccarat => "Punto banco - bet on player or banker!",
+            GameType::Craps => "Roll the dice - pass line betting!",
         }
     }
 }
@@ -382,6 +436,12 @@ pub struct GamesState {
     pub blackjack: BlackjackState,
     pub roulette: RouletteState,
     pub cosmos: CosmosState,
+    pub blockworld: BlockworldState,
+    pub westworld: WestworldState,
+    pub slots: SlotsState,
+    pub poker: PokerState,
+    pub baccarat: BaccaratState,
+    pub craps: CrapsState,
 
     // Casino wallet - shared credits for gambling games
     pub casino_credits: i64,
@@ -433,6 +493,12 @@ impl GamesState {
             blackjack: BlackjackState::new(),
             roulette: RouletteState::new(),
             cosmos: CosmosState::new(),
+            blockworld: BlockworldState::new(),
+            westworld: WestworldState::new(),
+            slots: SlotsState::new(),
+            poker: PokerState::new(),
+            baccarat: BaccaratState::new(),
+            craps: CrapsState::new(),
             casino_credits: 1000, // Starting casino credits
         }
     }
@@ -518,6 +584,28 @@ impl GamesState {
             GameType::Cosmos => {
                 self.cosmos = CosmosState::new();
             }
+            GameType::Blockworld => {
+                self.blockworld = BlockworldState::new();
+            }
+            GameType::Westworld => {
+                self.westworld = WestworldState::new();
+            }
+            GameType::Slots => {
+                self.slots = SlotsState::new();
+                self.slots.set_credits(self.casino_credits);
+            }
+            GameType::Poker => {
+                self.poker = PokerState::new();
+                self.poker.set_credits(self.casino_credits);
+            }
+            GameType::Baccarat => {
+                self.baccarat = BaccaratState::new();
+                self.baccarat.set_credits(self.casino_credits);
+            }
+            GameType::Craps => {
+                self.craps = CrapsState::new();
+                self.craps.set_credits(self.casino_credits);
+            }
         }
     }
 
@@ -556,6 +644,12 @@ impl GamesState {
                 GameType::Blackjack => 20,  // Casino game
                 GameType::Roulette => 21,   // Casino game
                 GameType::Cosmos => 22,     // Space exploration
+                GameType::Blockworld => 23, // Mining adventure
+                GameType::Westworld => 24,  // Western action
+                GameType::Slots => 25,      // Casino game
+                GameType::Poker => 26,      // Casino game
+                GameType::Baccarat => 27,   // Casino game
+                GameType::Craps => 28,      // Casino game
             };
 
             // Update casino credits for gambling games
@@ -565,6 +659,18 @@ impl GamesState {
                 }
                 GameType::Roulette => {
                     self.casino_credits = self.roulette.available_credits;
+                }
+                GameType::Slots => {
+                    self.casino_credits = self.slots.available_credits;
+                }
+                GameType::Poker => {
+                    self.casino_credits = self.poker.available_credits;
+                }
+                GameType::Baccarat => {
+                    self.casino_credits = self.baccarat.available_credits;
+                }
+                GameType::Craps => {
+                    self.casino_credits = self.craps.available_credits;
                 }
                 _ => {}
             }
@@ -704,6 +810,33 @@ impl GamesState {
         let idx = all.iter().position(|g| *g == current).unwrap_or(0);
         let prev_idx = (idx + all.len() - 1) % all.len();
         self.leaderboard_game = Some(all[prev_idx]);
+    }
+
+    /// Sync casino credits from current game back to shared wallet
+    pub fn sync_casino_credits(&mut self) {
+        if let Some(game) = self.current_game {
+            match game {
+                GameType::Blackjack => {
+                    self.casino_credits = self.blackjack.available_credits;
+                }
+                GameType::Roulette => {
+                    self.casino_credits = self.roulette.available_credits;
+                }
+                GameType::Slots => {
+                    self.casino_credits = self.slots.available_credits;
+                }
+                GameType::Poker => {
+                    self.casino_credits = self.poker.available_credits;
+                }
+                GameType::Baccarat => {
+                    self.casino_credits = self.baccarat.available_credits;
+                }
+                GameType::Craps => {
+                    self.casino_credits = self.craps.available_credits;
+                }
+                _ => {}
+            }
+        }
     }
 
     pub fn return_to_menu(&mut self) {

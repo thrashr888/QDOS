@@ -8,13 +8,16 @@
 pub mod achievements;
 mod adventure;
 mod artillery;
+mod baccarat;
 mod biolab;
 mod blackjack;
+mod blockworld;
 mod brainiac;
 mod breakout;
 mod caverns;
 mod clicker;
 mod cosmos;
+mod craps;
 mod dopewars;
 mod dungeon;
 mod gumshoe;
@@ -23,24 +26,30 @@ mod micropolis;
 mod mindgames;
 mod minesweeper;
 mod neondrive;
+mod poker;
 mod rogue;
 mod roulette;
+mod slots;
 mod snake;
 mod stats;
 mod storyweaver;
 mod tetris;
 mod trek;
+mod westworld;
 
 // Re-export game draw functions
 pub use adventure::draw as draw_adventure;
 pub use artillery::draw as draw_artillery;
+pub use baccarat::draw as draw_baccarat;
 pub use biolab::draw_biolab;
 pub use blackjack::draw as draw_blackjack;
+pub use blockworld::draw_blockworld;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use caverns::draw_caverns;
 pub use clicker::draw_clicker;
 pub use cosmos::draw as draw_cosmos;
+pub use craps::draw as draw_craps;
 pub use dopewars::draw_dopewars;
 pub use dungeon::draw_dungeon;
 pub use gumshoe::draw_gumshoe;
@@ -49,12 +58,15 @@ pub use micropolis::draw as draw_micropolis;
 pub use mindgames::draw_mindgames;
 pub use minesweeper::draw as draw_minesweeper;
 pub use neondrive::draw as draw_neondrive;
+pub use poker::draw as draw_poker;
 pub use rogue::draw_rogue;
 pub use roulette::draw as draw_roulette;
+pub use slots::draw as draw_slots;
 pub use snake::draw_snake;
 pub use storyweaver::draw_storyweaver;
 pub use tetris::draw_tetris;
 pub use trek::draw_trek;
+pub use westworld::draw_westworld;
 
 use super::state::{GameType, GamesState, GamesView};
 use crate::app::ThemeColors;
@@ -125,6 +137,12 @@ pub fn draw_games_modal(
             Some(GameType::Blackjack) => " Blackjack ",
             Some(GameType::Roulette) => " Roulette ",
             Some(GameType::Cosmos) => " Cosmos ",
+            Some(GameType::Blockworld) => " Blockworld ",
+            Some(GameType::Westworld) => " Westworld ",
+            Some(GameType::Slots) => " Slots ",
+            Some(GameType::Poker) => " Video Poker ",
+            Some(GameType::Baccarat) => " Baccarat ",
+            Some(GameType::Craps) => " Craps ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -403,6 +421,12 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Blackjack) => draw_blackjack(frame, view.area, &state.blackjack, colors),
         Some(GameType::Roulette) => draw_roulette(frame, view.area, &state.roulette, colors),
         Some(GameType::Cosmos) => draw_cosmos(frame, view.area, &state.cosmos, colors),
+        Some(GameType::Blockworld) => draw_blockworld(frame, view.area, &state.blockworld, colors),
+        Some(GameType::Westworld) => draw_westworld(frame, view.area, &state.westworld, colors),
+        Some(GameType::Slots) => draw_slots(frame, view.area, &state.slots, colors),
+        Some(GameType::Poker) => draw_poker(frame, view.area, &state.poker, colors),
+        Some(GameType::Baccarat) => draw_baccarat(frame, view.area, &state.baccarat, colors),
+        Some(GameType::Craps) => draw_craps(frame, view.area, &state.craps, colors),
         None => {}
     }
 }
@@ -522,6 +546,12 @@ fn draw_game_over(
             GameType::Blackjack => 20,  // Casino game
             GameType::Roulette => 21,   // Casino game
             GameType::Cosmos => 22,     // Space exploration
+            GameType::Blockworld => 23, // Mining adventure
+            GameType::Westworld => 24,  // Western action
+            GameType::Slots => 25,      // Casino slot machine
+            GameType::Poker => 26,      // Casino video poker
+            GameType::Baccarat => 27,   // Casino baccarat
+            GameType::Craps => 28,      // Casino craps
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(

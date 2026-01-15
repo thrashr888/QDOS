@@ -110,10 +110,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
     view.render_row(
         frame,
         11,
-        vec![Span::styled(
-            "   ║      >>> A Space Odyssey <<<   ║",
-            yellow,
-        )],
+        vec![Span::styled("   ║     >>> A Space Odyssey <<<   ║", yellow)],
     );
     view.render_row(
         frame,

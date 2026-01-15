@@ -13,12 +13,14 @@ use ratatui::{
     Frame,
 };
 
-/// BRAINIAC title art
+/// BRAINIAC title art - ANSI block style
 const BRAINIAC_TITLE: &[&str] = &[
-    "  ____  ____   __   __  _  _ __  __   ___ ",
-    " | __ )|  _ \\ / _\\ (  )( \\( )(  )(  ) / __)",
-    " |  _ \\| |_) / /_\\ \\)(  )  (  )(  )(  \\__ \\",
-    " |_.__/|____/\\_/\\_/(__)(_)\\_)(__)(__)____/ ",
+    "██████╗ ██████╗  █████╗ ██╗███╗   ██╗██╗ █████╗  ██████╗",
+    "██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║██║██╔══██╗██╔════╝",
+    "██████╔╝██████╔╝███████║██║██╔██╗ ██║██║███████║██║     ",
+    "██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║██║██╔══██║██║     ",
+    "██████╔╝██║  ██║██║  ██║██║██║ ╚████║██║██║  ██║╚██████╗",
+    "╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝ ╚═════╝",
 ];
 
 /// Brain animation frames
@@ -54,14 +56,19 @@ pub fn draw_brainiac_setup(
 ) {
     let mut row = 0;
 
-    // Title
-    for line in BRAINIAC_TITLE {
+    // Title with brain gradient: pink/red at top (cortex), cyan at bottom (tech)
+    for (i, line) in BRAINIAC_TITLE.iter().enumerate() {
+        let row_color = match i {
+            0 | 1 => colors.red(),    // Brain tissue pink/red
+            2 | 3 => colors.yellow(), // Neural activity
+            _ => colors.cyan(),       // Tech/digital
+        };
         view.render_row(
             frame,
             row,
             vec![Span::styled(
                 format!("{:^78}", line),
-                Style::default().fg(colors.cyan()),
+                Style::default().fg(row_color).add_modifier(Modifier::BOLD),
             )],
         );
         row += 1;

@@ -1072,9 +1072,11 @@ impl GameEngine for TrekState {
 
     fn get_score(&self) -> u32 {
         // Score based on Klingons destroyed and time efficiency
-        let initial_klingons = 10; // Minimum initial count
-        let destroyed = (initial_klingons - self.klingons_remaining.max(0)) as u32;
-        destroyed * 100
+        let initial_klingons: i32 = 10; // Minimum initial count
+        let destroyed = initial_klingons
+            .saturating_sub(self.klingons_remaining)
+            .max(0) as u32;
+        destroyed.saturating_mul(100)
     }
 
     fn is_game_over(&self) -> bool {

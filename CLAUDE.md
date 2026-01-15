@@ -53,6 +53,7 @@ src/
 - **State machine**: Navigation state, view modes, and modal states are managed through enums in `state.rs`
 - **Idiomatic Rust**: Stick to modern Rust features, best practices, and patterns
 - **Dead code**: Allow dead code to be present in the codebase, but remove it when it's not needed
+- **No emoji**: Use ASCII and CP437 extended characters only. Box-drawing (╔═║╗), card suits (♠♥♦♣), and other CP437 characters are acceptable. Avoid non-CP437 Unicode (★, ●, ⚀-⚅) and true emoji (🍒, 🎰). Use ASCII alternatives like `*`, `o`, `#` instead.
 
 ## Documentation System
 
