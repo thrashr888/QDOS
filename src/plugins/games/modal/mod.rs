@@ -586,7 +586,7 @@ fn draw_initials_entry(
         frame,
         center_row - 1,
         vec![Span::styled(
-            "║       ★  N E W   H I G H   S C O R E  ★       ║",
+            "║     ★  N E W   H I G H   S C O R E  ★     ║",
             Style::default()
                 .fg(colors.green())
                 .add_modifier(Modifier::BOLD),
@@ -624,7 +624,7 @@ fn draw_initials_entry(
     // Draw the 3-character entry with cursor
     let chars: Vec<char> = state.initials_buffer.chars().collect();
     let mut initials_spans: Vec<Span> = vec![Span::styled(
-        "║                    ",
+        "║                 ",
         Style::default().fg(title_color),
     )];
 
@@ -643,7 +643,7 @@ fn draw_initials_entry(
     }
 
     initials_spans.push(Span::styled(
-        "                    ║",
+        "                 ║",
         Style::default().fg(title_color),
     ));
 

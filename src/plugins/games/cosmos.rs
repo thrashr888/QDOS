@@ -20,6 +20,12 @@ const STARTING_HULL: u32 = 100;
 const WARP_FUEL_COST: u32 = 15;
 const SCAN_FUEL_COST: u32 = 2;
 
+// Hazard damage amounts
+const NEUTRON_RADIATION_DAMAGE: u32 = 15;
+const ASTEROID_COLLISION_DAMAGE: u32 = 10;
+const VOLCANIC_LANDING_DAMAGE: u32 = 8;
+const DEBRIS_FIELD_DAMAGE: u32 = 5;
+
 // =============================================================================
 // STAR TYPES
 // =============================================================================
@@ -254,6 +260,7 @@ pub enum CosmosView {
     FirstContact,
     Ship,
     Knowledge,
+    Victory,
 }
 
 pub struct CosmosState {
@@ -287,6 +294,7 @@ pub struct CosmosState {
     pub message_timer: u32,
     pub tick_count: u32,
     pub game_over: bool,
+    pub game_won: bool,
 
     events: Vec<GameEvent>,
 }
@@ -322,6 +330,7 @@ impl CosmosState {
             message_timer: 0,
             tick_count: 0,
             game_over: false,
+            game_won: false,
             events: Vec::new(),
         }
     }
@@ -436,9 +445,40 @@ impl CosmosState {
         }
 
         self.fuel -= WARP_FUEL_COST;
+
+        // Random space hazard during warp (20% chance)
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0..100) < 20 {
+            let (damage, hazard_msg) = match rng.gen_range(0..3) {
+                0 => (ASTEROID_COLLISION_DAMAGE, "Asteroid collision during warp!"),
+                1 => (DEBRIS_FIELD_DAMAGE, "Passed through debris field!"),
+                _ => (DEBRIS_FIELD_DAMAGE, "Micro-meteorite impact!"),
+            };
+            self.hull = self.hull.saturating_sub(damage);
+            self.show_message(&format!("{} (-{} hull)", hazard_msg, damage));
+
+            if self.hull == 0 {
+                self.game_over = true;
+                return;
+            }
+        }
+
         self.current_system = target;
         self.selected_planet = 0;
         self.current_planet = None;
+
+        // Neutron star radiation damage
+        if self.systems[target].star_type == StarType::Neutron {
+            self.hull = self.hull.saturating_sub(NEUTRON_RADIATION_DAMAGE);
+            self.show_message(&format!(
+                "Neutron star radiation! (-{} hull)",
+                NEUTRON_RADIATION_DAMAGE
+            ));
+            if self.hull == 0 {
+                self.game_over = true;
+                return;
+            }
+        }
 
         if !self.systems[target].visited {
             self.systems[target].visited = true;
@@ -507,6 +547,20 @@ impl CosmosState {
         if !planet.scanned {
             self.show_message("Scan planet before landing!");
             return;
+        }
+
+        // Check for volcanic landing damage
+        let planet_type = planet.planet_type;
+        if planet_type == PlanetType::Volcanic {
+            self.hull = self.hull.saturating_sub(VOLCANIC_LANDING_DAMAGE);
+            self.show_message(&format!(
+                "Heat damage from volcanic surface! (-{} hull)",
+                VOLCANIC_LANDING_DAMAGE
+            ));
+            if self.hull == 0 {
+                self.game_over = true;
+                return;
+            }
         }
 
         self.current_planet = Some(self.selected_planet);
@@ -603,6 +657,8 @@ impl CosmosState {
                             contact.status = DiplomaticStatus::Allied;
                             self.data_collected += 100;
                             self.show_message(&format!("Alliance formed with {}!", species.name()));
+                            // Check for victory after alliance
+                            self.check_victory();
                         }
                     }
                 }
@@ -616,7 +672,41 @@ impl CosmosState {
             self.systems[self.current_system].fully_explored = true;
             self.data_collected += 25;
             self.show_message("System fully explored! (+25 data)");
+
+            // Check for victory after exploration milestone
+            self.check_victory();
         }
+    }
+
+    pub fn check_victory(&mut self) {
+        // Victory requires:
+        // 1. All systems visited (100% exploration)
+        // 2. At least one Allied species
+        let all_explored = self.stars_explored as usize >= self.systems.len();
+        let has_alliance = self
+            .contacts
+            .iter()
+            .any(|c| c.status == DiplomaticStatus::Allied);
+
+        if all_explored && has_alliance {
+            self.view = CosmosView::Victory;
+        }
+    }
+
+    pub fn repair_hull(&mut self) {
+        // Repair costs 10 fuel for 20 hull
+        if self.fuel < 10 {
+            self.show_message("Need 10 fuel for repairs!");
+            return;
+        }
+        if self.hull >= 100 {
+            self.show_message("Hull already at maximum!");
+            return;
+        }
+
+        self.fuel -= 10;
+        self.hull = (self.hull + 20).min(100);
+        self.show_message("Hull repaired! (-10 fuel, +20 hull)");
     }
 
     pub fn get_diplomatic_status(&self, species: AlienSpecies) -> DiplomaticStatus {
@@ -790,9 +880,30 @@ impl GameEngine for CosmosState {
                 _ => KeyHandleResult::NotHandled,
             },
 
-            CosmosView::Ship | CosmosView::Knowledge => match key.code {
+            CosmosView::Ship => match key.code {
                 KeyCode::Esc | KeyCode::Enter => {
                     self.view = CosmosView::GalaxyMap;
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    self.repair_hull();
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::NotHandled,
+            },
+
+            CosmosView::Knowledge => match key.code {
+                KeyCode::Esc | KeyCode::Enter => {
+                    self.view = CosmosView::GalaxyMap;
+                    KeyHandleResult::Handled
+                }
+                _ => KeyHandleResult::NotHandled,
+            },
+
+            CosmosView::Victory => match key.code {
+                KeyCode::Esc | KeyCode::Enter => {
+                    self.game_over = true;
+                    self.game_won = true;
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::NotHandled,

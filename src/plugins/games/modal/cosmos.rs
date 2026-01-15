@@ -24,6 +24,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeCo
         CosmosView::FirstContact => draw_first_contact(frame, area, state, colors),
         CosmosView::Ship => draw_ship(frame, area, state, colors),
         CosmosView::Knowledge => draw_knowledge(frame, area, state, colors),
+        CosmosView::Victory => draw_victory(frame, area, state, colors),
     }
 }
 
@@ -736,7 +737,7 @@ fn draw_ship(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
         ],
     );
 
-    view.render_help(frame, vec![("Enter/Esc", "back to map")]);
+    view.render_help(frame, vec![("R", "repair hull"), ("Esc", "back to map")]);
 }
 
 fn draw_knowledge(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeColors) {
@@ -811,18 +812,156 @@ fn draw_knowledge(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &T
         ],
     );
 
-    // List contacted species
+    // List contacted species with progress
     for (i, contact) in state.contacts.iter().enumerate() {
+        // Calculate progress to next status
+        let progress = match contact.status {
+            super::cosmos::DiplomaticStatus::FirstContact => {
+                format!("{}/3", contact.times_met)
+            }
+            super::cosmos::DiplomaticStatus::Cautious => {
+                format!("{}/5", contact.times_met)
+            }
+            super::cosmos::DiplomaticStatus::Friendly => {
+                format!("{}/10", contact.times_met)
+            }
+            super::cosmos::DiplomaticStatus::Allied => "MAX".to_string(),
+            super::cosmos::DiplomaticStatus::Unknown => "0/3".to_string(),
+        };
+
         view.render_row(
             frame,
             12 + i as u16,
             vec![
                 Span::styled(format!("    {} ", contact.species.symbol()), cyan),
-                Span::styled(contact.species.name(), white),
-                Span::styled(format!(" - {}", contact.status.name()), yellow),
+                Span::styled(format!("{:<14}", contact.species.name()), white),
+                Span::styled(format!("{:<12}", contact.status.name()), yellow),
+                Span::styled(format!("[{}]", progress), grey),
             ],
         );
     }
 
+    // Show hint if no contacts yet
+    if state.contacts.is_empty() {
+        view.render_row(
+            frame,
+            12,
+            vec![Span::styled("    No species contacted yet", grey)],
+        );
+        view.render_row(
+            frame,
+            13,
+            vec![Span::styled("    Scan planets to find SIGNALS!", grey)],
+        );
+    }
+
     view.render_help(frame, vec![("Enter/Esc", "back to map")]);
+}
+
+fn draw_victory(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeColors) {
+    let view = FullScreenView::new(area, " MISSION COMPLETE ", colors);
+    view.render_frame(frame);
+
+    let yellow = Style::default()
+        .fg(colors.yellow())
+        .add_modifier(Modifier::BOLD);
+    let white = Style::default().fg(colors.fg());
+    let cyan = Style::default().fg(colors.cyan());
+    let green = Style::default().fg(colors.green());
+
+    view.render_row(
+        frame,
+        1,
+        vec![Span::styled(
+            "  * * * CONGRATULATIONS * * *",
+            Style::default()
+                .fg(colors.yellow())
+                .add_modifier(Modifier::BOLD),
+        )],
+    );
+
+    view.render_row(
+        frame,
+        3,
+        vec![Span::styled(
+            "  You have completed the COSMOS mission!",
+            white,
+        )],
+    );
+
+    view.render_row(frame, 5, vec![Span::styled("  FINAL STATISTICS", cyan)]);
+    view.render_row(
+        frame,
+        6,
+        vec![Span::styled(
+            "-".repeat(40),
+            Style::default().fg(colors.grey()),
+        )],
+    );
+
+    view.render_row(
+        frame,
+        7,
+        vec![
+            Span::styled("  Data Collected:     ", white),
+            Span::styled(format!("{}", state.data_collected), yellow),
+        ],
+    );
+    view.render_row(
+        frame,
+        8,
+        vec![
+            Span::styled("  Stars Explored:     ", white),
+            Span::styled(
+                format!("{}/{}", state.stars_explored, state.systems.len()),
+                green,
+            ),
+        ],
+    );
+    view.render_row(
+        frame,
+        9,
+        vec![
+            Span::styled("  Planets Scanned:    ", white),
+            Span::styled(format!("{}", state.planets_scanned), green),
+        ],
+    );
+    view.render_row(
+        frame,
+        10,
+        vec![
+            Span::styled("  Species Contacted:  ", white),
+            Span::styled(format!("{}", state.species_contacted), green),
+        ],
+    );
+
+    // Show alliances
+    view.render_row(frame, 12, vec![Span::styled("  ALLIANCES FORMED", cyan)]);
+    let mut row = 13;
+    for contact in &state.contacts {
+        if contact.status == super::cosmos::DiplomaticStatus::Allied {
+            view.render_row(
+                frame,
+                row,
+                vec![
+                    Span::styled(format!("    {} ", contact.species.symbol()), yellow),
+                    Span::styled(contact.species.name(), white),
+                ],
+            );
+            row += 1;
+        }
+    }
+
+    view.render_row(
+        frame,
+        16,
+        vec![Span::styled(
+            "  \"Seek. Learn. Wonder.\" - Mission Accomplished",
+            Style::default()
+                .fg(colors.green())
+                .add_modifier(Modifier::ITALIC),
+        )],
+    );
+
+    view.render_help(frame, vec![("Enter", "end game")]);
 }
