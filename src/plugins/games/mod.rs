@@ -515,6 +515,15 @@ impl Plugin for GamesPlugin {
                     self.state.close_leaderboard();
                     KeyHandleResult::Handled
                 }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.state.prev_leaderboard_game();
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.state.next_leaderboard_game();
+                    KeyHandleResult::Handled
+                }
+                // Keep Left/Right as aliases for backwards compatibility
                 KeyCode::Left | KeyCode::Char('h') => {
                     self.state.prev_leaderboard_game();
                     KeyHandleResult::Handled
@@ -714,6 +723,20 @@ impl Plugin for GamesPlugin {
             Some(GameType::Cosmos) => {
                 self.state.cosmos.tick();
                 self.state.score = self.state.cosmos.get_score();
+
+                // Process COSMOS events for sounds
+                for event in self.state.cosmos.drain_events() {
+                    if let platform::GameEvent::AlienContact { species } = event {
+                        let sound = match species.as_str() {
+                            "harmonics" => SoundEvent::AlienHarmonics,
+                            "geometers" => SoundEvent::AlienGeometers,
+                            "empaths" => SoundEvent::AlienEmpaths,
+                            _ => continue,
+                        };
+                        self.pending_sounds.push(sound);
+                    }
+                }
+
                 if self.state.cosmos.is_game_over() {
                     self.end_game_with_stats();
                 }

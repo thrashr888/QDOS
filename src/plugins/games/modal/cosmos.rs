@@ -40,7 +40,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
 
     // Animated starfield background elements
     let tick = state.tick_count;
-    let stars = ["·", "✦", "✧", "*", "·", "✧", "·", "✦"];
+    let stars = [".", "+", "*", "o", ".", "*", ".", "+"];
     let star_offset = (tick / 3) as usize;
 
     // Title with stars
@@ -49,7 +49,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
         0,
         vec![Span::styled(
             format!(
-                "        {}  ✦  {}    *    {}  ✧  {}",
+                "        {}  +  {}    *    {}  o  {}",
                 stars[(star_offset) % 8],
                 stars[(star_offset + 1) % 8],
                 stars[(star_offset + 2) % 8],
@@ -62,7 +62,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
     view.render_row(
         frame,
         1,
-        vec![Span::styled("   *    ·       ✦        ·      *", grey)],
+        vec![Span::styled("   *    .       +        .      *", grey)],
     );
 
     // COSMOS title
@@ -109,7 +109,7 @@ fn draw_menu(frame: &mut Frame, area: Rect, state: &CosmosState, colors: &ThemeC
     view.render_row(
         frame,
         11,
-        vec![Span::styled("   ║     🚀 A Space Odyssey 🚀     ║", yellow)],
+        vec![Span::styled("   ║    >>> A Space Odyssey <<<   ║", yellow)],
     );
     view.render_row(
         frame,
@@ -334,7 +334,7 @@ fn draw_star_system(frame: &mut Frame, area: Rect, state: &CosmosState, colors: 
         let is_selected = i == state.selected_planet;
         let row = 3 + i as u16;
 
-        let prefix = if is_selected { "▸ " } else { "  " };
+        let prefix = if is_selected { ">" } else { "  " };
 
         let mut spans = vec![];
 
@@ -365,7 +365,7 @@ fn draw_star_system(frame: &mut Frame, area: Rect, state: &CosmosState, colors: 
                 spans.push(Span::styled(" SIGNALS", cyan));
             }
             if planet.landed {
-                spans.push(Span::styled(" ✓", green));
+                spans.push(Span::styled(" [ok]", green));
             }
         } else {
             spans.push(Span::styled(" [unscanned]", grey));
@@ -434,15 +434,43 @@ fn draw_planet_surface(frame: &mut Frame, area: Rect, state: &CosmosState, color
 
         view.render_row(frame, 1, vec![Span::styled("─".repeat(50), grey)]);
 
-        // Surface visualization based on planet type
+        // Surface visualization based on planet type (ASCII art)
         let (terrain1, terrain2, terrain3) = match planet.planet_type {
-            PlanetType::Terrestrial => ("🌲🌲🌲 🏔️ 🏔️ 🌲🌲", "🌲🌲 🏔️  🏔️ 🌲🌲", "🌲🌲🌲🌲 🌲🌲🌲"),
-            PlanetType::Desert => ("🏜️ 🏜️ 🏜️ 🌵 🏜️", "🏜️ 🌵 🏜️ 🏜️ 🏜️", "🏜️ 🏜️ 🏜️ 🏜️ 🌵"),
-            PlanetType::Ice => ("❄️ ❄️ ❄️ 🏔️ ❄️", "❄️ 🏔️ ❄️ ❄️ ❄️", "❄️ ❄️ ❄️ ❄️ 🏔️"),
-            PlanetType::Ocean => ("🌊 🌊 🌊 🏝️ 🌊", "🌊 🏝️ 🌊 🌊 🌊", "🌊 🌊 🌊 🌊 🌊"),
-            PlanetType::Volcanic => ("🌋 🌋 🔥 🔥 🌋", "🔥 🌋 🌋 🔥 🌋", "🌋 🔥 🌋 🌋 🔥"),
-            PlanetType::Barren => ("🌑 🌑 🌑 🪨 🌑", "🌑 🪨 🌑 🌑 🌑", "🌑 🌑 🌑 🌑 🪨"),
-            PlanetType::GasGiant => ("☁️ ☁️ ☁️ ☁️ ☁️", "☁️ ☁️ ☁️ ☁️ ☁️", "☁️ ☁️ ☁️ ☁️ ☁️"),
+            PlanetType::Terrestrial => (
+                "  ^   ^  /\\  /\\   ^   ^",
+                " ^^^  ^ /  \\/  \\ ^^^  ^",
+                "^^^^^^^^^^^^^^^^^^^^^",
+            ),
+            PlanetType::Desert => (
+                " ~~~  ~~~  |  ~~~  ~~~",
+                "~~~  |  ~~~  ~~~   |  ",
+                "  ~~~  ~~~  ~~~  ~~~  ",
+            ),
+            PlanetType::Ice => (
+                " * * * /\\ * * * * /\\",
+                "* * /\\  * * * /\\  * *",
+                " * * * * * * * * * * ",
+            ),
+            PlanetType::Ocean => (
+                "~^~^~^~^~  o  ~^~^~^~",
+                "^~^~^~  o  ~^~^~^~^~^",
+                "~^~^~^~^~^~^~^~^~^~^~",
+            ),
+            PlanetType::Volcanic => (
+                " /\\  /\\  * *  /\\  /\\",
+                "* /\\  /\\  * /\\  /\\  *",
+                " *  *  /\\  *  *  /\\ *",
+            ),
+            PlanetType::Barren => (
+                " .   .   .  o  .   . ",
+                ".  o  .   .   .  o  .",
+                " .   .   .   .   .  o",
+            ),
+            PlanetType::GasGiant => (
+                "===================",
+                " ================== ",
+                "===================",
+            ),
         };
 
         view.render_row(
@@ -469,7 +497,7 @@ fn draw_planet_surface(frame: &mut Frame, area: Rect, state: &CosmosState, color
             view.render_row(
                 frame,
                 info_row,
-                vec![Span::styled("  ✓ Complex life forms detected", green)],
+                vec![Span::styled("  [ok] Complex life forms detected", green)],
             );
             info_row += 1;
         }
@@ -477,7 +505,7 @@ fn draw_planet_surface(frame: &mut Frame, area: Rect, state: &CosmosState, color
             view.render_row(
                 frame,
                 info_row,
-                vec![Span::styled("  ★ Ancient ruins discovered!", yellow)],
+                vec![Span::styled("  * Ancient ruins discovered!", yellow)],
             );
             info_row += 1;
         }
@@ -486,7 +514,7 @@ fn draw_planet_surface(frame: &mut Frame, area: Rect, state: &CosmosState, color
                 frame,
                 info_row,
                 vec![
-                    Span::styled("  ◈ Intelligent signals: ", cyan),
+                    Span::styled("  @ Intelligent signals: ", cyan),
                     Span::styled(species.name(), yellow),
                 ],
             );

@@ -62,7 +62,8 @@ use crate::ui::components::FullScreenView;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
-    text::Span,
+    text::{Line, Span},
+    widgets::Paragraph,
     Frame,
 };
 
@@ -681,12 +682,39 @@ fn draw_leaderboard(
     let game = state.leaderboard_game.unwrap_or(state.selected_game_type());
     let leaderboard = state.leaderboards.get(game);
     let title_color = colors.cyan();
+    let sidebar_width = 18;
 
-    // Game selector tabs at top
+    // Draw vertical game list sidebar
     let games = GameType::all();
-    let mut tab_spans = Vec::new();
-    tab_spans.push(Span::raw("  "));
-    for g in games {
+    let game_index = games.iter().position(|g| *g == game).unwrap_or(0);
+
+    // Calculate which games to show (scroll if needed)
+    let visible_rows = 16; // Rows available for game list
+    let scroll_offset = if game_index >= visible_rows {
+        game_index - visible_rows + 1
+    } else {
+        0
+    };
+
+    // Sidebar header
+    view.render_row(
+        frame,
+        0,
+        vec![Span::styled(
+            format!("{:<sidebar_width$}", "  GAMES"),
+            Style::default()
+                .fg(colors.cyan())
+                .add_modifier(Modifier::BOLD),
+        )],
+    );
+
+    // Game list in sidebar
+    for (i, g) in games
+        .iter()
+        .enumerate()
+        .skip(scroll_offset)
+        .take(visible_rows)
+    {
         let is_selected = *g == game;
         let style = if is_selected {
             Style::default()
@@ -694,83 +722,141 @@ fn draw_leaderboard(
                 .bg(colors.blue())
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(colors.grey())
+            Style::default().fg(colors.fg())
         };
-        let name = match g {
-            GameType::Tetris => "TET",
-            GameType::Snake => "SNK",
-            GameType::Breakout => "BRK",
-            GameType::Rogue => "ROG",
-            GameType::Trek => "TRK",
-            GameType::Clicker => "CLK",
-            GameType::Brainiac => "BRN",
-            GameType::Storyweaver => "STY",
-            GameType::DopeWars => "DOP",
-            GameType::Minesweeper => "MIN",
-            GameType::Artillery => "ART",
-            GameType::Mindgames => "MND",
-            GameType::Gumshoe => "GUM",
-            GameType::Dungeon => "DUN",
-            GameType::Caverns => "CAV",
-            GameType::Biolab => "BIO",
-            GameType::Neondrive => "NDR",
-            GameType::Micropolis => "MIC",
-            GameType::JungleRun => "JGL",
-            GameType::Adventure => "ADV",
-            GameType::Blackjack => "BJK",
-            GameType::Roulette => "RLT",
-            GameType::Cosmos => "COS",
-        };
-        tab_spans.push(Span::styled(format!(" {} ", name), style));
+        let prefix = if is_selected { "> " } else { "  " };
+        let name = format!("{}{}", prefix, g.name());
+        let row = (i - scroll_offset + 1) as u16;
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(format!("{:<sidebar_width$}", name), style)],
+        );
     }
-    view.render_row(frame, 0, tab_spans);
 
-    // Header
-    view.render_row(
-        frame,
-        1,
-        vec![Span::styled(
-            "╔═══════════════════════════════════════════════════╗",
-            Style::default().fg(title_color),
-        )],
-    );
-    view.render_row(
-        frame,
-        2,
-        vec![Span::styled(
-            format!("║{:^51}║", format!("{} Leaderboard", game.name())),
-            Style::default()
-                .fg(colors.yellow())
-                .add_modifier(Modifier::BOLD),
-        )],
-    );
-    view.render_row(
-        frame,
-        3,
-        vec![Span::styled(
-            "╠═══════════════════════════════════════════════════╣",
-            Style::default().fg(title_color),
-        )],
+    // Scroll indicators
+    if scroll_offset > 0 {
+        view.render_row(
+            frame,
+            0,
+            vec![
+                Span::raw(" ".repeat(sidebar_width - 3)),
+                Span::styled("[^]", Style::default().fg(colors.grey())),
+            ],
+        );
+    }
+    if scroll_offset + visible_rows < games.len() {
+        view.render_row(
+            frame,
+            visible_rows as u16,
+            vec![
+                Span::raw(" ".repeat(sidebar_width - 3)),
+                Span::styled("[v]", Style::default().fg(colors.grey())),
+            ],
+        );
+    }
+
+    // Draw leaderboard content on the right side
+    // We'll use direct frame rendering for the right panel
+    let content_x = view.content_area().x + sidebar_width as u16 + 1;
+    let content_y = view.content_area().y;
+    let content_width = 38;
+
+    // Leaderboard header
+    let header = format!("{} Leaderboard", game.name());
+    let header_line = Line::from(vec![Span::styled(
+        format!("{:^content_width$}", header),
+        Style::default()
+            .fg(colors.yellow())
+            .add_modifier(Modifier::BOLD),
+    )]);
+    frame.render_widget(
+        Paragraph::new(header_line),
+        Rect::new(content_x, content_y, content_width as u16, 1),
     );
 
-    // Special view for Clicker - show stats instead of just leaderboard
-    if game == GameType::Clicker {
-        draw_clicker_leaderboard(frame, view, state, colors, title_color, leaderboard);
+    // Separator
+    let sep_line = Line::from(vec![Span::styled(
+        "-".repeat(content_width),
+        Style::default().fg(title_color),
+    )]);
+    frame.render_widget(
+        Paragraph::new(sep_line),
+        Rect::new(content_x, content_y + 1, content_width as u16, 1),
+    );
+
+    // Column headers
+    let col_header = Line::from(vec![Span::styled(
+        format!("{:<5} {:<6} {:>12}", "RANK", "NAME", "SCORE"),
+        Style::default().fg(colors.cyan()),
+    )]);
+    frame.render_widget(
+        Paragraph::new(col_header),
+        Rect::new(content_x, content_y + 2, content_width as u16, 1),
+    );
+
+    // Leaderboard entries
+    if leaderboard.entries.is_empty() {
+        let empty_line = Line::from(vec![Span::styled(
+            format!("{:^content_width$}", "No scores yet"),
+            Style::default().fg(colors.grey()),
+        )]);
+        frame.render_widget(
+            Paragraph::new(empty_line),
+            Rect::new(content_x, content_y + 4, content_width as u16, 1),
+        );
     } else {
-        draw_standard_leaderboard(frame, view, colors, title_color, leaderboard);
+        for (i, entry) in leaderboard.entries.iter().take(10).enumerate() {
+            let rank = format!("{:>3}.", i + 1);
+            let name = &entry.initials;
+            let score = format!("{:>12}", entry.score);
+
+            let style = if i == 0 {
+                Style::default()
+                    .fg(colors.yellow())
+                    .add_modifier(Modifier::BOLD)
+            } else if i < 3 {
+                Style::default().fg(colors.cyan())
+            } else {
+                Style::default().fg(colors.fg())
+            };
+
+            let entry_line = Line::from(vec![Span::styled(
+                format!("{} {:<6} {}", rank, name, score),
+                style,
+            )]);
+            frame.render_widget(
+                Paragraph::new(entry_line),
+                Rect::new(content_x, content_y + 3 + i as u16, content_width as u16, 1),
+            );
+        }
     }
 
-    // Footer
-    view.render_row(
-        frame,
-        17,
-        vec![Span::styled(
-            "╚═══════════════════════════════════════════════════╝",
-            Style::default().fg(title_color),
-        )],
-    );
+    // Special stats for Clicker
+    if game == GameType::Clicker {
+        let souls = &state.clicker.souls;
+        let stats_y = content_y + 14;
 
-    let help = vec![("←→", "switch game"), ("Esc", "back")];
+        let stats_line = Line::from(vec![Span::styled(
+            format!("Total Souls: {}", souls.total_souls),
+            Style::default().fg(colors.green()),
+        )]);
+        frame.render_widget(
+            Paragraph::new(stats_line),
+            Rect::new(content_x, stats_y, content_width as u16, 1),
+        );
+
+        let prestige_line = Line::from(vec![Span::styled(
+            format!("Total Runs: {}", souls.total_runs),
+            Style::default().fg(colors.cyan()),
+        )]);
+        frame.render_widget(
+            Paragraph::new(prestige_line),
+            Rect::new(content_x, stats_y + 1, content_width as u16, 1),
+        );
+    }
+
+    let help = vec![("Up/Dn", "select game"), ("Esc", "back")];
     view.render_help(frame, help);
 }
 

@@ -84,4 +84,11 @@ pub enum GameEvent {
         /// Event value
         value: u64,
     },
+
+    // Cosmos
+    /// Alien contact made (with species type)
+    AlienContact {
+        /// Species: "harmonics", "geometers", or "empaths"
+        species: String,
+    },
 }

@@ -231,6 +231,12 @@ pub enum SoundEvent {
     Error,
     /// Success
     Success,
+    /// Alien contact: Harmonics - melodic greeting
+    AlienHarmonics,
+    /// Alien contact: Geometers - mathematical pattern
+    AlienGeometers,
+    /// Alien contact: Empaths - emotional oscillation
+    AlienEmpaths,
 }
 
 /// The core Plugin trait that all plugins must implement

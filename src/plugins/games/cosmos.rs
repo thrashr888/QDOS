@@ -37,12 +37,12 @@ pub enum StarType {
 impl StarType {
     pub fn symbol(&self) -> &'static str {
         match self {
-            StarType::GType => "☀",
-            StarType::MType => "✦",
-            StarType::KType => "★",
-            StarType::FType => "✧",
-            StarType::Binary => "⚭",
-            StarType::Neutron => "◉",
+            StarType::GType => "*",
+            StarType::MType => ".",
+            StarType::KType => "o",
+            StarType::FType => "+",
+            StarType::Binary => "8",
+            StarType::Neutron => "@",
         }
     }
 
@@ -87,13 +87,13 @@ pub enum PlanetType {
 impl PlanetType {
     pub fn symbol(&self) -> &'static str {
         match self {
-            PlanetType::Terrestrial => "🌍",
-            PlanetType::GasGiant => "🪐",
-            PlanetType::Ice => "❄",
-            PlanetType::Desert => "🏜",
-            PlanetType::Ocean => "🌊",
-            PlanetType::Volcanic => "🌋",
-            PlanetType::Barren => "🌑",
+            PlanetType::Terrestrial => "O",
+            PlanetType::GasGiant => "0",
+            PlanetType::Ice => "o",
+            PlanetType::Desert => "~",
+            PlanetType::Ocean => "w",
+            PlanetType::Volcanic => "^",
+            PlanetType::Barren => ".",
         }
     }
 
@@ -155,25 +155,25 @@ impl AlienSpecies {
 
     pub fn greeting(&self) -> &'static str {
         match self {
-            AlienSpecies::Harmonics => "♪ ♫ ♬ ♩ ♪ ♫",
-            AlienSpecies::Geometers => "△ □ ○ △△ □□",
-            AlienSpecies::Empaths => "🟢🔵🟣🟢🔵",
+            AlienSpecies::Harmonics => "do-re-mi-fa-so-la-ti",
+            AlienSpecies::Geometers => "/\\ [] () /\\/\\ [][]",
+            AlienSpecies::Empaths => "<3 <> <3 <> <3",
         }
     }
 
     pub fn translated_greeting(&self) -> &'static str {
         match self {
             AlienSpecies::Harmonics => "GREETING-harmony FRIEND-chord",
-            AlienSpecies::Geometers => "WELCOME = △  TRADE = □",
+            AlienSpecies::Geometers => "WELCOME = /\\  TRADE = []",
             AlienSpecies::Empaths => "Curiosity-Peace-Wonder",
         }
     }
 
     pub fn symbol(&self) -> &'static str {
         match self {
-            AlienSpecies::Harmonics => "♫",
-            AlienSpecies::Geometers => "△",
-            AlienSpecies::Empaths => "◈",
+            AlienSpecies::Harmonics => "M",
+            AlienSpecies::Geometers => "/\\",
+            AlienSpecies::Empaths => "<>",
         }
     }
 
@@ -561,6 +561,16 @@ impl CosmosState {
                 self.active_contact = Some(species);
                 self.contact_phase = 0;
                 self.view = CosmosView::FirstContact;
+
+                // Emit sound event for alien contact
+                let species_id = match species {
+                    AlienSpecies::Harmonics => "harmonics",
+                    AlienSpecies::Geometers => "geometers",
+                    AlienSpecies::Empaths => "empaths",
+                };
+                self.events.push(GameEvent::AlienContact {
+                    species: species_id.to_string(),
+                });
 
                 // Check if first contact with this species
                 let already_met = self.contacts.iter().any(|c| c.species == species);

@@ -278,6 +278,12 @@ impl StatsTracker {
                 *game_stats.counters.entry(key.clone()).or_insert(0) += value;
             }
 
+            // COSMOS alien contact
+            GameEvent::AlienContact { species } => {
+                let counter_key = format!("alien_contact_{}", species);
+                *game_stats.counters.entry(counter_key).or_insert(0) += 1;
+            }
+
             // Lifecycle and score events don't update counters
             GameEvent::GameStarted
             | GameEvent::GameEnded { .. }

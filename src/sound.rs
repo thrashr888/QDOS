@@ -31,6 +31,12 @@ pub enum SoundType {
     LevelUp,
     /// Notification - gentle ping
     Notify,
+    /// Alien contact: Harmonics - melodic greeting in musical scale
+    AlienHarmonics,
+    /// Alien contact: Geometers - mathematical pattern (Fibonacci intervals)
+    AlienGeometers,
+    /// Alien contact: Empaths - warm emotional oscillation
+    AlienEmpaths,
 }
 
 /// Commands sent to the sound thread
@@ -155,6 +161,21 @@ impl SoundEffects {
         self.play(SoundType::Notify);
     }
 
+    /// Play alien contact sound - Harmonics (melodic)
+    pub fn alien_harmonics(&self) {
+        self.play(SoundType::AlienHarmonics);
+    }
+
+    /// Play alien contact sound - Geometers (mathematical)
+    pub fn alien_geometers(&self) {
+        self.play(SoundType::AlienGeometers);
+    }
+
+    /// Play alien contact sound - Empaths (emotional)
+    pub fn alien_empaths(&self) {
+        self.play(SoundType::AlienEmpaths);
+    }
+
     /// Check if sounds are enabled
     pub fn is_enabled(&self) -> bool {
         *self.enabled.lock().unwrap_or_else(|e| e.into_inner())
@@ -277,6 +298,60 @@ fn play_sound(stream_handle: &OutputStreamHandle, sound_type: SoundType, volume:
                 .take_duration(Duration::from_millis(100))
                 .amplify(0.4);
             sink.append(source);
+        }
+        SoundType::AlienHarmonics => {
+            // Melodic greeting - ascending major scale (do-re-mi-fa-sol-la-ti-do)
+            // The Harmonics communicate through musical tones and resonance
+            let notes = [
+                (261.63, 80),  // C4 - do
+                (293.66, 80),  // D4 - re
+                (329.63, 80),  // E4 - mi
+                (349.23, 80),  // F4 - fa
+                (392.00, 80),  // G4 - sol
+                (440.00, 80),  // A4 - la
+                (493.88, 80),  // B4 - ti
+                (523.25, 150), // C5 - do (held longer)
+            ];
+            for (freq, ms) in notes {
+                let tone = SineWave::new(freq)
+                    .take_duration(Duration::from_millis(ms))
+                    .amplify(0.4);
+                sink.append(tone);
+            }
+        }
+        SoundType::AlienGeometers => {
+            // Mathematical pattern - Fibonacci intervals (1, 1, 2, 3, 5, 8...)
+            // The Geometers express ideas through mathematical patterns
+            let base_freq = 330.0; // E4
+            let fib_ratios = [1.0, 1.0, 2.0, 3.0, 5.0, 8.0];
+            for ratio in fib_ratios {
+                let freq = base_freq * (1.0 + ratio * 0.1); // Subtle interval changes
+                let tone = SineWave::new(freq)
+                    .take_duration(Duration::from_millis(100))
+                    .amplify(0.5);
+                sink.append(tone);
+                // Brief silence between mathematical "symbols"
+                let silence = SineWave::new(0.0).take_duration(Duration::from_millis(30));
+                sink.append(silence);
+            }
+        }
+        SoundType::AlienEmpaths => {
+            // Warm emotional oscillation - gentle rising and falling
+            // The Empaths share emotions directly through wavelengths
+            let pattern = [
+                (350.0, 120), // Warm low
+                (400.0, 100), // Rising...
+                (450.0, 80),  // Peak emotion
+                (420.0, 90),  // Gentle fall
+                (380.0, 100), // Settling
+                (400.0, 150), // Rest in peace/contentment
+            ];
+            for (freq, ms) in pattern {
+                let tone = SineWave::new(freq)
+                    .take_duration(Duration::from_millis(ms))
+                    .amplify(0.35);
+                sink.append(tone);
+            }
         }
     }
 

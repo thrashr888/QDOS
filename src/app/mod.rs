@@ -329,6 +329,15 @@ impl App {
                                     crate::plugins::SoundEvent::Click => self.sound.click(),
                                     crate::plugins::SoundEvent::Error => self.sound.error(),
                                     crate::plugins::SoundEvent::Success => self.sound.success(),
+                                    crate::plugins::SoundEvent::AlienHarmonics => {
+                                        self.sound.alien_harmonics()
+                                    }
+                                    crate::plugins::SoundEvent::AlienGeometers => {
+                                        self.sound.alien_geometers()
+                                    }
+                                    crate::plugins::SoundEvent::AlienEmpaths => {
+                                        self.sound.alien_empaths()
+                                    }
                                 }
                             }
                         }
