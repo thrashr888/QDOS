@@ -1,0 +1,964 @@
+ /Tools Config-Addins ClearP;Y
+ /Tools Config-Addins Invoke
+ /Tools Config-Addins Loadg
+ /Tools Config-Addins QuitP9'
+ /Tools Config-Addins RemoveP;Y
+ /Tools Config-Addins Settings
+ /Tools Config-Addins Settings System
+ /Tools Config-Addins Settings System UpdateP9'
+ /Tools Config-Addins Settings System QuitP9'
+ /Tools Config-Addins Settings System Setg
+ /Tools Config-Addins Settings System Cancel
+ /Tools Config-Addins Settings System Directory
+ /Tools Config-Addins Settings File
+ /Tools Config-Addins Settings File QuitP;Y
+ /Tools Config-Addins Settings File Setg
+ /Tools Config-Addins Settings File Cancel8
+ /Tools Config-Addins Table]
+ /Tools Analyze Backsolver
+ /Tools Analyze Backsolver Formula-CellP;Y
+ /Tools Analyze Backsolver ValueP;Y
+ /Tools Analyze Backsolver AdjustableP;Y
+ /Tools Analyze Backsolver SolveP9'
+ /Tools Analyze Backsolver Quit
+ /Tools Analyze Auditor Precedents 
+ /Tools Analyze Auditor Dependents 
+ /Tools Analyze Auditor Formulas 
+ /Tools Analyze Auditor Recalc-List 
+ /Tools Analyze Auditor Circs 
+ /Tools Analyze Auditor Options"
+ /Tools Analyze Auditor Quit
+ /Tools Analyze Auditor Options HighlightP;Y
+ /Tools Analyze Auditor Options ListP;Y
+ /Tools Analyze Auditor Options TraceP;Y
+ /Tools Analyze Auditor Options Audit-Range]
+ /Tools Analyze Auditor Options ResetP;Y
+ /Tools Analyze Auditor Options QuitP9'
+ Selecting a Circular Reference PathP
+ Entering a Range for a List\
+ Selecting Forward or BackwardP9'
+ More About /Tools Analyze Auditor PrecedentsP_ 
+ More About /Tools Analyze Auditor DependentsP_ 
+ More About /Tools Analyze Auditor CircsPK
+ More About /Tools E-MailP
+ More About the E-Mail Dialog BoxP
+ Lotus re:Quest SupportPMS}
+ Remote Automated SupportP_ 
+ Lotus Customer Support ServiceP
+ Pay-Per-Incident SupportP
+ Support for the Hearing ImpairedP
+ Frequently Asked Questions=
+ More About /Data DistributionP
+ More About /Data FillP_ 
+ More About /Data MatrixP_ 
+ More About /Data Matrix InvertP
+ More About /Data Matrix MultiplyP
+ More About /Data ParseP_ 
+ /Data Parse Format-Linef
+ Editing a Format LineP_ 
+ /Data Parse Input-Column]
+ /Data Parse Output-Range]
+ More About /Data Query CriteriaP
+ More About /Data Query InputP
+ /Data Query Modify Extractt
+ More About /Data Query Modify ExtractP_ 
+ /Data Query Modify Replace
+ /Data Query Modify Insertt
+ /Data Query Modify CancelP9'
+ More About /Data Query Outputo
+ More About /Data Query UniqueP_ 
+ More About /Data Regression
+ More About /Data Regression GoP
+ /Data Regression InterceptP;C
+ /Data Regression Output-Range]
+ /Data Regression QuitP9'
+ /Data Regression ResetP9'
+ /Data Regression X-Range]
+ More About /Data Regression X-RangeP
+ /Data Regression Y-Range]
+ More About /Data Regression Y-RangeP
+ More About /Data Sort Data-RangeP
+ More About /Data Sort Primary-KeyP
+ /Data Sort Secondary-Key
+ More About /Data Sort Secondary-KeyP
+ Removing Extra Sort Keys 
+ More About /Data Table 1P_ 
+ More About /Data Table 2P_ 
+ More About /Data Table 3P_ 
+ Cross-Tabulating with /Data Table 3
+ Setting Up a Labeled Table
+ Calculating a Labeled Table
+ Setting Up a Labeled Table to Cross-Tabulate
+ /Data Table Labeled Formulas
+ More About /Data Table Labeled FormulasP
+ /Data Table Labeled Down
+ More About /Data Table Labeled DownP
+ /Data Table Labeled Across
+ More About /Data Table Labeled AcrossP
+ /Data Table Labeled Sheets
+ More About /Data Table Labeled SheetsP
+ /Data Table Labeled Input-Cells
+ More About /Data Table Labeled Input-CellsP_ 
+ /Data Table Labeled Label-Fill
+ More About /Data Table Labeled Label-FillPK
+ /Data Table Labeled QuitP9'
+ Specifying External Table NamesP
+ /Data External List Fields
+ More About /Data External List FieldsP
+ /Data External List Tables]
+ More About /Data External List TablesP
+ More About /Data External Create
+ /Data External Create Name
+ More About /Data External Create NameP
+ /Data External Create Definition
+ /Data External Create Go
+ /Data External Create QuitP9'
+ /Data External Other Command
+ /Data External Other Refresh
+ More About /Data External Other RefreshP;C
+ /Data External Other Translation
+ More About /Data External ResetP
+ More About /Data External UsePKY
+ More About the Data Ranges Setting
+ Changing the Appearance of Pie SlicesP
+ Data Label and Alignment]
+ More About the Data Label SettingP_ 
+ More About the Colors RangePK
+ More About the Hatches RangePK
+ More About the Text Attributes SettingP
+ Y-Axis, 2Y-Axis or X-AxisP9'
+ Set Scale Limits ManuallyP
+ More About the Scale Indicator SettingP
+ More About the Set Exponent Manually SettingP
+ More About the Borders SettingP_ 
+ More About the Print To SettingP
+ More About the Header or Footer SettingP
+ More About the Margins Setting
+ More About the Page Length SettingP
+ More About the Range(s) SettingP
+ More About the Color SettingP
+ More About the Fonts SettingP
+ More About the Graph Options SettingP
+ More About the Wait for Paper Change SettingP_ 
+ More About the Auto-Backup SettingP_ 
+ Automatic Graph Arranged ByP
+ Default International Settings*
+ Release 2 Character SetP
+ Default Printer Settings2
+ More About the Interface SettingP
+ More About the Setup String Setting7
+ More About the Wait For Paper Change SettingP
+ More About the Format Setting
+ More About the Label Alignment Setting
+ More About the Recalculation SettingP
+ More About the Protection On SettingP
+ More About the Group Mode On SettingP
+ Negative Values in Color=
+ Ambiguous field reference in queryj
+ Bin range cannot span worksheetsP
+ Cannot use ranges that are not in memory4
+ Data Parse ranges cannot span worksheetsP
+ Data Query Modify Extract canceled or...P
+ Data range and sort keys must be in memoryP
+ Error loading driver file f
+ External table ranges not allowed P
+ Key column outside Sort rangeP
+ Matrices incompatible for multiplicationP
+ Matrices too large for multiplicationP
+ Matrix too large for inversionP
+ More than 75 X variables
+ Parse format line can be created only for labelsP
+ Parse input range must start with format linee
+ Too few observations for number of variablesP
+ At least one variable range must be specified
+ Cannot execute query with a circular reference
+ Cannot use computed columns with Data Query ModifyP
+ Criteria and output ranges cannot overlapP
+ Criteria must contain field referenceP
+ Criteria range must be in an active file4
+ Data Query Find works only in active files4
+ Data Table and Data Query commands are disabled
+ Database @functions more than 8 levels deep in...P
+ Datatype mismatch on outputP
+ Destination range full or invalid4
+ Driver cannot perform this database operationP
+ Each variable must have an input cell
+ Error accessing temporary filePO
+ External database data type not allowed in...P
+ External table was not createdP
+ Field names must be unique within an input tableP
+ Formula label range cannot be blankP
+ Formula range and formula label range are required
+ Incompatible database driverP
+ Input and output ranges cannot overlapP
+ Invalid external database data typeP
+ Invalid extra sort-key numberP
+ Invalid formula in query4
+ Invalid formula label rangeP
+ Invalid input range specified 
+ Invalid use of database @function in criteriaP
+ Invalid worksheet variable rangeP
+ Must specify a down or across variable range
+ Named field does not existP
+ Named table does not existP
+ No criteria range specifiedo
+ No external databases are in use
+ No external database drivers are loaded
+ No external table specified for creation
+ No external tables are availableP
+ No input range specifiedt
+ No output range specified|
+ No table definition range exists to create table
+ Number too large/small to pass to external tableP
+ Only one input range is allowedP
+ Output range must contain more than one rowP
+ Range cannot span worksheetsP
+ Range name already existsP
+ Range specified is outside variable rangeP
+ Syntax error in LOTUS.BCF; see driver...PO
+ Table definition range contains invalid...P
+ Table definition range must contain six columnsP
+ Table results area not fully definedP
+ Temporary file record too longP
+ Error replacing extracted recordsP
+ Too many records for Output range
+ Unable to locate the database
+ Cannot use both undo and Data External Refresh...P
+ Unsupported character setP
+ Variable ranges and formula labels overlapP
+ Error loading DataLens driver resource fileP
+ Formula reference overlaps split layer
+ Invalid sort range or sort key
+ Cannot create a table with EXTENDED data types
+ Cannot open database input range
+ Cannot read or write LONG data
+ Cannot reset database when tables are in use
+ Cannot retrieve records from input range
+ Cannot unload driver when databases are in use
+ Cannot update a database with a nonunique record
+ Database has read-only access
+ Database name is not in the correct format
+ Database not correctly positioned
+ Delete works only on database with one table
+ ERR values are not allowed in the output range
+ End of database input range reached
+ External table was not deleted
+ Input and output ranges must be different
+ Input field names cannot be qualified
+ Insert works only on databases with one table
+ Insufficient privilege to perform database operation
+ Invalid name for field or table
+ No external database drivers are available
+ No external databases are available
+ No external tables are in use
+ No records found for this database operation
+ Null field values not allowed in this database
+ Table name is not in the correct format
+ Too many computed-column formulas in output range
+ Unable to locate the table
+ Unsupported database function call
+ Cannot invoke operating systemf
+ Cannot write over data with APPEND commandsP
+ Invalid string argumentP
+ Invalid use of Menu macro commandP
+ Invalid /X command in macroP
+ Macro: missing argumentP
+ Syntax error in macro key/range nameP
+ Unrecognized key/range nameP
+ Panels Area has been disabled
+ Worksheet Area has been disabled
+ Insufficient memory to invoke operating systemP
+ Not enough memory to load driver fileP;
+ Cannot undo this operationPO
+ Undo not enabled, or no operation to undoP
+ Cannot delete all worksheets
+ Cannot delete all visible worksheets
+ Cannot go to a range that is not in memory4
+ Cannot have more than 256 worksheets in memory
+ Cannot hide all columnsP
+ Cannot hide last visible worksheetP
+ Cannot move data between files2
+ Cannot Move or Copy data beyond worksheet...P
+ Hidden columns are not allowed in title regionP
+ Invalid configuration fileP
+ Not enough worksheets in TO range
+ Cannot undo this series of add-in...PK
+ All modified files must be reserved before saving0
+ Backup file exists in memoryP
+ Backup unsuccessful due to file error"
+ Cannot convert extension. File already exists...
+ Cannot erase file. It is in use or...#
+ Cannot import - file is in useP
+ Cannot read locked Symphony worksheet fileP
+ Directory does not existP
+ File already exists in memoryP
+ File and/or extension converted8
+ File contention prevented accessing the fileP
+ File name already exists on diskP
+ Incompatible character set
+ Incompatible worksheet information lost during...P
+ Incompatibility with previous versions of 1-2-3P
+ Incorrect file name or path syntax+
+ Input range must be in an active fileP
+ Invalid character in extensionP
+ Invalid character in file nameP
+ No active file to get reservationP
+ No files of specified type on disk0
+ Not a valid worksheet fileP
+ Part of combine file lostP
+ Part of file is missingP
+ The file on disk is different from the one...P
+ The worksheet file is already reservedP
+ The worksheet file has no reservation"
+ Too many characters in extension
+ Too many characters in file nameP
+ Too many characters in pathP
+ Unable to reserve file: it is already reservedP
+ Unable to reserve file: it has read-only access"
+ Disk is write-protectedP
+ The worksheet file has not been named
+ Worksheet file revision out of date
+ Cannot Move or Copy comments beyond worksheet...P
+ Cell comment is not available in the current...P
+ Current cell already has a commentP
+ Current cell does not have a commentP
+ Cannot create format file,
+ Cannot create temporary fileP
+ Cannot define a named style from a graphicP
+ Cannot export to this format from a multiple...P
+ Cannot find Wysiwyg font libraryP
+ Cannot find WYSIWYG.LBRP
+ Cannot Move or Copy formats beyond worksheet...P
+ Cannot retrieve library fileP
+ Cannot use :Text Edit with a hidden worksheetP
+ Cannot use this command in text display modeP
+ Error reading format fileP
+ [FILE]: Not a graphic file
+ Global protection is enabled
+ Margins equal or exceed page size)
+ No print range specified1
+ Not enough memory to load WysiwygP
+ Not enough memory to printP
+ Out of memory. Undo disabled.
+ Printer driver has no graphics capability
+ This printer cannot print in landscape mode
+ Cannot use :Text Edit on a hidden rangeP
+ BPrint is not in memory or is not supported...`
+ Device driver not installed
+ Directory does not existP
+ Too many characters in pathP
+ Not enough memory to load driver fileP;
+ Invalid configuration fileP
+ Cannot move graphs beyond worksheet boundariesP
+ BMP file is too big or compressed, or contains...PO
+ Cannot sum range if no blank cells at bottom or...P
+ Cannot write file ICONS3.CNF; changes will not..."
+ Can't load ICONS3.DAT data fileP
+ Icon Editor is not available in the current modeP
+ Macro exceeds 512 characters or has too many...P
+ Not enough data to graphP
+ User icon is not defined; you must assign...P
+ Could not find a solution... P
+ Error storing the adjustable cell value
+ Too many cells in adjustable cell rangeP
+ No dependents were found in audit range&
+ No precedents were found in audit range&
+ No formulas were found in audit rangeP
+ No formulas were found in worksheetP
+ No circular references were found in worksheetP
+ List range cannot contain dataP
+ The source cell is hidden - unable to trace"
+ This cell does not have a formula - precedents...P
+ Group mode enabled - unable to highlight cells#
+ File is currently reserved by another userP
+ No viewers are availableP
+ No viewer can open this fileP
+ Not enough memory for appropriate viewerf
+ Not enough memory to invoke the ViewerP
+ Cannot link beyond worksheet boundariesP
+ Cannot link to protected cellP
+ Adjustable cell collection is invalidP
+ All constraints are binding for this answerP
+ All constraints are satisfied, but optimal...P
+ Cannot create the report filef
+ Cannot find an optimal answerP
+ Cannot find any more answersP
+ Cannot finish solving this problemP
+ Cannot optimize a constraint cellP
+ Cannot solve this problemP
+ Cannot write a value into protected cell [CELL]PO
+ Cell [CELL] refers to an unsupported stringPO
+ Constraint cell collection is invalidP
+ Constraints and the optimal cell must not...P
+ Incorrect function syntax in cell [CELL]P
+ Insufficient precision available when using...P
+ Invalid use of range in cell [CELL]P
+ No answers exist to put in the worksheetP
+ No optimal answer exists to put in the worksheetP
+ No significant difference exists between these...P
+ No valid adjustable cells were specified
+ No valid constraint cells were specified
+ Optimal cell must be a single cell that...P
+ Problem refers to undefined range name or...P
+ Solver cannot create its work filesP9
+ Solver cannot delete its work filesP9
+ Solver cannot read its work filesP9
+ This answer has no inconsistent constraintsP
+ This command is available only after solvingP
+ This command requires a guessable attempt...
+ This command requires an answer in the worksheet
+ This command requires an answer or attempt...
+ This command requires an attempt in the worksheet
+ Too many report files already exist
+ What-if limits couldn't be computedP
+ Invalid cell or range addressP
+ Add-in [ADD-IN] already in memoryP
+ Add-in [ADD-IN] not in memory
+ Add-in not listed in settings sheetP
+ Add-ins nested too deeplyP
+ Cannot find library file [LIBRARY]P
+ Cannot load driver LTSEMf
+ Cannot load driver LTSLEAFf
+ Error loading add-in resource filef
+ Error running add-in macroPO
+ [FILE1] incompatible with [FILE2]P
+ Library file [LIBRARY] incompatible with [FILE]P
+ No add-in application assigned
+ No application in add-in [ADD-IN]P
+ No add-in applications in memory
+ Settings sheet is emptyP
+ Stack overflow in [FILE]P
+ Stop statement in [FILE] returns value [VALUE]P
+ Unhandled [SIGNAL] signal in [FILE]PK
+ Unhandled interpreter signal [SIGNAL] in [FILE]P
+ A network error has occurred
+ Invalid or unsupported file search attribute
+ No license directories were found
+ No licenses are currently available
+ Unable to write to log file
+ Directory entry update errorP
+ Cannot use offset number for field
+ Cannot dump resource file 
+ Cannot load configuration information
+ Cannot load DCF file -- run Install
+ Internal error - invalid command parameter
+ MVS & VM do not support the modify access mode...
+ MVS & VM do not support {{FILESIZE}
+ MVS & VM only support {{GETPOS} in read-only files
+ MVS & VM only support {{READLN} in read-only files
+ MVS & VM only support {{READ} in read-only files
+ MVS & VM only support {{SETPOS} in read-only files
+ This type of file does not support macro i/o
+ Unable to load native text code page
+ BPrint is not in memory or is not supported...`
+ Background print is currently active, cannot...
+ Cannot print ranges or named graphs not in memory4
+ Device driver not installed
+ Invalid \nnn code in Setup StringD
+ Left margin equals or exceeds right margin7
+ Margins, header and footer equal or exceed page...
+ No current 1-2-3 background print job
+ No print range or image specifiedH
+ Error loading driver, file name-
+ Print error - unable to print image7
+ Print settings name does not existP
+ Print aborted - out of memoryP
+ Error closing printer driverP
+ Too many print settings names; cannot create...P
+ Printer error - attention requiredf
+ Graph driver loading error, file name - [FILE]f
+ Graph name does not existP
+ Too many graph names; cannot create new one
+ Graph error - not enough memory to draw graphf
+ A range name cannot begin with << >>P
+ Cannot create names from a range of labels...6
+ Cannot justify text if Worksheet protection...
+ Cannot modify a range that is not in memoryj
+ Invalid cell or range addressP
+ Justify range is full or line too longP
+ More than one file has the same range nameP
+ Named range not found in worksheet fileP
+ No more matching stringsP
+ No unprotected cells in Input range
+ Range name does not existj
+ Cannot create a named range that spans files
+ Cannot delete a range that is not in memory
+ Range must contain at least one unhidden column
+ Wysiwyg must be in memoryd
+ Personal dictionary fullP
+ Spell code translation errorP
+ Internal dictionary errorP
+ Cannot check spelling in range
+ Spell Check files missing or damagedP
+ Word is already in your personal dictionaryP
+ Word is not in your personal dictionaryP
+ Word is similar to words in personal dictionaryP
+ File must contain named range to use /Tools VersionP
+ Range contains versionsP
+ Range not found by Version ManagerP
+ Worksheet name already existsP
+ Worksheet name contains illegal charactersP
+ Not enough memory to load cc:MailP
+ Cannot find cc:Mail filesP
+ Cannot create cc:Mail temporary fileP
+ Too many files to attach
+ Invalid table name or table exists in databaseP
+ /File Admin Link-Refresh
+ More About /File Admin Link-RefreshPO
+ /File Admin Reservation"
+ /File Admin Reservation GetS
+ /File Admin Reservation Release
+ /File Admin Reservation Setting8
+ More About /File Admin Seal
+ More About /File Admin TableP
+ More About /File CombineP
+ More About /File ImportP
+ More About /File RetrieveP
+ /File Retrieve or /File View Retrieveg
+ /File Open or /File View Openg
+ Database @Function Arguments7
+ @Functions by CategoriesG
+ Date and Time @Functionsb
+ Mathematical @FunctionsQ
+ Glossary of Terms M - R-
+ Glossary of Terms S - Z[
+ backup file (.BAK and .FMB)
+ driver configuration file
+ file-and-clock indicator
+ formatting descriptionPK
+ graph file (.PIC or .CGM)
+ high-low-close-open (HLCO) graph
+ three-dimensional (3D) range\
+ More About X and A - F Data Ranges
+ Changing the Appearance of Pie SlicesP
+ More About /Graph Name CreateP_ 
+ /Graph Options Advanced Colors
+ More About the Colors RangePK
+ /Graph Options Advanced Hatches
+ More About the Hatches RangePK
+ /Graph Options Advanced Text
+ /Graph Options Advanced Text QuitP9'
+ /Graph Options Advanced Text First
+ /Graph Options Advanced Text [F, S, T] QuitP9'
+ /Graph Options Advanced Text Second
+ /Graph Options Advanced Text Third
+ /Graph Options Advanced Text [F, S, T] Color
+ More About /Graph Options Adv. Text [F,S,T] ColorP
+ /Graph Options Advanced Text [F, S, T] Font
+ More About /Graph Options Adv. Text [F,S,T] FontP
+ /Graph Options Advanced Text [F, S, T] Size
+ More About /Graph Options Adv. Text [F,S,T] SizeP
+ /Graph Options Advanced SymbolsP;j
+ /Graph Options Advanced LinesP;j
+ /Graph Options Advanced QuitP9'
+ /Graph Options Data-Labels]
+ More About /Graph Options Data-LabelsP_ 
+ /Graph Options Grid QuitP9'
+ /Graph Options Grid [H, V, B, C, Y]P;j
+ /Graph Options Grid SecondaryP;j
+ /Graph Options Grid Ticks
+ /Graph Options Grid Ticks QuitP9'
+ /Graph Options Grid Ticks [H, V, B, C, Y]
+ /Graph Options Grid Ticks Secondary
+ /Graph Options Grid Ticks NumberP;j
+ /Graph Options Scale Skip
+ /Graph Options Scale Y-Scale, X-Scale, and 2Y-Scale
+ /Graph Options Scale [Y, X, 2] QuitP9'
+ /Graph Opt. Scale [Y,X,2] Auto.,Manual,Lower,UpperP;j
+ /Graph Options Scale [Y, X, 2] FormatP;j
+ /Graph Options Scale [Y, X, 2] Indicator
+ /Graph Options Scale [Y, X, 2] TypeP;j
+ /Graph Options Scale [Y, X, 2] Exponent
+ /Graph Options Scale [Y, X, 2] WidthP;j
+ /Graph Type Stack-BarP9'
+ /Graph Type Features QuitP9'
+ /Graph Type Features Vert and HorizP;j
+ /Graph Type Features StackedP;j
+ /Graph Type Features 100%P;j
+ /Graph Type Features 2Y-Ranges and Y-RangesP;j
+ /Graph Type Features FrameP;j
+ /Graph Type Features Drop-ShadowP;j
+ /Graph Type Features 3DP;j
+ /Graph Type Features TableP;j
+ Using Multiple Worksheets and Files
+ Moving Around a 3D FileP
+ More About Highlighting a RangeP9
+ Highlighting a 3D RangeP
+ Retrieving or Opening a File6
+ Examining the Contents of Files on DiskP
+ Rearranging Labels to Look Like a Paragraphe
+ Entering a Number as a Label
+ More About Entering a DatePO
+ More About Entering a TimePO
+ Combining Data From Another File)
+ Adding Blank Columns or Rows]
+ Changing Column Width and Row Height
+ More About Changing Column Widths and Row Heights
+ Aligning and Centering Text
+ More About Backing Up Your Work
+ Changing the Format of a NumberL
+ Changing the Appearance of Data
+ Changing the Page Layout5
+ Controlling Paper in the Printer
+ Creating an External Table
+ More About Creating a DatabasePK
+ Creating a High-Low-Close-Open Graph]
+ Creating a Stacked Bar Graph]
+ Creating an Automatic Graph
+ More About Creating Two WindowsP8
+ Deleting Records From a Databaset
+ More About Entering a FormulaP
+ Extracting Records From a Databaset
+ More About Extracting Records From a DatabaseP;C
+ Finding Records in a Databaset
+ Hiding and Displaying DataL
+ Linking a File with a FormulaV
+ More About Linking a File with a Formula
+ Printing Your Work Without Wysiwyg Formatting
+ Background Printing Without Wysiwyg Formatting`
+ More About Background PrintingP_ 
+ Using a Password to Protect a File
+ Saving a File Again with the Same PasswordP
+ Saving a File with a New Password
+ Opening a Password Protected Fileg
+ Saving Your Work in ASCII Format
+ Sorting Data Alphabetically or Numerically]
+ More About Sorting DataP
+ Using a Dot Matrix Printer's Features
+ Entering Multiple CriteriaP
+ Changing the Default FontPO
+ Printing Your Work with Wysiwyg Formatting_
+ Viewing More Data on the Screen
+ Canceling Dialog Box SelectionsPKY
+ Selecting a Range Name in a Dialog BoxPO
+ Using Formatting SequencesP
+ Text Formatting OptionsP
+ Including Clip Art in a Fileg
+ Creating a Macro with the Record Feature]
+ Creating a Macro Library J
+ Running a Macro in a Macro LibraryM
+ Using the 1-2-3 Help SystemPO
+ About File ReservationsP
+ About Files and File NamesPK
+ About Preselected RangesPKs
+ Using an Option on the Status BarP
+ Cell and Range ReferencesW
+ More About Using BPrintP
+ When You Use Undo and Run Out of MemoryP_a
+ Calculating Formulas to Equal Given Values
+ More About Calculating FormulasP;Y
+ Examining What-If Problemsk
+ Creating a Computed Column in the Output RangePK
+ Creating an Aggregate Column in the Output RangePK
+ Learning New Features in 1-2-3P
+ Improving the Performance of 1-2-3r
+ Memory Tips for Improving Performance
+ 1-2-3 Feature Tips for Improving PerformanceP
+ Keys and Indicators Indexu
+ F6 (WINDOW) and ALT+F6 (ZOOM)
+ F7 (QUERY) and F8 (TABLE)n
+ ALT+F7 (APP1), ALT+F8 (APP2), and ALT+F9 (APP3)
+ CTRL+F9 (DISPLAY ICONS), CTRL+F10 (SELECT ICONS)
+ More About {SUBROUTINE}P_ 
+ More About /Print Background
+ More About /Print Encoded
+ More About /Print FileP_ 
+ More About /Print Printer
+ /Print [P, F, E, B] Align
+ More About /Print [P, F, E, B] AlignP_ 
+ /Print [P, F, E, B] ClearP;Cq
+ /Print [P, F, E, B] Hold
+ More About /Print [P, F, E, B] HoldP_ 
+ /Print [P, F, E, B] LineP9'
+ /Print [P, F, E, B] Options5
+ /Print [P, E, B] Options Advanced
+ /Print [P, E, B] Options Advanced Device
+ More About /Print [P,E,B] Options Advanced DeviceP
+ /Print [P, E, B] Options Advanced Layout
+ /Print [P, E, B] Options Advanced Layout PitchP;Cq
+ /Print [P, E, B] Opt. Advanced Layout Line-SpacingP;Cq
+ /Print [P, E, B] Opt. Advanced Layout OrientationP;Cq
+ /Print [P, E, B] Options Advanced Layout Quit
+ /Print [P, E, B] Options Advanced Fonts
+ More About /Print [P, E, B] Options Advanced FontsP
+ /Print [P, E, B] Options Advanced Color
+ More About /Print [P, E, B] Options Advanced ColorP
+ /Print [P, E, B] Options Advanced Image(
+ /Print [P, E, B] Options Advanced Image Rotate)
+ More About /Print [P, E, B] Opt. Adv. Image RotateP
+ /Print [P, E, B] Options Advanced Image Image-Sz+
+ More About /Print [P,E,B] Opt. Adv. Image Image-SzP_ 
+ /Print [P, E, B] Options Advanced Image Density;
+ /Print [P, E, B] Options Advanced Image Quit
+ /Print [P, F, E, B] Options Advanced PriorityP;Cq
+ /Print [P, E, B] Options Advanced AutoLf
+ /Print Printer Options Advanced Wait
+ More About /Print Printer Options Advanced WaitP_ 
+ /Print [P, E, B] Options Advanced QuitP;Cq
+ /Print [P, F, E, B] Options Borders]
+ More About /Print [P, F, E, B] Options BordersP_ 
+ /Print [P, F, E, B] Options Header or Footer?
+ More About /Print [P,F,E,B] Options Header or FooterP
+ /Print [P, F, E, B] Options Margins?
+ More About /Print [P, F, E, B] Options MarginsP_ 
+ /Print [P, F, E, B] Options Other?
+ /Print [P, F, E, B] Options Name@
+ /Print [P, F, E, B] Options Name Create
+ More About /Print [P, F, E, B] Options Name CreateP_ 
+ /Print [P, F, E, B] Options Name Delete
+ /Print [P, F, E, B] Options Name Reset
+ /Print [P, F, E, B] Options Name Table]
+ /Print [P, F, E, B] Options Name Use
+ /Print [P, F, E, B] Options Pg-Length?
+ More About /Print [P, F, E, B] Options Pg-LengthP
+ /Print [P, F, E, B] Options QuitP9'
+ /Print [P, E, B] Options Setup?
+ More About /Print [P, E, B] Options SetupP_ 
+ /Print [P, F, E] PageP9'
+ /Print [P, F, E, B] QuitP9'
+ /Print [P, F, E, B] Range]
+ More About /Print [P, F, E, B] RangeP
+ More About /Range Format
+ Automatic, Color, Label, and Parentheses FormatsP
+ More About the , (Comma) FormatP_ 
+ More About the Currency FormatP_ 
+ More About the Date Formats
+ More About the Fixed FormatP_ 
+ More About the General FormatP_ 
+ More About the Percent FormatP_ 
+ More About the Sci FormatP_ 
+ More About the Time FormatsP
+ More About /Range JustifyP
+ More About /Range LabelP
+ Entering a Range NameP9|
+ More About /Range Name DeleteP
+ More About /Range Name LabelsP;$
+ More About /Range Name ResetP
+ More About /Range Name TableP_ 
+ /Range Name Notation Create0
+ /Range Name Notation DeleteP;$
+ /Range Name Notation Reset
+ /Range Name Notation Table]
+ More About /Range Name Notation TablePO
+ /Range Name Notation QuitP;$
+ More About /Range Name Undefinej
+ More About /Range SearchP_ 
+ Entering the Text to Find
+ Entering Replacement TextP
+ More About /Range TransP_ 
+ More About /Range Unprot}
+ More About /Range ValueP_ 
+ More About the Record BufferP
+ More About /Worksheet ColumnP
+ /Worksheet Column Fit-Widest]
+ /Worksheet Column Column-Range]
+ /Worksheet Column Display]
+ More About /Worksheet Column HideP
+ /Worksheet Column Reset-Width
+ /Worksheet Column Set-Width
+ More About /Worksheet DeleteP
+ /Worksheet Global Col-Width?
+ /Worksheet Global Default
+ /Worksheet Global Default QuitP9'
+ /Worksheet Global Default Autoexec?
+ /Worksheet Global Default Dir?
+ /Worksheet Global Default Ext?
+ /Worksheet Global Default Graph?
+ /Worksheet Global Default Other
+ /Worksheet Global Default Other Beep
+ /Worksheet Global Default Other Clock?
+ /Worksheet Global Default Other HelpP;[k
+ /Worksheet Global Default Other International
+ /Worksheet Global Default Other Int'l Currency
+ /Worksheet Global Default Other Int'l DateT
+ /Worksheet Global Def. Other Int'l File-TranslationP;[k
+ /Worksheet Global Default Other Int'l NegativeP;[k
+ /Worksheet Global Default Other Int'l PunctuationP;[k
+ /Worksheet Global Default Other Int'l QuitP9'
+ /Worksheet Global Default Other Int'l Release-2P;[k
+ /Worksheet Global Default Other Int'l Timea
+ /Worksheet Global Default Other Undo
+ /Worksheet Global Default Other Auto-Backup
+ More About Auto-BackupP_ 
+ /Worksheet Global Default Other Display?
+ /Worksheet Global Default Printer
+ /Worksheet Global Default Printer AutoLfP;[k
+ /Worksheet Global Default Printer BottomP;[k
+ /Worksheet Global Default Printer Interface
+ More About /Worksheet Global Def. Printer InterfaceP
+ /Worksheet Global Default Printer LeftP;[k
+ /Worksheet Global Default Printer Name
+ /Worksheet Global Default Printer Pg-LengthP;[k
+ /Worksheet Global Default Printer QuitP9'
+ /Worksheet Global Default Printer RightP;[k
+ /Worksheet Global Default Printer Setup
+ More About /Worksheet Global Def. Printer SetupP_ 
+ /Worksheet Global Default Printer TopP;[k
+ /Worksheet Global Default Printer Wait
+ More About /Worksheet Global Default Printer WaitP
+ /Worksheet Global Default Status
+ /Worksheet Global Default Temp?
+ /Worksheet Global Default Update?
+ /Worksheet Global Format?
+ More About /Worksheet Global Format
+ More About /Worksheet Global GroupP
+ /Worksheet Global Label?
+ More About /Worksheet Global Label
+ More About /Worksheet Global ProtP
+ /Worksheet Global Recalc?
+ More About /Worksheet Global RecalcP
+ More About /Worksheet HideP
+ More About /Worksheet InsertP_ 
+ More About /Worksheet PageP
+ More About /Worksheet TitlesP_ 
+ More About /Worksheet WindowP
+ /Worksheet Window ClearP9'
+ /Worksheet Window Horizontal and Vertical{
+ /Worksheet Window SyncP9'
+ /Worksheet Window UnsyncP9'
+ More About /Worksheet Window MapP
+ /Worksheet Window Perspective{
+ More About /Worksheet Window GraphP
+ /Worksheet Window DisplayP;[k
+ Assign Macro to User Icon
+ /Tools Analyze Solver Define
+ /Tools Analyze Solver Solve
+ /Tools Analyze Solver Answer
+ /Tools Analyze Solver Report
+ /Tools Analyze Solver Options Number-AnswersP;Y
+ /Tools Analyze Solver Quit
+ /Tools Analyze Solver Define Adjustable]
+ /Tools Analyze Solver Define Constraints]
+ /Tools Analyze Solver Define OptimalP;Y
+ /Tools Analyze Solver Define QuitP9'
+ /Tools Analyze Solver Solve Problem
+ /Tools Analyze Solver Solve Continue
+ /Tools Analyze Solver Solve GuessesP;Y
+ /Tools Analyze Solver Solve QuitP9'
+ /Tools Analyze Solver Answer NextP;Y
+ /Tools Analyze Solver Answer First
+ /Tools Analyze Solver Answer PreviousP;Y
+ /Tools Analyze Solver Answer LastP9'
+ /Tools Analyze Solver Answer Optimal
+ /Tools Analyze Solver Answer ResetP9'
+ /Tools Analyze Solver Answer QuitP9'
+ /Tools Analyze Solver Report Answer
+ /Tools Analyze Solver Report How
+ /Tools Analyze Solver Report What-If
+ /Tools Analyze Solver Report Differences
+ /Tools Analyze Solver Report Inconsistent
+ /Tools Analyze Solver Report Unused
+ /Tools Analyze Solver Report Cells
+ /Tools Analyze Solver Report QuitP9'
+ More About Solver Reports
+ More About Answer ReportsP
+ More About What-If ReportsP
+ More About Differences ReportsP
+ More About Inconsistent ReportsP
+ More About Unused ReportsP
+ More About Cells ReportsP
+ /Tools Spell File, Worksheet, or Range]
+ /Tools Spell Dictionary?
+ Current File, Current Worksheet, or Selected Range]
+ More About /Tools DOSP_ 
+ Becoming Familiar with 1-2-3Q
+ Making the Worksheet Look the Way I Want2
+ Working with Formulas and @Functions
+ Saving and Protecting Data8
+ Automating Work with MacrosJ
+ Analyzing Formulas in Worksheets
+ More About /Tools NotepadP
+ More About /Tools Notepad AddP
+ Entering and Editing TextP
+ /Tools Notepad Full-Size]
+ /Tools Version Manage-ScenarioH
+ /Tools Version Manage-Scenario QuitP9'
+ /Tools Version Manage-Scenario Show?
+ /Tools Version Manage-Scenario Create or Modify?
+ /Tools Version Manage-Scenario Delete?
+ /Tools Version Manage-Scenario Reset?
+ Changing Directories in ViewerP
+ More About /File View LinkP_ 
+ /File View Retrieve Yes/No
+ More About the Range(s) SettingP
+ More About Send Output ToP
+ More About the Print Worksheet Frame SettingP
+ More About the Header or Footer SettingP_ 
+ Left Border or Top Borderp
+ More About the Left Border or Top Border Setting
+ More About the Page Size SettingP
+ Wysiwyg Printer Configurationw
+ :Display Font-DirectoryPNC
+ :Display Options Cell-Pointer}
+ :Display Options FramePNC
+ :Display Options IntensityPNC
+ :Display Options Page-BreaksPNC
+ :Display Options QuitP9'
+ More About :Display RowsP
+ :Format Color Background]
+ More About :Format Color TextP
+ More About :Format Font DefaultP
+ :Format Font Library Erase
+ :Format Font Library Retrieveg
+ :Format Font Library Saveg
+ :Format Font ReplacePNyW=,<
+ Specifying a GraphicPHNz)`
+ :Graph Edit Add Freehand
+ :Graph Edit Add Rectangle
+ :Graph Edit Color Background
+ :Graph Edit Color Inside
+ :Graph Edit Color QuitP9'
+ :Graph Edit Edit Arrowheads
+ :Graph Edit Edit Centering
+ :Graph Edit Edit Line-Style
+ :Graph Edit Edit Smoothing
+ :Graph Edit Options Cursor
+ :Graph Edit Options Font-Magnification
+ :Graph Edit Options Grid
+ :Graph Edit Rearrange Back
+ :Graph Edit Rearrange Copy
+ :Graph Edit Rearrange Delete
+ :Graph Edit Rearrange Front
+ :Graph Edit Rearrange Lock
+ :Graph Edit Rearrange Move
+ :Graph Edit Rearrange Restore
+ :Graph Edit Rearrange Unlock
+ About Selecting ObjectsP
+ :Graph Edit Select Cycle
+ :Graph Edit Select Graph
+ :Graph Edit Select More/Less
+ :Graph Edit Select QuitP9'
+ :Graph Edit Transform Clear
+ :Graph Edit Transform Horizontal
+ :Graph Edit Transform Quarter-Turn
+ :Graph Edit Transform Rotate
+ :Graph Edit Transform Size
+ :Graph Edit Transform Vertical
+ :Graph Edit Transform X-Flip
+ :Graph Edit Transform Y-Flip
+ More About :Graph Settings DisplayP
+ The Named-Style Commands
+ More About Named StylesPK
+ More About :Print Background
+ :Print Config 1st-CartPNCq
+ :Print Config 2nd-CartPNCq
+ :Print Config Interface?
+ More About :Print Config InterfaceP
+ :Print Config Orientation?
+ More About :Print Config PrinterP
+ :Print Config Resolution?
+ More About :Print Layout Borders
+ :Print Layout Compression?
+ More About :Print Layout DefaultP
+ :Print Layout Library Eraseg
+ :Print Layout Library Retrieveg
+ :Print Layout Library SavePNCq
+ :Print Layout Page-Size?
+ More About :Print Layout Page-SizeP
+ More About :Print Layout TitlesP_ 
+ More About :Print RangeP
+ More About :Print Settings FrameP
+ :Print Settings ResetP9'
+ :Print Settings Start-Number?
+ More About :Special ExportP
+ More About :Text ReformatP

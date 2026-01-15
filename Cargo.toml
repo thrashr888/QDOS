@@ -113,6 +113,10 @@ ignore = "0.4.25"
 rand = "0.8"
 base64 = "0.22.1"
 
+# Excel file support for Q-SHEET
+rust_xlsxwriter = "0.80"  # Writing xlsx
+calamine = "0.32"         # Reading xlsx
+
 [dev-dependencies]
 tempfile = "3.15"
 

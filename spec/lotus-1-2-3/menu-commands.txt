@@ -1,0 +1,438 @@
+ /Data Distribution]
+ /Data External
+ /Data External Create
+ /Data External Create Definition
+ /Data External Create Go
+ /Data External Create Name
+ /Data External Create QuitP9'
+ /Data External Delete
+ /Data External List
+ /Data External List Fields
+ /Data External List Tables]
+ /Data External Other
+ /Data External Other Command
+ /Data External Other Refresh
+ /Data External Other Translation
+ /Data External QuitP9'
+ /Data External ResetP;C
+ /Data External Use
+ /Data Fill]
+ /Data Matrix Invert]
+ /Data Matrix Multiply]
+ /Data Matrix_
+ /Data Parse Format-Linef
+ /Data Parse Goj
+ /Data Parse Input-Column]
+ /Data Parse Output-Range]
+ /Data Parse QuitP9'
+ /Data Parse ResetP9'
+ /Data Parsee
+ /Data Query Criteria]
+ /Data Query Delt
+ /Data Query Extractt
+ /Data Query Findt
+ /Data Query Input]
+ /Data Query Modify CancelP9'
+ /Data Query Modify Extractt
+ /Data Query Modify Insertt
+ /Data Query Modify Replace
+ /Data Query Modifyw
+ /Data Query Output]
+ /Data Query QuitP9'
+ /Data Query ResetP9'
+ /Data Query Uniquet
+ /Data Queryt
+ /Data Regression
+ /Data Regression Go
+ /Data Regression InterceptP;C
+ /Data Regression Output-Range]
+ /Data Regression QuitP9'
+ /Data Regression ResetP9'
+ /Data Regression X-Range]
+ /Data Regression Y-Range]
+ /Data Sort
+ /Data Sort Data-Range]
+ /Data Sort Extra-Key
+ /Data Sort Go
+ /Data Sort Primary-Key
+ /Data Sort QuitP9'
+ /Data Sort ResetP9'
+ /Data Sort Secondary-Key
+ /Data Table
+ /Data Table 1]
+ /Data Table 2]
+ /Data Table 3]
+ /Data Table Labeled
+ /Data Table Labeled Across
+ /Data Table Labeled Down
+ /Data Table Labeled Formulas
+ /Data Table Labeled Go
+ /Data Table Labeled Input-Cells
+ /Data Table Labeled Label-Fill
+ /Data Table Labeled QuitP9'
+ /Data Table Labeled Sheets
+ /Data Table ResetP9'
+ /File Admin Link-Refresh
+ /File Admin Reservation GetS
+ /File Admin Reservation Release
+ /File Admin Reservation Setting8
+ /File Admin Reservation"
+ /File Admin Seal
+ /File Admin Table]
+ /File Admin!
+ /File Combine
+ /File Dir
+ /File Eraseg
+ /File Importg
+ /File List'
+ /File New3
+ /File Open or /File View Openg
+ /File Openg
+ /File Retrieve or /File View Retrieveg
+ /File Retrieveg
+ /File Save
+ /File View BrowseY
+ /File View Link Yes/No
+ /File View Link[
+ /File View OpenY
+ /File View Retrieve Yes/No
+ /File View RetrieveY
+ /File ViewT
+ /File Xtract
+ /Graph A - F]
+ /Graph Group]
+ /Graph Name
+ /Graph Name Create
+ /Graph Name Delete
+ /Graph Name Reset
+ /Graph Name Table]
+ /Graph Name Use
+ /Graph Opt. Scale [Y,X,2] Auto.,Manual,Lower,UpperP;j
+ /Graph Options
+ /Graph Options Advanced
+ /Graph Options Advanced Colors
+ /Graph Options Advanced Hatches
+ /Graph Options Advanced LinesP;j
+ /Graph Options Advanced QuitP9'
+ /Graph Options Advanced SymbolsP;j
+ /Graph Options Advanced Text
+ /Graph Options Advanced Text First
+ /Graph Options Advanced Text QuitP9'
+ /Graph Options Advanced Text Second
+ /Graph Options Advanced Text Third
+ /Graph Options Advanced Text [F, S, T] Color
+ /Graph Options Advanced Text [F, S, T] Font
+ /Graph Options Advanced Text [F, S, T] QuitP9'
+ /Graph Options Advanced Text [F, S, T] Size
+ /Graph Options B&W?
+ /Graph Options Color?
+ /Graph Options Data-Labels]
+ /Graph Options Format?
+ /Graph Options Grid
+ /Graph Options Grid QuitP9'
+ /Graph Options Grid SecondaryP;j
+ /Graph Options Grid Ticks
+ /Graph Options Grid Ticks NumberP;j
+ /Graph Options Grid Ticks QuitP9'
+ /Graph Options Grid Ticks Secondary
+ /Graph Options Grid Ticks [H, V, B, C, Y]
+ /Graph Options Grid [H, V, B, C, Y]P;j
+ /Graph Options Legend]
+ /Graph Options QuitP9'
+ /Graph Options Scale
+ /Graph Options Scale Skip
+ /Graph Options Scale Y-Scale, X-Scale, and 2Y-Scale
+ /Graph Options Scale [Y, X, 2] Exponent
+ /Graph Options Scale [Y, X, 2] FormatP;j
+ /Graph Options Scale [Y, X, 2] Indicator
+ /Graph Options Scale [Y, X, 2] QuitP9'
+ /Graph Options Scale [Y, X, 2] TypeP;j
+ /Graph Options Scale [Y, X, 2] WidthP;j
+ /Graph Options Titles?
+ /Graph QuitP9'
+ /Graph Reset
+ /Graph Save
+ /Graph Type
+ /Graph Type AreaP9'
+ /Graph Type BarP9'
+ /Graph Type Features
+ /Graph Type Features 100%P;j
+ /Graph Type Features 2Y-Ranges and Y-RangesP;j
+ /Graph Type Features 3DP;j
+ /Graph Type Features Drop-ShadowP;j
+ /Graph Type Features FrameP;j
+ /Graph Type Features QuitP9'
+ /Graph Type Features StackedP;j
+ /Graph Type Features TableP;j
+ /Graph Type Features Vert and HorizP;j
+ /Graph Type HLCOP9'
+ /Graph Type LineP9'
+ /Graph Type Mixed
+ /Graph Type Pie
+ /Graph Type Stack-BarP9'
+ /Graph Type XYP9'
+ /Graph View
+ /Graph X]
+ /Print Background`
+ /Print CancelP9'
+ /Print Encodedg
+ /Print Fileg
+ /Print Printer Options Advanced Wait
+ /Print PrinterH
+ /Print ResumeP9'
+ /Print SuspendP9'
+ /Print [P, E, B] Image?
+ /Print [P, E, B] Opt. Advanced Layout Line-SpacingP;Cq
+ /Print [P, E, B] Opt. Advanced Layout OrientationP;Cq
+ /Print [P, E, B] Options Advanced
+ /Print [P, E, B] Options Advanced AutoLf
+ /Print [P, E, B] Options Advanced Color
+ /Print [P, E, B] Options Advanced Device
+ /Print [P, E, B] Options Advanced Fonts
+ /Print [P, E, B] Options Advanced Image Density;
+ /Print [P, E, B] Options Advanced Image Image-Sz+
+ /Print [P, E, B] Options Advanced Image Quit
+ /Print [P, E, B] Options Advanced Image Rotate)
+ /Print [P, E, B] Options Advanced Image(
+ /Print [P, E, B] Options Advanced Layout
+ /Print [P, E, B] Options Advanced Layout PitchP;Cq
+ /Print [P, E, B] Options Advanced Layout Quit
+ /Print [P, E, B] Options Advanced QuitP;Cq
+ /Print [P, E, B] Options Setup?
+ /Print [P, F, E, B] Align
+ /Print [P, F, E, B] ClearP;Cq
+ /Print [P, F, E, B] GoH
+ /Print [P, F, E, B] Hold
+ /Print [P, F, E, B] LineP9'
+ /Print [P, F, E, B] Options Advanced PriorityP;Cq
+ /Print [P, F, E, B] Options Borders]
+ /Print [P, F, E, B] Options Header or Footer?
+ /Print [P, F, E, B] Options Margins?
+ /Print [P, F, E, B] Options Name Create
+ /Print [P, F, E, B] Options Name Delete
+ /Print [P, F, E, B] Options Name Reset
+ /Print [P, F, E, B] Options Name Table]
+ /Print [P, F, E, B] Options Name Use
+ /Print [P, F, E, B] Options Name@
+ /Print [P, F, E, B] Options Other?
+ /Print [P, F, E, B] Options Pg-Length?
+ /Print [P, F, E, B] Options QuitP9'
+ /Print [P, F, E, B] Options5
+ /Print [P, F, E, B] QuitP9'
+ /Print [P, F, E, B] Range]
+ /Print [P, F, E] PageP9'
+ /Range Erase]
+ /Range Format Reset
+ /Range Format]
+ /Range Input
+ /Range Justify]
+ /Range Label]
+ /Range Name Createk
+ /Range Name Deletev
+ /Range Name Labels]
+ /Range Name Notation Create0
+ /Range Name Notation DeleteP;$
+ /Range Name Notation QuitP;$
+ /Range Name Notation Reset
+ /Range Name Notation Table]
+ /Range Name Notationu
+ /Range Name Reset
+ /Range Name Table]
+ /Range Name Undefine|
+ /Range Namej
+ /Range Prot]
+ /Range Search]
+ /Range Trans
+ /Range Unprot
+ /Range Value 
+ /Tools Analyze
+ /Tools Analyze Auditor
+ /Tools Analyze Auditor Circs 
+ /Tools Analyze Auditor Dependents 
+ /Tools Analyze Auditor Formulas 
+ /Tools Analyze Auditor Options Audit-Range]
+ /Tools Analyze Auditor Options HighlightP;Y
+ /Tools Analyze Auditor Options ListP;Y
+ /Tools Analyze Auditor Options QuitP9'
+ /Tools Analyze Auditor Options ResetP;Y
+ /Tools Analyze Auditor Options TraceP;Y
+ /Tools Analyze Auditor Options"
+ /Tools Analyze Auditor Precedents 
+ /Tools Analyze Auditor Quit
+ /Tools Analyze Auditor Recalc-List 
+ /Tools Analyze Backsolver
+ /Tools Analyze Backsolver AdjustableP;Y
+ /Tools Analyze Backsolver Formula-CellP;Y
+ /Tools Analyze Backsolver Quit
+ /Tools Analyze Backsolver SolveP9'
+ /Tools Analyze Backsolver ValueP;Y
+ /Tools Analyze Solver
+ /Tools Analyze Solver Answer
+ /Tools Analyze Solver Answer First
+ /Tools Analyze Solver Answer LastP9'
+ /Tools Analyze Solver Answer NextP;Y
+ /Tools Analyze Solver Answer Optimal
+ /Tools Analyze Solver Answer PreviousP;Y
+ /Tools Analyze Solver Answer QuitP9'
+ /Tools Analyze Solver Answer ResetP9'
+ /Tools Analyze Solver Define
+ /Tools Analyze Solver Define Adjustable]
+ /Tools Analyze Solver Define Constraints]
+ /Tools Analyze Solver Define OptimalP;Y
+ /Tools Analyze Solver Define QuitP9'
+ /Tools Analyze Solver Options Number-AnswersP;Y
+ /Tools Analyze Solver Quit
+ /Tools Analyze Solver Report
+ /Tools Analyze Solver Report Answer
+ /Tools Analyze Solver Report Cells
+ /Tools Analyze Solver Report Differences
+ /Tools Analyze Solver Report How
+ /Tools Analyze Solver Report Inconsistent
+ /Tools Analyze Solver Report QuitP9'
+ /Tools Analyze Solver Report Unused
+ /Tools Analyze Solver Report What-If
+ /Tools Analyze Solver Solve
+ /Tools Analyze Solver Solve Continue
+ /Tools Analyze Solver Solve GuessesP;Y
+ /Tools Analyze Solver Solve Problem
+ /Tools Analyze Solver Solve QuitP9'
+ /Tools Config-Addins
+ /Tools Config-Addins ClearP;Y
+ /Tools Config-Addins Invoke
+ /Tools Config-Addins Loadg
+ /Tools Config-Addins QuitP9'
+ /Tools Config-Addins RemoveP;Y
+ /Tools Config-Addins Settings
+ /Tools Config-Addins Settings File
+ /Tools Config-Addins Settings File Cancel8
+ /Tools Config-Addins Settings File QuitP;Y
+ /Tools Config-Addins Settings File Setg
+ /Tools Config-Addins Settings System
+ /Tools Config-Addins Settings System Cancel
+ /Tools Config-Addins Settings System Directory
+ /Tools Config-Addins Settings System QuitP9'
+ /Tools Config-Addins Settings System Setg
+ /Tools Config-Addins Settings System UpdateP9'
+ /Tools Config-Addins Table]
+ /Tools DOS8
+ /Tools E-Mail
+ /Tools Macro
+ /Tools Macro Copy
+ /Tools Macro Erase
+ /Tools Macro Playback
+ /Tools Macro RunM
+ /Tools Macro StepM
+ /Tools Macro TraceM
+ /Tools Notepad Add5
+ /Tools Notepad Copy]
+ /Tools Notepad Delete]
+ /Tools Notepad Edit5
+ /Tools Notepad Full-Size]
+ /Tools Notepad Hide]
+ /Tools Notepad Icon]
+ /Tools Notepad Move]
+ /Tools Notepad Table]
+ /Tools Notepad2
+ /Tools Spell
+ /Tools Spell Dictionary?
+ /Tools Spell File, Worksheet, or Range]
+ /Tools Spell Go]
+ /Tools Spell Language?
+ /Tools Spell Options?
+ /Tools Version Create?
+ /Tools Version Delete
+ /Tools Version Manage-Scenario Create or Modify?
+ /Tools Version Manage-Scenario Delete?
+ /Tools Version Manage-Scenario QuitP9'
+ /Tools Version Manage-Scenario Reset?
+ /Tools Version Manage-Scenario Show?
+ /Tools Version Manage-ScenarioH
+ /Tools Version QuitP9'
+ /Tools Version Reset
+ /Tools Version Show?
+ /Tools Version Update?
+ /Tools Version@
+ /Tools Wysiwyg?
+ /Worksheet Column
+ /Worksheet Column Column-Range]
+ /Worksheet Column Display]
+ /Worksheet Column Fit-Widest]
+ /Worksheet Column Hide]
+ /Worksheet Column Reset-Width
+ /Worksheet Column Set-Width
+ /Worksheet Delete
+ /Worksheet Erase
+ /Worksheet Global
+ /Worksheet Global Col-Width?
+ /Worksheet Global Def. Other Int'l File-TranslationP;[k
+ /Worksheet Global Default
+ /Worksheet Global Default Autoexec?
+ /Worksheet Global Default Dir?
+ /Worksheet Global Default Ext?
+ /Worksheet Global Default Graph?
+ /Worksheet Global Default Other
+ /Worksheet Global Default Other Auto-Backup
+ /Worksheet Global Default Other Beep
+ /Worksheet Global Default Other Clock?
+ /Worksheet Global Default Other Display?
+ /Worksheet Global Default Other HelpP;[k
+ /Worksheet Global Default Other Int'l Currency
+ /Worksheet Global Default Other Int'l DateT
+ /Worksheet Global Default Other Int'l NegativeP;[k
+ /Worksheet Global Default Other Int'l PunctuationP;[k
+ /Worksheet Global Default Other Int'l QuitP9'
+ /Worksheet Global Default Other Int'l Release-2P;[k
+ /Worksheet Global Default Other Int'l Timea
+ /Worksheet Global Default Other International
+ /Worksheet Global Default Other Undo
+ /Worksheet Global Default Printer
+ /Worksheet Global Default Printer AutoLfP;[k
+ /Worksheet Global Default Printer BottomP;[k
+ /Worksheet Global Default Printer Interface
+ /Worksheet Global Default Printer LeftP;[k
+ /Worksheet Global Default Printer Name
+ /Worksheet Global Default Printer Pg-LengthP;[k
+ /Worksheet Global Default Printer QuitP9'
+ /Worksheet Global Default Printer RightP;[k
+ /Worksheet Global Default Printer Setup
+ /Worksheet Global Default Printer TopP;[k
+ /Worksheet Global Default Printer Wait
+ /Worksheet Global Default QuitP9'
+ /Worksheet Global Default Status
+ /Worksheet Global Default Temp?
+ /Worksheet Global Default Update?
+ /Worksheet Global Format?
+ /Worksheet Global Group
+ /Worksheet Global Label?
+ /Worksheet Global Prot?
+ /Worksheet Global Recalc?
+ /Worksheet Global Zero?
+ /Worksheet Hide]
+ /Worksheet Insert]
+ /Worksheet Name
+ /Worksheet PageK
+ /Worksheet Status
+ /Worksheet Titles3
+ /Worksheet Window
+ /Worksheet Window ClearP9'
+ /Worksheet Window DisplayP;[k
+ /Worksheet Window Graph
+ /Worksheet Window Horizontal and Vertical{
+ /Worksheet Window Map
+ /Worksheet Window Perspective{
+ /Worksheet Window SyncP9'
+ /Worksheet Window UnsyncP9'
+ /X Commands
+ /XC
+ /XG
+ /XI
+ /XL
+ /XM
+ /XN
+ /XQ
+ /XR
+/C^X8
+/E*;@wL
+/EaA
+/Ep9-
+/LD~

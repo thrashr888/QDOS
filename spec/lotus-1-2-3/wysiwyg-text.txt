@@ -1,0 +1,621 @@
+Wysiwyg Publishing and Presentation
+Using IMPRESS and Bitstream Technology
+(C) Copyright Lotus Development Corporation 1990
+Column  Row  Page
+Font  Bold  Italics  Underline  Color  Lines  Shade  Reset  Quit
+Add  Remove  Goto  Settings  Move  Zoom  Compute  View  Edit  Duplicate  Quit
+Go  File  Background  Range  Config  Settings  Layout  Preview  Info  Quit
+Mode  Zoom  Colors  Options  Font-Directory  Rows  Default  Quit
+Copy  Move  Import  Export
+Edit  Align  Reformat  Set  Clear
+1  2  3  4  5  6  7  8  Define
+Return to READY mode
+Specify the width of a column or range of columns
+Specify the height of a row or range of rows
+Insert or remove a page break
+Return a column or range of columns to the global column width
+Adjust the row height automatically based on the font size
+Insert a page break at a row
+Insert a page break at a column
+Remove a page break you have inserted
+Return to READY mode
+1  2  3  4  5  6  7  8  Replace  Default  Library  Quit
+Add bold to or remove bold from a range
+Add italics to or remove italics from a range
+Add underlining to or remove underlining from a range
+Select a color for a range
+Add lines to or remove lines from a range
+Add shading to or remove shading from a range
+Remove all formatting from a range and restore default font
+Return to READY mode
+Replace a font in the current font set
+Restore  Update
+Retrieve  Save  Erase
+Replace the current font set with the default font set
+Save the current font set as the default font set
+Retrieve a font set saved in a font library on disk
+Save the current font set in a font library on disk
+Erase a font library file from disk
+Add bold to a range
+Remove bold from a range
+Add italics to a range
+Remove italics from a range
+Specify the color for data in a range
+Specify the background color for a range
+Specify the color for negative values in a range
+Reverse the background and text colors in a range
+Return the text color of a range to the default color
+Change the text color of a range to red
+Change the text color of a range to green
+Change the text color of a range to dark blue
+Change the text color of a range to cyan/gray
+Change the text color of a range to yellow
+Change the text color of a range to magenta
+Return the background color of a range to the default color
+Change the background color of a range to red
+Change the background color of a range to green
+Change the background color of a range to dark blue
+Change the background color of a range to cyan/gray
+Change the background color of a range to yellow
+Change the background color of a range to magenta
+Return negative values in a range to the default negative color
+Change the color of negative values in a range to red
+Draw a single-line outline around a range
+Draw a single vertical line along the left edge of each cell in a range
+Draw a single vertical line along the right edge of each cell in a range
+Draw a single horizontal line along the top edge of each cell in a range
+Draw a single horizontal line along the bottom edge of each cell in a range
+Draw a single-line outline around each cell in a range
+Outline  Left  Right  Top  Bottom  All
+Add a drop shadow to or remove a drop shadow from a range
+Remove the outline around a range
+Remove the vertical line from the left edge of each cell in a range
+Remove the vertical line from the right edge of each cell in a range
+Remove the horizontal line from the top edge of each cell in a range
+Remove the horizontal line from the bottom edge of each cell in a range
+Remove all outlines from all cells in a range
+Draw a double-line outline around a range
+Draw double vertical lines at the left edge of each cell in a range
+Draw double vertical lines at the right edge of each cell in a range
+Draw double horizontal lines at the top edge of each cell in a range
+Draw double horizontal lines at the bottom edge of each cell in a range
+Draw a double-line outline around each cell in a range
+Add a drop shadow to a range
+Remove a drop shadow from a range
+Draw a wide outline around a range
+Draw a wide vertical line at the left edge of each cell in a range
+Draw a wide vertical line at the right edge of each cell in a range
+Draw a wide horizontal line at the top edge of each cell in a range
+Draw a wide horizontal line at the bottom edge of each cell in a range
+Draw a wide outline around each cell in a range
+Add light shading to a range
+Add dark shading to a range
+Add solid shading to a range
+Remove shading from a range
+Add single underlining to data in a range
+Add double underlining to data in a range
+Add wide underlining to data in a range
+Remove underlining from data in a range
+Return to the previous menu
+Add a graphic to the worksheet
+Remove a graphic from the worksheet
+Move the cell pointer to a graphic
+Graph  Range  Sync  Display  Opaque  Quit
+Move a graphic to another range in the current file
+Display a full-screen view of a graphic
+Recalculate and redraw graphs
+View a .PIC or .CGM file
+Add  Select  Edit  Color  Transform  Rearrange  View  Options  Quit
+Copy an added graphic to a new location in the worksheet
+Return to READY mode
+Add the current graph to the worksheet
+Add a named graph to the worksheet
+Add a graph saved in a .PIC file to the worksheet
+Add a graphic saved in a .CGM file to the worksheet
+Add a placeholder for a graphic to the worksheet
+Replace a graphic in the worksheet with a different graphic
+Move a graphic to a different range or change its size
+Update selected graphics in the worksheet automatically or manually
+Turn the display of selected graphics in the worksheet on and off
+Make selected graphics in the worksheet opaque or transparent
+Replace a graphic with the current graph
+Replace a graphic with a named graph
+Replace a graphic with a graph saved in a .PIC file
+Replace a graphic with a graphic saved in a .CGM file
+Replace a graphic with a placeholder for a graphic
+Update selected graphics in the worksheet automatically
+Do not update selected graphics in the worksheet automatically
+Display selected graphics in the worksheet
+Display selected graphics as shaded rectangles in the worksheet
+Hide worksheet data underneath the selected graphics
+Make worksheet data underneath the selected graphics visible
+Display a graph saved in a .PIC file on the full screen
+Display a graphic saved in a .CGM file on the full screen
+Text  Line  Polygon  Arrow  Rectangle  Ellipse  Freehand
+One  All  None  More/Less  Cycle  Graph  Quit
+Text  Centering  Font  Line-Style  Width  Arrowheads  Smoothing
+Lines  Inside  Text  Map  Background  Quit
+Size  Rotate  Quarter-Turn  X-Flip  Y-Flip  Horizontal  Vertical  Clear
+Delete  Restore  Move  Copy  Lock  Unlock  Front  Back
+Full  In  Pan  +  -  Up  Down  Left  Right
+Grid  Cursor  Font-Magnification
+Return to READY mode
+Add text to the graphic
+Add a line or connected line segments to the graphic
+Add a polygon to the graphic
+Add an arrow to the graphic
+Add a rectangle to the graphic
+Add an ellipse or a circle to the graphic
+Add a hand-drawn picture to the graphic
+Specify the color for selected lines and outlines
+Specify a color for the inside of selected objects
+Specify the color for selected text objects
+Change the color mapping for the graphic
+Specify a color for the background of the graphic range
+Return to the previous menu
+Do not draw selected lines and outlines
+Do not draw selected text objects
+Edit the text in a graphic
+Left  Center  Right
+Change the font for text in a graphic
+1:Solid 2:Dashed 3:Dotted 4:Long-Dashed 5:Chain-Dotted 6:Chain-Dashed 7:Hidden
+1:Very-Narrow  2:Narrow  3:Medium  4:Wide  5:Very-Wide
+Switch  One  Two  None
+None  Tight  Medium
+Left-align text
+Right-align text
+Use solid lines for rectangles, polygons, ellipses, and freehand drawings
+Use dashed lines for rectangles, polygons, ellipses, and freehand drawings
+Use dotted lines for rectangles, polygons, ellipses, and freehand drawings
+Use long-dashed lines for rectangles, polygons, ellipses, and freehand drawings
+Use chain-dotted lines for rectangles, polygons, ellipses, and freehand drawings
+Use chain-dashed lines for rectangles, polygons, ellipses, and freehand drawings
+Hide lines around rectangles, polygons, ellipses, and freehand drawings
+Make lines and outlines very narrow
+Make lines and outlines narrow
+Make lines and outlines medium width
+Make lines and outlines wide
+Make lines and outlines very wide
+Change the direction the arrow is pointing
+Add an arrowhead to one end of a line
+Add arrowheads to both ends of a line
+Remove all arrowheads from a line
+Display objects with their original angles
+Draw a smooth outline close to the original outline of the object
+Draw an object with maximum smoothing (for example, turn rectangle into ellipse)
+Display or remove grid lines in the graphics editing window
+Change the size of the cursor in the graphics editing window
+Font-Magnification
+Change the size of all text in a graphic
+Do not display grid lines
+Display grid lines
+Use a small cross as the cursor in the graphics editing window
+Use a large cross as the cursor in the graphics editing window
+Delete selected objects from the graphic
+Restore the most recently deleted objects to the graphic
+Move selected objects in the graphics editing window
+Copy selected objects in the graphics editing window
+Protect selected objects from changes
+Remove protection from selected objects
+Place selected objects in front of all other objects
+Place selected objects in back of all other objects
+Select one object in the graphics editing window
+Select all objects in the graphics editing window (except the graphic itself)
+Deselect all objects and the graphic in the graphics editing window
+Select more (or fewer) objects in the graphics editing window
+Select objects in the graphics editing window by cycling through all objects
+Select the graphic but not the objects added to the graphic
+Change the size of selected objects
+Rotate selected objects
+Rotate selected objects in 90-degree increments
+Flip selected objects vertically
+Flip selected objects horizontally
+Adjust the slant and size of selected objects by width
+Adjust the slant and size of selected objects by height
+Return selected objects to their original states
+Display the graphics editing window's contents in its full size
+Display a selected portion of the graphics editing window in its full screen
+Move one half-screen left, right, up, or down in the graphics editing window
+Expand the size of the contents of the graphics editing window
+Contract the size of the contents of the graphics editing window
+Move up one half-screen in the graphics editing window
+Move down one half-screen in the graphics editing window
+Move left one half-screen in the graphics editing window
+Move right one half-screen in the graphics editing window
+Specify a cell whose format you want to define as a named style
+Edit text directly in the worksheet
+Left  Right  Center  Even
+Format long labels as a text range (to resemble a paragraph)
+Specify a text range to align, edit, or reformat
+Remove the {Text} attribute from cells in a range
+Left-align each line of text in a range
+Right-align each line of text in a range
+Center each line of text in a range
+Align text with both sides of text range
+Change the current font
+Change the current color
+Make text superscript
+Make text subscript
+Outline letters
+Turn off all attributes
+Return the current color to the default text color of the cell
+Change the current color to red
+Change the current color to green
+Change the current color to dark blue
+Change the current color to cyan/gray
+Change the current color to yellow
+Change the current color to magenta
+%@%r row: %d  col: %d  %s 
+Use semicolon text to create note?
+Left-align each line of text in the note
+Right-align each line of text in the note
+Center each line of text in the note
+Align text with both sides of text in the note
+Change all the notes in the current file
+Change only the notes in a specified range
+Graphics  Text  B&W  Color
+Tiny  Small  Normal  Large  Huge  Manual
+Background Text Unprot Cell-Pointer Grid Frame Neg Lines Shadow Replace Quit
+Frame  Grid  Page-Breaks  Cell-Pointer  Intensity  Quit
+Specify the directory that contains Wysiwyg fonts
+Specify the number of rows to display
+Restore  Update
+Return to READY mode
+Set worksheet display so it looks like final printed output
+Set worksheet display so it looks like it does in 1-2-3 without Wysiwyg
+Set worksheet display to black and white (works only in graphics mode)
+Set worksheet display to color (works only in graphics mode)
+Reduce cells to 63% of their normal size
+Reduce cells to 87% of their normal size
+Display cells at their normal size
+Enlarge cells to 125% of their normal size
+Enlarge cells to 150% of their normal size
+Manually enlarge or reduce the size of cells
+1-2-3  Enhanced  Relief  Special  None
+Turn grid lines on or off
+Display or hide page-break symbols in the worksheet
+Specify the cell-pointer style (solid or outline)
+Specify screen display brightness
+Return to the previous menu
+Display the standard 1-2-3 worksheet frame
+Display the enhanced worksheet frame
+Display the enhanced worksheet frame in gray using 3D sculpting
+Characters  Inches  Metric  Points/Picas
+Do not display the worksheet frame
+Display the worksheet frame in characters (10 point type/6 lines per inch)
+Display the worksheet frame in inches
+Display the worksheet frame in centimeters
+Display the worksheet frame in points
+Do not display grid lines
+Display grid lines
+Display page-break symbols in the worksheet
+Do not display page-break symbols in the worksheet
+Display the cell pointer as a solid rectangle
+Display the cell pointer as a border around the current cell or range
+Display all items on the screen at normal intensity
+Display all items on the screen at high intensity
+Replace the current display settings with the default display settings
+Save the current display settings as the default display settings
+Specify a color for displaying the worksheet background
+Specify the color of text in the worksheet
+Specify the color of data in unprotected ranges
+Specify the color of the cell pointer
+Specify the color of grid lines
+Specify the color of the worksheet frame
+Specify the default color of negative numbers
+Specify the color of cell borders
+Specify the color of drop shadows
+Replace colors in the color palette
+Return to the previous menu
+Modify the palette setting for Black
+Modify the palette setting for White
+Modify the palette setting for Red
+Modify the palette setting for Green
+Modify the palette setting for Dark-Blue
+Modify the palette setting for Cyan/Gray
+Modify the palette setting for Yellow
+Modify the palette setting for Magenta
+Copy the format of a range to another range
+Move the format of a range to another range
+Apply the format and/or settings of another file to the current file
+Save formatting information for the file in an .FM3, .FMT, .FMS, or .ALL file
+Import all settings and graphics from an .FM3, .FMT, .FMS, or .ALL file on disk
+Import the named styles from an .FM3, .FMT, or .FMS file on disk
+Replace fonts in current file with fonts from an .FM3, .FMT, .FMS, or .ALL file
+Import graphics from an .FM3, .FMT, .FMS, or .ALL file on disk
+Print the specified range
+Send data to an encoded file on disk
+Print the specified range in the background
+Specify or cancel the print range
+Printer  Interface  1st-Cart  2nd-Cart  Orientation  Resolution  Bin  Quit
+Begin  End  Start-Number  Copies  Wait  Grid  Frame  Reset  Quit
+Page-Size  Margins  Titles  Borders  Compression  Default  Library  Quit
+Preview a print range
+Remove or redisplay the Print Settings dialog box
+Return to READY mode
+Return to READY mode without saving an encoded file
+Replace the file on disk with the current file
+Specify the range or ranges to print
+Clear the currently specified print ranges
+Specify the printer for the current print job
+Specify the serial or parallel printer interface
+Specify a primary font cartridge
+Specify a secondary font cartridge
+Portrait  Landscape
+Reset  Single-Sheet  Manual  Upper-Tray  Lower-Tray
+Return to the previous menu
+Reset all bin settings to the defaults
+Use single-sheet feed on the current printer
+Use continuous form feed on the current printer
+Use paper in the upper tray on the current printer
+Use paper in the lower tray on the current printer
+Specify the first page to print
+Specify the last page to print
+Specify the page number for the first page in the print range
+Specify the number of copies to print
+Wait at end of each page for paper change
+Specify whether to print grid lines in the print range
+Specify whether to print the worksheet frame with the print range
+Return all print settings to the defaults
+Do not print the worksheet frame with the print range
+Print the worksheet frame with the print range
+Do not print grid lines with the print range
+Print grid lines with the print range
+Do not wait for paper change at the end of each page
+Wait for paper change at the end of each page
+Final-quality resolution
+Draft-quality resolution
+Print from top to bottom of the page
+Print sideways on the page (if supported by the printer)
+1:Letter  2:A4  3:80x66  4:132x66  5:80x72  6:Legal  7:B5  Custom
+Left  Right  Top  Bottom  Quit
+Header  Footer  Clear  Quit
+Top  Left  Clear  Quit
+None  Manual  Automatic
+Restore  Update
+Retrieve  Save  Erase
+Return to the previous menu
+Letter size: 8 1/2" x 11" (216mm x 279mm)
+International A4 size: 8.268" x 11.693" (210mm x 297mm)
+80 columns/66 lines: 8 1/2" x 11" fanfold (216mm x 279mm)
+132 columns/66 lines: 14" x 11" fanfold (356mm x 279mm)
+80 columns/72 lines: 8 1/2" x 12" fanfold (216mm x 305mm)
+Legal size: 8 1/2" x 14" (216mm x 356mm)
+International B5 size: 6.929" x 9.843" (176mm x 250mm)
+Manually set paper length and width
+Specify the left margin
+Specify the right margin
+Specify the top margin
+Specify the bottom margin
+Specify the header for the current print job
+Specify the footer for the current print job
+Header  Footer  Both
+Remove the header
+Remove the footer
+Remove both the header and the footer
+Specify borders to print at the top of each page in the print job
+Specify borders to print at the left margin of each page in the print job
+Remove the top border
+Remove the left border
+Remove all borders
+Remove manual or automatic compression
+Compress or expand the print range
+Compress the print range automatically to fit on one printed page
+Replace the current page layout with the default page layout
+Save the current page layout as the default page layout
+Retrieve a page layout library file from disk
+Save the current page layout in a library file on disk
+Delete a page layout library file from disk
+Cell defining the style: 
+Style description: 
+Select the color
+Select typeface: 
+Select the printer driver: 
+Point size set to generate: 
+Select point size set to generate:
+Enter path to WYSIWYG.PLC: 
+Wrong or corrupted WYSIWYG.PLC
+Computing graph
+Return a range to the default color
+Return to READY mode
+Cancel command -- Leave existing file intact
+Erase existing file and create a new file
+Bitstream Swiss (sans serif typeface)
+Bitstream Dutch (serif typeface)
+Bitstream Courier (fixed pitch font)
+Bitstream Dingbats (special effects characters)
+Choose typeface from the list of extended typefaces
+Bitstream Swiss
+Bitstream Dutch
+Enter color value (0..63): 
+Hide/Show SmartIcons
+Insert & Delete
+More Navigation
+Enlarge title text, yellow on blue
+Draw lines around data in range
+Format text as bold, black on yellow
+Format a row of totals
+Format a column of totals
+Draw shadow and lines within range
+Reset range style to defaults
+Define your own named style
+ -- Press F1 (HELP)
+1200 baud XON/XOFF
+9600 baud XON/XOFF
+Print the grid ?
+Print cell coordinates ?
+Select the first font cartridge: 
+Select the second font cartridge: 
+Select range to align: 
+Select range to reformat: 
+Select text range: 
+Enter number of rows (16..60): 
+Choose typeface from the list of extended typefaces
+Select the typeface: 
+Enter fonts directory: 
+Font size in points (3..72): 
+Press a key when ready to Print (ESC to cancel)
+Downloading font: 
+Change the attributes of range: 
+Copy the attributes FROM: 
+Copy the attributes TO: 
+Move the attributes FROM: 
+Move the attributes TO: 
+This page was printed using Demo version 3.0
+Range to print: 
+Columns to print on the left of each page: 
+Rows to print on top of each page: 
+Print compression ratio (15..1000): 
+Bottom margin: 
+Start printing page: 
+Stop printing page: 
+Number of copies (1..99): 
+Number of first page in print range: 
+Select the rows to set height to: 
+Enter row height (1..255 points): 
+Select the columns to set width to: 
+Enter column width (1..240 characters): 
+Enter new format file name: 
+Enter the format file name to import: 
+Screen scale factor (25..400): 
+Enter the name of the layout library: 
+Enter the name of the font library: 
+Select the graphics to make opaque/transparent: 
+Select the graphics to draw/hide: 
+Select the graphics to sync/unsync: 
+Select the graphic to go to: 
+Select the graphic to move: 
+Select the graphics to remove: 
+Select the graphic to resize: 
+Select the graphic to zoom: 
+Select a graphic file: 
+Select a named graph: 
+Enter the graphic display range: 
+Enter the new top left position: 
+Select the graphic to edit: 
+Select the graphic to redefine: 
+Font scaling factor (0..1000): 
+Select the graphic to duplicate: 
+Move to the first point: 
+Draw freehand: 
+Stretch the line to the next point: 
+Move to the first corner: 
+Stretch the box: 
+Cycle with cursor keys, SPACEBAR to toggle selection, ENTER when done
+Point to desired object:
+Select objects to color:
+Select objects to edit:
+Select objects to flip:
+Select objects to rotate:
+Select objects to resize:
+Select objects to skew:
+Select objects to move:
+Select objects to reset:
+Select objects to duplicate:
+Select objects to delete:
+Select objects to lock/unlock:
+Select objects to reorder:
+Resize objects:
+Rotate objects:
+Move selection to desired location:
+Select text to edit:
+Use cursor keys to move view, +/- to zoom, ENTER to leave
+Return to the :Graph Edit menu
+Cannot find WYSIWYG.ALD
+Cannot load Wysiwyg add-in
+Error reading WYSIWYG.ALD
+Not enough memory for graphics display mode
+Cannot use this command in text display mode
+Cannot define a named style from a graphic
+No printer interface driver attached
+No print range specified
+Error writing temporary file
+Error reading format file
+Text range full
+Invalid typeface
+Error: transmission interrupted
+Not enough memory to load driver
+: Not a graphic file
+: Not a FNT file
+: Bad opcode in file
+No graphics printer driver selected
+Cannot initialize port: Please check
+Error writing output file
+Not enough memory to print
+Invalid driver set
+Too many colors
+No graphics output driver available
+Cannot load Wysiwyg font library
+Cannot load graphics printer driver
+Cannot load Wysiwyg screen driver
+Cannot load Wysiwyg graphics driver
+Cannot load Wysiwyg character driver
+Graphic not found
+Cannot add graph
+Invalid configuration file
+Error writing configuration file
+Cannot create format file
+Not enough memory to load Wysiwyg
+Missing file: WYSIWYG.FDT
+This printer cannot print in landscape mode
+Device driver not installed
+Cannot move graphs beyond worksheet boundaries
+File already in use
+Printer driver has no graphics capability
+Out of memory; Undo disabled
+Cannot find WYSIWYG.LBR
+Margins equal or exceed page size
+Invalid print range
+Cannot Move or Copy formats beyond worksheet boundaries
+Error writing file
+Cannot erase file
+Cannot retrieve library file
+Invalid library file
+Cannot create temporary file
+Cannot export to this format from a multiple-worksheet file
+Directory does not exist
+Too many characters in path
+Add-in manager cannot attach WYSIWYG
+Global protection is enabled
+Cannot use :Text Edit on a hidden range
+Graph too big to be edited
+BPrint is not in memory
+Insert next sheet of paper and press any key to resume
+Too many formatting combinations
+Cannot write file ICONS3.CNF; changes will not be saved
+Macro exceeds 512 characters or has too many commands
+Cannot sum range if no blank cells at bottom or right of range
+BMP file is too big or compressed, or contains more than 16 colors
+BMP file is corrupted
+Icon Editor is not available in the current mode
+File does not exist
+Can't load ICONS3.DAT data file
+User icon is not defined; you must assign a macro to the user icon
+Not enough data to graph
+Cell comment is not available in the current mode
+Current cell already has a comment
+Current cell does not have a comment
+Cannot Move or Copy comments beyond worksheet boundaries
+Range to be sorted:
+Sort key column:
+Delete column(s)
+Delete sheet(s)
+Select the icon you want to add
+to the custom palette.
+Select the icon you want to move
+in the custom palette.
+Select the new position of the icon
+Select the icon you want to remove
+from the custom palette.
+no used yet tony
+Icon Description:
+Copy macro to cell: 
+Get macro from range: 
+Get Macro from Sheet
+Copy Macro to Sheet
+Assign Macro to U
+Use pointer-movement keys to highlight icon. Press ENTER to select icon.
+Select BMP file: 
+ contains data. Overwrite it?
+QuickGraph Settings
+ Esc=Save     F3=Style 

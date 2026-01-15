@@ -1,0 +1,1284 @@
+ENTER continue; ESC end install; SPACE BAR select drive
+Press @ENTER@ to choose programs to transfer.
+Install transfers 
+@ to move highlight; @SPACEBAR@ to add/remove @
+@TAB@ to change drive
+Press @ENTER@ to begin.
+@ to move highlight; @SPACEBAR@ to add/remove $
+@ to move highlight; @SPACEBAR@ to add/remove $
+@ENTER@ to accept selections, @F1@ for Help, @ESC@ to change drive.     
+@ENTER@ to accept selections, @F1@ for Help, @ESC@ for previous screen.
+                                                                
+             F1 displays Help          ESC ends Install
+ move highlight    SPACE BAR adds/removes 
+Install cannot continue. You need to
+select at least one item on this screen.
+Install will transfer each program with a 
+its name.  Use 
+ to move the highlight to a
+program name.  Press the space bar to add or remove a 
+When you add or remove a 
+, Install calculates how much 
+disk space the selected programs will occupy and displays
+the space available on the hard-disk drive you specified.
+A brief description of each program follows:
+1-2-3 Release 4 combines spreadsheet, graphics, and database;
+now includes Wysiwyg and SmartIcons.
+Additional Tools include the Auditor, Backsolver, Viewer, and
+Solver add-ins, which provide additional functionality to 1-2-3.
+Sample Files include SmartSheets, sample worksheet files that
+let you work with 1-2-3 in various situations.
+QuickStart for Upgraders is an interactive, online introduction
+to the new features in 1-2-3 Release 4 for DOS.
+Translate lets you use data from other spreadsheet and 
+database programs in 1-2-3 or lets you convert 1-2-3
+worksheet data to other file formats.
+Datalens Driver Files let you read data from and write data
+to external database programs without leaving 1-2-3.
+Press ESC to return to the Install menu
+1-2-3 Release 4
+Additional Tools (press SPACEBAR for options)
+QuickStart for Upgraders
+Translate Utility
+DataLens Driver Files
+1,1,11,10,11,8,11,10,1,,1,core,,0,,-1
+1,0,12,10,12,8,12,10,1,,1,core,,0,,-1
+1,1,13,10,13,8,13,10,1,,1,sample,,0,,-1
+1,1,14,10,14,8,14,10,1,QSTART,1,qckstart,,0,,-1
+0,1,15,10,15,8,15,10,0,,4,translate,,0,,-1
+0,1,16,10,16,8,16,10,0,,6,datalens,,0,,-1
+0,1,0,0,0,0,0,0,0,WYSIWYG,2,impimp,,0,,0
+0,1,0,0,0,0,0,0,0,,2,impprod,,0,,0
+0,1,0,0,0,0,0,0,0,ADDINS,2,impaddin,,1,WYSIWYG.PLC,0
+0,1,0,0,0,0,0,0,0,COUNT,7,count,,0,,0
+0,1,0,0,0,0,0,0,0,,1,dld,,0,,0
+0,1,0,0,0,0,0,0,0,,1,lrf,,0,,0
+0,1,0,0,0,0,0,0,0,,1,pbd,,0,,0
+0,1,0,0,0,0,0,0,0,,1,vbd,,0,,0
+@TRANSFERRING 1-2-3 RELEASE 4 AND ADDITIONAL PROGRAMS@
+Install transfers the programs with marks beside
+their names to your hard disk.
+Press @ENTER@ to continue
+WYS-SUB-WYSIWYG
+ADDIN-SYM-SYM23
+PGRAPH-SYM-SYM23
+TUTOR-SUB-TUTOR
+TRANS-SYM-TRANS
+COUNT-SUB-COUNT
+Specify @DRIVE@, select @PROGRAMS@, press @ENTER@ to continue
+                   @SELECTING 1-2-3 PROGRAMS TO TRANSFER@
+                    ...............................
+                                                    -------------------------
+                  Space needed for selected options:
+                           Remaining space on drive:
+Auditor checks and analyzes formulas in worksheets.
+Backsolver lets you make the result of a formula
+equal to a value you specify.
+Viewer lets you view the contents of spreadsheet,
+text, and database files on disk.
+Solver lets you find the best answer or set of
+possible answers for a what-if problem.
+Mail Enabling for cc:Mail lets you send a text message, 
+range, or file as an electronic mail message.  To do
+this, you need Lotus cc:Mail version 4.02 for DOS or
+later, and you must be connected to a mail server.
+Add-In Library Files let you use add-ins developed with
+the Lotus Add-In Toolkit.
+Mail Enabling for cc:Mail
+Add-In Library Files
+Install cannot continue.
+Not enough memory.
+Your system does not have enough memory available to
+use the rest of Install. End Install, remove all
+memory-resident programs, and start Install from the
+beginning. If this error occurs again, write down the error
+message and have your hardware information available. Then
+refer to the Customer Assurance Plan to contact Customer Support.
+Access-denied error encountered while opening DEARJ.EXE.
+Repeat the Install procedure from the beginning. If
+this error occurs again, write down the error message,
+have your hardware information available, and contact your
+technical resource person or computer dealer.
+The file DEARJ.EXE is damaged.
+End Install, then start Install from the original
+Disk 1 (Install). If this error occurs again, you need
+a replacement disk. See the Customer Assurance Plan
+for information on replacing damaged disks.
+Install cannot find necessary files.
+You must start Install from Disk 1 (Install).
+Your hard disk does not have enough space for
+Install to transfer the remaining files.
+In order for Install to transfer the files you
+need to use 1-2-3, you must make room on your
+hard disk. To do this, end Install and delete
+any unneeded files. When you start Install again,
+select only the programs you want to use.
+@RE-INSTALLATION@
+Install has found that you have already installed this
+software on a hard-disk drive. To continue installation,
+please note the reason for reinstallation:
+                                    @CHECK ONE:@
+Re-Installation on the Same Machine:
+Installation on a Secondary Machine:
+Either you are trying to install a second copy of 1-2-3 Release 4
+on a machine that already has a copy of 1-2-3 Release 4, or you
+are trying to install 1-2-3 Release 4 on a second machine.
+Select Re-Installation on Same Machine if you need to replace
+your 1-2-3 Release 4 program files (for example, they may be
+damaged or you may be recovering from disk failure).
+Select Installation on a Secondary Machine if you have a second
+machine (such as a portable machine or a notebook PC) and you
+agree to secure a Home and Travel License pack.
+@LICENSE INFORMATION@
+The software agreement for this software only allows its use
+on a single PC, for a single user. By the terms of this
+agreement, you are obligated to obtain additional licenses
+for use on additional PCs. Lotus makes available special
+"Home & Travel" Licenses for this purpose.
+The Home and Travel License pack includes a special set of
+documentation specifically designed for travel, a set of
+special screen drivers, templates for home finances and one
+additional month of technical support, as well as a license
+to use this software on a secondary machine.
+To order your Home and Travel License Pack for $XXX.00 call
+Lotus at 1-800-???-????.
+By continuing this installation you agree to secure a License
+for secondary machine use.
+If you do not agree with this software agreement, press ESC
+to end installation.
+Press @ENTER@ to continue
+F1 displays Help         ESC ends Install
+ move highlight
+F1 displays Help          ESC goes to previous page
+The 1-2-3 Release 4 Install program cannot run on this type
+of processor. You must have an 80286 or 80386 processor.
+There is not enough memory available to run Install.
+Remove all memory-resident programs and start Install
+To run Install for 1-2-3 Release 4, your current drive and
+directory must contain the Install program. The drive and
+directory containing Install appears below. Make this drive
+and directory current and start Install again.
+You cannot run this program in the DOS Compatibility Box.
+You must run this program with DOS 3.0 or later.
+You cannot run Install in a Presentation Manager text window.
+Select a full-screen command prompt, make the drive and directory
+containing Install current, and start Install again.
+1-2-3 Release 4 Install Program
+Copyright 1994 Lotus Development Corporation.
+All Rights Reserved.
+Your system does not have enough memory available to run
+Install. End Install, remove all memory-resident programs,
+and start Install again.
+Install cannot continue.
+An error has occurred while trying to read the
+file INSDISK.RI. End Install and check if the file
+exists in the current directory. If the file exists,
+start Install from the current directory again. If the
+file does not exist, start Install from the original
+You cannot run Install from the type of diskette you
+have in the drive. You must use the original Install
+Disk to install 1-2-3 Release 4.
+You cannot use this diskette to record your name and
+organization name because it has been damaged. You need to
+get a replacement Install Disk so you can record your
+name and organization name, which makes your copy of 1-2-3
+See the Customer Assurance Plan for information on
+on replacing damaged diskettes.
+The diskette in the drive is not the original
+To record your name and organization name on your
+copy of 1-2-3 Release 4, you must start Install
+from the original Install Disk.
+You have not yet recorded your name and organization name on
+your copy of 1-2-3 Release 4. You must do this to make
+your copy of 1-2-3 Release 4 usable. After you read this
+message, press ESC to return to the operating system
+prompt. Delete all files in your 1-2-3 Release 4 program
+directory and start Install from the original Install Disk.
+Some of the files that 1-2-3 Release 4 needs are
+missing. Without these files, 1-2-3 will not be able
+to run correctly.
+If you removed these files intentionally, you can
+continue and specify the screen display and printers you
+will use with 1-2-3. If you did not remove these files
+intentionally, end Install and start it again from the
+original Install Disk.
+To continue with install, type @Y@.
+To end install, type @N@.
+Install has detected that some 1-2-3 Release 4 files in this
+directory are compressed. You must decompress them before
+they can be used. If you do not decompress them, these files
+should be erased from the directory.
+Install decompresses files automatically during the file-
+transfer process. You can also use the Inflate utility to
+decompress the files already in the directory.
+At this point you can continue with Install. However,
+if the files needed for Install to continue are compressed
+files, Install will not be able to proceed.
+The compressed files in this directory should be either
+decompressed or deleted. They cannot be used while they
+are compressed.
+If you copied all the files from the diskettes using the
+operating system COPY command, end Install now, delete
+the files from the directory, and run the Install program
+from the Install Disk. Install decompresses the files
+automatically during the file-transfer process.
+To decompress the files using the Inflate utility, see
+Appendix 1 of Reference.
+Install cannot find the file INS.EXE.
+You must start Install from the Install Disk.
+Install cannot find the file INSTALL.RI.
+Install cannot find the file INSTALL.SCR.
+Install cannot find the file INSTALL.DDF.
+When you start Install from the Install Disk, type
+               install
+and press ENTER. Do not type anything after you type
+An error occurred while trying to gain direct acccess
+to your Install Disk. This could happen if your diskette
+drive is being shared on a network. You cannot use this
+drive at this time to run Install.
+End Install. Make sure that the drive containing the
+Install Disk is not being shared on a network, or insert
+your Install Disk in a different drive. Then run
+The 1-2-3 Install Program guides you through the following
+steps, which you must complete before you can use 1-2-3:
+* Recording your name and organization name on your copy of 1-2-3
+* Specifying the hard-disk drive and directory for 1-2-3
+* Transferring the 1-2-3 files to the 1-2-3 directory
+Use, duplication, or sale of this software, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+Welcome to the 1-2-3 Release 4 for DOS Install program. You
+use the Install program to prepare your system for use with 
+1-2-3. During Install you select a drive and directory for the
+1-2-3 program and add-in files. Install then transfers the 1-2-3
+files to your hard disk.
+You can end Install at any time before you complete it, but you
+must complete it before you can use 1-2-3.
+The 1-2-3 Install Program guides you through the following
+steps, which you must complete before you can use 1-2-3:
+* Specifying the hard-disk drive and directory for 1-2-3
+* Transferring the 1-2-3 files to the 1-2-3 directory
+NOTE  If you want only to specify or change your equipment
+selections, start Install from your hard disk.
+Use, duplication, or sale of this software, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+Welcome to the 1-2-3 Release 4 for DOS Install program. You
+use the Install program to prepare your system for use with
+1-2-3 Release 4. In Install, you will select a drive and
+directory for the 1-2-3 program and add-in files. You will also
+specify the 1-2-3 programs you want to transfer, such as the
+Auditor, Backsolver, Viewer, and Solver add-ins, Translate
+utility, and Add-In Library and DataLens files, and whether 
+you want 1-2-3 to automatically load add-ins. You will then 
+transfer the 1-2-3 files to your hard disk and select equipment
+to use with 1-2-3, including screen display and printer.
+You can end Install at any time before you complete it, but you
+must complete it before you can use 1-2-3.
+You use the 1-2-3 Install program to specify your equipment
+so 1-2-3 can work correctly with it. You specify your
+equipment by selecting items on menus.
+NOTE  If you want to transfer the 1-2-3 program, add-in,
+or utility files to your hard disk, you must start
+Install from the Install disk.
+To see a list of the keys you can use, press F1 now. You
+can also press F1 for additional help at any time.
+                    @RECORDING YOUR NAME AND ORGANIZATION NAME@
+            Your name:    $
+            Organization name: $
+        Press @ENTER@ to switch between names, @INS@ when done.
+            @F1@ displays a Help screen.    @ESC@ ends Install.
+The first time you use Install you must record your name
+and organization name. After you enter and confirm these names,
+Install records them on your copy of 1-2-3. You will see
+your name and organization name every time you start 1-2-3.
+You can edit the names using BACKSPACE, DEL, 
+After you finish editing both names, press INS.
+To record your name and organization name, follow these steps:  
+* Type your name below. If you make a mistake while typing,  
+   use BACKSPACE, DEL, 
+ to edit, then press ENTER.  
+* Type your organization name. If you do not have an organization 
+  name, type your own name a second time. Then press INS.
+You entered the following names:             
+If the names are correct, type @Y@.
+If you want to change the names, type @N@.
+You are being asked to confirm the names you entered.
+After you confirm that the names are correct, they will
+be recorded on your copy of 1-2-3.
+If the names you entered are not correct, type N to
+return to the previous screen and enter the correct names. 
+Your entry is not valid. You must enter
+a name in this input area.
+Install cannot continue.
+The diskette in the drive is write-protected.
+You can end Install now or continue. To continue,
+remove the diskette, undo the write protection,
+reinsert the diskette in the drive, and press ENTER.
+Install cannot save the names you entered
+because the Install Disk is write-protected.
+If you are using 5 1/4" diskettes, remove the
+write-protect tab.
+If you are using 3 1/2" diskettes, make sure the
+sliding tab completely covers the hole.
+@TRANSFERRING THE TRANSLATE UTILITY@
+The Translate utility lets you exchange data between 1-2-3
+and other programs. To save space on your hard disk,
+Install transfers the Translate utility to your hard disk
+only if you choose to do so. You cannot use the Translate
+utility until you transfer it to your hard disk.
+If you want Install to transfer the Translate utility,
+type Y. If you do not want Install to transfer the
+Translate utility, type N.
+Do you want to transfer the Translate utility?  #
+@F1@ displays a Help screen.  @ESC@ moves to a previous screen.
+The Translate utility is a program that lets you convert
+data files to and from the 1-2-3 Release 3 file format.
+Because you can use Translate only from your hard disk,
+Lotus recommends that you transfer the Translate utility
+to your 1-2-3 Release 4 program directory now unless you
+are certain that you will never need to use it.
+The 1-2-3 files have been compressed to reduce the number of
+disks in your Release 4 package. Install not only transfers
+the files to the program directory, it also decompresses them
+to make them usable. If you do not transfer the Translate
+utility now and find that you need it later, you can either
+use Install again or use a utility called Inflate to transfer
+files necessary to use Translate. For more information on
+using Inflate, see Appendix 1 of Reference.
+@TRANSFERRING WYSIWYG FILES@
+To save space on your hard disk, Install transfers Wysiwyg
+to your hard disk only if you choose to do so. You cannot
+use Wysiwyg until you transfer it to your hard disk.
+If you want Install to transfer Wysiwyg to your hard disk,
+type Y. If you do not want Install to transfer Wysiwyg to
+your hard disk, type N.
+Do you want to transfer Wysiwyg ?  #
+@NOTE@  You must load Wysiwyg before you can use it to enhance
+1-2-3 printing and display. To load Wysiwyg, start 1-2-3 and
+press ADDIN (ALT-F10), select Load, and specify WYSIWYG.PLC.
+To get Help on loading Wysiwyg, press F1 while using 1-2-3.
+@F1@ displays a Help screen.  @ESC@ moves to a previous screen.
+Wysiwyg provides spreadsheet publishing features for use
+with 1-2-3 Release 4. Because you can use the Wysiwyg
+files only from your hard disk, Lotus recommends that you
+transfer the Wysiwyg files to your hard disk now unless
+you are certain that you will never need to use Wysiwyg.
+Before you can use Wysiwyg with 1-2-3, you must load it.
+See "Basic Procedures for Using Wysiwyg" in Chapter 2 of
+"Wysiwyg Publishing and Presentation" for instructions on
+loading Wysiwyg.
+The Install program found files in an existing ADDINS
+subdirectory. Because you chose to transfer Wysiwyg to
+your hard disk, the Wysiwyg files may write over existing
+files in the ADDINS subdirectory.
+ Type the letter of your hard-disk drive: #
+Enter the letter of your hard-disk drive. The default letter,
+C, is the letter assigned to most hard-disk drives. If you are
+not sure of the letter of your hard-disk drive, check with your
+technical resource person.
+Install cannot locate the disk drive you specified.
+You must specify another disk drive.
+The disk drive you specified does not have enough space
+to contain all the files 1-2-3 needs. Either end Install
+and make room on the disk drive you specified, specify
+a different disk drive, or change your program selections.
+To specify a different disk drive, press ENTER.
+An error occurred when Install tried to access the
+drive you specified. You must specify another drive.
+The drive you selected is a diskette drive. Because
+you cannot start 1-2-3 Release 4 from a diskette,
+Install will not transfer the program files to a
+diskette drive. Specify another disk drive.
+The drive you specified is not ready. Specify another
+drive, or make the drive you specified ready. If the
+drive accepts removable media, insert a disk or
+cartridge in the drive and close or latch the door.
+The disk in the drive is write-protected.
+Install cannot transfer the 1-2-3 Release 4 program
+files because the disk in the drive is write-protected.
+Either undo the write protection and choose to continue,
+or specify a different drive.
+The disk drive you specified does not have enough space for the
+programs selected. You can continue removing marks from
+any companion programs you do not need, or end Install and make
+room on the disk drive you specified, or you can choose another
+ Before Install can transfer the Count utility, you must
+ complete two steps: Specify the letter of the hard-disk drive
+ for the Count utility and specify the name of the directory
+ for the Count utility. You specify the hard-disk drive letter
+ on this screen and the directory on the next screen.
+ The Count utility lets you control how many users can run 1-2-3
+ from the server at the same time.  Lotus recommends you transfer
+ the Count utility to a location to which your users do not have
+you do not start count utility from a diskette,
+Install will not transfer the count files to a
+and make room on the disk drive you specified or specify
+a different disk drive.
+ Type a name for your 1-2-3 directory:    $
+Lotus recommends that you accept the default directory
+name 123R4D. Accepting the default directory will ensure
+that the new directory contains files only for 1-2-3
+If you want to specify a different name for the 1-2-3
+Release 4 program directory, use the following keys to
+edit the directory name:  BACKSPACE, DEL, 
+You entered the following directory:
+This directory contains files that Install might write
+over.  Are you sure you want to transfer files to this
+If you want to transfer files to this directory, type @Y@.
+If you want to change the directory name, type @N@.
+Install cannot create the QSTART directory necessary for 
+installation to proceed.
+Check the directory name you entered below to be sure it is
+correct. After you confirm the name, Install will create a
+directory with that name on your hard disk.
+* If the name you entered is correct, type Y and press
+* If you want to change the name, type N and press ENTER.
+The directory you specified does not yet exist. If you
+want Install to create the directory, type Y and press
+ENTER. Install will create the directory and transfer
+1-2-3 files to it.
+If you do not want Install to create this directory, type
+N and press ENTER. Install will return to the screen on
+which you specify a directory, and you will be able to edit
+the directory name.
+The directory you specified
+You should use this directory only if the files in it
+are count utility files.
+If the files in the directory are count utility files,
+If the files in the directory are not count utility
+files, type @N@. Then enter the name of a different
+The directory you specified contains files. If the files
+are 1-2-3 Release 4 files, type Y and press ENTER.
+Install will transfer the files to the directory. This
+will allow you to restore any files that may be missing.
+If the files in the directory are not 1-2-3 Release 4
+files, type N and press ENTER. Lotus recommends that you do not
+choose to write over any files that are not 1-2-3 Release 4
+files because doing so may interfere with the way 1-2-3 runs.
+The directory you specified contains compressed files. You cannot
+use 1-2-3 Release 4 program files when they are compressed.
+If you still want to use the directory name you specified,
+If you want to change the name of the directory, type @N@.
+Then change the name of the directory.
+The directory you specified contains compressed files. Although
+this will not prevent you from using this directory as your 1-2-3
+program directory, if these compressed files are 1-2-3 files you
+you will not be able to use them. You cannot use 1-2-3 files when
+they are compressed.
+You can save space on your hard disk by erasing the compressed
+1-2-3 files after you complete the Install program. Compressed
+1-2-3 files have an exclamation point (!) as the second letter of
+the file name extension. For example, TRANS.E!E is a compressed
+If the files are 1-2-3 files, you probably copied them to your
+hard disk directly from the 1-2-3 disks. If you use the operating
+system COPY command to copy 1-2-3 files to your hard disk, the
+files will not be usable.
+The directory name you specified contains invalid
+characters. Do not use the following characters in
+your directory name:
+     (space) " [ ] : | < > + = ; , & ( ) * ?
+You must specify a new directory name.
+A directory name can have a maximum of eight characters.
+The name you entered exceeds this limit. Enter a shorter
+directory name.
+The Install program found files in the directory you
+specified that are not 1-2-3 Release 4 files.
+You must specify an empty directory or the 1-2-3 Release
+4 directory, if one exists. If you specify a 
+directory that does not yet exist, Install will create
+the directory for you.
+You should save your configuration files before continuing
+with Install. If you have already saved these files,
+continue. If you have not saved these files, end Install
+and save the files in a directory that is not your 1-2-3
+Release 4 program directory. Then restart the Install
+program. Save the following files:
+For details, see "Installation Tips for 1-2-3 Upgraders"
+in Chapter 3 of Getting Started.
+Press ENTER to accept the add-in directory as displayed,
+or change the directory and then press ENTER.
+If you want to specify a different name for the 1-2-3
+Release 4 add-in directory, use the following keys to
+edit the directory name:  BACKSPACE, DEL, 
+Install encountered an error while attempting
+to search for an existing copy of 1-2-3 in the
+directory you specified.  You may continue
+searching or end Install.
+After you specify a directory where you want 
+Install to transfer files, Install checks to
+see if files already exist in the directory.
+ Enter a directory name for the Count utility. Press ENTER
+ to accept the default directory, \COUNT. Install will
+ create a directory with the name you specify if the
+ directory does not already exist.
+ Lotus recommends that you transfer the Count utility to a
+ directory to which users do not have access.
+The path you specified has exceeded maximum length when
+ADDINS is to be included. Enter a shorter path name.
+                    Insert the disk labeled %
+                    into drive #. 
+                   Press @ENTER@ to continue, @F1@ for Help.
+To transfer the 1-2-3 files to your hard disk, Install
+prompts you for some of the disks that came in your 1-2-3
+package. Insert the disk named above into your disk
+drive now, press ESC to leave Help, and press ENTER.
+Because Install decompresses files as it transfers them,
+transferring files will take some time.
+                                                                  
+                                                                
+You inserted the wrong disk.
+Remove the disk that is now in the
+drive and insert the correct disk.
+                     @TRANSFERRING THE 1-2-3 FILES@
+                       Current Disk: %
+                               File: $
+      Percent Completed
+                                                                        
+                                                                             
+You selected the programs marked (
+If you want to transfer the selected programs, type @Y@.
+If you want to change your selections, type @N@.
+You are being asked to confirm the programs you selected.
+After you confirm your selections, Install will transfer 
+the necessary files.
+Install cannot continue.
+A file Install needed is not on this diskette.
+You will need a replacement diskette. See
+the Customer Assurance Plan for information
+on replacing damaged diskettes.
+Either another process is using the file or
+another process has locked the drive.
+End Install now and check your other processes,
+then repeat the Install procedure from the
+The diskettes you are using are either damaged or
+inappropriate for your diskette drive. Either use a
+different diskette drive or see the Customer Assurance
+Plan for information on replacing damaged diskettes.
+Access error opening a file.
+Install could not open the file it needed. Make sure
+you are not installing to a read-only disk and that you
+have proper access rights, in the case of a network drive,
+and repeat the Install procedure from the beginning. If 
+this error occurs again, record the above error message
+and have your hardware information available. Then
+refer to the Customer Assurance Plan for information
+on contacting Customer Support.
+Install cannot put the pieces of your file
+Repeat the Install procedure from the beginning.
+If this error occurs again, record the above error
+message and have your hardware information available.
+Then refer to the Customer Assurance Plan for information
+Your hard disk does not have enough room for
+Install to transfer the files.
+End Install, make room on your hard disk, and
+beginning. See "What You Need to Run 1-2-3"
+in Chapter 2 of Getting Started for information on
+the amount of hard disk space 1-2-3 requires.
+Access error reading file.
+Access error writing file.
+Install could not write to a file. Make sure you are
+not installing to a read-only disk and that you
+and repeat the Install procedure from the beginning.
+The file was not transferred successfully.
+End Install now and then start Install
+A disk error occurred while closing the file.
+Missing error closing file.
+Access error closing file.
+Your server's hard disk does not have enough
+room for Install to transfer the files.
+End Install, make room on your server's hard
+disk, and then repeat the Install procedure
+from the beginning. See "What You Need to Run 1-2-3"
+The PATH environment variable is invalid. 
+Install cannot successfully complete installation of 
+Spell Checker support for 1-2-3 because of a syntax error 
+in the LOTUS.INI file on your path.
+Install has encountered an error while installing 
+support for Spell Check in 1-2-3.  Check for an invalid
+Data Path or User Path in the Spell Check section
+of your LOTUS.INI file (found in one of the directories
+specified in your environment variable PATH).
+Install cannot access the LOTUS.INI file on your path.
+                           @FILE TRANSFER SUCCESSFUL@
+Install has successfully transferred the 1-2-3 files to
+your 1-2-3 program directory. Install transferred only 
+the files necessary for the programs you specified.
+SPECIFYING YOUR EQUIPMENT
+In the next part of Install, you will specify your
+equipment so that 1-2-3 can work correctly with it.
+You do so by selecting items on menus. After you 
+finish making equipment selections, Install will 
+transfer necessary files to your hard disk.
+your 1-2-3 program directory, including a file named
+README.PRN, which contains helpful information.
+To exit the Install program, select End Install Program
+from the Main Menu on the next screen.
+If you are setting up nodes, see the Network
+Administrator's Guide for instructions.
+Install cannot continue.
+Not enough memory.
+Your system does not have enough memory available to
+run the rest of Install. End Install, remove all
+memory-resident programs, and start Install from the
+beginning. If this error occurs again, record the above
+error message and have your hardware information available.
+Then refer to the Customer Assurance Plan for information on
+contacting Customer Support.
+Access-denied error encountered while opening INS.EXE
+Repeat the Install procedure from the beginning. If
+this error occurs again, record the above error message,
+have your hardware information available, and contact your
+technical resource person or computer dealer.
+The file INS.EXE is corrupted or it is on the hard
+disk in compressed format.
+End Install, then restart Install from the original
+Install Disk. If this error occurs again, you need
+a replacement diskette. See the Customer Assurance Plan
+for information on replacing damaged diskettes.
+Your operating system is running the maximum number
+of programs it can manage at this time. End Install,
+reduce the number of programs running on your system,
+and start Install again.
+The file INS.EXE is corrupted or it is on your
+server's hard disk in compressed format.
+Monochrome Display Adapter
+Color Graphics Adapter
+Hercules Graphics Card (80x25)
+Hercules Graphics Card Plus
+Hercules InColor Card (80x25)
+High-Resolution CGA
+Enhanced Graphics Adapter
+Video Graphics Array
+8514 Display Adapter
+Multicolor Graphics Array (MCGA)
+EGA (64K) - color monitor
+EGA (64K) - monochrome monitor
+(Install cannot identify your display adapter)
+You cannot install 1-2-3 at this time.
+The diskette you are trying to use may be defective
+or, if a network drive is involved, you may not have
+proper access rights.  Check this possibility first,
+and if it is not the case, you will need a replacement
+diskette.  See the Customer Assurance Plan for information
+on replacing damaged diskettes.
+There is a syntax error in the disk list
+(INSDISK.RI) file.
+File descriptor must be one of the following:
+  req, dos, trans, samp, special, never.
+The program will ABORT when you leave this
+popup. Correct the problem and retry.
+The drive containing the diskette you are using is
+not ready. Check that you inserted a diskette
+correctly and that the drive door is closed.
+Install needs to be able to read the diskette inserted
+in the drive to operate. Make sure that the diskette or
+cartridge is inserted correctly and that the drive
+door, which may be a switch that turns or a button
+that pushes in, is closed. If you are using a 3 1/2"
+diskette, make sure that the diskette is completely
+inserted in the drive.
+An error has occurred.
+Restart your computer, either by turning it off
+and on or by pressing CTRL-ALT-DEL, and then restart
+1-2-3. If the error occurs again, record the above
+error message and make a note of what you did before
+the error occurred. Then contact your technical
+resource person.
+Install cannot continue.
+Install. If the error occurs again, record the above
+An error has ocurred while trying to install one of 
+the files necessary for proper operation of 1-2-3 
+Release 4 for DOS.  If you are installing to a network drive,
+make sure you have the proper access rights to the target
+directory that you specified earlier.
+You have not completed Install.
+You have not yet used Install to record your name and
+organization name on your copy of 1-2-3. You must do so
+before you can run your copy of 1-2-3.
+You can end Install now, but you will have to start Install
+again later to record your name and organization name.
+You have asked to end Install before recording your name
+and organization name on your copy of 1-2-3. Ending Install
+now will not damage your copy of 1-2-3 Release 4, but you
+will have to use Install again to record your name and
+organization name before you can use your copy of 1-2-3 Release 4.
+To use your copy of 1-2-3 Release 4, you must complete
+the entire Install procedure. If you end Install now,
+you will have to run Install again later.
+You are choosing to end Install before transferring the
+1-2-3 Release 4 files. It is wise to let Install transfer
+the files for you to ensure that they are decompressed.
+You may end Install at this point, but you will have to
+complete Install before you can use 1-2-3 Release 4.
+You have not completed the Install procedure.
+the entire Install procedure. Because you are ending
+Install now, you will have to run Install again later.
+You are choosing to end Install before transferring all the
+1-2-3 Release 4 files. You should let Install transfer the
+files for you to ensure that the files are decompressed and
+are transferred to your hard disk. You must end Install now,
+but you will have to complete Install before you can use
+1-2-3 Release 4.
+Before you specify programs to transfer, you
+must first select a hard disk to which to transfer
+the programs and press ENTER. Install checks your
+selected disk drive for available space.
+You have not yet used Install to record your server
+name and organization name on your copy of 1-2-3. You must do
+so before you can run your copy of 1-2-3 Release 4.
+You can end Install now, but you will have to start
+Install from the original Install Disk later to record
+your server name and organization name.
+You have asked to end Install before recording your server
+name and organization name on your copy of 1-2-3. Ending Install
+will have to use Install again to record your server name and
+are transferred to your server's hard disk. You must end Install
+now, but you will have to complete Install before you can use
+An error occurred when Install tried to access the directory
+you specified. You must specify another directory.
+Press ESC to leave Help
+Press ENTER to select different drive
+Press ENTER to continue; ESC to select new drive
+Press ENTER to select different drive; ESC to end Install
+Press ENTER to select new directory
+Press ENTER to continue with Install
+Press ESC to end Install
+Press ENTER to continue; ESC to end Install
+ displays a Help screen.
+Press ENTER to select operating system; ESC to end Install
+Press ENTER to select different directory; ESC to end Install
+You must run Install from the original Install Disk
+before you can run 1-2-3 Release 4.
+1-2-3 Release 4 cannot run on this type of processor. You
+must have an 80286 or 80386 processor.
+1-2-3 Release 4 cannot be run from a diskette drive.
+1-2-3 cannot continue.
+The media it is installed on is defective.
+Contact your technical resource person or your
+computer dealer immediately.
+Your drive is reporting that it is not ready.
+Be sure that a disk is inserted in the drive correctly
+and that the drive door is closed.
+The directory that the 123OVL environment variable specifies
+Respecify the 123OVL environment variable to contain a valid
+directory, or create a directory on the drive with the name
+that the 123OVL environment variable specifies. If this error
+occurs again, record the above error message and contact your
+technical resource person or network administrator.
+1-2-3 is not in a usable format on your hard disk.
+1-2-3 was not transferred to your hard disk using the
+Install program. To make your copy of 1-2-3 Release 4
+usable, run the Install program from your 1-2-3 Release 4
+program directory.
+You are trying to run 1-2-3 with OS/2.
+1-2-3 Release 4 runs with DOS. Start
+DOS and type 123 at the DOS prompt to
+run 1-2-3 Release 4.
+The file that starts 1-2-3 Release 4 could not be
+found. Verify that the 123DOS.EXE file exists in the
+same directory as the 123.EXE file. If it does not
+exist, use the Install program to transfer the file
+to your 1-2-3 Release 4 program directory.
+Access error while getting file information.
+A problem occurred while copying the program file to the directory
+that the 123OVL environment variable specified. Wait a while and
+restart 1-2-3. If the error occurs again, record the above error
+message and contact your technical resource person or network
+Other process error.
+that the 123OVL environment variable specified. Either another
+process is using the file or another process has locked the drive.
+Check your other processes, then restart 1-2-3. If the error occurs
+again, record the above error message and contact your technical
+resource person or network administrator.
+Bad media error.
+There is a problem with the disk that contains the directory
+that the 123OVL environment variable specified. Record this
+error message and contact your technical resource person or
+network administrator immediately.
+Access error opening file.
+Access error closing file.
+The disk containing the 123OVL directory does not have
+enough room to contain the files necessary to run 1-2-3. Make
+room on the disk and then restart 1-2-3. If this error occurs
+again, record this error message and contact your technical
+1-2-3 cannot continue.
+Access error reading product core file prior to copying it
+to the directory that the 123OVL environment variable specified.
+A problem occurred while trying to copy the necessary files. Restart
+1-2-3. If this error occurs again, record the above error message
+and contact your technical resource person or network administrator.
+Access error writing product core file to the directory that the
+123OVL environment variable specified.
+The product core was not correctly copied to the
+directory that the 123OVL environment variable specified.
+Restart 1-2-3. If this error occurs again, record the above
+error message and contact your technical resource person or
+network administrator.
+A problem occurred while copying the product file to the
+A disk error occurred while closing the file.
+Cannot close file.
+1-2-3 Release 4 cannot run in a Presentation Manager
+Open a full-screen command prompt, make the drive and
+directory containing the 1-2-3 files current, and start
+@Lotus@ (R) @1-2-3@ (R)
+The new dimension in spreadsheet power and
+performance, featuring 3-D worksheets, business
+graphics, and advanced database features.
+Copyright 1994 Lotus Development Corporation
+All Rights Reserved.
+LICENSING INFORMATION:
+User name:     $
+Organization:  $
+Use, duplication or sale of this product, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+@Lotus@ (R) @1-2-3@ (R) Release 4
+Copyright 1994 Lotus Development Corporation. All rights reserved.
+ Use, duplication, or sale of this product, except as
+ prohibited. Violators may be prosecuted.
+Server name:   $
+The name information recorded on your copy of 1-2-3 has been
+tampered with. The program cannot continue.
+There is not enough memory available to run 1-2-3. Remove
+all memory-resident programs and restart 1-2-3.
+1-2-3 Release 4 could not run because the IOPL variable in your
+CONFIG.SYS is set to NO. You must set IOPL=YES in your CONFIG.SYS
+file and restart your computer before using 1-2-3 Release 4.
+1-2-3 cannot continue.
+Access-denied error loading 1-2-3.
+Restart 1-2-3. If this error occurs again, record the above
+error message and the name of the file shown below. Then
+contact your technical resource person or network
+This is the file that caused the error:
+Your 1-2-3 program is either corrupted or is on the hard
+disk in compressed format. Run Install from the Install
+Disk before trying to use 1-2-3 again.
+This is the file that is corrupt:
+Your operating system is running the maximum number
+of programs it can manage at this time. Reduce the
+number of programs running on your system, and start
+@Lotus@ (R) @1-2-3@ (R)
+The new dimension in spreadsheet power and
+performance, featuring 3-D worksheets, business
+graphics, and advanced database features.
+Copyright 1994 Lotus Development Corporation
+All Rights Reserved
+LICENSING INFORMATION:
+User name:     $
+Organization name:  $
+Use, duplication or sale of this product, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+                       
+               
+Beta software and a trade secret of Lotus Development Corp.
+Use, duplication or sale of this product, except as described in the Lotus
+Software Agreement, is strictly prohibited. Violators may be prosecuted.
+Welcome to Lotus 1-2-3 Release 4 for DOS.  1-2-3 offers a graphical 
+user interface, full mouse functionality, worksheet tabs, scroll
+bars, SmartIcons, and a status bar that provides one-click access
+to common tasks.  1-2-3 Release 4 for DOS also offers the best DOS
+spreadsheet compatability with 1-2-3 Release 4 for Windows.    
+While your software is installing, please call 1-800-346-6408 
+in the U.S., 1-800-GO LOTUS in Canada, or mail us your registration 
+card.  As a registered user, you will be kept informed of product
+upgrades and special offers available to Lotus customers.
+To learn about new features in 1-2-3 Release 4 for DOS, begin 
+with QuickStart for Upgraders, our online tutorial designed  
+especially for upgraders.  Quickstart provides information and 
+examples to help you become more productive in less than an hour. 
+/Tools is a new option on the 1-2-3 menu.  From the /Tools menu, 
+you can check your work for spelling errors, add a comment to a
+cell, send and receive mail, start 1-2-3 add-ins, and use Version 
+Manager to work with what-if scenarios.
+1-2-3 delivers greater productivity to workgroups. Version
+Manager lets you create your own versions of data and
+formulas, and build multiple versions into scenarios for 
+powerful what-if analysis.
+Worksheet tabs make 3D spreadsheets more powerful and easier 
+to use.  You can name each sheet, and click a tab to move quickly 
+from worksheet to worksheet, and from file to file.
+1-2-3 Release 4 includes a new /Tools menu collection of 
+important spreadsheet tasks. Cell Notes allows you to
+annotate spreadsheet formulas and results, or write a 
+message in your spreadsheet for someone else. New Analyze   
+command provides easier access to powerful spreadsheet
+tools such as Auditor, Solver and Backsolver.
+New Dialog Boxes provide an interactive way to change 
+spreadsheet settings without learning additional menu
+commands. 1-2-3 Release 4 logically utilizes Dialog Boxes
+as a part of new features like Version Manager and Spell
+Check, as well as introducing Dialog Boxes with action-
+buttons for most freguently used Print and Graph tasks.
+Using a Mouse in Dialog Boxes, in addition to your Keyboard,  
+is fully supported and can help make you even more 
+productive in 1-2-3 Release 4 for DOS.
+Install will copy marked items to disk drive
+goes to next page
+goes to previous page
+This screen prompts you to select the add-ins you want 1-2-3
+to automatically load at the start of each work session. 1-2-3
+will load each program with a mark next to its name.
+If a program that you do not want to load has a
+ to move the highlight to the program
+name.  Press the space bar to remove the mark.
+If a program that you want to load does not have a
+name.  Press the space bar to add a mark.
+To use an add-in 1-2-3 had loaded, you must still invoke, or
+start, it.  While working in 1-2-3, you use the add-in menu to
+load, start, and manage add-in programs.  To display the add-in
+menu, press ALT-F10 (ADDIN).  See Getting Started (or What's New)
+for more information on using add-ins
+This is billboard 1 for standalone install.
+This is billboard 2 for standalone install.
+This is billboard 3 for standalone install.
+This is billboard 4 for standalone install.
+This is billboard 5 for standalone install.
+This is billboard 6 for standalone install.
+This is billboard 1 for distributed.
+This is billboard 2 for distributed.
+This is billboard 3 for distributed.
+This is billboard 4 for distributed.
+This is billboard 5 for distributed.
+This is billboard 6 for distributed.
+This is billboard 1 for server install.
+This is billboard 2 for server install.
+This is billboard 3 for server install.
+This is billboard 4 for server install.
+@ move highlight; @ENTER@ to accept selection
+@F1@ for Help; @ESC@ to end install
+The 1-2-3 Install program lets you install 1-2-3 on the hard 
+disk of your personal computer or on a server. 
+If you want to use 1-2-3 on your own computer, choose
+Install 1-2-3.  This option transfers 1-2-3 program files
+to your personal computer. It also lets you specify which 
+optional programs to transfer to your hard disk with 1-2-3.
+If you are a network administrator, choose Install 1-2-3
+on a Server.  This option transfers 1-2-3 program files to
+a server so you can set up 1-2-3 for network users.
+Install 1-2-3 on a Server
+Select this option to transfer the 1-2-3 
+program files to the hard disk of your
+program files to the server's hard disk.
+Select this only if you are a network 
+@ move highlight; @ENTER@ to accept selection
+@F1@ for Help; @ESC@ for previous screen
+Server Installation lets users run 1-2-3 from the network. 
+This method saves disk space on each user's computer.
+Distribution Installation lets users run Install from the
+network to transfer 1-2-3 program files to their computer's
+hard disk.  This method lets users run 1-2-3 from their
+Server Installation
+Distribution Installation
+Select this option to transfer 1-2-3 program 
+files to the server. Then each user can run
+1-2-3 from the network.
+Select this option to copy compressed 1-2-3 
+files to the server. Then each user on
+the network can run Install from the
+network instead of from disks to install
+1-2-3 on their computer.
+                             @RECORDING YOUR NAME@
+            Your name:    $
+            Organization name: $
+                         Press @INS@ when done.
+            @F1@ displays a Help screen.    @ESC@ for previous screen.
+After the first time you use Install you can record your name
+but not the organization name. After you enter and confirm this
+name Install records it on your copy of 1-2-3. You will see
+your name and organization name every time you start 1-2-3.
+You can edit the names using BACKSPACE, DEL, 
+After you finish editing both names, press INS.
+To record your name, follow these steps:
+* Type your name below. If you make a mistake while typing,  
+   use BACKSPACE, DEL, 
+ to edit, then press ENTER.  
+                    @RECORDING THE SERVER AND ORGANIZATION NAME@
+            Server name:  $
+            Organization name: $
+        Press @ENTER@ to switch between names, @INS@ when done.
+            @F1@ displays a Help screen.    @ESC@ for previous screen.
+Install uses the information you enter on this screen to record
+your server name and organization name on your copy of 1-2-3.
+Users will see the name and organization name you enter when they 
+run Install from the network.  Users will be able to change the
+server name but not the organization name.
+You can edit the names using BACKSPACE, DEL, 
+After you finish editing both names, press INS.
+To record your server name and organization name, follow these steps:
+* Type your server name below. If you make a mistake while typing,
+   use BACKSPACE, DEL, 
+ to edit, then press ENTER.  
+* Type your organization name. If you do not have an organization
+  name, type your name a second time. Then press INS.
+                          @RECORDING THE SERVER NAME@
+            Server name:  $
+            Organization name: $
+                         Press @INS@ when done.
+            @F1@ displays a Help screen.    @ESC@ for previous screen.
+After the first time you use Install you can change your server 
+name but not the organization name. After you enter and confirm 
+this name, Install records it on your copy of 1-2-3. You will see
+your server name and organization name every time you start 1-2-3.
+You can edit the names using BACKSPACE, DEL, 
+After you finish editing both names, press INS.
+To record your server name, follow these steps:
+* Type your server name below. If you make a mistake while typing,
+   use BACKSPACE, DEL, 
+ to edit, then press ENTER.  
+ Type the letter of your hard-disk drive: #
+Enter the letter of your server's hard-disk drive. The default
+letter, C, is the letter assigned to most hard-disk drives. If
+you are not sure of the letter of your server's hard-disk drive,
+check with your technical resource person.
+NOTE: If you are working at a node, specify the drive letter you
+used to connect to the server directory that will contain the 
+program directory.
+ Type a name for your 1-2-3 directory:    $
+Lotus recommends that you accept the default directory
+names, LOTUS\123R4D and LOTUS\123R4D\ADDINS. Accepting
+the default directories will ensure that the new 
+directories contain files only for 1-2-3 Release 4.
+If you want to specify a different name for the 1-2-3
+Release 4 program or add-in directory, use the following
+keys to edit the directory name:  BACKSPACE, DEL, 
+              @CHOOSING A LOCATION FOR THE COUNT UTILITY@
+        The Count utility lets you control how many users can
+        share your copy of 1-2-3 Release 4. You may choose to
+        transfer the Count utility to a different directory than
+        the 1-2-3 product directory.
+        If you want Install to transfer the Count utility to a
+        location other than the 1-2-3 program directory, type Y.
+        If you want Install to transfer the Count utility to the
+        1-2-3 program directory, type N.
+        Do you want Install to transfer the Count utility to a
+        location other than the 1-2-3 program directory?  #
+      Press @ENTER@ to accept, @F1@ for Help, @ESC@ for previous screen. 
+       The COUNT utility BLAH BLAH BLAH....
+       BLAH....es to and from the 1-2-3 Release 3 file format.
+       BLAH....you can use Translate only from your hard disk,
+       Lotus recommends that you transfer the COUNT utility
+       to a directory other than the 1-2-3 Release 4 program
+       directory.
+       BLAH...files have been compressed to reduce the number of
+       BLAH...n your Release 4 package. Install not only transfers
+       BLAH...ETC...the program directory, it also decompresses them
+       to make them usable. If you do not transfer the Translate
+       utility now and find that you need it later, you can either
+       use Install again or use a utility called Inflate to transfer
+       files necessary to use Translate. For more information on
+       using Inflate, see Appendix 1 of Reference.
+              @SPECIFYING A DRIVE FOR THE COUNT UTILITY@
+          1-2-3 Count drive: #
+       Press @ENTER@ to accept, @F1@ for Help, @ESC@ for previous screen. 
+Specify the hard-disk drive to which you want to transfer the
+Count utility. You need 90KB of available hard-disk space for the
+Count utility files.
+              @SPECIFYING A DIRECTORY FOR THE COUNT UTILITY@
+      1-2-3 Count directory: $
+       Press @ENTER@ to accept, @F1@ for Help, @ESC@ for previous screen. 
+The network administrator should be the only person
+with access to the count directory.
+If you want to specify a name other than \COUNT for the 1-2-3
+Release 4 Count utility directory, use the following keys to
+edit the directory name:  BACKSPACE, DEL, 
+The 1-2-3 Install Program guides you through the following
+steps, which you must complete before you can use 1-2-3:
+* Recording your server name and organization name on your copy of 1-2-3
+* Specifying your server's hard-disk drive and directory for 1-2-3
+  and Wysiwyg files and the Count utility files
+* Transferring the 1-2-3 files to your server's hard disk
+NOTE  If you want only to specify or change your equipment
+selections, start Install from your hard disk.
+Use, duplication, or sale of this software, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+Welcome to the 1-2-3 Release 4 for DOS Install program. You
+use the Install program to prepare your system for use with 
+1-2-3 Release 4. In Install you will select a drive and
+directory for the 1-2-3 program and add-in files. You will also
+specify the 1-2-3 programs you want to transfer, such as the
+Auditor, Backsolver, Viewer, and Solver add-ins, Translate
+utility, and Add-In Library and DataLens files, and whether 
+you want 1-2-3 to automatically load add-ins. You will then 
+transfer the 1-2-3 files to your server's hard disk.
+You can end Install at any time before you complete it, but you
+must complete it before you can use 1-2-3.
+The 1-2-3 Install Program guides you through the following
+steps, which you must complete before you can use 1-2-3:
+* Specifying your server's hard-disk drive and directory for 1-2-3
+  and Wysiwyg files
+* Specifying a directory on your server's hard-disk drive for the
+  Count utility files
+* Transferring the 1-2-3 files to your server's hard disk
+NOTE  If you want only to specify or change your equipment
+selections, start Install from your hard disk.
+Use, duplication, or sale of this software, except as
+described in the Lotus Software Agreement, is strictly
+prohibited. Violators may be prosecuted.
+Welcome to the 1-2-3 Release 4 for DOS Install program. You
+use the Install program to prepare your system for use with
+1-2-3 Release 4. In Install, you will select a drive and
+directory for the 1-2-3 program, add-in files and the Count
+utility files. You will also specify the 1-2-3 programs you want
+to transfer, such as the Auditor, Backsolver, Viewer, Solver add-ins,
+Translate utility, and Add-in Library and DataLens files, and whether
+you want 1-2-3 to automatically load add-ins. You will then
+transfer the 1-2-3 files to your server's hard disk.
+You can end Install at any time before you complete it, but you
+must complete it before you can use 1-2-3.
+You use the 1-2-3 Install program to specify your equipment
+so 1-2-3 can work correctly with it. You specify your
+equipment by selecting items on menus. Install then creates
+a driver configuration file (DCF) in your personal directory.
+NOTE  You must know the path to your personal directory before
+you can run Install. You create your personal directory if it is
+on your computer; your network administrator creates your personal
+directory if it is on the server.
+To see a list of the keys you can use, press F1 now. You
+can also press F1 for additional help at any time.
+@TRANSFERRING THE TRANSLATE UTILITY@
+The Translate utility lets you exchange data between 1-2-3
+and other programs. To save space on your server's hard disk,
+Install transfers the Translate utility to your server's hard
+disk only if you choose to do so. You cannot use the Translate
+utility until you transfer it to your server's hard disk.
+If you want Install to transfer the Translate utility,
+type Y. If you do not want Install to transfer the
+Translate utility, type N.
+Do you want to transfer the Translate utility?  #
+@F1@ displays a Help screen.  @ESC@ moves to a previous screen.
+The Translate utility is a program that lets you convert
+data files to and from the 1-2-3 Release 3 file format.
+Because you can use Translate only from your server's hard
+disk Lotus recommends that you transfer the Translate utility
+to your 1-2-3 Release 4 program directory now unless you
+are certain that you will never need to use it.
+The 1-2-3 files have been compressed to reduce the number of
+disks in your Release 4 package. Install not only transfers
+the files to the program directory, it also decompresses them
+to make them usable. If you do not transfer the Translate
+utility now and find that you need it later, you can either
+use Install again or use a utility called Inflate to transfer
+files necessary to use Translate. For more information on
+using Inflate, see Appendix 1 of Reference.
+@TRANSFERRING WYSIWYG FILES@
+To save space on your hard disk, Install transfers Wysiwyg
+to your server's hard disk only if you choose to do so. Users
+cannot use Wysiwyg until you transfer it to your server's
+If you want Install to transfer Wysiwyg to your hard disk,
+type Y. If you do not want Install to transfer Wysiwyg to
+your hard disk, type N.
+Do you want to transfer Wysiwyg ?  #
+@NOTE@  You must load Wysiwyg before you can use it to enhance
+1-2-3 printing and display. To load Wysiwyg, start 1-2-3 and
+press ADDIN (ALT-F10), select Load, and specify WYSIWYG.PLC.
+To get Help on loading Wysiwyg, press F1 while using 1-2-3.
+@F1@ displays a Help screen.  @ESC@ moves to a previous screen.
+Wysiwyg provides spreadsheet publishing features for use
+with 1-2-3 Release 4. Because users can use the Wysiwyg
+files only from your server's hard disk, Lotus recommends
+that you transfer the Wysiwyg files to your server's hard
+disk now unless you are certain that you will never need
+to use Wysiwyg.
+Before you can use Wysiwyg with 1-2-3, you must load it.
+See "Basic Procedures for Using Wysiwyg" in Chapter 2 of
+"Wysiwyg Publishing and Presentation" for instructions on
+loading Wysiwyg.
+The Install program found files in an existing ADDINS
+subdirectory. Because you chose to transfer Wysiwyg to
+your server's hard disk, the Wysiwyg files may write over
+existing files in the ADDINS subdirectory.
+                  @TRANSFERRING THE 1-2-3 FILES@
+                 Insert the disk labeled %
+                 into drive #.
+                 Press @ENTER@ to continue, @F1@ for Help.
+To transfer the 1-2-3 files to your server's hard disk,
+Install prompts you for some of the disks that came in
+your 1-2-3 package. Insert the disk named above into your
+disk drive now, press ESC to leave Help, and press ENTER.
+Because Install decompresses files as it transfers them,
+transferring files will take some time.
+Mail Enabling for cc:Mail
+Add-In Library Files
+1,1,10,10,10,8,10,10,0,ADDINS,3,auditor,,0,AUDITOR.PLC,-1
+1,1,11,10,11,8,11,10,0,ADDINS,3,backsolver,,0,BSOLVER.PLC,-1
+1,1,12,10,12,8,12,10,0,ADDINS,3,viewer,,0,VIEWER.PLC,-1
+0,1,13,10,13,8,13,10,0,ADDINS,3,solver,,0,SOLVER.PLC,-1
+1,1,14,10,14,8,14,10,0,,4,ccmail,,0,,-1
+0,1,15,10,15,8,15,10,0,,5,leafprod,,0,,-1
+0,1,0,0,0,0,0,0,0,,5,leafadd,,0,,5
+                   @SELECTING ADDITIONAL TOOLS TO TRANSFER@
+          ...............................
+                                          -----------------------
+        Space needed for selected options:
+                 Remaining space on drive:
+ Type the letter of your hard-disk drive: #
+Enter the letter of your server's hard-disk drive. 
+Install will transfer compressed 1-2-3 files to a
+directory you specify on this drive.
+Install cannot locate the drive you specified. 
+Please enter another drive letter.
+The drive that you specified is not ready.  Please enter 
+another drive letter. 
+An error ocurred when Install tried to access the directory
+that you specified.  You must specify another server directory 
+before Install can continue.
+The server is write-protected.
+Install cannot transfer the necessary files because the 
+directory you specified is write-protected.  Please 
+enter another server directory.
+ Type a name for your 1-2-3 directory:    $
+Lotus recommends that you accept the default directory name 
+123_DIST.  Accepting the default directory will ensure that  
+the distribution directory will contain only compressed 1-2-3 
+If you want to specify a different name for the distribution 
+directory, use the following keys to edit the name: BACKSPACE, 
+Install encountered an error while attempting 
+to search for compressed 1-2-3 files in the
+directory you specified.  You may continue or
+The directory that you specified
+You should should use this directory only if these
+are compressed 1-2-3 files.
+If these files are compressed 1-2-3 files, type @Y@.
+If the files in this directory are not compressed 
+1-2-3 files, type @N@.  Then enter a different
+You have not completed the Install procedure.
+To transfer compressed 1-2-3 files to a distribution
+directory, you must complete the entire Install procedure. 
+Because you are ending Install now, you will have to run 
+it again before network users can run Install from the 
+You are choosing to end Install before transferring all 
+of the 1-2-3 files.  You should let Install transfer
+the files for you to ensure that they are placed 
+properly.  If you end Install now, you will have to
+complete Install later before network users can run
+Install from the distribution directory.
+You have successfully copied compressed 1-2-3  
+files to a distribution directory on the server.
+Network users can now connect to a distribution 
+directory and run Install from the server to install
+1-2-3 on their computers.
+Press ENTER to exit to the operating system.
+You cannot install 1-2-3 at this time.
+The distribution directory you are using is damaged. 
+Please consult your network administrator for assistance. 
+Install cannot update files in the target directory 
+properly.  If you are installing to your hard disk, check 
+for available disk space.  If you are installing into a
+distribution directory, check the server's hard disk for
+available disk space and verify your access rights.
+Install needs to update the file INSTEXT.RI in the target 
+directory to proceed properly.  This file holds encrypted 
+information essential to the functioning of 1-2-3 and Install. 
+Install will now transfer files from the distribution  
+directory to the drive and directory you specified.
+After the files have been transferred, you may
+begin selecting the equipment you will use with 1-2-3.
+To transfer the 1-2-3 files to your server, Install 
+prompts you for some of the disks that came in your
+1-2-3 package.  Insert the disk named above into your 
+diskette drive, press ESC to leave Help, and press
+This is billboard 5 for server install.
+This is billboard 6 for server install.

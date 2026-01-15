@@ -1,0 +1,200 @@
+ A network error has occurred
+ A range name cannot begin with << >>P
+ Add-in errorP
+ Adjustable cell collection is invalidP
+ Background print is currently active, cannot...
+ Backup unsuccessful due to file error"
+ Bin range cannot span worksheetsP
+ Cannot Move or Copy comments beyond worksheet...P
+ Cannot Move or Copy data beyond worksheet...P
+ Cannot Move or Copy formats beyond worksheet...P
+ Cannot add graphicP
+ Cannot check spelling in range
+ Cannot convert extension. File already exists...
+ Cannot create a named range that spans files
+ Cannot create a table with EXTENDED data types
+ Cannot create cc:Mail temporary fileP
+ Cannot create file"
+ Cannot create format file,
+ Cannot create names from a range of labels...6
+ Cannot create temporary fileP
+ Cannot create the report filef
+ Cannot define a named style from a graphicP
+ Cannot delete a range that is not in memory
+ Cannot delete all visible worksheets
+ Cannot delete all worksheets
+ Cannot dump resource file 
+ Cannot erase file
+ Cannot erase file. It is in use or...#
+ Cannot execute query with a circular reference
+ Cannot export to this format from a multiple...P
+ Cannot find WYSIWYG.LBRP
+ Cannot find Wysiwyg font libraryP
+ Cannot find [ADD-IN]P
+ Cannot find an optimal answerP
+ Cannot find any more answersP
+ Cannot find cc:Mail filesP
+ Cannot find library file [LIBRARY]P
+ Cannot find scenarioP
+ Cannot find versionP
+ Cannot finish solving this problemP
+ Cannot go to a range that is not in memory4
+ Cannot have more than 256 worksheets in memory
+ Cannot hide all columnsP
+ Cannot hide last visible worksheetP
+ Cannot import - file is in useP
+ Cannot invert matrixP
+ Cannot invoke operating systemf
+ Cannot justify text if Worksheet protection...
+ Cannot link beyond worksheet boundariesP
+ Cannot link to protected cellP
+ Cannot load DCF file -- run Install
+ Cannot load LCF file
+ Cannot load [ADD-IN]f
+ Cannot load configuration information
+ Cannot load driver LTSEMf
+ Cannot load driver LTSLEAFf
+ Cannot modify a range that is not in memoryj
+ Cannot move data between files2
+ Cannot move graphs beyond worksheet boundariesP
+ Cannot open database input range
+ Cannot open filePO
+ Cannot optimize a constraint cellP
+ Cannot print ranges or named graphs not in memory4
+ Cannot read Help fileP
+ Cannot read [ADD-IN]P
+ Cannot read locked Symphony worksheet fileP
+ Cannot read or write LONG data
+ Cannot reset database when tables are in use
+ Cannot retrieve library fileP
+ Cannot retrieve records from input range
+ Cannot search ranger
+ Cannot solve this problemP
+ Cannot sum range if no blank cells at bottom or...P
+ Cannot undo this operationPO
+ Cannot undo this series of add-in...PK
+ Cannot unload driver when databases are in use
+ Cannot update a database with a nonunique record
+ Cannot use :Text Edit on a hidden rangeP
+ Cannot use :Text Edit with a hidden worksheetP
+ Cannot use both undo and Data External Refresh...P
+ Cannot use computed columns with Data Query ModifyP
+ Cannot use offset number for field
+ Cannot use ranges that are not in memory4
+ Cannot use this command in text display modeP
+ Cannot write a value into protected cell [CELL]PO
+ Cannot write file ICONS3.CNF; changes will not..."
+ Cannot write over data with APPEND commandsP
+ Constraint cell collection is invalidP
+ Criteria and output ranges cannot overlapP
+ Data Parse ranges cannot span worksheetsP
+ Destination range full or invalid4
+ Directory entry update errorP
+ Disk errorP
+ Driver cannot perform this database operationP
+ Error Message Index
+ Error Messages A - C
+ Error Messages D - Hm
+ Error Messages I - K]
+ Error Messages L - N
+ Error Messages O - S
+ Error Messages T - Z
+ Error accessing temporary filePO
+ Error closing printer driverP
+ Error loading DataLens driver resource fileP
+ Error loading add-in resource filef
+ Error loading driver file f
+ Error loading driver, file name-
+ Error reading file0
+ Error reading format fileP
+ Error replacing extracted recordsP
+ Error running add-in macroPO
+ Error saving fileP
+ Error storing the adjustable cell value
+ Error writing CNF file
+ Error writing file,
+ File close errorP
+ Formula label range cannot be blankP
+ Graph driver loading error, file name - [FILE]f
+ Graph error - not enough memory to draw graphf
+ Group mode enabled - unable to highlight cells#
+ Input and output ranges cannot overlapP
+ Input field names cannot be qualified
+ Internal dictionary errorP
+ Internal error - invalid command parameter
+ Internal errorP
+ Invalid /X command in macroP
+ Invalid FORBREAKP
+ Invalid FORMBREAKP
+ Invalid X range
+ Invalid Y range 
+ Invalid [ADD-IN]P
+ Invalid \nnn code in Setup StringD
+ Invalid adjustable cell
+ Invalid cell or range addressP
+ Invalid character in extensionP
+ Invalid character in file nameP
+ Invalid configuration fileP
+ Invalid criteria rangeP
+ Invalid dateP
+ Invalid dialectP
+ Invalid disk nameP
+ Invalid expressionP
+ Invalid external database data typeP
+ Invalid extra sort-key numberP
+ Invalid field nameP
+ Invalid file operationP
+ Invalid format line
+ Invalid formula cell
+ Invalid formula in query4
+ Invalid formula label rangeP
+ Invalid input range specified 
+ Invalid languageP
+ Invalid library fileP
+ Invalid matrixP
+ Invalid name for field or table
+ Invalid number
+ Invalid number inputP
+ Invalid or unsupported file search attribute
+ Invalid output range
+ Invalid print rangeP
+ Invalid range nameP
+ Invalid rangeP
+ Invalid scenario nameP
+ Invalid sort range or sort key
+ Invalid string argumentP
+ Invalid table name or table exists in databaseP
+ Invalid typeP
+ Invalid typefaceP
+ Invalid use of Menu macro commandP
+ Invalid use of database @function in criteriaP
+ Invalid use of range in cell [CELL]P
+ Invalid valueP
+ Invalid version nameP
+ Invalid worksheet variable rangeP
+ LCF file access error
+ List range cannot contain dataP
+ Print error - unable to print image7
+ Printer error - attention requiredf
+ Range cannot span worksheetsP
+ Solver cannot create its work filesP9
+ Solver cannot delete its work filesP9
+ Solver cannot read its work filesP9
+ Spell code translation errorP
+ Syntax error in LOTUS.BCF; see driver...PO
+ Syntax error in macro key/range nameP
+ System errorP
+ Table definition range contains invalid...P
+ The source cell is hidden - unable to trace"
+ This printer cannot print in landscape mode
+ Too many graph names; cannot create new one
+ Too many print settings names; cannot create...P
+ Unable to load native text code page
+ Unable to locate the database
+ Unable to locate the table
+ Unable to reserve file: it has read-only access"
+ Unable to reserve file: it is already reservedP
+ Unable to write to log file
+ Worksheet name contains illegal charactersP
+ [FILE]: Cannot openPK
+ {ONERROR}

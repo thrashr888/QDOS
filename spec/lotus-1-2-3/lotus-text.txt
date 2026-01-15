@@ -1,0 +1,74 @@
+0HThe Lotus spreadsheet integrating 3-D worksheets, graphics, and database123.exe
+Install6Specify screen display and printers for use with 1-2-3install.exe
+Translate6Translate files to or from 1-2-3 Release 4 file formattrans.exe
+01-2-3 Network administration utilities (Submenu)
+Leave the 1-2-3 Access menu
+0+Network user information management utilityls.exe
+Tracking%Network wide license tracking utility
+Usage(Network user information viewing utilitynet.exe
+Press ESC to leave Help
+ CAlthough you can start 1-2-3, Install, or Translate from the AccessDmenu, to save memory you can start these programs by typing the nameBof the program at the operating system prompt, as described below.2           To start this program             Enter:       
+0           1-2-3                             1234           Install                           install2           Translate                         transFTo start Install from a disk, you need to insert the Install Disk in aFdrive and make that drive current before you type install.  You cannotGstart Translate from a disk, so make sure the Translate files have beenHtransferred to your 1-2-3 program directory.  You can transfer Translate9files to your 1-2-3 directory during the Install program.
+ESC to continue
+ CThis is the 1-2-3 Network Management pull-down window.  It contains@utilities that help a network administrator with Lotus products.0These utilities perform the following functions:=Set
+Usage       -  Set network user configuration informationCLicense
+Tracker -  Manage copies of 1-2-3, licensed for network use:View
+Usage      -  Show current network user configuration
+                   information
+@1-2-3 Access Menu
+@Release 4-$Copyright 1994 Lotus Development Corporation
+$All Rights Reserved.GTo select a program to start, highlight the menu item using 
+, HOME,Aor END and press ENTER, or press the first character of the item.
+Press F1 for more information.
+Error&Press ESC to return to the Access menu
+ DAccess cannot find the program you selected in the current directoryFor in any directory in your PATH statement.  Please make sure that youAhave installed the product properly, your 1-2-3 Release 4 programEdirectory is in your PATH statement and the .EXE file associated with'the program is in your 1-2-3 directory.IIf you want to use Translate and you did not transfer the Translate filesGduring installation, refer to "Before You Use the Translate Utility" inGAppendix 1 of Reference to find out how to transfer these files to your
+1-2-3 directory.'Press ESC then F1 for more information.
+Error&Press ESC to return to the Access menu
+ CThe access rights necessary to start the program are not available.CTry to start the program again later.  If you are trying to use theEprogram on a network and this problem continues, contact your network
+Error&Press ESC to return to the Access menu
+ CThere is not enough memory available for Access to run the program.DRemove memory-resident programs and try selecting the program again.
+Error&Press ESC to return to the Access menu
+ GAccess cannot run the program you selected.  Please refer to Setting UpB1-2-3 to review installation procedures and hardware requirements.
+Error&Press ESC to return to the Access menu
+ DThe drive you selected is not ready or cannot read the disk.  Please@make sure the disk is inserted properly in the drive.  If it is,-check to make sure the disk is the right one.
+Error&Press ESC to return to the Access menu
+ CAccess cannot run the program because it cannot read the associatedEresource file (*.RI).  Please check the installation instructions and@verify that the resource file for the program is in your program
+Error&Press ESC to return to the Access menu
+ BYou must run Install from the original Install Disk before you can
+use 1-2-3 Release 4.
+Error&Press ESC to return to the Access menu
+ CAccess could not find the 123DOS.EXE file.  Please verify that thisJfile is in the current directory or in a directory in your PATH statement.
+Error&Press ESC to return to the Access menu
+ CAccess could not find the 123OS2.EXE file.  Please verify that thisJfile is in the current directory or in a directory in your PATH statement.
+Error&Press ESC to return to the Access menu
+ AThe 1-2-3 program files are not yet installed.  You must complete-the Install program before you can use 1-2-3.
+Error&Press ESC to return to the Access menu
+ GYou cannot start this program from a diskette drive or from a hard disk
+partition that is too small.
+Error&Press ESC to return to the Access menu
+ DYou cannot run this program in the OS/2 Compatibility Box.  You must-use either OS/2 or DOS version 3.0 or higher.
+Please Wait[Please transfer LOTUS.EXE to the current directory, or a directoy in your PATH statement.
+(Short prompts are too long for window.
+&Window text is too wide for display.
+Internal video error: 
+Internal keyboard error: <You cannot run this program in the OS/2 Compatibility Box.
+>Cannot run from diskette drive or small hard disk partition.
+You cannot run this program in a PM window.
+Error&Press ESC to return to the Access menu
+ GYou must run this program from a current directory.  Make the directory9that contains the program current and start Access again.
+Error&Press ESC to return to the Access menu
+ @You cannot run this program with the current CPU.  You must have
+an 80286 or 80386 processor.
+Error&Press ESC to return to the Access menu
+ AThe directory specified by the 123OVL environment variable is not*valid.  Correct the problem and try again.
+Error&Press ESC to return to the Access menu
+ DThe disk where the 123OVL directory exists does not have enough roomIto contain the files necessary.  Make room on the disk and restart 1-2-3.
+Error&Press ESC to return to the Access menu
+ DThere is a problem with one of the files needed to run this program.BEither the file is corrupted or it is compressed.  Verify that you(completed the Install program correctly.
+Error&Press ESC to return to the Access menu
+ GAccess cannot run this program due to a disk failure encountered duringHprogram execution.  Check to see if the disk you are using is defective.JEnd Access and start 1-2-3 from the operating system for more information.
+Error&Press ESC to return to the Access menu
+ HYou cannot run this program in a Presentation Manager window.  Switch to
+full-screen mode and try again.
+Error&Press ESC to return to the Access menu
+ @No more processes can be started at this time.  Please terminate$unnecessary processes and try again.

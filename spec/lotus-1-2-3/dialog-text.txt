@@ -1,0 +1,165 @@
+Worksheet Status
+Negative color:
+Memory available (in bytes):
+Circular reference:
+BEGIN_PANEL_DEF
+BEGIN_PANEL_DEF
+Worksheet Global Default Status
+Automatic graph:
+Auto-execute macros:
+File extensions
+File translate:
+BEGIN_PANEL_DEF
+Select Print File
+BEGIN_PANEL_DEF
+Wysiwyg Print Settings
+Beginning page:B
+Start numbering:S
+Print worksheet framef
+Print grid linesg
+Wait for paper changeW
+Send output to:o8
+Compression type:C=
+Compression ratio:r=
+END_RADIO_GROUP
+BEGIN_PANEL_DEF
+Printer Configuration...C
+Wysiwyg Printer Configuration
+END_RADIO_GROUP
+BEGIN_PANEL_DEF
+Global Settings
+Label alignmentL
+END_RADIO_GROUP
+Negative values in colorN
+Values in parenthesesV
+Zeros displayed asZ
+BEGIN_PANEL_DEF
+Default Settings...S
+Select Encoded File
+BEGIN_PANEL_DEF
+Default Settings
+Auto-execute macros onA
+Auto-backup everyk
+Clock display:C
+Screen displayS
+Scroll bars onS
+Worksheet tabs onW
+Graph file formatf
+END_RADIO_GROUP
+Automatic graph arranged byg
+BEGIN_PANEL_OPT
+Configuration file:
+BEGIN_PANEL_DEF
+International...I
+Default Printer Settings
+Wait for paper changeW
+Auto line feedA
+BEGIN_PANEL_DEF
+Wysiwyg Font Selection
+1:SWISS12...  Bitstream Swiss 12 point........1
+2:SWISS14...  Bitstream Swiss 14 point........2
+3:SWISS24...  Bitstream Swiss 24 point........3
+4:DUTCH6....  Bitstream Dutch 6 point.........4
+5:DUTCH8....  Bitstream Dutch 8 point.........5
+6:DUTCH10...  Bitstream Dutch 10 point........6
+7:DUTCH12...  Bitstream Dutch 12 point.........7
+8:XSYM12....  Xsymbol 12 point.................8
+END_RADIO_GROUP
+BEGIN_PANEL_DEF
+Replace Font...R
+Print headers/footers/breaksh
+List cell entriesL
+Print worksheet framew
+Print blank headers/footersb
+Setup string:S9
+BEGIN_PANEL_OPT
+BEGIN_PANEL_DEF
+Advanced Settings...A
+Advanced Print Settings
+Auto line feedA
+Wait for paper changeW
+Fonts (if available)F
+Header/footer:H<
+Print graph sidewaysP
+BEGIN_PANEL_DEF
+Wysiwyg Font Replacement
+END_RADIO_GROUP
+BEGIN_PANEL_DEF
+Invoke at startup:
+BEGIN_PANEL_DEF
+Assign to keys:
+Invoke at startup:
+Add-in directory:
+BEGIN_PANEL_OPT
+Configuration file:
+BEGIN_PANEL_DEF
+Graph Scale Settings
+END_RADIO_GROUP
+Set scale limits manuallyS
+Set width manuallym
+Numeric format:f
+Decimal places:D
+Scale indicator:i=
+Logarithmic scaleo
+Set exponent manuallyp
+X-axis label every a?
+BEGIN_PANEL_DEF
+Data range settingsD
+END_RADIO_GROUP
+Text attributesa
+BEGIN_PANEL_DEF
+Default International Settings
+END_RADIO_GROUP
+Release 2 character setR
+Negative numbersN
+File translationF
+BEGIN_PANEL_DEF
+Manage Scenarios
+BEGIN_PANEL_OPT
+Create Scenario...C
+BEGIN_PANEL_DEF
+Create Scenario
+Scenario name:S
+Versions in scenario:V
+Remove VersionR
+Available versions:A
+BEGIN_PANEL_DEF
+Modify Scenario
+Versions in scenario:V
+Remove VersionR
+Available versions:A
+BEGIN_PANEL_DEF
+BEGIN_PANEL_OPT
+Create Version...C
+Manage Scenarios...M
+BEGIN_PANEL_DEF
+BEGIN_PANEL_DEF
+Extract range to file - then attachE
+END_RADIO_GROUP
+Send extracted formulas as:
+BEGIN_PANEL_DEF
+END_RADIO_GROUP
+Plot range on 2Y-axisP
+Horizontal on:H
+Data range tablea
+Stack data rangesS
+Percentage graphP
+BEGIN_PANEL_DEF
+Current WorksheetW
+Selected RangeS
+END_RADIO_GROUP
+Check for repeated wordsr
+Check for words with numbersn
+Check for words with initial capitalizationc
+Include personal dictionary alternativesp
+Include macro commands and @function namesI
+Personal dictionary:
+BEGIN_PANEL_DEF
+Edit Dictionary...E
+Personal Dictionary
+Current contents:C
+BEGIN_PANEL_DEF
+BEGIN_PANEL_DEF
+Data in the range has changed.
+Write over data in the range?
+BEGIN_PANEL_DEF
