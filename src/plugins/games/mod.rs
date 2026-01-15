@@ -10,6 +10,7 @@ pub mod brainiac;
 pub mod breakout;
 pub mod caverns;
 pub mod clicker;
+pub mod cosmos;
 pub mod dopewars;
 pub mod dungeon;
 pub mod gumshoe;
@@ -195,6 +196,7 @@ impl GamesPlugin {
             GameType::Adventure => self.state.adventure.game_won,
             GameType::Blackjack => false, // Casino - no win condition
             GameType::Roulette => false,  // Casino - no win condition
+            GameType::Cosmos => false,    // Exploration - no end
         }
     }
 
@@ -418,6 +420,7 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Adventure) => self.state.adventure.handle_key(key),
                     Some(GameType::Blackjack) => self.state.blackjack.handle_key(key),
                     Some(GameType::Roulette) => self.state.roulette.handle_key(key),
+                    Some(GameType::Cosmos) => self.state.cosmos.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -705,6 +708,13 @@ impl Plugin for GamesPlugin {
                 self.state.roulette.tick();
                 self.state.score = self.state.roulette.get_score();
                 if self.state.roulette.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Cosmos) => {
+                self.state.cosmos.tick();
+                self.state.score = self.state.cosmos.get_score();
+                if self.state.cosmos.is_game_over() {
                     self.end_game_with_stats();
                 }
             }

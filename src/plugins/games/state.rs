@@ -8,6 +8,7 @@ use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
 use super::caverns::CavernsState;
 use super::clicker::ClickerState;
+use super::cosmos::CosmosState;
 use super::dopewars::DopeWarsState;
 use super::dungeon::DungeonState;
 use super::gumshoe::GumshoeState;
@@ -142,6 +143,8 @@ pub struct Leaderboards {
     pub blackjack: GameLeaderboard,
     #[serde(default)]
     pub roulette: GameLeaderboard,
+    #[serde(default)]
+    pub cosmos: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -174,6 +177,7 @@ impl Leaderboards {
             GameType::Adventure => &self.adventure,
             GameType::Blackjack => &self.blackjack,
             GameType::Roulette => &self.roulette,
+            GameType::Cosmos => &self.cosmos,
         }
     }
 
@@ -202,6 +206,7 @@ impl Leaderboards {
             GameType::Adventure => &mut self.adventure,
             GameType::Blackjack => &mut self.blackjack,
             GameType::Roulette => &mut self.roulette,
+            GameType::Cosmos => &mut self.cosmos,
         }
     }
 }
@@ -231,6 +236,7 @@ pub enum GameType {
     Adventure,
     Blackjack,
     Roulette,
+    Cosmos,
 }
 
 impl GameType {
@@ -258,6 +264,7 @@ impl GameType {
             GameType::Adventure,
             GameType::Blackjack,
             GameType::Roulette,
+            GameType::Cosmos,
         ]
     }
 
@@ -285,6 +292,7 @@ impl GameType {
             GameType::Adventure => "Adventure",
             GameType::Blackjack => "Blackjack",
             GameType::Roulette => "Roulette",
+            GameType::Cosmos => "Cosmos",
         }
     }
 
@@ -312,6 +320,7 @@ impl GameType {
             GameType::Adventure => "Dragon Quest - find the chalice!",
             GameType::Blackjack => "Beat the dealer to 21!",
             GameType::Roulette => "Spin the wheel, place your bets!",
+            GameType::Cosmos => "Explore the galaxy, make first contact",
         }
     }
 }
@@ -372,6 +381,7 @@ pub struct GamesState {
     pub adventure: AdventureState,
     pub blackjack: BlackjackState,
     pub roulette: RouletteState,
+    pub cosmos: CosmosState,
 
     // Casino wallet - shared credits for gambling games
     pub casino_credits: i64,
@@ -422,6 +432,7 @@ impl GamesState {
             adventure: AdventureState::new(),
             blackjack: BlackjackState::new(),
             roulette: RouletteState::new(),
+            cosmos: CosmosState::new(),
             casino_credits: 1000, // Starting casino credits
         }
     }
@@ -504,6 +515,9 @@ impl GamesState {
                 self.roulette = RouletteState::new();
                 self.roulette.set_credits(self.casino_credits);
             }
+            GameType::Cosmos => {
+                self.cosmos = CosmosState::new();
+            }
         }
     }
 
@@ -541,6 +555,7 @@ impl GamesState {
                 GameType::Adventure => 19,  // No legacy high score storage
                 GameType::Blackjack => 20,  // Casino game
                 GameType::Roulette => 21,   // Casino game
+                GameType::Cosmos => 22,     // Space exploration
             };
 
             // Update casino credits for gambling games

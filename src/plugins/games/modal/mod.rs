@@ -14,6 +14,7 @@ mod brainiac;
 mod breakout;
 mod caverns;
 mod clicker;
+mod cosmos;
 mod dopewars;
 mod dungeon;
 mod gumshoe;
@@ -39,6 +40,7 @@ pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
 pub use caverns::draw_caverns;
 pub use clicker::draw_clicker;
+pub use cosmos::draw as draw_cosmos;
 pub use dopewars::draw_dopewars;
 pub use dungeon::draw_dungeon;
 pub use gumshoe::draw_gumshoe;
@@ -121,6 +123,7 @@ pub fn draw_games_modal(
             Some(GameType::Adventure) => " Adventure ",
             Some(GameType::Blackjack) => " Blackjack ",
             Some(GameType::Roulette) => " Roulette ",
+            Some(GameType::Cosmos) => " Cosmos ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -398,6 +401,7 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Adventure) => draw_adventure(frame, view.area, &state.adventure, colors),
         Some(GameType::Blackjack) => draw_blackjack(frame, view.area, &state.blackjack, colors),
         Some(GameType::Roulette) => draw_roulette(frame, view.area, &state.roulette, colors),
+        Some(GameType::Cosmos) => draw_cosmos(frame, view.area, &state.cosmos, colors),
         None => {}
     }
 }
@@ -516,6 +520,7 @@ fn draw_game_over(
             GameType::Adventure => 19,  // No legacy high score
             GameType::Blackjack => 20,  // Casino game
             GameType::Roulette => 21,   // Casino game
+            GameType::Cosmos => 22,     // Space exploration
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(
@@ -714,6 +719,7 @@ fn draw_leaderboard(
             GameType::Adventure => "ADV",
             GameType::Blackjack => "BJK",
             GameType::Roulette => "RLT",
+            GameType::Cosmos => "COS",
         };
         tab_spans.push(Span::styled(format!(" {} ", name), style));
     }
