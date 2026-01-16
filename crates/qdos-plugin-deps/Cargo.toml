@@ -1,0 +1,15 @@
+[package]
+name = "qdos-plugin-deps"
+version = "0.1.0"
+edition = "2021"
+description = "deps plugin for R-DOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

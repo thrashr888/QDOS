@@ -15,25 +15,16 @@
 pub mod ai;
 pub mod apps;
 pub mod attribute;
-pub mod audio;
-pub mod basic;
 pub mod beads;
 pub mod clipboard;
-pub mod database;
-pub mod deps;
-pub mod docker;
 pub mod drives;
 pub mod dropbox;
-pub mod emulator;
 pub mod fileops;
 pub mod find;
 pub mod games;
 pub mod gdrive;
 pub mod git;
-pub mod homebrew;
 pub mod icloud;
-pub mod midi;
-pub mod model3d;
 pub mod office;
 pub mod palette;
 pub mod qdconfig;
@@ -41,31 +32,19 @@ pub mod qedit;
 pub mod qlink;
 pub mod qmind;
 pub mod qtask;
-pub mod redis;
-pub mod terraform;
 pub mod theme;
-pub mod video;
 pub mod viewer;
 
 pub use ai::AIPlugin;
 pub use apps::AppsPlugin;
-pub use audio::AudioPlugin;
-pub use basic::BasicPlugin;
 pub use beads::BeadsPlugin;
-pub use database::DatabasePlugin;
-pub use deps::DepsPlugin;
-pub use docker::DockerPlugin;
 pub use drives::DrivesPlugin;
 pub use dropbox::DropboxPlugin;
-pub use emulator::EmulatorPlugin;
 pub use fileops::FileOpsPlugin;
 pub use games::GamesPlugin;
 pub use gdrive::GDrivePlugin;
 pub use git::GitPlugin;
-pub use homebrew::HomebrewPlugin;
 pub use icloud::ICloudPlugin;
-pub use midi::MidiPlugin;
-pub use model3d::Model3dPlugin;
 pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
 pub use palette::PalettePlugin;
 pub use qdconfig::QdconfigPlugin;
@@ -73,23 +52,32 @@ pub use qedit::QEditPlugin;
 pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
 pub use qtask::QTaskPlugin;
-pub use redis::RedisPlugin;
-pub use terraform::TerraformPlugin;
 pub use theme::ThemePlugin;
-pub use video::VideoPlugin;
 pub use viewer::ViewerPlugin;
 
 // Externally crated plugins
+pub use qdos_plugin_audio::AudioPlugin;
+pub use qdos_plugin_basic::BasicPlugin;
+pub use qdos_plugin_database::DatabasePlugin;
+pub use qdos_plugin_deps::DepsPlugin;
 pub use qdos_plugin_dirmap::DirMapPlugin;
+pub use qdos_plugin_docker::DockerPlugin;
+pub use qdos_plugin_emulator::EmulatorPlugin;
 pub use qdos_plugin_help::HelpPlugin;
+pub use qdos_plugin_homebrew::HomebrewPlugin;
 pub use qdos_plugin_jj::JjPlugin;
+pub use qdos_plugin_midi::MidiPlugin;
+pub use qdos_plugin_model3d::Model3dPlugin;
 pub use qdos_plugin_print::PrintPlugin;
 pub use qdos_plugin_proc::ProcPlugin;
+pub use qdos_plugin_redis::RedisPlugin;
 pub use qdos_plugin_searchspec::SearchSpecPlugin;
 pub use qdos_plugin_sftp::SftpPlugin;
 pub use qdos_plugin_shell::ShellPlugin;
 pub use qdos_plugin_space::SpacePlugin;
 pub use qdos_plugin_status::StatusPlugin;
+pub use qdos_plugin_terraform::TerraformPlugin;
+pub use qdos_plugin_video::VideoPlugin;
 
 use crate::config::PluginsConfig;
 use ratatui::layout::Rect;
@@ -496,45 +484,51 @@ impl PluginManager {
     }
 
     /// Get mutable reference to HomebrewPlugin
-    pub fn homebrew_plugin_mut(&mut self) -> Option<&mut homebrew::HomebrewPlugin> {
-        self.plugins
-            .get_mut("homebrew")
-            .and_then(|p| p.as_any_mut().downcast_mut::<homebrew::HomebrewPlugin>())
+    pub fn homebrew_plugin_mut(&mut self) -> Option<&mut qdos_plugin_homebrew::HomebrewPlugin> {
+        self.plugins.get_mut("homebrew").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_homebrew::HomebrewPlugin>()
+        })
     }
 
     /// Get mutable reference to BasicPlugin
-    pub fn basic_plugin_mut(&mut self) -> Option<&mut basic::BasicPlugin> {
-        self.plugins
-            .get_mut("basic")
-            .and_then(|p| p.as_any_mut().downcast_mut::<basic::BasicPlugin>())
+    pub fn basic_plugin_mut(&mut self) -> Option<&mut qdos_plugin_basic::BasicPlugin> {
+        self.plugins.get_mut("basic").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_basic::BasicPlugin>()
+        })
     }
 
     /// Get mutable reference to MidiPlugin
-    pub fn midi_plugin_mut(&mut self) -> Option<&mut midi::MidiPlugin> {
-        self.plugins
-            .get_mut("midi")
-            .and_then(|p| p.as_any_mut().downcast_mut::<midi::MidiPlugin>())
+    pub fn midi_plugin_mut(&mut self) -> Option<&mut qdos_plugin_midi::MidiPlugin> {
+        self.plugins.get_mut("midi").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_midi::MidiPlugin>()
+        })
     }
 
     /// Get mutable reference to VideoPlugin
-    pub fn video_plugin_mut(&mut self) -> Option<&mut video::VideoPlugin> {
-        self.plugins
-            .get_mut("video")
-            .and_then(|p| p.as_any_mut().downcast_mut::<video::VideoPlugin>())
+    pub fn video_plugin_mut(&mut self) -> Option<&mut qdos_plugin_video::VideoPlugin> {
+        self.plugins.get_mut("video").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_video::VideoPlugin>()
+        })
     }
 
     /// Get mutable reference to AudioPlugin
-    pub fn audio_plugin_mut(&mut self) -> Option<&mut audio::AudioPlugin> {
-        self.plugins
-            .get_mut("audio")
-            .and_then(|p| p.as_any_mut().downcast_mut::<audio::AudioPlugin>())
+    pub fn audio_plugin_mut(&mut self) -> Option<&mut qdos_plugin_audio::AudioPlugin> {
+        self.plugins.get_mut("audio").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_audio::AudioPlugin>()
+        })
     }
 
     /// Get mutable reference to Model3dPlugin
-    pub fn model3d_plugin_mut(&mut self) -> Option<&mut model3d::Model3dPlugin> {
-        self.plugins
-            .get_mut("model3d")
-            .and_then(|p| p.as_any_mut().downcast_mut::<model3d::Model3dPlugin>())
+    pub fn model3d_plugin_mut(&mut self) -> Option<&mut qdos_plugin_model3d::Model3dPlugin> {
+        self.plugins.get_mut("model3d").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_model3d::Model3dPlugin>()
+        })
     }
 
     /// Get mutable reference to ShellPlugin
@@ -546,10 +540,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to DatabasePlugin
-    pub fn database_plugin_mut(&mut self) -> Option<&mut database::DatabasePlugin> {
-        self.plugins
-            .get_mut("database")
-            .and_then(|p| p.as_any_mut().downcast_mut::<database::DatabasePlugin>())
+    pub fn database_plugin_mut(&mut self) -> Option<&mut qdos_plugin_database::DatabasePlugin> {
+        self.plugins.get_mut("database").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_database::DatabasePlugin>()
+        })
     }
 
     /// Get mutable reference to DropboxPlugin

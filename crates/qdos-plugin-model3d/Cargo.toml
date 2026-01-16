@@ -1,0 +1,17 @@
+[package]
+name = "qdos-plugin-model3d"
+version = "0.1.0"
+edition = "2021"
+description = "model3d plugin for R-DOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+glam = "0.24"
+image = "0.25"
+tobj = "4.0"
+ratatui-image = "1.0"

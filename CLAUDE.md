@@ -24,6 +24,30 @@ cargo clippy -- -D warnings    # Lint with warnings as errors
 cargo test --verbose           # Run tests (minimal - binary only)
 ```
 
+## Code Migration & Refactoring Tools
+
+Prefer these tools for large-scale code changes, renames, and migrations:
+
+```bash
+# ripgrep (rg) - Fast code search
+rg "old_pattern"               # Find all occurrences
+rg -l "pattern"                # List files only
+rg -t rust "pattern"           # Search only Rust files
+
+# fastmod - Interactive find-and-replace
+fastmod "old_name" "new_name"  # Interactive rename across codebase
+fastmod -d src/ "old" "new"    # Limit to directory
+
+# ast-grep - Structural code search and transform
+ast-grep -p 'fn $NAME() { $$$BODY }' -l rs  # Find function patterns
+ast-grep --rewrite 'new_pattern'             # Transform code structurally
+```
+
+**When to use each:**
+- **rg**: Finding where code is used, exploring patterns
+- **fastmod**: Simple text renames (variables, functions, types)
+- **ast-grep**: Structural changes (API migrations, pattern transforms)
+
 ## Architecture
 
 ```

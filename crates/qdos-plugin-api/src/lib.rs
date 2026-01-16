@@ -490,7 +490,7 @@ pub mod prelude {
     };
     pub use super::{Color, KeyCode, KeyModifiers, Modifier, Span, Style};
     // UI components
-    pub use super::ui::{FullScreenView, ModalFrame};
+    pub use super::ui::{FullScreenView, ModalFrame, TabBar, TabState};
     pub use crossterm::event::KeyEvent;
     pub use inventory;
     pub use ratatui::layout::Rect;

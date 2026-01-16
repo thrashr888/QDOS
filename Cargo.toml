@@ -16,6 +16,18 @@ members = [
     "crates/qdos-plugin-proc",
     "crates/qdos-plugin-sftp",
     "crates/qdos-plugin-shell",
+    "crates/qdos-plugin-audio",
+    "crates/qdos-plugin-midi",
+    "crates/qdos-plugin-model3d",
+    "crates/qdos-plugin-video",
+    "crates/qdos-plugin-emulator",
+    "crates/qdos-plugin-homebrew",
+    "crates/qdos-plugin-terraform",
+    "crates/qdos-plugin-redis",
+    "crates/qdos-plugin-deps",
+    "crates/qdos-plugin-docker",
+    "crates/qdos-plugin-database",
+    "crates/qdos-plugin-basic",
 ]
 resolver = "2"
 
@@ -138,6 +150,18 @@ qdos-plugin-jj = { path = "crates/qdos-plugin-jj" }
 qdos-plugin-proc = { path = "crates/qdos-plugin-proc" }
 qdos-plugin-sftp = { path = "crates/qdos-plugin-sftp" }
 qdos-plugin-shell = { path = "crates/qdos-plugin-shell" }
+qdos-plugin-audio = { path = "crates/qdos-plugin-audio" }
+qdos-plugin-midi = { path = "crates/qdos-plugin-midi" }
+qdos-plugin-model3d = { path = "crates/qdos-plugin-model3d" }
+qdos-plugin-video = { path = "crates/qdos-plugin-video" }
+qdos-plugin-emulator = { path = "crates/qdos-plugin-emulator" }
+qdos-plugin-homebrew = { path = "crates/qdos-plugin-homebrew" }
+qdos-plugin-terraform = { path = "crates/qdos-plugin-terraform" }
+qdos-plugin-redis = { path = "crates/qdos-plugin-redis" }
+qdos-plugin-deps = { path = "crates/qdos-plugin-deps" }
+qdos-plugin-docker = { path = "crates/qdos-plugin-docker" }
+qdos-plugin-database = { path = "crates/qdos-plugin-database" }
+qdos-plugin-basic = { path = "crates/qdos-plugin-basic" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

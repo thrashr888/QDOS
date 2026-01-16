@@ -1,0 +1,16 @@
+[package]
+name = "qdos-plugin-video"
+version = "0.1.0"
+edition = "2021"
+description = "video plugin for R-DOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+image = "0.25"
+ffmpeg-sidecar = "1.1"
+ratatui-image = "1.0"

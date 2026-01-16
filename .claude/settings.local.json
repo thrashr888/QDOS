@@ -26,6 +26,7 @@
       "Bash(cargo test:*)",
       "Bash(cargo tree:*)",
       "Bash(cargo update:*)",
+      "Bash(fastmod:*)",
       "Bash(gh auth:*)",
       "Bash(gh release download:*)",
       "Bash(gh release list:*)",
@@ -38,6 +39,8 @@
       "Bash(git log:*)",
       "Bash(git status:*)",
       "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(ast-grep:*)",
       "Bash(head:*)",
       "Bash(jj --version:*)",
       "Bash(jj bookmark list:*)",
@@ -62,7 +65,11 @@
       "Bash(cargo clean:*)",
       "Skill(beads:show)",
       "WebFetch(domain:en.wikipedia.org)",
-      "Bash(__NEW_LINE_2fc110daa0bbcd83__ echo \"\")"
+      "Bash(for)",
+      "Bash(echo)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(xargs:*)"
     ]
   }
 }

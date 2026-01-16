@@ -5,6 +5,8 @@
 
 mod modal;
 mod screen;
+mod tabs;
 
 pub use modal::ModalFrame;
 pub use screen::FullScreenView;
+pub use tabs::{TabBar, TabState};
