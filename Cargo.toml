@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/homebrew", "crates/jj", "crates/beads", "crates/search"]
+members = [
+    "crates/homebrew",
+    "crates/jj",
+    "crates/beads",
+    "crates/search",
+    "crates/qdos-plugin-api",
+]
 resolver = "2"
 
 [package]
@@ -109,6 +115,7 @@ homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
 beads-cli = { path = "crates/beads" }
 search-tools = { path = "crates/search" }
+qdos-plugin-api = { path = "crates/qdos-plugin-api" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

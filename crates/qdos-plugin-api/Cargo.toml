@@ -1,0 +1,18 @@
+[package]
+name = "qdos-plugin-api"
+version = "0.1.0"
+edition = "2021"
+description = "Core plugin API for QDOS plugins"
+authors = ["thrashr888"]
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+keywords = ["plugin", "tui", "api"]
+categories = ["api-bindings"]
+
+[dependencies]
+# TUI framework - re-export types needed by plugins
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Plugin self-registration via distributed slices
+inventory = "0.3"

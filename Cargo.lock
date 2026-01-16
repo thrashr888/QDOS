@@ -2016,6 +2016,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc61209c082fbeb19919bee74b176221b27223e27b65d781eb91af24eb1fb46e"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "io-enum"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3317,6 +3326,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-api"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "ratatui",
+]
+
+[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3554,6 +3572,7 @@ dependencies = [
  "notify",
  "portable-pty",
  "postgres",
+ "qdos-plugin-api",
  "rand 0.8.5",
  "ratatui",
  "ratatui-image",

@@ -101,147 +101,32 @@ pub use video::VideoPlugin;
 pub use viewer::ViewerPlugin;
 
 use crate::config::PluginsConfig;
-use crossterm::event::KeyEvent;
 use ratatui::layout::Rect;
 use ratatui::Frame;
 use std::any::Any;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Plugin capability flags
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct PluginCapabilities {
-    /// Plugin provides a menu item
-    pub has_menu: bool,
-    /// Plugin handles keyboard shortcuts
-    pub has_keys: bool,
-    /// Plugin provides a modal UI
-    pub has_modal: bool,
-    /// Plugin provides status bar content
-    pub has_status: bool,
-    /// Plugin provides CLI arguments
-    pub has_cli: bool,
-    /// Plugin provides help content
-    pub has_help: bool,
-}
+// Re-export core plugin types from the plugin API crate
+// This maintains backward compatibility while centralizing definitions
+pub use qdos_plugin_api::{
+    AppEntry, KeyHandleResult, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo, SoundEvent,
+};
 
-/// Menu item provided by a plugin
-#[derive(Debug, Clone)]
-pub struct PluginMenuItem {
-    /// Display name in menu
-    pub name: String,
-    /// Keyboard shortcut key
-    pub key: char,
-    /// Description shown in menu
-    pub description: String,
-    /// Priority for ordering (lower = earlier)
-    pub priority: i32,
-}
+// Re-export commonly used types for plugin implementations
+pub use crossterm::event::KeyEvent;
 
-/// Status bar info provided by a plugin
-#[derive(Debug, Clone, Default)]
-pub struct PluginStatusInfo {
-    /// Short status text (max ~20 chars)
-    pub text: String,
-    /// Whether plugin is active/enabled
-    pub active: bool,
-}
-
-/// Plugin category for Apps launcher organization
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PluginCategory {
-    Files,
-    Vcs,
-    Tools,
-    Games,
-    System,
-}
-
-impl PluginCategory {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            PluginCategory::Files => "Files",
-            PluginCategory::Vcs => "VCS",
-            PluginCategory::Tools => "Tools",
-            PluginCategory::Games => "Games",
-            PluginCategory::System => "System",
-        }
-    }
-
-    /// Get all categories in display order
-    pub fn all() -> &'static [PluginCategory] {
-        &[
-            PluginCategory::Files,
-            PluginCategory::Vcs,
-            PluginCategory::Tools,
-            PluginCategory::Games,
-            PluginCategory::System,
-        ]
-    }
-}
-
-/// App entry for the F12 Apps launcher
-#[derive(Debug, Clone)]
-pub struct AppEntry {
-    /// Plugin ID (must match plugin.id())
-    pub id: String,
-    /// Display name
-    pub name: String,
-    /// Short description
-    pub description: String,
-    /// Category for grouping
-    pub category: PluginCategory,
-    /// Keyboard shortcut key (A-Z)
-    pub key: char,
-}
-
-/// Result of handling a key event
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum KeyHandleResult {
-    /// Key was not handled by this plugin
-    NotHandled,
-    /// Key was handled, continue processing
-    Handled,
-    /// Key was handled, open plugin's modal
-    OpenModal,
-    /// Key was handled, close current modal
-    CloseModal,
-    /// Key was handled, close modal and show success message
-    CloseWithSuccess(String),
-    /// Key was handled, close modal and show error message
-    CloseWithError(String),
-    /// Key was handled, request file list refresh
-    RefreshFiles,
-    /// Key was handled, navigate to a file (close modal and select file)
-    NavigateToFile(std::path::PathBuf),
-    /// Key was handled, navigate to a directory (close modal and enter directory)
-    NavigateToDir(std::path::PathBuf),
-}
-
-/// Sound events that plugins can emit
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SoundEvent {
-    /// Achievement unlocked
-    Achievement,
-    /// Game over
-    GameOver,
-    /// Level up / success
-    LevelUp,
-    /// Click / selection
-    Click,
-    /// Error
-    Error,
-    /// Success
-    Success,
-    /// Alien contact: Harmonics - melodic greeting
-    AlienHarmonics,
-    /// Alien contact: Geometers - mathematical pattern
-    AlienGeometers,
-    /// Alien contact: Empaths - emotional oscillation
-    AlienEmpaths,
-}
+// ThemeColors: Plugins currently use crate::app::ThemeColors
+// We keep this for now until we migrate plugins to use the API crate directly
+// The API crate has its own ThemeColors that's compatible
+#[allow(unused_imports)]
+pub use qdos_plugin_api::ThemeColors as PluginThemeColors;
 
 /// The core Plugin trait that all plugins must implement
+///
+/// Note: This is a local version that uses crate::app::ThemeColors for backward
+/// compatibility. Plugins will be migrated to use qdos_plugin_api::Plugin directly.
 pub trait Plugin: Send + Sync {
     /// Unique identifier for this plugin
     fn id(&self) -> &str;
@@ -311,8 +196,8 @@ pub trait Plugin: Send + Sync {
     /// - `cwd`: Current working directory
     /// - `selected_file`: Currently selected file path (if any)
     ///
-    /// Returns true if the plugin was successfully launched and its modal should open.
-    /// Returns false if the plugin cannot be launched (will show error).
+    /// Returns Ok(()) if the plugin was successfully launched and its modal should open.
+    /// Returns Err(message) if the plugin cannot be launched (will show error).
     fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
         Ok(())
     }
