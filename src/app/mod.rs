@@ -33,13 +33,13 @@ use crate::file_ops::{
 };
 use crate::plugins::{
     fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
-    DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DrivesPlugin, DropboxPlugin,
-    EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
+    DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DocsPlugin, DrivesPlugin,
+    DropboxPlugin, EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
     HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin,
     OfficePlugin, PalettePlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
     ProcPlugin, QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, RedisPlugin,
     SearchSpecPlugin, SftpPlugin, SheetPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin,
+    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
 };
 use crate::sound::SoundEffects;
 use crate::ui;
@@ -171,7 +171,9 @@ impl App {
         plugin_manager.register(Box::new(MidiPlugin::new()));
         plugin_manager.register(Box::new(Model3dPlugin::new()));
         plugin_manager.register(Box::new(OfficePlugin::new()));
+        plugin_manager.register(Box::new(DocsPlugin::new()));
         plugin_manager.register(Box::new(SheetPlugin::new()));
+        plugin_manager.register(Box::new(WebPlugin::new()));
         plugin_manager.register(Box::new(AudioPlugin::new()));
         plugin_manager.register(Box::new(PalettePlugin::new()));
         plugin_manager.register(Box::new(PrintPlugin::new()));

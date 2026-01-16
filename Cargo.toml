@@ -91,6 +91,9 @@ rodio = "0.19"
 # HTTP client (blocking, for AI API calls)
 ureq = { version = "3.0", features = ["json"] }
 
+# Web content extraction (reader mode)
+dom_smoothie = "0.8"
+
 # Database clients
 rusqlite = { version = "0.32", features = ["bundled"] }
 postgres = { version = "0.19", features = ["with-chrono-0_4"] }

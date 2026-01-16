@@ -1,0 +1,69 @@
+# Q-DOS Project Overview
+
+---
+
+## What is Q-DOS?
+
+A retro DOS-style file manager TUI
+
+* Written in Rust with ratatui
+* Cross-platform terminal support
+* Plugin-based architecture
+* Authentic 1991 aesthetics
+
+---
+
+## Key Features
+
+### File Management
+- Directory navigation
+- File operations (copy, move, delete)
+- Search and filtering
+
+### Office Suite
+- Q-SHEET: Spreadsheets
+- Q-DECK: Presentations
+- Q-WEB: Web browser
+- Q-DOCS: Word processor
+
+---
+
+## Technical Highlights
+
+```rust
+fn main() {
+    let app = App::new();
+    app.run();
+}
+```
+
+* Event-driven TUI architecture
+* Modal dialog system
+* Theme support with DOS colors
+
+---
+
+## Statistics
+
+| Metric        | Value   |
+|---------------|---------|
+| Lines of Code | 50,000+ |
+| Plugins       | 25      |
+| Tests         | 348     |
+
+---
+
+## Future Plans
+
+1. Enhanced theming
+2. More office applications
+3. Performance improvements
+4. Plugin marketplace
+
+---
+
+# Thank You!
+
+Visit: github.com/thrashr888/QDOS
+
+Press Esc to exit

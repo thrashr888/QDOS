@@ -335,8 +335,7 @@ impl SheetPlugin {
                         Ok(()) => {
                             state.file_path = Some(path);
                             state.modified = false;
-                            state.status_message =
-                                Some(("Saved successfully".to_string(), 30));
+                            state.status_message = Some(("Saved successfully".to_string(), 30));
                             KeyHandleResult::Handled
                         }
                         Err(e) => {

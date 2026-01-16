@@ -1,0 +1,10 @@
+Product,Units Sold,Price,Revenue,Cost,Profit
+Widget A,150,29.99,=B2*C2,15.00,=D2-(B2*E2)
+Widget B,230,19.99,=B3*C3,8.50,=D3-(B3*E3)
+Widget C,85,49.99,=B4*C4,22.00,=D4-(B4*E4)
+Gadget X,320,14.99,=B5*C5,6.25,=D5-(B5*E5)
+Gadget Y,175,34.99,=B6*C6,14.00,=D6-(B6*E6)
+Total,=SUM(B2:B6),,=SUM(D2:D6),,=SUM(F2:F6)
+Average,=AVG(B2:B6),=AVG(C2:C6),=AVG(D2:D6),,=AVG(F2:F6)
+Max,=MAX(B2:B6),=MAX(C2:C6),=MAX(D2:D6),,=MAX(F2:F6)
+Min,=MIN(B2:B6),=MIN(C2:C6),=MIN(D2:D6),,=MIN(F2:F6)

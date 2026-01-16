@@ -80,7 +80,7 @@ pub use icloud::ICloudPlugin;
 pub use jj::JjPlugin;
 pub use midi::MidiPlugin;
 pub use model3d::Model3dPlugin;
-pub use office::{OfficePlugin, SheetPlugin};
+pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
 pub use palette::PalettePlugin;
 pub use print::PrintPlugin;
 pub use proc::ProcPlugin;

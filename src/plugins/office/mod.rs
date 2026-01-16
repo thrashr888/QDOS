@@ -4,9 +4,15 @@
 //!
 //! Currently includes:
 //! - Q-SHEET: Spreadsheet editor with formulas and CSV support
+//! - Q-DECK: Presentation editor with ANSI art and sixel images
+//! - Q-WEB: Text-based web browser with reader mode
+//! - Q-DOCS: Word processor with Markdown support
 
+pub mod deck;
+pub mod docs;
 pub mod shared;
 pub mod sheet;
+pub mod web;
 
 use crate::app::ThemeColors;
 use crate::plugins::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
@@ -21,7 +27,10 @@ use ratatui::{
 use std::any::Any;
 use std::path::PathBuf;
 
+pub use deck::DeckPlugin;
+pub use docs::DocsPlugin;
 pub use sheet::SheetPlugin;
+pub use web::WebPlugin;
 
 // =============================================================================
 // OFFICE VIEW
@@ -37,6 +46,9 @@ pub enum OfficeView {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OfficeApp {
     Sheet,
+    Deck,
+    Web,
+    Docs,
 }
 
 // =============================================================================
@@ -50,12 +62,32 @@ struct OfficeAppInfo {
     key: char,
 }
 
-const OFFICE_APPS: &[OfficeAppInfo] = &[OfficeAppInfo {
-    id: OfficeApp::Sheet,
-    name: "Q-SHEET",
-    description: "Spreadsheet editor with formulas and CSV support",
-    key: '1',
-}];
+const OFFICE_APPS: &[OfficeAppInfo] = &[
+    OfficeAppInfo {
+        id: OfficeApp::Sheet,
+        name: "Q-SHEET",
+        description: "Spreadsheet editor with formulas and CSV support",
+        key: '1',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Deck,
+        name: "Q-DECK",
+        description: "Presentation editor with ANSI art and sixel images",
+        key: '2',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Web,
+        name: "Q-WEB",
+        description: "Text browser with reader mode and bookmarks",
+        key: '3',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Docs,
+        name: "Q-DOCS",
+        description: "Word processor with Markdown support",
+        key: '4',
+    },
+];
 
 // =============================================================================
 // OFFICE PLUGIN
@@ -69,6 +101,9 @@ pub struct OfficePlugin {
     view: OfficeView,
     selected: usize,
     sheet: SheetPlugin,
+    deck: DeckPlugin,
+    web: WebPlugin,
+    docs: DocsPlugin,
 }
 
 impl Default for OfficePlugin {
@@ -83,6 +118,9 @@ impl OfficePlugin {
             view: OfficeView::Menu,
             selected: 0,
             sheet: SheetPlugin::new(),
+            deck: DeckPlugin::new(),
+            web: WebPlugin::new(),
+            docs: DocsPlugin::new(),
         }
     }
 
@@ -109,6 +147,18 @@ impl OfficePlugin {
             OfficeApp::Sheet => {
                 self.sheet.launch();
                 self.view = OfficeView::App(OfficeApp::Sheet);
+            }
+            OfficeApp::Deck => {
+                self.deck.launch();
+                self.view = OfficeView::App(OfficeApp::Deck);
+            }
+            OfficeApp::Web => {
+                self.web.launch();
+                self.view = OfficeView::App(OfficeApp::Web);
+            }
+            OfficeApp::Docs => {
+                self.docs.launch();
+                self.view = OfficeView::App(OfficeApp::Docs);
             }
         }
     }
@@ -239,10 +289,61 @@ impl Plugin for OfficePlugin {
                     self.launch_app(OfficeApp::Sheet);
                     KeyHandleResult::Handled
                 }
+                KeyCode::Char('2') => {
+                    self.launch_app(OfficeApp::Deck);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('3') => {
+                    self.launch_app(OfficeApp::Web);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('4') => {
+                    self.launch_app(OfficeApp::Docs);
+                    KeyHandleResult::Handled
+                }
                 _ => KeyHandleResult::Handled,
             },
             OfficeView::App(OfficeApp::Sheet) => {
                 let result = self.sheet.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Deck) => {
+                let result = self.deck.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Web) => {
+                let result = self.web.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Docs) => {
+                let result = self.docs.handle_modal_key(key, cwd);
                 if matches!(
                     result,
                     KeyHandleResult::CloseModal
@@ -261,12 +362,19 @@ impl Plugin for OfficePlugin {
         match self.view {
             OfficeView::Menu => self.draw_menu(frame, area, colors),
             OfficeView::App(OfficeApp::Sheet) => self.sheet.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Deck) => self.deck.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Web) => self.web.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Docs) => self.docs.draw_modal(frame, area, colors),
         }
     }
 
     fn tick(&mut self) {
-        if let OfficeView::App(OfficeApp::Sheet) = self.view {
-            self.sheet.tick();
+        match self.view {
+            OfficeView::App(OfficeApp::Sheet) => self.sheet.tick(),
+            OfficeView::App(OfficeApp::Deck) => self.deck.tick(),
+            OfficeView::App(OfficeApp::Web) => self.web.tick(),
+            OfficeView::App(OfficeApp::Docs) => self.docs.tick(),
+            OfficeView::Menu => {}
         }
     }
 
