@@ -61,7 +61,8 @@
       "WebFetch(domain:www.dosgamesarchive.com)",
       "Bash(cargo clean:*)",
       "Skill(beads:show)",
-      "WebFetch(domain:en.wikipedia.org)"
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(__NEW_LINE_2fc110daa0bbcd83__ echo \"\")"
     ]
   }
 }

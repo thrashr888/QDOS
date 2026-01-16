@@ -1,0 +1,13 @@
+[package]
+name = "qdos-plugin-status"
+version = "0.1.0"
+edition = "2021"
+description = "System status display plugin for QDOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+humansize = "2.1"
+sysinfo = "0.37"
+ratatui = "0.29"

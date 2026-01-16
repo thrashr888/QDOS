@@ -2,23 +2,17 @@
 //!
 //! Provides directory tree navigation (D key) as a self-contained plugin.
 
+#![allow(clippy::ptr_arg)]
+
 mod state;
 
 pub use state::DirMapState;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::FullScreenView;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
+use qdos_plugin_api::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
-use std::any::Any;
 use std::fs;
-use std::path::PathBuf;
 
 /// Directory Map plugin for tree navigation
 pub struct DirMapPlugin {
@@ -302,7 +296,7 @@ impl Plugin for DirMapPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -338,9 +332,9 @@ impl Plugin for DirMapPlugin {
             let indent = "  ".repeat(*depth);
             let indicator = if *has_children {
                 if *expanded {
-                    "▼ "
+                    "v "
                 } else {
-                    "▶ "
+                    "> "
                 }
             } else {
                 "  "
@@ -384,7 +378,7 @@ impl Plugin for DirMapPlugin {
             view.render_footer(
                 frame,
                 vec![Span::styled(
-                    format!(" {}: {}█", mode, state.input_buffer),
+                    format!(" {}: {}_", mode, state.input_buffer),
                     Style::default().fg(colors.green()),
                 )],
             );
@@ -392,9 +386,9 @@ impl Plugin for DirMapPlugin {
             view.render_help(
                 frame,
                 vec![
-                    ("↑↓", "Navigate"),
-                    ("Enter/→", "Expand"),
-                    ("←/Backspace", "Collapse"),
+                    ("Up/Dn", "Navigate"),
+                    ("Enter/->", "Expand"),
+                    ("<-/Backspace", "Collapse"),
                     ("M", "Make Dir"),
                     ("d", "Delete Dir"),
                     ("ESC", "Close"),
@@ -433,6 +427,11 @@ impl Plugin for DirMapPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration
+inventory::submit! {
+    PluginRegistration::new("dirmap", || Box::new(DirMapPlugin::new()))
 }
 
 #[cfg(test)]

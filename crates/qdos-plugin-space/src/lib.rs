@@ -1,19 +1,13 @@
-//! Space Plugin for R-DOS
+//! Space Plugin for QDOS
 //!
 //! Provides disk space display functionality as a self-contained plugin.
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::ModalFrame;
-use crossterm::event::{KeyCode, KeyEvent};
+// Allow &PathBuf in trait implementations for compatibility with plugin API
+#![allow(clippy::ptr_arg)]
+
 use humansize::{format_size, DECIMAL};
-use ratatui::layout::Rect;
+use qdos_plugin_api::prelude::*;
 use ratatui::style::Style;
-use ratatui::text::Span;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
 use sysinfo::Disks;
 
 /// Space plugin state
@@ -165,7 +159,7 @@ impl Plugin for SpacePlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
         let popup_height = 12.min(area.height.saturating_sub(4));
@@ -258,6 +252,11 @@ impl Plugin for SpacePlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration: this plugin will be automatically discovered by the host
+inventory::submit! {
+    PluginRegistration::new("space", || Box::new(SpacePlugin::new()))
 }
 
 #[cfg(test)]

@@ -2,21 +2,15 @@
 //!
 //! Provides help system functionality (F1) as a self-contained plugin.
 
+#![allow(clippy::ptr_arg)]
+
 mod state;
 
 pub use state::HelpState;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::FullScreenView;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use qdos_plugin_api::prelude::*;
+use ratatui::style::Style;
 use ratatui::text::Span;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
 
 /// Help plugin that displays help topics
 pub struct HelpPlugin {
@@ -53,6 +47,7 @@ impl HelpPlugin {
     }
 
     /// Get visible lines for current view height
+    #[allow(dead_code)]
     fn visible_lines(&self, height: usize) -> usize {
         height.saturating_sub(4) // Account for border and padding
     }
@@ -300,7 +295,7 @@ impl Plugin for HelpPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         // Calculate centered modal area (80% width, 80% height)
         let popup_width = ((area.width as f32) * 0.8) as u16;
         let popup_height = ((area.height as f32) * 0.8) as u16;
@@ -342,7 +337,7 @@ impl Plugin for HelpPlugin {
 }
 
 impl HelpPlugin {
-    fn draw_index(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_index(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let view = FullScreenView::new(area, " R-DOS Help ", colors);
         view.render_frame(frame);
 
@@ -421,7 +416,7 @@ impl HelpPlugin {
                 vec![
                     ("Enter", "go to topic"),
                     ("ESC", "clear filter"),
-                    ("↑↓", &scroll_info),
+                    ("Up/Dn", &scroll_info),
                 ],
             );
         } else {
@@ -430,14 +425,14 @@ impl HelpPlugin {
                 vec![
                     ("A-Z", "go to topic"),
                     ("Type", "filter"),
-                    ("↑↓", &scroll_info),
+                    ("Up/Dn", &scroll_info),
                     ("ESC", "close"),
                 ],
             );
         }
     }
 
-    fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_topic(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let topic_idx = self.state.current_topic - 1;
         let topic = &self.state.topics[topic_idx];
 
@@ -473,6 +468,11 @@ impl HelpPlugin {
             ],
         );
     }
+}
+
+// Self-registration
+inventory::submit! {
+    PluginRegistration::new("help", || Box::new(HelpPlugin::new()))
 }
 
 #[cfg(test)]

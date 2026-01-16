@@ -1,0 +1,11 @@
+[package]
+name = "qdos-plugin-help"
+version = "0.1.0"
+edition = "2021"
+description = "Help system plugin for QDOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+ratatui = "0.29"

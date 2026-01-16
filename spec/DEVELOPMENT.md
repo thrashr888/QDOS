@@ -23,9 +23,9 @@ Traditional RFC-style development docs quickly become stale and disconnected fro
 6. Exit plan mode for user approval (ExitPlanMode)
 
 **Artifacts**:
-- Plan files in `~/.claude/plans/`
-- Ephemeral - archived after feature completion
-- Used only for current feature implementation
+- Plan files saved to `plans/` directory (git-tracked)
+- Preserved as institutional memory - not deleted after feature completion
+- Named: `YYYY-MM-DD-feature-name.md` (e.g., `2026-01-15-external-plugins.md`)
 
 **Key Insight**: Pull in existing code and specs to inform design decisions. Don't design in a vacuum.
 
@@ -169,6 +169,7 @@ Agent: <enters plan mode>
   4. Designs implementation approach
   5. Writes plan to plan file
   6. Exits plan mode for approval
+  7. Saves approved plan to plans/YYYY-MM-DD-feature-x.md
 ```
 
 ### Step 2: Beads Issues
@@ -235,6 +236,7 @@ Agent: <after testing>
 
 **DO:**
 - ✅ Use plan mode for all non-trivial features
+- ✅ Save plans to `plans/` directory (approved or abandoned)
 - ✅ Keep specs declarative and evergreen
 - ✅ Keep skills prescriptive and code-focused
 - ✅ Track multi-session work in beads
@@ -275,6 +277,27 @@ Agent: <after testing>
 4. **Searchable**: Beads issues track all work with dependencies
 5. **Evergreen truth**: Specs document current architecture, not historical plans
 6. **Efficient**: Plan mode prevents wasted implementation effort
+7. **Institutional memory**: Preserved plans document decision history
+
+## Plan Preservation
+
+Plans are saved to `plans/` directory (git-tracked) rather than discarded:
+
+**What to save:**
+- **Approved plans** - Document the "why" behind implementations
+- **Abandoned plans** - Show alternatives considered and why rejected
+- **Partial plans** - Exploration that may be revisited later
+
+**Value of preserved plans:**
+- Answer "why was it built this way?" questions
+- Prevent re-exploring already-rejected approaches
+- Show evolution of thinking over time
+- Complement beads: beads track *what* was done, plans track *how* decisions were made
+
+**When abandoning a plan**, add a note at the top explaining why:
+```markdown
+> **ABANDONED 2026-01-15**: Decided to use approach Y instead because...
+```
 
 ## Maintenance
 
@@ -285,12 +308,12 @@ Agent: <after testing>
 - CLAUDE.md: When agent guidance needs refinement (occasional)
 
 **Per-feature updates:**
-- Plan file: Created for each feature (then archived)
+- Plan file: Created for each feature and saved to `plans/`
 - Beads issues: Created/updated throughout feature lifecycle
 
 **Never update:**
-- Old plan files (ephemeral artifacts)
-- Closed beads issues (historical record)
+- Saved plan files (historical record of decisions)
+- Closed beads issues (historical record of work)
 
 ---
 

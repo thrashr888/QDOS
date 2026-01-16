@@ -1,5 +1,6 @@
 //! Plugin system tests
 use super::*;
+use std::any::Any;
 use std::collections::HashMap;
 
 struct TestPlugin {

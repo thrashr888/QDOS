@@ -24,6 +24,8 @@
 //! }
 //! ```
 
+pub mod ui;
+
 use crossterm::event::KeyEvent;
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -114,6 +116,34 @@ impl ThemeColors {
     pub fn magenta(&self) -> Color {
         let (r, g, b) = self.magenta;
         Color::Rgb(r, g, b)
+    }
+
+    /// Adapt colors for a light terminal background
+    /// Darkens colors that would be hard to read on light backgrounds
+    pub fn for_light_terminal(&self) -> ThemeColors {
+        ThemeColors {
+            // Use light background, dark foreground
+            background: (240, 240, 240),
+            foreground: (30, 30, 30),
+            // Darken accent colors for visibility on light backgrounds
+            blue: Self::darken(self.blue, 0.4),
+            green: Self::darken(self.green, 0.5),
+            red: self.red, // Red is typically already visible
+            yellow: Self::darken(self.yellow, 0.3),
+            grey: (100, 100, 100),
+            cyan: Self::darken(self.cyan, 0.4),
+            magenta: Self::darken(self.magenta, 0.3),
+        }
+    }
+
+    /// Darken an RGB color by a factor (0.0 = no change, 1.0 = black)
+    fn darken(color: (u8, u8, u8), factor: f32) -> (u8, u8, u8) {
+        let f = 1.0 - factor.clamp(0.0, 1.0);
+        (
+            (color.0 as f32 * f) as u8,
+            (color.1 as f32 * f) as u8,
+            (color.2 as f32 * f) as u8,
+        )
     }
 }
 
@@ -459,6 +489,8 @@ pub mod prelude {
         PluginRegistration, PluginStatusInfo, SoundEvent, ThemeColors,
     };
     pub use super::{Color, KeyCode, KeyModifiers, Modifier, Span, Style};
+    // UI components
+    pub use super::ui::{FullScreenView, ModalFrame};
     pub use crossterm::event::KeyEvent;
     pub use inventory;
     pub use ratatui::layout::Rect;

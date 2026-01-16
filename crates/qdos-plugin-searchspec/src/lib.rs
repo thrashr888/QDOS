@@ -2,17 +2,11 @@
 //!
 //! Provides search specification (F7) functionality as a self-contained plugin.
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::ModalFrame;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
+#![allow(clippy::ptr_arg)]
+
+use qdos_plugin_api::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::Span;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
 
 /// Search specification state
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,7 +208,7 @@ impl Plugin for SearchSpecPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -257,7 +251,7 @@ impl Plugin for SearchSpecPlugin {
                 vec![
                     Span::styled("Pattern: ", label_style),
                     Span::styled(&state.pattern, input_style),
-                    Span::styled("█", input_style),
+                    Span::styled("_", input_style),
                 ],
             );
             modal.render_row(frame, 3, vec![]);
@@ -307,7 +301,7 @@ impl Plugin for SearchSpecPlugin {
                     Style::default().fg(colors.grey()).bg(colors.bg())
                 };
 
-                let indicator = if is_on { " ✓ " } else { "   " };
+                let indicator = if is_on { " * " } else { "   " };
                 attr_spans.push(Span::styled(format!("[{}{}]", name, indicator), style));
                 attr_spans.push(Span::styled(" ", Style::default().bg(colors.bg())));
             }
@@ -316,7 +310,7 @@ impl Plugin for SearchSpecPlugin {
             modal.render_help(
                 frame,
                 vec![
-                    ("←→", "select"),
+                    ("<->", "select"),
                     ("SPACE", "toggle"),
                     ("Enter", "apply"),
                     ("ESC", "back"),
@@ -350,6 +344,11 @@ impl Plugin for SearchSpecPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration
+inventory::submit! {
+    PluginRegistration::new("searchspec", || Box::new(SearchSpecPlugin::new()))
 }
 
 #[cfg(test)]

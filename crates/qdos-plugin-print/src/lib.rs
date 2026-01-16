@@ -1,18 +1,11 @@
-//! Print Plugin for R-DOS
+//! Print Plugin for QDOS
 //!
 //! Provides file printing functionality as a self-contained plugin.
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::ModalFrame;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
+#![allow(clippy::ptr_arg)]
+
+use qdos_plugin_api::prelude::*;
 use ratatui::style::Style;
-use ratatui::text::Span;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
 use std::process::Command;
 
 /// Print plugin state
@@ -155,7 +148,7 @@ impl Plugin for PrintPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         // Calculate centered modal area
         let popup_width = 50.min(area.width.saturating_sub(4));
         let popup_height = 8.min(area.height.saturating_sub(4));
@@ -250,6 +243,11 @@ impl Plugin for PrintPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration
+inventory::submit! {
+    PluginRegistration::new("print", || Box::new(PrintPlugin::new()))
 }
 
 #[cfg(test)]

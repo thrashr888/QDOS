@@ -1,19 +1,13 @@
-//! Status Plugin for R-DOS
+//! Status Plugin for QDOS
 //!
 //! Provides system status display (F2 functionality) as a self-contained plugin.
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::ui::components::ModalFrame;
-use crossterm::event::{KeyCode, KeyEvent};
+// Allow &PathBuf in trait implementations for compatibility with plugin API
+#![allow(clippy::ptr_arg)]
+
 use humansize::{format_size, DECIMAL};
-use ratatui::layout::Rect;
+use qdos_plugin_api::prelude::*;
 use ratatui::style::{Modifier, Style};
-use ratatui::text::Span;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
 use sysinfo::System;
 
 /// System information cached by the plugin
@@ -161,7 +155,7 @@ impl Plugin for StatusPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         // Calculate centered area (60% width, 50% height)
         let popup_width = (area.width as f32 * 0.6) as u16;
         let popup_height = (area.height as f32 * 0.5) as u16;
@@ -293,6 +287,11 @@ impl Plugin for StatusPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration: this plugin will be automatically discovered by the host
+inventory::submit! {
+    PluginRegistration::new("status", || Box::new(StatusPlugin::new()))
 }
 
 #[cfg(test)]

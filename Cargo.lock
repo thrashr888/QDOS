@@ -3335,6 +3335,58 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-dirmap"
+version = "0.1.0"
+dependencies = [
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-help"
+version = "0.1.0"
+dependencies = [
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-print"
+version = "0.1.0"
+dependencies = [
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-searchspec"
+version = "0.1.0"
+dependencies = [
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-space"
+version = "0.1.0"
+dependencies = [
+ "humansize",
+ "qdos-plugin-api",
+ "ratatui",
+ "sysinfo",
+]
+
+[[package]]
+name = "qdos-plugin-status"
+version = "0.1.0"
+dependencies = [
+ "humansize",
+ "qdos-plugin-api",
+ "ratatui",
+ "sysinfo",
+]
+
+[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3573,6 +3625,12 @@ dependencies = [
  "portable-pty",
  "postgres",
  "qdos-plugin-api",
+ "qdos-plugin-dirmap",
+ "qdos-plugin-help",
+ "qdos-plugin-print",
+ "qdos-plugin-searchspec",
+ "qdos-plugin-space",
+ "qdos-plugin-status",
  "rand 0.8.5",
  "ratatui",
  "ratatui-image",

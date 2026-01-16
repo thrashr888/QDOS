@@ -1,0 +1,11 @@
+[package]
+name = "qdos-plugin-searchspec"
+version = "0.1.0"
+edition = "2021"
+description = "Search specification plugin for QDOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+ratatui = "0.29"

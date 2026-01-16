@@ -22,7 +22,6 @@ pub mod clipboard;
 pub mod cloud;
 pub mod database;
 pub mod deps;
-pub mod dirmap;
 pub mod docker;
 pub mod drives;
 pub mod dropbox;
@@ -32,7 +31,6 @@ pub mod find;
 pub mod games;
 pub mod gdrive;
 pub mod git;
-pub mod help;
 pub mod homebrew;
 pub mod icloud;
 pub mod jj;
@@ -40,7 +38,6 @@ pub mod midi;
 pub mod model3d;
 pub mod office;
 pub mod palette;
-pub mod print;
 pub mod proc;
 pub mod qdconfig;
 pub mod qedit;
@@ -48,11 +45,8 @@ pub mod qlink;
 pub mod qmind;
 pub mod qtask;
 pub mod redis;
-pub mod searchspec;
 pub mod sftp;
 pub mod shell;
-pub mod space;
-pub mod status;
 pub mod terraform;
 pub mod theme;
 pub mod video;
@@ -65,7 +59,6 @@ pub use basic::BasicPlugin;
 pub use beads::BeadsPlugin;
 pub use database::DatabasePlugin;
 pub use deps::DepsPlugin;
-pub use dirmap::DirMapPlugin;
 pub use docker::DockerPlugin;
 pub use drives::DrivesPlugin;
 pub use dropbox::DropboxPlugin;
@@ -74,7 +67,6 @@ pub use fileops::FileOpsPlugin;
 pub use games::GamesPlugin;
 pub use gdrive::GDrivePlugin;
 pub use git::GitPlugin;
-pub use help::HelpPlugin;
 pub use homebrew::HomebrewPlugin;
 pub use icloud::ICloudPlugin;
 pub use jj::JjPlugin;
@@ -82,7 +74,6 @@ pub use midi::MidiPlugin;
 pub use model3d::Model3dPlugin;
 pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
 pub use palette::PalettePlugin;
-pub use print::PrintPlugin;
 pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
@@ -90,11 +81,16 @@ pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
 pub use qtask::QTaskPlugin;
 pub use redis::RedisPlugin;
-pub use searchspec::SearchSpecPlugin;
 pub use sftp::SftpPlugin;
 pub use shell::ShellPlugin;
-pub use space::SpacePlugin;
-pub use status::StatusPlugin;
+
+// Externally crated plugins
+pub use qdos_plugin_dirmap::DirMapPlugin;
+pub use qdos_plugin_help::HelpPlugin;
+pub use qdos_plugin_print::PrintPlugin;
+pub use qdos_plugin_searchspec::SearchSpecPlugin;
+pub use qdos_plugin_space::SpacePlugin;
+pub use qdos_plugin_status::StatusPlugin;
 pub use terraform::TerraformPlugin;
 pub use theme::ThemePlugin;
 pub use video::VideoPlugin;
@@ -103,111 +99,18 @@ pub use viewer::ViewerPlugin;
 use crate::config::PluginsConfig;
 use ratatui::layout::Rect;
 use ratatui::Frame;
-use std::any::Any;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 // Re-export core plugin types from the plugin API crate
-// This maintains backward compatibility while centralizing definitions
+// All plugins should use these types from the API crate
 pub use qdos_plugin_api::{
-    AppEntry, KeyHandleResult, PluginCapabilities, PluginCategory, PluginMenuItem,
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
     PluginStatusInfo, SoundEvent,
 };
 
 // Re-export commonly used types for plugin implementations
 pub use crossterm::event::KeyEvent;
-
-// ThemeColors: Plugins currently use crate::app::ThemeColors
-// We keep this for now until we migrate plugins to use the API crate directly
-// The API crate has its own ThemeColors that's compatible
-#[allow(unused_imports)]
-pub use qdos_plugin_api::ThemeColors as PluginThemeColors;
-
-/// The core Plugin trait that all plugins must implement
-///
-/// Note: This is a local version that uses crate::app::ThemeColors for backward
-/// compatibility. Plugins will be migrated to use qdos_plugin_api::Plugin directly.
-pub trait Plugin: Send + Sync {
-    /// Unique identifier for this plugin
-    fn id(&self) -> &str;
-
-    /// Human-readable name
-    fn name(&self) -> &str;
-
-    /// Plugin capabilities
-    fn capabilities(&self) -> PluginCapabilities;
-
-    /// Check if plugin is available in current directory
-    fn is_available(&self, cwd: &PathBuf) -> bool;
-
-    /// Get menu item if plugin provides one
-    fn menu_item(&self) -> Option<PluginMenuItem> {
-        None
-    }
-
-    /// Get status bar info
-    fn status_info(&self, _cwd: &PathBuf) -> Option<PluginStatusInfo> {
-        None
-    }
-
-    /// Handle a key event (when plugin modal is not open)
-    fn handle_global_key(
-        &mut self,
-        _key: KeyEvent,
-        _cwd: &PathBuf,
-        _selected_file: Option<&PathBuf>,
-    ) -> KeyHandleResult {
-        KeyHandleResult::NotHandled
-    }
-
-    /// Handle a key event (when plugin modal is open)
-    fn handle_modal_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
-        KeyHandleResult::NotHandled
-    }
-
-    /// Handle tick event for animations/auto-refresh (called every 100ms when modal is open)
-    fn tick(&mut self) {}
-
-    /// Drain pending sound events (called after tick)
-    fn drain_sound_events(&mut self) -> Vec<SoundEvent> {
-        Vec::new()
-    }
-
-    /// Draw the plugin's modal
-    fn draw_modal(&self, _frame: &mut Frame, _area: Rect, _colors: &crate::app::ThemeColors) {}
-
-    /// Get help content lines
-    fn help_content(&self) -> Vec<String> {
-        vec![]
-    }
-
-    /// Get app entry for F12 Apps launcher.
-    /// Return Some(AppEntry) if this plugin should appear in the Apps launcher.
-    /// The `id` should match the plugin's `id()` method.
-    fn app_entry(&self) -> Option<AppEntry> {
-        None
-    }
-
-    /// Launch the plugin from the Apps launcher (F12).
-    /// Called when user selects this plugin from the Apps menu.
-    /// Plugins should initialize their state here.
-    ///
-    /// Parameters:
-    /// - `cwd`: Current working directory
-    /// - `selected_file`: Currently selected file path (if any)
-    ///
-    /// Returns Ok(()) if the plugin was successfully launched and its modal should open.
-    /// Returns Err(message) if the plugin cannot be launched (will show error).
-    fn launch(&mut self, _cwd: &PathBuf, _selected_file: Option<&PathBuf>) -> Result<(), String> {
-        Ok(())
-    }
-
-    /// Get plugin state as Any for downcasting
-    fn as_any(&self) -> &dyn Any;
-
-    /// Get mutable plugin state as Any for downcasting
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
 
 /// Plugin manager that handles plugin registration and lifecycle
 pub struct PluginManager {
@@ -395,7 +298,7 @@ impl PluginManager {
     }
 
     /// Draw the active modal
-    pub fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    pub fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &qdos_plugin_api::ThemeColors) {
         if let Some(plugin) = self.active_modal() {
             plugin.draw_modal(frame, area, colors);
         }
@@ -460,10 +363,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to StatusPlugin
-    pub fn status_plugin_mut(&mut self) -> Option<&mut status::StatusPlugin> {
-        self.plugins
-            .get_mut("status")
-            .and_then(|p| p.as_any_mut().downcast_mut::<status::StatusPlugin>())
+    pub fn status_plugin_mut(&mut self) -> Option<&mut qdos_plugin_status::StatusPlugin> {
+        self.plugins.get_mut("status").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_status::StatusPlugin>()
+        })
     }
 
     /// Get mutable reference to ThemePlugin
@@ -474,10 +378,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to SpacePlugin
-    pub fn space_plugin_mut(&mut self) -> Option<&mut space::SpacePlugin> {
-        self.plugins
-            .get_mut("space")
-            .and_then(|p| p.as_any_mut().downcast_mut::<space::SpacePlugin>())
+    pub fn space_plugin_mut(&mut self) -> Option<&mut qdos_plugin_space::SpacePlugin> {
+        self.plugins.get_mut("space").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_space::SpacePlugin>()
+        })
     }
 
     /// Get mutable reference to ProcPlugin
@@ -498,31 +403,36 @@ impl PluginManager {
     }
 
     /// Get mutable reference to HelpPlugin
-    pub fn help_plugin_mut(&mut self) -> Option<&mut help::HelpPlugin> {
-        self.plugins
-            .get_mut("help")
-            .and_then(|p| p.as_any_mut().downcast_mut::<help::HelpPlugin>())
+    pub fn help_plugin_mut(&mut self) -> Option<&mut qdos_plugin_help::HelpPlugin> {
+        self.plugins.get_mut("help").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_help::HelpPlugin>()
+        })
     }
 
     /// Get mutable reference to PrintPlugin
-    pub fn print_plugin_mut(&mut self) -> Option<&mut print::PrintPlugin> {
-        self.plugins
-            .get_mut("print")
-            .and_then(|p| p.as_any_mut().downcast_mut::<print::PrintPlugin>())
+    pub fn print_plugin_mut(&mut self) -> Option<&mut qdos_plugin_print::PrintPlugin> {
+        self.plugins.get_mut("print").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_print::PrintPlugin>()
+        })
     }
 
     /// Get mutable reference to DirMapPlugin
-    pub fn dirmap_plugin_mut(&mut self) -> Option<&mut dirmap::DirMapPlugin> {
-        self.plugins
-            .get_mut("dirmap")
-            .and_then(|p| p.as_any_mut().downcast_mut::<dirmap::DirMapPlugin>())
+    pub fn dirmap_plugin_mut(&mut self) -> Option<&mut qdos_plugin_dirmap::DirMapPlugin> {
+        self.plugins.get_mut("dirmap").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_dirmap::DirMapPlugin>()
+        })
     }
 
     /// Get mutable reference to SearchSpecPlugin
-    pub fn searchspec_plugin_mut(&mut self) -> Option<&mut searchspec::SearchSpecPlugin> {
+    pub fn searchspec_plugin_mut(
+        &mut self,
+    ) -> Option<&mut qdos_plugin_searchspec::SearchSpecPlugin> {
         self.plugins.get_mut("searchspec").and_then(|p| {
             p.as_any_mut()
-                .downcast_mut::<searchspec::SearchSpecPlugin>()
+                .downcast_mut::<qdos_plugin_searchspec::SearchSpecPlugin>()
         })
     }
 
