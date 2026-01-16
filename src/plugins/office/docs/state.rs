@@ -26,6 +26,51 @@ pub enum DocsMode {
     SaveAs,
     /// Help overlay
     Help,
+    /// Export format selection
+    Export,
+}
+
+/// Export format options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ExportFormat {
+    #[default]
+    Html,
+    Pdf,
+    PlainText,
+}
+
+impl ExportFormat {
+    pub fn all() -> &'static [ExportFormat] {
+        &[
+            ExportFormat::Html,
+            ExportFormat::Pdf,
+            ExportFormat::PlainText,
+        ]
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            ExportFormat::Html => "HTML (.html)",
+            ExportFormat::Pdf => "PDF (.pdf)",
+            ExportFormat::PlainText => "Plain Text (.txt)",
+        }
+    }
+
+    pub fn description(&self) -> &str {
+        match self {
+            ExportFormat::Html => "Native export",
+            ExportFormat::Pdf => "Requires pandoc",
+            ExportFormat::PlainText => "Strip formatting",
+        }
+    }
+
+    pub fn extension(&self) -> &str {
+        match self {
+            ExportFormat::Html => "html",
+            ExportFormat::Pdf => "pdf",
+            ExportFormat::PlainText => "txt",
+        }
+    }
 }
 
 /// Input mode within editing
@@ -295,9 +340,10 @@ pub struct DocsState {
     pub word_wrap: bool,
     pub preview_scroll: usize,
 
-    // Selection
+    // Selection (Phase 1)
     pub selection_start: Option<(usize, usize)>,
     pub selection_end: Option<(usize, usize)>,
+    pub selecting: bool,
 
     // Clipboard
     pub clipboard: String,
@@ -318,6 +364,21 @@ pub struct DocsState {
 
     // Status message
     pub status_message: Option<(String, u32)>,
+
+    // Ruler and Margins (Phase 2)
+    pub left_margin: usize,
+    pub right_margin: usize,
+    pub tab_stops: Vec<usize>,
+    pub show_ruler: bool,
+
+    // Page View (Phase 3)
+    pub page_view_enabled: bool,
+    pub lines_per_page: usize,
+
+    // Export (Phase 4)
+    pub export_format: ExportFormat,
+    pub export_input: String,
+    pub export_cursor: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -352,6 +413,7 @@ impl DocsState {
             preview_scroll: 0,
             selection_start: None,
             selection_end: None,
+            selecting: false,
             clipboard: String::new(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
@@ -362,6 +424,20 @@ impl DocsState {
             save_as_input: String::new(),
             save_as_cursor: 0,
             status_message: None,
+            // Ruler and Margins (Phase 2)
+            left_margin: 0,
+            right_margin: 80,
+            tab_stops: vec![
+                4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76,
+            ],
+            show_ruler: true,
+            // Page View (Phase 3)
+            page_view_enabled: false,
+            lines_per_page: 60,
+            // Export (Phase 4)
+            export_format: ExportFormat::Html,
+            export_input: String::new(),
+            export_cursor: 0,
         }
     }
 
@@ -671,5 +747,182 @@ impl DocsState {
     pub fn page_count(&self) -> usize {
         // Approximate: ~250 words per page
         self.word_count().div_ceil(250)
+    }
+
+    // =========================================================================
+    // SELECTION (Phase 1)
+    // =========================================================================
+
+    /// Check if there is an active selection
+    pub fn has_selection(&self) -> bool {
+        self.selection_start.is_some() && self.selection_end.is_some()
+    }
+
+    /// Get selection bounds in normalized order (start always before end)
+    pub fn selection_bounds(&self) -> Option<((usize, usize), (usize, usize))> {
+        match (self.selection_start, self.selection_end) {
+            (Some(start), Some(end)) => {
+                if start.0 < end.0 || (start.0 == end.0 && start.1 <= end.1) {
+                    Some((start, end))
+                } else {
+                    Some((end, start))
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Get selected text as a String
+    pub fn selected_text(&self) -> Option<String> {
+        let ((start_line, start_col), (end_line, end_col)) = self.selection_bounds()?;
+
+        if start_line == end_line {
+            // Single line selection
+            let line = self.lines.get(start_line)?;
+            Some(line[start_col..end_col.min(line.len())].to_string())
+        } else {
+            // Multi-line selection
+            let mut result = String::new();
+            for (idx, line) in self.lines.iter().enumerate() {
+                if idx == start_line {
+                    result.push_str(&line[start_col..]);
+                    result.push('\n');
+                } else if idx == end_line {
+                    result.push_str(&line[..end_col.min(line.len())]);
+                } else if idx > start_line && idx < end_line {
+                    result.push_str(line);
+                    result.push('\n');
+                }
+            }
+            Some(result)
+        }
+    }
+
+    /// Delete selected text
+    pub fn delete_selection(&mut self) -> bool {
+        if let Some(((start_line, start_col), (end_line, end_col))) = self.selection_bounds() {
+            self.save_undo();
+
+            if start_line == end_line {
+                // Single line - remove substring
+                let line = &mut self.lines[start_line];
+                let end_col = end_col.min(line.len());
+                line.drain(start_col..end_col);
+            } else {
+                // Multi-line - join start and end, remove middle
+                let end_col = end_col.min(self.lines[end_line].len());
+                let end_text = self.lines[end_line][end_col..].to_string();
+                self.lines[start_line].truncate(start_col);
+                self.lines[start_line].push_str(&end_text);
+
+                // Remove lines between start and end (inclusive of end)
+                for _ in start_line + 1..=end_line {
+                    if start_line + 1 < self.lines.len() {
+                        self.lines.remove(start_line + 1);
+                    }
+                }
+            }
+
+            self.cursor_line = start_line;
+            self.cursor_col = start_col;
+            self.clear_selection();
+            self.modified = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Clear selection
+    pub fn clear_selection(&mut self) {
+        self.selection_start = None;
+        self.selection_end = None;
+        self.selecting = false;
+    }
+
+    /// Start or extend selection from current cursor position
+    pub fn extend_selection(&mut self) {
+        if self.selection_start.is_none() {
+            self.selection_start = Some((self.cursor_line, self.cursor_col));
+        }
+        self.selection_end = Some((self.cursor_line, self.cursor_col));
+    }
+
+    /// Select entire document
+    pub fn select_all(&mut self) {
+        self.selection_start = Some((0, 0));
+        let last_line = self.lines.len().saturating_sub(1);
+        let last_col = self.lines.last().map(|l| l.len()).unwrap_or(0);
+        self.selection_end = Some((last_line, last_col));
+    }
+
+    // =========================================================================
+    // RULER AND MARGINS (Phase 2)
+    // =========================================================================
+
+    /// Get the next tab stop position from current column
+    pub fn next_tab_stop(&self, col: usize) -> usize {
+        for &stop in &self.tab_stops {
+            if stop > col {
+                return stop;
+            }
+        }
+        // Default: round up to next multiple of 4
+        ((col / 4) + 1) * 4
+    }
+
+    /// Insert spaces to reach next tab stop
+    pub fn insert_tab(&mut self) {
+        let target = self.next_tab_stop(self.cursor_col);
+        let spaces = target - self.cursor_col;
+        self.save_undo();
+        for _ in 0..spaces {
+            // Insert without saving undo again
+            let line_len = self.lines[self.cursor_line].len();
+            if self.cursor_col > line_len {
+                self.cursor_col = line_len;
+            }
+            self.lines[self.cursor_line].insert(self.cursor_col, ' ');
+            self.cursor_col += 1;
+        }
+        self.modified = true;
+    }
+
+    // =========================================================================
+    // PAGE VIEW (Phase 3)
+    // =========================================================================
+
+    /// Get total page count based on lines_per_page
+    pub fn total_pages(&self) -> usize {
+        self.lines.len().div_ceil(self.lines_per_page)
+    }
+
+    /// Get the page number for a given line (0-indexed)
+    pub fn line_to_page(&self, line: usize) -> usize {
+        line / self.lines_per_page
+    }
+
+    /// Move cursor to start of a specific page
+    pub fn goto_page(&mut self, page: usize) {
+        let target_line = page * self.lines_per_page;
+        self.cursor_line = target_line.min(self.lines.len().saturating_sub(1));
+        self.cursor_col = 0;
+        self.scroll_offset = target_line;
+    }
+
+    /// Move to next page
+    pub fn next_page(&mut self) {
+        let current = self.line_to_page(self.cursor_line);
+        if current + 1 < self.total_pages() {
+            self.goto_page(current + 1);
+        }
+    }
+
+    /// Move to previous page
+    pub fn prev_page(&mut self) {
+        let current = self.line_to_page(self.cursor_line);
+        if current > 0 {
+            self.goto_page(current - 1);
+        }
     }
 }

@@ -2,7 +2,8 @@
 //!
 //! Renders the word processor interface with markdown highlighting.
 
-use super::state::{DocsMode, DocsState, InputMode, MenuCategory};
+use super::ops;
+use super::state::{DocsMode, DocsState, ExportFormat, InputMode, MenuCategory};
 use crate::app::ThemeColors;
 use crate::ui::components::{FullScreenView, ModalFrame};
 use ratatui::{
@@ -24,6 +25,7 @@ pub fn draw_docs_modal(frame: &mut Frame, area: Rect, state: &DocsState, colors:
         DocsMode::Replace => draw_replace_dialog(frame, area, state, colors),
         DocsMode::SaveAs => draw_save_as(frame, area, state, colors),
         DocsMode::Help => draw_help(frame, area, state, colors),
+        DocsMode::Export => draw_export_dialog(frame, area, state, colors),
     }
 }
 
@@ -53,7 +55,13 @@ fn draw_editor(frame: &mut Frame, area: Rect, state: &DocsState, colors: &ThemeC
         row = 2;
     }
 
-    // Separator after menu
+    // Ruler (Phase 2)
+    if state.show_ruler && state.mode != DocsMode::Menu {
+        draw_ruler(frame, &view, state, colors, row);
+        row += 1;
+    }
+
+    // Separator after menu/ruler
     view.render_row(
         frame,
         row,
@@ -91,11 +99,55 @@ fn draw_editor(frame: &mut Frame, area: Rect, state: &DocsState, colors: &ThemeC
         vec![
             ("F10", "menu"),
             ("F9", "preview"),
+            ("F8", "pages"),
             ("Ctrl+S", "save"),
-            ("Esc", "close"),
         ]
     };
     view.render_help(frame, help_items);
+}
+
+/// Draw the ruler bar (Phase 2)
+fn draw_ruler(
+    frame: &mut Frame,
+    view: &FullScreenView,
+    state: &DocsState,
+    colors: &ThemeColors,
+    row: u16,
+) {
+    let content_area = view.content_area();
+    let line_num_width = if state.show_line_numbers { 5 } else { 0 };
+    let ruler_width = (content_area.width as usize).saturating_sub(line_num_width);
+
+    let mut ruler = String::new();
+
+    // Add spacing for line numbers
+    ruler.push_str(&" ".repeat(line_num_width));
+
+    // Build ruler string
+    for col in 0..ruler_width {
+        let actual_col = col + state.h_scroll_offset;
+
+        if actual_col == state.left_margin && state.left_margin > 0 {
+            ruler.push('['); // Left margin marker
+        } else if actual_col == state.right_margin {
+            ruler.push(']'); // Right margin marker
+        } else if state.tab_stops.contains(&actual_col) {
+            ruler.push('|'); // Tab stop marker (CP437 compatible)
+        } else if actual_col.is_multiple_of(10) {
+            // Column number tens digit
+            ruler.push(char::from_digit((actual_col / 10 % 10) as u32, 10).unwrap_or(' '));
+        } else if actual_col % 10 == 5 {
+            ruler.push('+'); // Mid-point marker
+        } else {
+            ruler.push('-');
+        }
+    }
+
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(ruler, Style::default().fg(colors.grey()))],
+    );
 }
 
 fn draw_menu_bar(
@@ -162,10 +214,37 @@ fn draw_edit_content(
     visible_lines: usize,
 ) {
     let line_num_width = if state.show_line_numbers { 5 } else { 0 };
+    let selection = state.selection_bounds();
+    let mut rendered_row = 0;
 
-    for (i, line_idx) in (state.scroll_offset..state.scroll_offset + visible_lines).enumerate() {
+    for line_idx in state.scroll_offset..state.scroll_offset + visible_lines {
         if line_idx >= state.lines.len() {
             break;
+        }
+
+        // Check for page boundary (Phase 3)
+        if state.page_view_enabled && line_idx > 0 && line_idx % state.lines_per_page == 0 {
+            let page_num = line_idx / state.lines_per_page;
+            let content_width = view.content_area().width as usize;
+            let page_text = format!(" Page {} ", page_num);
+            let pad_len = (content_width.saturating_sub(page_text.len())) / 2;
+            let page_break = format!(
+                "{}{}{}",
+                "-".repeat(pad_len),
+                page_text,
+                "-".repeat(pad_len)
+            );
+
+            view.render_row(
+                frame,
+                start_row + rendered_row as u16,
+                vec![Span::styled(page_break, Style::default().fg(colors.grey()))],
+            );
+            rendered_row += 1;
+
+            if rendered_row >= visible_lines {
+                break;
+            }
         }
 
         let line = &state.lines[line_idx];
@@ -183,16 +262,64 @@ fn draw_edit_content(
             spans.push(Span::styled(format!("{:4} ", line_idx + 1), num_style));
         }
 
-        // Apply markdown syntax highlighting
-        let styled_spans = highlight_markdown_line(line, colors, is_cursor_line);
-        spans.extend(styled_spans);
+        // Check if this line has selection (Phase 1)
+        if let Some(((sel_start_line, sel_start_col), (sel_end_line, sel_end_col))) = selection {
+            if line_idx >= sel_start_line && line_idx <= sel_end_line {
+                // This line contains selection
+                let (line_sel_start, line_sel_end) =
+                    if line_idx == sel_start_line && line_idx == sel_end_line {
+                        (sel_start_col, sel_end_col)
+                    } else if line_idx == sel_start_line {
+                        (sel_start_col, line.len())
+                    } else if line_idx == sel_end_line {
+                        (0, sel_end_col)
+                    } else {
+                        (0, line.len())
+                    };
 
-        // Show cursor position
-        if is_cursor_line && state.input_mode != InputMode::Normal {
-            // Cursor is shown by terminal, but we could add a visual indicator
+                // Clamp to line bounds
+                let line_sel_start = line_sel_start.min(line.len());
+                let line_sel_end = line_sel_end.min(line.len());
+
+                let before = &line[..line_sel_start];
+                let selected = &line[line_sel_start..line_sel_end];
+                let after = &line[line_sel_end..];
+
+                let selection_style = Style::default().fg(colors.yellow()).bg(colors.blue());
+                let normal_style = Style::default().fg(colors.fg());
+
+                if !before.is_empty() {
+                    spans.push(Span::styled(before.to_string(), normal_style));
+                }
+                if !selected.is_empty() {
+                    spans.push(Span::styled(selected.to_string(), selection_style));
+                }
+                if !after.is_empty() {
+                    spans.push(Span::styled(after.to_string(), normal_style));
+                }
+                if line.is_empty() {
+                    // Empty line but in selection range - show highlight
+                    if line_idx > sel_start_line && line_idx < sel_end_line {
+                        spans.push(Span::styled(" ", selection_style));
+                    }
+                }
+            } else {
+                // No selection on this line - apply markdown syntax highlighting
+                let styled_spans = highlight_markdown_line(line, colors, is_cursor_line);
+                spans.extend(styled_spans);
+            }
+        } else {
+            // No selection - apply markdown syntax highlighting
+            let styled_spans = highlight_markdown_line(line, colors, is_cursor_line);
+            spans.extend(styled_spans);
         }
 
-        view.render_row(frame, start_row + i as u16, spans);
+        view.render_row(frame, start_row + rendered_row as u16, spans);
+        rendered_row += 1;
+
+        if rendered_row >= visible_lines {
+            break;
+        }
     }
 
     // Show cursor indicator
@@ -266,21 +393,45 @@ fn draw_status_bar(
 
     let position = format!("Ln {}, Col {}", state.cursor_line + 1, state.cursor_col + 1);
 
+    // Page info (Phase 3)
+    let page_info = if state.page_view_enabled {
+        format!(
+            " | Page {}/{}",
+            state.line_to_page(state.cursor_line) + 1,
+            state.total_pages()
+        )
+    } else {
+        String::new()
+    };
+
     let stats = format!(
-        "Words: {} | Pages: {}",
+        "Words: {} | Pages: {}{}",
         state.word_count(),
-        state.page_count()
+        state.page_count(),
+        page_info
     );
+
+    // Selection info
+    let selection_info = if state.has_selection() {
+        if let Some(text) = state.selected_text() {
+            format!(" | {} chars", text.len())
+        } else {
+            String::new()
+        }
+    } else {
+        String::new()
+    };
 
     // Build status line
     let status = if let Some((msg, _)) = &state.status_message {
         format!("{} | {} | {}", mode_indicator, msg, position)
     } else {
         format!(
-            "{} | {} | {} | {}",
+            "{} | {} | {}{} | {}",
             mode_indicator,
             state.display_name(),
             stats,
+            selection_info,
             position
         )
     };
@@ -678,28 +829,28 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &DocsState, colors: &ThemeCol
         ("", "", false),
         ("", "Navigation", true),
         ("Arrow keys", "Move cursor", false),
+        ("Shift+Arrow", "Extend selection", false),
         ("Home/End", "Start/end of line", false),
         ("PgUp/PgDn", "Page up/down", false),
+        ("Ctrl+PgUp", "Previous page", false),
         ("Ctrl+Home", "Start of document", false),
         ("Ctrl+End", "End of document", false),
         ("", "", false),
         ("", "Editing", true),
         ("i", "Enter insert mode", false),
         ("Ins", "Toggle insert/overwrite", false),
-        ("Backspace", "Delete before cursor", false),
-        ("Delete", "Delete at cursor", false),
+        ("Ctrl+X", "Cut selection", false),
+        ("Ctrl+C", "Copy selection", false),
+        ("Ctrl+V", "Paste", false),
+        ("Ctrl+A", "Select all", false),
         ("Ctrl+Z", "Undo", false),
         ("Ctrl+Y", "Redo", false),
-        ("", "", false),
-        ("", "Formatting", true),
-        ("Ctrl+B", "Bold", false),
-        ("Ctrl+I", "Italic", false),
         ("", "", false),
         ("", "File", true),
         ("Ctrl+S", "Save", false),
         ("F10", "Menu", false),
         ("F9", "Preview mode", false),
-        ("Esc", "Close", false),
+        ("F8", "Page view", false),
     ];
 
     for (i, (key, desc, is_title)) in help_lines.iter().enumerate() {
@@ -718,4 +869,67 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &DocsState, colors: &ThemeCol
     }
 
     view.render_help(frame, vec![("Esc", "close")]);
+}
+
+/// Draw the export format selection dialog (Phase 4)
+fn draw_export_dialog(frame: &mut Frame, area: Rect, state: &DocsState, colors: &ThemeColors) {
+    // First draw the editor behind
+    draw_editor(frame, area, state, colors);
+
+    let width = area.width.min(55);
+    let height = 12;
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    let modal_area = Rect::new(x, y, width, height);
+
+    let modal = ModalFrame::themed(modal_area, " EXPORT DOCUMENT ", colors);
+    modal.render_frame(frame);
+
+    let label_style = Style::default().fg(colors.green());
+    let selected_style = Style::default()
+        .fg(colors.yellow())
+        .bg(colors.red())
+        .add_modifier(Modifier::BOLD);
+    let normal_style = Style::default().fg(colors.fg());
+
+    modal.render_row(
+        frame,
+        0,
+        vec![Span::styled("Select export format:", label_style)],
+    );
+
+    // Format options
+    let formats = ExportFormat::all();
+    for (i, fmt) in formats.iter().enumerate() {
+        let style = if *fmt == state.export_format {
+            selected_style
+        } else {
+            normal_style
+        };
+        modal.render_row(
+            frame,
+            (i + 2) as u16,
+            vec![Span::styled(
+                format!("  {} - {}", fmt.name(), fmt.description()),
+                style,
+            )],
+        );
+    }
+
+    // Show pandoc status for PDF
+    let pandoc_status = if ops::pandoc_available() {
+        Span::styled("  pandoc: installed", Style::default().fg(colors.green()))
+    } else {
+        Span::styled("  pandoc: not found", Style::default().fg(colors.grey()))
+    };
+    modal.render_row(frame, 7, vec![pandoc_status]);
+
+    modal.render_help(
+        frame,
+        vec![
+            ("Up/Down", "select"),
+            ("Enter", "export"),
+            ("Esc", "cancel"),
+        ],
+    );
 }
