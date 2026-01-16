@@ -2,8 +2,8 @@
 
 use super::ops::format_bytes;
 use super::state::{AuthMethod, ConnectField, SftpState, SftpView};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::prelude::FullScreenView;
+use qdos_plugin_api::prelude::ThemeColors;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},

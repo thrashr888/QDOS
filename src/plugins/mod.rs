@@ -19,7 +19,6 @@ pub mod audio;
 pub mod basic;
 pub mod beads;
 pub mod clipboard;
-pub mod cloud;
 pub mod database;
 pub mod deps;
 pub mod docker;
@@ -33,20 +32,16 @@ pub mod gdrive;
 pub mod git;
 pub mod homebrew;
 pub mod icloud;
-pub mod jj;
 pub mod midi;
 pub mod model3d;
 pub mod office;
 pub mod palette;
-pub mod proc;
 pub mod qdconfig;
 pub mod qedit;
 pub mod qlink;
 pub mod qmind;
 pub mod qtask;
 pub mod redis;
-pub mod sftp;
-pub mod shell;
 pub mod terraform;
 pub mod theme;
 pub mod video;
@@ -69,26 +64,26 @@ pub use gdrive::GDrivePlugin;
 pub use git::GitPlugin;
 pub use homebrew::HomebrewPlugin;
 pub use icloud::ICloudPlugin;
-pub use jj::JjPlugin;
 pub use midi::MidiPlugin;
 pub use model3d::Model3dPlugin;
 pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
 pub use palette::PalettePlugin;
-pub use proc::ProcPlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
 pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
 pub use qtask::QTaskPlugin;
 pub use redis::RedisPlugin;
-pub use sftp::SftpPlugin;
-pub use shell::ShellPlugin;
 
 // Externally crated plugins
 pub use qdos_plugin_dirmap::DirMapPlugin;
 pub use qdos_plugin_help::HelpPlugin;
+pub use qdos_plugin_jj::JjPlugin;
 pub use qdos_plugin_print::PrintPlugin;
+pub use qdos_plugin_proc::ProcPlugin;
 pub use qdos_plugin_searchspec::SearchSpecPlugin;
+pub use qdos_plugin_sftp::SftpPlugin;
+pub use qdos_plugin_shell::ShellPlugin;
 pub use qdos_plugin_space::SpacePlugin;
 pub use qdos_plugin_status::StatusPlugin;
 pub use terraform::TerraformPlugin;
@@ -386,10 +381,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to ProcPlugin
-    pub fn proc_plugin_mut(&mut self) -> Option<&mut proc::ProcPlugin> {
-        self.plugins
-            .get_mut("proc")
-            .and_then(|p| p.as_any_mut().downcast_mut::<proc::ProcPlugin>())
+    pub fn proc_plugin_mut(&mut self) -> Option<&mut qdos_plugin_proc::ProcPlugin> {
+        self.plugins.get_mut("proc").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_proc::ProcPlugin>()
+        })
     }
 
     /// Collect help content from all plugins with has_help capability
@@ -479,10 +475,10 @@ impl PluginManager {
     }
 
     /// Get mutable reference to JjPlugin
-    pub fn jj_plugin_mut(&mut self) -> Option<&mut jj::JjPlugin> {
+    pub fn jj_plugin_mut(&mut self) -> Option<&mut qdos_plugin_jj::JjPlugin> {
         self.plugins
             .get_mut("jj")
-            .and_then(|p| p.as_any_mut().downcast_mut::<jj::JjPlugin>())
+            .and_then(|p| p.as_any_mut().downcast_mut::<qdos_plugin_jj::JjPlugin>())
     }
 
     /// Get mutable reference to AppsPlugin
@@ -542,10 +538,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to ShellPlugin
-    pub fn shell_plugin_mut(&mut self) -> Option<&mut shell::ShellPlugin> {
-        self.plugins
-            .get_mut("shell")
-            .and_then(|p| p.as_any_mut().downcast_mut::<shell::ShellPlugin>())
+    pub fn shell_plugin_mut(&mut self) -> Option<&mut qdos_plugin_shell::ShellPlugin> {
+        self.plugins.get_mut("shell").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_shell::ShellPlugin>()
+        })
     }
 
     /// Get mutable reference to DatabasePlugin
@@ -577,10 +574,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to SftpPlugin
-    pub fn sftp_plugin_mut(&mut self) -> Option<&mut sftp::SftpPlugin> {
-        self.plugins
-            .get_mut("sftp")
-            .and_then(|p| p.as_any_mut().downcast_mut::<sftp::SftpPlugin>())
+    pub fn sftp_plugin_mut(&mut self) -> Option<&mut qdos_plugin_sftp::SftpPlugin> {
+        self.plugins.get_mut("sftp").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_sftp::SftpPlugin>()
+        })
     }
 
     /// Get mutable reference to QMindPlugin

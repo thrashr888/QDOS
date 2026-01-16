@@ -3,7 +3,7 @@ mod state;
 // Re-export plugin ops for backwards compatibility within this module
 use crate::plugins::beads::ops as beads_ops;
 use crate::plugins::git::ops as git_ops;
-use crate::plugins::jj::ops as jj_ops;
+use qdos_plugin_jj::ops as jj_ops;
 
 // Re-export state types for external use (non-plugin types)
 pub use state::{

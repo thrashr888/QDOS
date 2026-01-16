@@ -2,9 +2,9 @@
 
 use super::state::{DropboxState, DropboxSyncState, DropboxView};
 use crate::app::ThemeColors;
-use crate::plugins::cloud::ui::status_span;
-use crate::plugins::cloud::{StorageInfo, SyncStatus};
 use crate::ui::components::FullScreenView;
+use qdos_plugin_cloud::ui::status_span;
+use qdos_plugin_cloud::{StorageInfo, SyncStatus};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},

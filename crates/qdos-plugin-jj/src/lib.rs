@@ -2,23 +2,15 @@
 //!
 //! Provides integration with the Jujutsu version control system.
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 pub mod ops;
 mod state;
 
-pub use state::{JjMenuItem, JjState, JjView};
+pub use state::*;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-    PluginStatusInfo,
-};
-use crate::app::ThemeColors;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
-use ratatui::Frame;
-use state::GitAction;
-use std::any::Any;
-use std::path::PathBuf;
+use qdos_plugin_api::prelude::*;
 
 /// Jj plugin for Jujutsu VCS integration
 pub struct JjPlugin {
@@ -621,3 +613,5 @@ impl Plugin for JjPlugin {
         self
     }
 }
+
+inventory::submit! { PluginRegistration::new("jj", || Box::new(JjPlugin::new())) }

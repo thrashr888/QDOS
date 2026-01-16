@@ -11,8 +11,8 @@ use super::{
     PluginStatusInfo,
 };
 use crate::app::ThemeColors;
-use crate::plugins::cloud::{CloudProvider, CloudStoragePlugin, StorageInfo, SyncStatus};
 use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_cloud::{CloudProvider, CloudStoragePlugin, StorageInfo, SyncStatus};
 use ratatui::{layout::Rect, Frame};
 use state::{DropboxState, DropboxView};
 use std::any::Any;

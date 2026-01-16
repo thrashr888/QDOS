@@ -3,7 +3,7 @@
 //! Functions for interacting with Dropbox and reading sync status.
 
 use super::state::{DropboxFileEntry, DropboxState, DropboxSyncState};
-use crate::plugins::cloud::StorageInfo;
+use qdos_plugin_cloud::StorageInfo;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;

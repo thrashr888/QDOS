@@ -194,6 +194,7 @@ impl SftpSession {
     }
 
     /// Upload file from local to remote
+    #[allow(dead_code)]
     pub fn upload(&self, local_path: &Path, remote_path: &str) -> Result<u64, String> {
         let mut local_file =
             File::open(local_path).map_err(|e| format!("Failed to open local file: {}", e))?;
@@ -226,6 +227,7 @@ impl SftpSession {
     }
 
     /// Get file size
+    #[allow(dead_code)]
     pub fn file_size(&self, path: &str) -> Result<u64, String> {
         let stat = self
             .sftp

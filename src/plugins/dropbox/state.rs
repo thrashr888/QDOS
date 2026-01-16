@@ -1,6 +1,6 @@
 //! Dropbox Plugin State Types
 
-use crate::plugins::cloud::{StorageInfo, SyncStatus};
+use qdos_plugin_cloud::{StorageInfo, SyncStatus};
 use std::path::PathBuf;
 
 /// Dropbox-specific sync status (maps to SyncStatus)

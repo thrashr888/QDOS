@@ -1,6 +1,6 @@
 //! Google Drive Plugin State Types
 
-use crate::plugins::cloud::{StorageInfo, SyncStatus};
+use qdos_plugin_cloud::{StorageInfo, SyncStatus};
 use std::path::PathBuf;
 
 /// Google Drive sync status

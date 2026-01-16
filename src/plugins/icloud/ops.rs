@@ -3,7 +3,7 @@
 //! Functions for interacting with iCloud Drive on macOS.
 
 use super::state::{ICloudFileEntry, ICloudState, ICloudSyncState};
-use crate::plugins::cloud::StorageInfo;
+use qdos_plugin_cloud::StorageInfo;
 use std::fs;
 use std::path::PathBuf;
 

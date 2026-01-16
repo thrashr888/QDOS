@@ -3,7 +3,7 @@
 //! Shared UI components for rendering cloud storage status and information.
 
 use super::state::{CloudFileEntry, StorageInfo, SyncStatus};
-use crate::app::ThemeColors;
+use qdos_plugin_api::prelude::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Color, Style},

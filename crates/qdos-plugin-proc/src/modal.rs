@@ -3,9 +3,9 @@
 //! Rendering functions for process monitoring views.
 
 use super::state::{ProcState, ProcView};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
 use humansize::{format_size, DECIMAL};
+use qdos_plugin_api::prelude::FullScreenView;
+use qdos_plugin_api::prelude::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};

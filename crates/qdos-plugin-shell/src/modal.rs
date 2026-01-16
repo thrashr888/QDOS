@@ -7,8 +7,8 @@ use super::state::{
     TelnetState,
 };
 use super::telnet::TelnetSession;
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::prelude::FullScreenView;
+use qdos_plugin_api::prelude::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;

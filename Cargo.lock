@@ -3335,6 +3335,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-cloud"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-dirmap"
 version = "0.1.0"
 dependencies = [
@@ -3351,6 +3360,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-jj"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "jj-cli",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-print"
 version = "0.1.0"
 dependencies = [
@@ -3359,11 +3378,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-proc"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "humansize",
+ "qdos-plugin-api",
+ "ratatui",
+ "sysinfo",
+]
+
+[[package]]
 name = "qdos-plugin-searchspec"
 version = "0.1.0"
 dependencies = [
  "qdos-plugin-api",
  "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-sftp"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "ssh2",
+ "toml",
+ "whoami",
+]
+
+[[package]]
+name = "qdos-plugin-shell"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossterm 0.28.1",
+ "portable-pty",
+ "qdos-plugin-api",
+ "ratatui",
+ "tui-term",
 ]
 
 [[package]]
@@ -3625,10 +3682,15 @@ dependencies = [
  "portable-pty",
  "postgres",
  "qdos-plugin-api",
+ "qdos-plugin-cloud",
  "qdos-plugin-dirmap",
  "qdos-plugin-help",
+ "qdos-plugin-jj",
  "qdos-plugin-print",
+ "qdos-plugin-proc",
  "qdos-plugin-searchspec",
+ "qdos-plugin-sftp",
+ "qdos-plugin-shell",
  "qdos-plugin-space",
  "qdos-plugin-status",
  "rand 0.8.5",

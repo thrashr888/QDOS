@@ -11,6 +11,11 @@ members = [
     "crates/qdos-plugin-searchspec",
     "crates/qdos-plugin-dirmap",
     "crates/qdos-plugin-help",
+    "crates/qdos-plugin-cloud",
+    "crates/qdos-plugin-jj",
+    "crates/qdos-plugin-proc",
+    "crates/qdos-plugin-sftp",
+    "crates/qdos-plugin-shell",
 ]
 resolver = "2"
 
@@ -128,6 +133,11 @@ qdos-plugin-print = { path = "crates/qdos-plugin-print" }
 qdos-plugin-searchspec = { path = "crates/qdos-plugin-searchspec" }
 qdos-plugin-dirmap = { path = "crates/qdos-plugin-dirmap" }
 qdos-plugin-help = { path = "crates/qdos-plugin-help" }
+qdos-plugin-cloud = { path = "crates/qdos-plugin-cloud" }
+qdos-plugin-jj = { path = "crates/qdos-plugin-jj" }
+qdos-plugin-proc = { path = "crates/qdos-plugin-proc" }
+qdos-plugin-sftp = { path = "crates/qdos-plugin-sftp" }
+qdos-plugin-shell = { path = "crates/qdos-plugin-shell" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

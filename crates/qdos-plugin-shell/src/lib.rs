@@ -8,18 +8,18 @@
 //! - Command history
 //! - Interactive shell mode (PTY)
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 pub mod pty;
 mod state;
 mod telnet;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
+// Re-export state types for external use
+pub use state::*;
+
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
-use ratatui::Frame;
-use std::any::Any;
+use qdos_plugin_api::prelude::*;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -28,11 +28,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 
-// Re-export state types for external use
-pub use state::{
-    BackgroundTask, InteractiveState, ShellMenuItem, ShellState, ShellView, TaskStatus,
-    TelnetHistoryEntry, TelnetMenuItem, TelnetState,
-};
 use telnet::TelnetSession;
 
 /// Shell plugin that provides DOS command functionality
@@ -134,7 +129,7 @@ impl ShellPlugin {
         let stdout_handle = stdout.map(|stdout| {
             thread::spawn(move || {
                 let reader = BufReader::new(stdout);
-                for line in reader.lines().flatten() {
+                for line in reader.lines().map_while(Result::ok) {
                     output_stdout.lock().unwrap().push(line);
                 }
             })
@@ -144,7 +139,7 @@ impl ShellPlugin {
         let stderr_handle = stderr.map(|stderr| {
             thread::spawn(move || {
                 let reader = BufReader::new(stderr);
-                for line in reader.lines().flatten() {
+                for line in reader.lines().map_while(Result::ok) {
                     output_stderr
                         .lock()
                         .unwrap()
@@ -176,6 +171,7 @@ impl ShellPlugin {
     }
 
     /// List all tasks
+    #[allow(dead_code)]
     fn list_tasks(&self) -> Vec<(u64, &str, TaskStatus, std::time::Duration)> {
         let mut tasks: Vec<_> = self
             .tasks
@@ -255,12 +251,12 @@ impl ShellPlugin {
                 let mut lines = Vec::new();
 
                 let stdout_reader = BufReader::new(&output.stdout[..]);
-                for l in stdout_reader.lines().flatten() {
+                for l in stdout_reader.lines().map_while(Result::ok) {
                     lines.push(l);
                 }
 
                 let stderr_reader = BufReader::new(&output.stderr[..]);
-                for l in stderr_reader.lines().flatten() {
+                for l in stderr_reader.lines().map_while(Result::ok) {
                     lines.push(format!("stderr: {}", l));
                 }
 
@@ -291,9 +287,9 @@ impl ShellPlugin {
             self.state.view = ShellView::TaskList;
             self.state.selected_task = 0;
             self.state.exit_code = Some(0);
-        } else if cmd_trimmed.starts_with("fg ") {
+        } else if let Some(arg) = cmd_trimmed.strip_prefix("fg ") {
             // Handle "fg <id>" to attach to task
-            if let Ok(id) = cmd_trimmed[3..].trim().parse::<u64>() {
+            if let Ok(id) = arg.trim().parse::<u64>() {
                 if self.tasks.contains_key(&id) {
                     self.state.view = ShellView::Attached(id);
                     self.state.scroll_offset = 0;
@@ -307,9 +303,9 @@ impl ShellPlugin {
                 self.state.output = vec!["Usage: fg <task_id>".to_string()];
                 self.state.exit_code = Some(1);
             }
-        } else if cmd_trimmed.starts_with("kill ") {
+        } else if let Some(arg) = cmd_trimmed.strip_prefix("kill ") {
             // Handle "kill <id>" to terminate task
-            if let Ok(id) = cmd_trimmed[5..].trim().parse::<u64>() {
+            if let Ok(id) = arg.trim().parse::<u64>() {
                 if self.kill_task(id) {
                     self.state.output = vec![format!("[{}] Killed", id)];
                     self.state.exit_code = Some(0);
@@ -485,7 +481,7 @@ impl Plugin for ShellPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         match self.state.view {
             ShellView::Menu => modal::draw_menu_view(frame, area, &self.state, colors),
             ShellView::Command => modal::draw_command_view(
@@ -527,10 +523,10 @@ impl Plugin for ShellPlugin {
         }
     }
 
-    fn status_info(&self, _cwd: &PathBuf) -> Option<super::PluginStatusInfo> {
+    fn status_info(&self, _cwd: &PathBuf) -> Option<PluginStatusInfo> {
         let running = self.running_count();
         if running > 0 {
-            Some(super::PluginStatusInfo {
+            Some(PluginStatusInfo {
                 text: format!("{}bg", running),
                 active: true,
             })
@@ -585,11 +581,11 @@ impl Plugin for ShellPlugin {
         Ok(())
     }
 
-    fn as_any(&self) -> &dyn Any {
+    fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
@@ -1101,6 +1097,11 @@ impl ShellPlugin {
         }
         KeyHandleResult::Handled
     }
+}
+
+// Register the plugin with inventory for automatic discovery
+inventory::submit! {
+    PluginRegistration::new("shell", || Box::new(ShellPlugin::new()))
 }
 
 #[cfg(test)]

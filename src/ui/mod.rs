@@ -3,8 +3,8 @@ mod modals;
 
 use crate::app::{App, Modal, NavItem, SortMode};
 use crate::file_ops::GitStatus;
-use crate::plugins::cloud::SyncStatus;
 use chrono::Local;
+use qdos_plugin_cloud::SyncStatus;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},

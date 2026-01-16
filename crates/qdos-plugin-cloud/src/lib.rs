@@ -7,14 +7,16 @@
 //! - Shared UI components for status overlay and storage info
 //! - Integration hooks for the Chg Drive modal
 
+#![allow(clippy::ptr_arg)]
+
 pub mod state;
 pub mod ui;
 
 // Re-export types for use by cloud storage plugin implementations
 #[allow(unused_imports)]
-pub use state::{CloudFileEntry, CloudProvider, CloudQuickAction, StorageInfo, SyncStatus};
+pub use state::*;
 
-use super::{Plugin, PluginCapabilities};
+use qdos_plugin_api::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 

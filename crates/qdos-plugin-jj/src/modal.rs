@@ -3,8 +3,8 @@
 //! UI rendering for the jj (Jujutsu) VCS plugin modal.
 
 use super::state::{GitAction, JjMenuItem, JjState, JjView};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::prelude::FullScreenView;
+use qdos_plugin_api::prelude::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};

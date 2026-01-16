@@ -2,18 +2,19 @@
 //!
 //! Provides SFTP file browser with connection management.
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 mod ops;
-pub mod state;
+mod state;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::app::ThemeColors;
+pub use state::*;
+
+use qdos_plugin_api::prelude::*;
+
 use crossterm::event::{KeyCode, KeyEvent};
 use ops::SftpSession;
 use ratatui::{layout::Rect, Frame};
-use state::{SftpProfile, SftpState, SftpView};
 use std::any::Any;
 use std::path::PathBuf;
 
@@ -443,6 +444,8 @@ impl Plugin for SftpPlugin {
         self
     }
 }
+
+inventory::submit! { PluginRegistration::new("sftp", || Box::new(SftpPlugin::new())) }
 
 #[cfg(test)]
 mod tests {

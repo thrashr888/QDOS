@@ -172,6 +172,7 @@ impl TelnetSession {
     }
 
     /// Resize the terminal
+    #[allow(dead_code)]
     pub fn resize(&self, cols: u16, rows: u16) -> anyhow::Result<()> {
         let mut parser = self.parser.lock().unwrap();
         parser.set_size(rows, cols);
@@ -184,6 +185,7 @@ impl TelnetSession {
     }
 
     /// Disconnect from the server
+    #[allow(dead_code)]
     pub fn disconnect(&self) {
         *self.connected.lock().unwrap() = false;
     }

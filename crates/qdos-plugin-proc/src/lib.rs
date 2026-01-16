@@ -3,23 +3,15 @@
 //! System/process monitoring plugin similar to top/htop/Activity Monitor.
 //! Triggered via F12, provides multiple views for CPU, Memory, Disk, Network.
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 mod state;
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::layout::Rect;
-use ratatui::Frame;
-use std::any::Any;
-use std::path::PathBuf;
-use sysinfo::{Disks, Networks, Pid, ProcessStatus, System};
+pub use state::*;
 
-// Re-export state types for external use
-pub use state::{
-    DiskInfo, NetworkInfo, ProcSort, ProcState, ProcView, ProcessDetailInfo, ProcessInfo,
-};
+use qdos_plugin_api::prelude::*;
+use sysinfo::{Disks, Networks, Pid, ProcessStatus, System};
 
 /// Proc plugin for system/process monitoring
 pub struct ProcPlugin {
@@ -386,7 +378,7 @@ impl Plugin for ProcPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         modal::draw_proc_modal(frame, area, &self.state, colors);
     }
 
@@ -445,6 +437,10 @@ impl Plugin for ProcPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+inventory::submit! {
+    PluginRegistration::new("proc", || Box::new(ProcPlugin::new()))
 }
 
 #[cfg(test)]

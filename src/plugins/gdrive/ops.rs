@@ -1,7 +1,7 @@
 //! Google Drive Operations
 
 use super::state::{GDriveFileEntry, GDriveState, GDriveSyncState, GDriveVariant};
-use crate::plugins::cloud::StorageInfo;
+use qdos_plugin_cloud::StorageInfo;
 use std::fs;
 use std::path::PathBuf;
 
