@@ -24,7 +24,10 @@ static IMAGE_PICKER: OnceLock<Mutex<Option<Picker>>> = OnceLock::new();
 /// Get or initialize the image picker with terminal protocol detection
 fn get_image_picker() -> &'static Mutex<Option<Picker>> {
     IMAGE_PICKER.get_or_init(|| {
+        #[cfg(unix)]
         let picker = Picker::from_termios().ok();
+        #[cfg(not(unix))]
+        let picker = Some(Picker::new((8, 16)));
         Mutex::new(picker)
     })
 }
