@@ -74,6 +74,10 @@ pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
 pub use qtask::QTaskPlugin;
 pub use redis::RedisPlugin;
+pub use terraform::TerraformPlugin;
+pub use theme::ThemePlugin;
+pub use video::VideoPlugin;
+pub use viewer::ViewerPlugin;
 
 // Externally crated plugins
 pub use qdos_plugin_dirmap::DirMapPlugin;
@@ -86,10 +90,6 @@ pub use qdos_plugin_sftp::SftpPlugin;
 pub use qdos_plugin_shell::ShellPlugin;
 pub use qdos_plugin_space::SpacePlugin;
 pub use qdos_plugin_status::StatusPlugin;
-pub use terraform::TerraformPlugin;
-pub use theme::ThemePlugin;
-pub use video::VideoPlugin;
-pub use viewer::ViewerPlugin;
 
 use crate::config::PluginsConfig;
 use ratatui::layout::Rect;
