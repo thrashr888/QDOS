@@ -19,6 +19,7 @@ pub mod config;
 pub mod errors;
 pub mod event;
 pub mod file_ops;
+pub mod graphics;
 pub mod mcp;
 pub mod plugins;
 pub mod rg;
