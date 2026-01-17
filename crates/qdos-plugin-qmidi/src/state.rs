@@ -332,6 +332,11 @@ pub struct QMidiState {
     pub input_port: Option<String>,
     pub available_inputs: Vec<String>,
 
+    // Software synthesizer (FluidSynth)
+    pub software_synth_available: bool,
+    pub use_software_synth: bool,
+    pub soundfont_path: Option<PathBuf>,
+
     // Error/status
     pub error: Option<String>,
     pub status_message: Option<String>,
@@ -391,6 +396,10 @@ impl QMidiState {
             available_outputs: Vec::new(),
             input_port: None,
             available_inputs: Vec::new(),
+
+            software_synth_available: false,
+            use_software_synth: false,
+            soundfont_path: None,
 
             error: None,
             status_message: None,

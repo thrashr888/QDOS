@@ -749,19 +749,94 @@ fn draw_midi_devices(frame: &mut Frame, area: Rect, state: &QMidiState, colors: 
         }
     }
 
+    row += 1;
+
+    // Software synthesizer section
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            " Software Synthesizer:",
+            Style::default().fg(colors.blue()),
+        )],
+    );
+    row += 1;
+
+    if state.software_synth_available {
+        let status = if state.use_software_synth {
+            "[*] FluidSynth (ENABLED)"
+        } else {
+            "[ ] FluidSynth (disabled)"
+        };
+        let style = if state.use_software_synth {
+            Style::default().fg(colors.green())
+        } else {
+            Style::default().fg(colors.grey())
+        };
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(format!("   {}", status), style)],
+        );
+        row += 1;
+
+        if let Some(sf_path) = &state.soundfont_path {
+            let sf_name = sf_path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("   SoundFont: {}", sf_name),
+                    Style::default().fg(colors.grey()),
+                )],
+            );
+        }
+    } else {
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "   FluidSynth not available",
+                Style::default().fg(colors.grey()),
+            )],
+        );
+        row += 1;
+        view.render_row(
+            frame,
+            row,
+            vec![Span::styled(
+                "   Install: brew install fluid-synth",
+                Style::default().fg(colors.grey()),
+            )],
+        );
+    }
+
     // Current selection
     let current = state.output_port.as_deref().unwrap_or("None");
+    let output_mode = if state.use_software_synth {
+        "FluidSynth"
+    } else {
+        current
+    };
     view.render_footer(
         frame,
         vec![Span::styled(
-            format!(" Current Output: {}", current),
+            format!(" Output: {}", output_mode),
             Style::default().fg(colors.green()),
         )],
     );
 
     view.render_help(
         frame,
-        vec![("Enter", "select"), ("R", "refresh"), ("Esc", "back")],
+        vec![
+            ("Enter", "select"),
+            ("S", "soft synth"),
+            ("R", "refresh"),
+            ("Esc", "back"),
+        ],
     );
 }
 

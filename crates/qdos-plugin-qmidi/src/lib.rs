@@ -7,9 +7,11 @@
 //! A Cadenza/Mario Paint inspired MIDI sequencer with piano roll editor,
 //! multi-track support, and real hardware MIDI output.
 
+mod fluidsynth;
 mod midi_io;
 mod modal;
 mod playback;
+mod soundfont;
 pub mod state;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -26,6 +28,8 @@ pub struct QMidiPlugin {
     /// Playback engine wrapped in Mutex for Sync
     /// (midir's ALSA backend contains non-Sync types)
     playback: Mutex<playback::PlaybackEngine>,
+    /// FluidSynth software synthesizer for playback without hardware MIDI
+    fluidsynth: Mutex<fluidsynth::FluidSynthPlayer>,
 }
 
 impl Default for QMidiPlugin {
@@ -44,9 +48,24 @@ impl QMidiPlugin {
         // Apply saved config
         midi_io::apply_config(&mut state);
 
+        // Initialize FluidSynth player and check availability
+        let fs_player = fluidsynth::FluidSynthPlayer::new();
+        let software_synth_available = fs_player.is_ready();
+        let soundfont_path = fs_player.soundfont().cloned();
+
+        // Update state with software synth info
+        state.software_synth_available = software_synth_available;
+        state.soundfont_path = soundfont_path;
+
+        // If no hardware MIDI and software synth is available, enable it by default
+        if state.available_outputs.is_empty() && software_synth_available {
+            state.use_software_synth = true;
+        }
+
         Self {
             state,
             playback: Mutex::new(playback::PlaybackEngine::new()),
+            fluidsynth: Mutex::new(fs_player),
         }
     }
 
@@ -95,7 +114,17 @@ impl QMidiPlugin {
             (KeyModifiers::NONE, KeyCode::Char(' ')) => {
                 self.state.toggle_play();
                 if self.state.playing {
-                    self.playback.lock().unwrap().start();
+                    if self.state.use_software_synth {
+                        // Use FluidSynth for playback
+                        if let Err(e) = self.fluidsynth.lock().unwrap().play_state(&self.state) {
+                            self.state.error = Some(e);
+                            self.state.playing = false;
+                        }
+                    } else {
+                        self.playback.lock().unwrap().start();
+                    }
+                } else if self.state.use_software_synth {
+                    self.fluidsynth.lock().unwrap().stop();
                 } else {
                     self.playback.lock().unwrap().stop();
                 }
@@ -448,6 +477,24 @@ impl QMidiPlugin {
             }
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 midi_io::refresh_devices(&mut self.state);
+                // Also refresh FluidSynth availability
+                self.fluidsynth.lock().unwrap().refresh_soundfont();
+                self.state.software_synth_available = self.fluidsynth.lock().unwrap().is_ready();
+                self.state.soundfont_path = self.fluidsynth.lock().unwrap().soundfont().cloned();
+                KeyHandleResult::Handled
+            }
+            // Toggle software synthesizer
+            KeyCode::Char('s') | KeyCode::Char('S') => {
+                if self.state.software_synth_available {
+                    self.state.use_software_synth = !self.state.use_software_synth;
+                    if self.state.use_software_synth {
+                        self.state.status_message = Some("Software synth enabled".to_string());
+                    } else {
+                        self.state.status_message = Some("Software synth disabled".to_string());
+                    }
+                } else {
+                    self.state.error = Some("FluidSynth not available".to_string());
+                }
                 KeyHandleResult::Handled
             }
             KeyCode::Tab | KeyCode::Esc => {
