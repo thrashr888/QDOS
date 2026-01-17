@@ -38,6 +38,7 @@ members = [
     "crates/qdos-plugin-qdlp",
     "crates/qdos-plugin-qmagick",
     "crates/qdos-plugin-qffmpeg",
+    "crates/qdos-plugin-git",
 ]
 resolver = "2"
 
@@ -186,6 +187,7 @@ qdos-plugin-qcurl = { path = "crates/qdos-plugin-qcurl" }
 qdos-plugin-qdlp = { path = "crates/qdos-plugin-qdlp" }
 qdos-plugin-qmagick = { path = "crates/qdos-plugin-qmagick" }
 qdos-plugin-qffmpeg = { path = "crates/qdos-plugin-qffmpeg" }
+qdos-plugin-git = { path = "crates/qdos-plugin-git" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

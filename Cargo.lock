@@ -3830,6 +3830,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-git"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-help"
 version = "0.1.0"
 dependencies = [
@@ -4382,6 +4392,7 @@ dependencies = [
  "qdos-plugin-dirmap",
  "qdos-plugin-docker",
  "qdos-plugin-emulator",
+ "qdos-plugin-git",
  "qdos-plugin-help",
  "qdos-plugin-homebrew",
  "qdos-plugin-jj",
