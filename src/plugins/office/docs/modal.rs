@@ -10,6 +10,7 @@ use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
     text::Span,
+    widgets::Paragraph,
     Frame,
 };
 
@@ -323,11 +324,39 @@ fn draw_edit_content(
     }
 
     // Show cursor indicator
-    if state.input_mode != InputMode::Normal {
-        let cursor_row = start_row + (state.cursor_line - state.scroll_offset) as u16;
-        let cursor_col = line_num_width + state.cursor_col;
-        // The actual cursor is handled by the terminal, but we track position for rendering
-        let _ = (cursor_row, cursor_col);
+    if state.mode == DocsMode::Edit || state.mode == DocsMode::Preview {
+        let cursor_y = (state.cursor_line - state.scroll_offset) as u16;
+        let cursor_x = (line_num_width as usize + state.cursor_col) as u16;
+        let content = view.content_area();
+
+        if cursor_y < visible_lines as u16 && cursor_x < content.width {
+            let cursor_area =
+                Rect::new(content.x + cursor_x, content.y + start_row + cursor_y, 1, 1);
+
+            // Get character at cursor
+            let cursor_char = state
+                .lines
+                .get(state.cursor_line)
+                .and_then(|l| l.chars().nth(state.cursor_col))
+                .unwrap_or(' ');
+
+            // Style based on input mode
+            let cursor_style = if state.input_mode == InputMode::Insert {
+                Style::default().fg(colors.bg()).bg(colors.yellow())
+            } else if state.input_mode == InputMode::Overwrite {
+                Style::default().fg(colors.bg()).bg(colors.red())
+            } else {
+                Style::default()
+                    .fg(colors.bg())
+                    .bg(colors.fg())
+                    .add_modifier(Modifier::UNDERLINED)
+            };
+
+            frame.render_widget(
+                Paragraph::new(Span::styled(cursor_char.to_string(), cursor_style)),
+                cursor_area,
+            );
+        }
     }
 }
 
