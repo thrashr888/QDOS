@@ -95,7 +95,7 @@ pub use qdos_plugin_api::{
 };
 
 // Re-export commonly used types for plugin implementations
-pub use crossterm::event::KeyEvent;
+pub use crossterm::event::{KeyEvent, MouseButton, MouseEventKind};
 
 /// Plugin manager that handles plugin registration and lifecycle
 pub struct PluginManager {
@@ -256,6 +256,26 @@ impl PluginManager {
         if let Some(ref id) = self.active_modal.clone() {
             if let Some(plugin) = self.plugins.get_mut(id) {
                 let result = plugin.handle_modal_key(key, cwd);
+                if result == KeyHandleResult::CloseModal {
+                    self.active_modal = None;
+                }
+                return result;
+            }
+        }
+        KeyHandleResult::NotHandled
+    }
+
+    /// Handle a modal mouse event
+    pub fn handle_modal_mouse(
+        &mut self,
+        column: u16,
+        row: u16,
+        kind: MouseEventKind,
+        button: MouseButton,
+    ) -> KeyHandleResult {
+        if let Some(ref id) = self.active_modal.clone() {
+            if let Some(plugin) = self.plugins.get_mut(id) {
+                let result = plugin.handle_modal_mouse(column, row, kind, button);
                 if result == KeyHandleResult::CloseModal {
                     self.active_modal = None;
                 }

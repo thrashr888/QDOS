@@ -956,6 +956,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "csv"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52cd9d68cf7efc6ddfaaee42e7288d3a99d613d4b50f76ce9827ae0c6e14f938"
+dependencies = [
+ "csv-core",
+ "itoa",
+ "ryu",
+ "serde_core",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704a3c26996a80471189265814dbc2c257598b96b8a7feae2d31ace646bb9782"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3758,6 +3779,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-qcode"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "qdos-plugin-qdesign"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "image",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "qdos-plugin-qform"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "csv",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "qdos-plugin-qmail"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "qdos-plugin-qmidi"
 version = "0.1.0"
 dependencies = [
@@ -4140,6 +4219,10 @@ dependencies = [
  "qdos-plugin-model3d",
  "qdos-plugin-print",
  "qdos-plugin-proc",
+ "qdos-plugin-qcode",
+ "qdos-plugin-qdesign",
+ "qdos-plugin-qform",
+ "qdos-plugin-qmail",
  "qdos-plugin-qmidi",
  "qdos-plugin-qpaint",
  "qdos-plugin-redis",
@@ -5869,6 +5952,7 @@ version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2e054861b4bd027cd373e18e8d8d8e6548085000e41290d95ce0c373a654b4a"
 dependencies = [
+ "getrandom 0.3.4",
  "js-sys",
  "wasm-bindgen",
 ]

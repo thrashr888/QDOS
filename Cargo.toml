@@ -30,6 +30,10 @@ members = [
     "crates/qdos-plugin-basic",
     "crates/qdos-plugin-qmidi",
     "crates/qdos-plugin-qpaint",
+    "crates/qdos-plugin-qform",
+    "crates/qdos-plugin-qcode",
+    "crates/qdos-plugin-qdesign",
+    "crates/qdos-plugin-qmail",
 ]
 resolver = "2"
 
@@ -166,6 +170,10 @@ qdos-plugin-database = { path = "crates/qdos-plugin-database" }
 qdos-plugin-basic = { path = "crates/qdos-plugin-basic" }
 qdos-plugin-qmidi = { path = "crates/qdos-plugin-qmidi" }
 qdos-plugin-qpaint = { path = "crates/qdos-plugin-qpaint" }
+qdos-plugin-qform = { path = "crates/qdos-plugin-qform" }
+qdos-plugin-qcode = { path = "crates/qdos-plugin-qcode" }
+qdos-plugin-qdesign = { path = "crates/qdos-plugin-qdesign" }
+qdos-plugin-qmail = { path = "crates/qdos-plugin-qmail" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

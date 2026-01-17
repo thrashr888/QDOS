@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub enum QMidiView {
     #[default]
     PianoRoll,
+    DrumSequencer,
     EventList,
     TrackList,
     MidiDevices,
@@ -20,13 +21,122 @@ impl QMidiView {
     /// Cycle to next main view
     pub fn next(&self) -> Self {
         match self {
-            QMidiView::PianoRoll => QMidiView::EventList,
+            QMidiView::PianoRoll => QMidiView::DrumSequencer,
+            QMidiView::DrumSequencer => QMidiView::EventList,
             QMidiView::EventList => QMidiView::TrackList,
             QMidiView::TrackList => QMidiView::PianoRoll,
             QMidiView::MidiDevices => QMidiView::PianoRoll,
             QMidiView::FileMenu => QMidiView::PianoRoll,
             QMidiView::Help => QMidiView::PianoRoll,
         }
+    }
+}
+
+/// Standard General MIDI drum sounds
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DrumSound {
+    pub note: u8,
+    pub name: &'static str,
+    pub short_name: &'static str,
+}
+
+impl DrumSound {
+    pub const fn new(note: u8, name: &'static str, short_name: &'static str) -> Self {
+        Self {
+            note,
+            name,
+            short_name,
+        }
+    }
+}
+
+/// Standard GM drum kit sounds (channel 10)
+pub const DRUM_SOUNDS: [DrumSound; 16] = [
+    DrumSound::new(36, "Bass Drum 1", "BD1"),
+    DrumSound::new(38, "Snare Drum 1", "SD1"),
+    DrumSound::new(42, "Closed Hi-Hat", "CHH"),
+    DrumSound::new(46, "Open Hi-Hat", "OHH"),
+    DrumSound::new(41, "Low Floor Tom", "LFT"),
+    DrumSound::new(45, "Low Tom", "LT"),
+    DrumSound::new(48, "Hi Mid Tom", "HMT"),
+    DrumSound::new(50, "High Tom", "HT"),
+    DrumSound::new(49, "Crash Cymbal 1", "CR1"),
+    DrumSound::new(51, "Ride Cymbal 1", "RD1"),
+    DrumSound::new(37, "Side Stick", "SS"),
+    DrumSound::new(39, "Hand Clap", "CLP"),
+    DrumSound::new(56, "Cowbell", "COW"),
+    DrumSound::new(75, "Claves", "CLV"),
+    DrumSound::new(54, "Tambourine", "TAM"),
+    DrumSound::new(82, "Shaker", "SHK"),
+];
+
+/// Drum pattern step (8 patterns of 16 steps each for 8 drum sounds)
+pub const DRUM_PATTERN_STEPS: usize = 16;
+pub const DRUM_PATTERN_SOUNDS: usize = 16;
+
+/// Drum pattern data
+#[derive(Debug, Clone)]
+pub struct DrumPattern {
+    /// Grid of hits: [sound_index][step] = velocity (0 = off)
+    pub grid: [[u8; DRUM_PATTERN_STEPS]; DRUM_PATTERN_SOUNDS],
+    /// Pattern name
+    pub name: String,
+}
+
+impl Default for DrumPattern {
+    fn default() -> Self {
+        Self {
+            grid: [[0; DRUM_PATTERN_STEPS]; DRUM_PATTERN_SOUNDS],
+            name: "Pattern 1".to_string(),
+        }
+    }
+}
+
+impl DrumPattern {
+    /// Toggle a hit at position
+    pub fn toggle(&mut self, sound: usize, step: usize) {
+        if sound < DRUM_PATTERN_SOUNDS && step < DRUM_PATTERN_STEPS {
+            if self.grid[sound][step] == 0 {
+                self.grid[sound][step] = 100; // Default velocity
+            } else {
+                self.grid[sound][step] = 0;
+            }
+        }
+    }
+
+    /// Check if hit is active
+    pub fn is_hit(&self, sound: usize, step: usize) -> bool {
+        sound < DRUM_PATTERN_SOUNDS && step < DRUM_PATTERN_STEPS && self.grid[sound][step] > 0
+    }
+
+    /// Get velocity at position
+    pub fn velocity(&self, sound: usize, step: usize) -> u8 {
+        if sound < DRUM_PATTERN_SOUNDS && step < DRUM_PATTERN_STEPS {
+            self.grid[sound][step]
+        } else {
+            0
+        }
+    }
+
+    /// Create basic rock beat pattern
+    pub fn rock_beat() -> Self {
+        let mut pattern = Self {
+            name: "Rock Beat".to_string(),
+            ..Default::default()
+        };
+        // Kick on 1 and 3
+        pattern.grid[0][0] = 100;
+        pattern.grid[0][8] = 100;
+        // Snare on 2 and 4
+        pattern.grid[1][4] = 100;
+        pattern.grid[1][12] = 100;
+        // Hi-hat on all 8ths
+        for i in 0..16 {
+            if i % 2 == 0 {
+                pattern.grid[2][i] = 80;
+            }
+        }
+        pattern
     }
 }
 
@@ -197,6 +307,12 @@ pub struct QMidiState {
     // Track list view
     pub track_scroll: usize,
 
+    // Drum sequencer view
+    pub drum_pattern: DrumPattern,
+    pub drum_cursor_sound: usize,
+    pub drum_cursor_step: usize,
+    pub drum_playing_step: usize,
+
     // Device selection
     pub device_scroll: usize,
     pub device_selected: usize,
@@ -255,6 +371,11 @@ impl QMidiState {
             event_selected: 0,
 
             track_scroll: 0,
+
+            drum_pattern: DrumPattern::rock_beat(),
+            drum_cursor_sound: 0,
+            drum_cursor_step: 0,
+            drum_playing_step: 0,
 
             device_scroll: 0,
             device_selected: 0,
@@ -636,6 +757,71 @@ impl QMidiState {
             .position(|a| *a == self.file_action)
             .unwrap_or(0);
         self.file_action = actions[(current + actions.len() - 1) % actions.len()];
+    }
+
+    // =========================================================================
+    // DRUM SEQUENCER
+    // =========================================================================
+
+    /// Move drum cursor left
+    pub fn drum_cursor_left(&mut self) {
+        if self.drum_cursor_step > 0 {
+            self.drum_cursor_step -= 1;
+        } else {
+            self.drum_cursor_step = DRUM_PATTERN_STEPS - 1;
+        }
+    }
+
+    /// Move drum cursor right
+    pub fn drum_cursor_right(&mut self) {
+        if self.drum_cursor_step < DRUM_PATTERN_STEPS - 1 {
+            self.drum_cursor_step += 1;
+        } else {
+            self.drum_cursor_step = 0;
+        }
+    }
+
+    /// Move drum cursor up
+    pub fn drum_cursor_up(&mut self) {
+        if self.drum_cursor_sound > 0 {
+            self.drum_cursor_sound -= 1;
+        }
+    }
+
+    /// Move drum cursor down
+    pub fn drum_cursor_down(&mut self) {
+        if self.drum_cursor_sound < DRUM_PATTERN_SOUNDS - 1 {
+            self.drum_cursor_sound += 1;
+        }
+    }
+
+    /// Toggle hit at cursor
+    pub fn drum_toggle_hit(&mut self) {
+        self.drum_pattern
+            .toggle(self.drum_cursor_sound, self.drum_cursor_step);
+        self.modified = true;
+    }
+
+    /// Clear current row (sound)
+    pub fn drum_clear_row(&mut self) {
+        for step in 0..DRUM_PATTERN_STEPS {
+            self.drum_pattern.grid[self.drum_cursor_sound][step] = 0;
+        }
+        self.modified = true;
+    }
+
+    /// Clear entire pattern
+    pub fn drum_clear_pattern(&mut self) {
+        self.drum_pattern = DrumPattern::default();
+        self.modified = true;
+    }
+
+    /// Load preset pattern
+    pub fn drum_load_preset(&mut self, preset: usize) {
+        self.drum_pattern = match preset {
+            0 => DrumPattern::default(),
+            _ => DrumPattern::rock_beat(),
+        };
     }
 
     // =========================================================================

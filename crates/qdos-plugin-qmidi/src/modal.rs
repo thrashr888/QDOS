@@ -2,7 +2,7 @@
 //!
 //! UI rendering for all Q-MIDI views.
 
-use crate::state::{FileAction, QMidiState, QMidiView};
+use crate::state::{FileAction, QMidiState, QMidiView, DRUM_PATTERN_STEPS, DRUM_SOUNDS};
 use qdos_plugin_api::prelude::*;
 use ratatui::{
     layout::Rect,
@@ -15,6 +15,7 @@ use ratatui::{
 pub fn draw_qmidi_modal(frame: &mut Frame, area: Rect, state: &QMidiState, colors: &ThemeColors) {
     match state.view {
         QMidiView::PianoRoll => draw_piano_roll(frame, area, state, colors),
+        QMidiView::DrumSequencer => draw_drum_sequencer(frame, area, state, colors),
         QMidiView::EventList => draw_event_list(frame, area, state, colors),
         QMidiView::TrackList => draw_track_list(frame, area, state, colors),
         QMidiView::MidiDevices => draw_midi_devices(frame, area, state, colors),
@@ -60,6 +61,166 @@ fn draw_piano_roll(frame: &mut Frame, area: Rect, state: &QMidiState, colors: &T
             ("Tab", "view"),
             ("Enter", "note"),
             ("D", "dev"),
+            ("Esc", "exit"),
+        ]
+    };
+    view.render_help(frame, help);
+}
+
+/// Draw drum sequencer view (Mario Paint style)
+fn draw_drum_sequencer(frame: &mut Frame, area: Rect, state: &QMidiState, colors: &ThemeColors) {
+    let title = format!(" Q-MIDI: Drum Sequencer - {} ", state.drum_pattern.name);
+    let view = FullScreenView::new(area, &title, colors);
+    view.render_frame(frame);
+
+    let content = view.content_area();
+    let mut row: u16 = 0;
+
+    // Transport bar
+    let transport = format!(
+        "  Tempo: {} BPM  |  Time: {}/{}  |  {}",
+        state.tempo,
+        state.time_signature.0,
+        state.time_signature.1,
+        if state.playing {
+            "[PLAYING]"
+        } else {
+            "[STOPPED]"
+        }
+    );
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(transport, Style::default().fg(colors.green()))],
+    );
+    row += 1;
+
+    // Step numbers header
+    let mut header_spans = vec![Span::styled("      ", Style::default().fg(colors.grey()))];
+    for step in 0..DRUM_PATTERN_STEPS {
+        let beat_marker = if step % 4 == 0 { "|" } else { " " };
+        let step_char = format!("{}{:X}", beat_marker, step);
+        let is_playing = state.playing && state.drum_playing_step == step;
+        let style = if is_playing {
+            Style::default()
+                .fg(colors.yellow())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.grey())
+        };
+        header_spans.push(Span::styled(step_char, style));
+    }
+    view.render_row(frame, row, header_spans);
+    row += 1;
+
+    // Separator
+    view.render_row(
+        frame,
+        row,
+        vec![Span::styled(
+            format!("{}+{}", "-".repeat(5), "---".repeat(DRUM_PATTERN_STEPS)),
+            Style::default().fg(colors.grey()),
+        )],
+    );
+    row += 1;
+
+    // Drum rows (limit to visible area)
+    let visible_rows = (content.height.saturating_sub(row + 3)) as usize;
+    let displayed_sounds = visible_rows.min(DRUM_SOUNDS.len());
+
+    for (sound_idx, drum) in DRUM_SOUNDS.iter().enumerate().take(displayed_sounds) {
+        let is_cursor_row = sound_idx == state.drum_cursor_sound;
+
+        // Sound name
+        let name_style = if is_cursor_row {
+            Style::default()
+                .fg(colors.yellow())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.cyan())
+        };
+        let mut row_spans = vec![Span::styled(format!("{:>4} ", drum.short_name), name_style)];
+
+        // Steps
+        for step in 0..DRUM_PATTERN_STEPS {
+            let is_hit = state.drum_pattern.is_hit(sound_idx, step);
+            let is_cursor = is_cursor_row && step == state.drum_cursor_step;
+            let is_beat = step % 4 == 0;
+            let is_playing = state.playing && state.drum_playing_step == step;
+
+            let (ch, style) = if is_cursor {
+                if is_hit {
+                    (
+                        "[#]",
+                        Style::default()
+                            .fg(colors.yellow())
+                            .bg(colors.blue())
+                            .add_modifier(Modifier::BOLD),
+                    )
+                } else {
+                    (
+                        "[ ]",
+                        Style::default().fg(colors.yellow()).bg(colors.blue()),
+                    )
+                }
+            } else if is_hit {
+                let style = if is_playing {
+                    Style::default()
+                        .fg(colors.green())
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(colors.red())
+                };
+                (" # ", style)
+            } else if is_playing {
+                (
+                    " . ",
+                    Style::default()
+                        .fg(colors.yellow())
+                        .add_modifier(Modifier::DIM),
+                )
+            } else if is_beat {
+                (" . ", Style::default().fg(colors.grey()))
+            } else {
+                ("   ", Style::default().fg(colors.grey()))
+            };
+
+            row_spans.push(Span::styled(ch, style));
+        }
+
+        view.render_row(frame, row, row_spans);
+        row += 1;
+    }
+
+    // Footer with current position
+    let footer = format!(
+        " Sound: {}  |  Step: {:>2}  |  Velocity: {}",
+        DRUM_SOUNDS[state.drum_cursor_sound].name,
+        state.drum_cursor_step + 1,
+        state
+            .drum_pattern
+            .velocity(state.drum_cursor_sound, state.drum_cursor_step)
+    );
+    view.render_footer(
+        frame,
+        vec![Span::styled(footer, Style::default().fg(colors.green()))],
+    );
+
+    // Help footer
+    let help = if state.playing {
+        vec![
+            ("Space", "stop"),
+            ("Enter", "toggle"),
+            ("C", "clear"),
+            ("Tab", "view"),
+            ("Esc", "exit"),
+        ]
+    } else {
+        vec![
+            ("Space", "play"),
+            ("Enter", "toggle"),
+            ("C", "clear"),
+            ("Tab", "view"),
             ("Esc", "exit"),
         ]
     };

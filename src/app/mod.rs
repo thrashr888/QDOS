@@ -404,6 +404,35 @@ impl App {
         const CONTENT_START_Y: u16 = 4;
         // Stats panel on right takes ~20 chars, status bar at bottom takes 1 line
 
+        // If a plugin modal is active, dispatch mouse events to it
+        if self.plugin_manager.has_active_modal() {
+            let button = match mouse.kind {
+                MouseEventKind::Down(btn) | MouseEventKind::Up(btn) | MouseEventKind::Drag(btn) => {
+                    btn
+                }
+                _ => MouseButton::Left, // Default for scroll events
+            };
+            let result =
+                self.plugin_manager
+                    .handle_modal_mouse(mouse.column, mouse.row, mouse.kind, button);
+            match result {
+                KeyHandleResult::CloseModal => {
+                    // Modal already closed by plugin manager
+                }
+                KeyHandleResult::CloseWithSuccess(msg) => {
+                    self.modal = Modal::Success(msg);
+                }
+                KeyHandleResult::CloseWithError(msg) => {
+                    self.modal = Modal::Error(msg);
+                }
+                KeyHandleResult::RefreshFiles => {
+                    let _ = self.refresh_files();
+                }
+                _ => {}
+            }
+            return Ok(());
+        }
+
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 // Only handle clicks in file list area when no modal is open

@@ -23,6 +23,60 @@ pub struct Config {
     pub plugins: PluginsConfig,
     #[serde(default)]
     pub games: GamesConfig,
+    #[serde(default)]
+    pub mail: MailConfig,
+}
+
+/// Email configuration for Q-MAIL plugin
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MailConfig {
+    /// IMAP server hostname (default: imap.gmail.com)
+    #[serde(default = "default_imap_server")]
+    pub imap_server: String,
+    /// IMAP server port (default: 993 for TLS)
+    #[serde(default = "default_imap_port")]
+    pub imap_port: u16,
+    /// SMTP server hostname (default: smtp.gmail.com)
+    #[serde(default = "default_smtp_server")]
+    pub smtp_server: String,
+    /// SMTP server port (default: 587 for STARTTLS)
+    #[serde(default = "default_smtp_port")]
+    pub smtp_port: u16,
+    /// Email username/account
+    #[serde(default)]
+    pub username: String,
+    /// Use TLS encryption (default: true)
+    #[serde(default = "default_true")]
+    pub use_tls: bool,
+}
+
+impl Default for MailConfig {
+    fn default() -> Self {
+        Self {
+            imap_server: default_imap_server(),
+            imap_port: default_imap_port(),
+            smtp_server: default_smtp_server(),
+            smtp_port: default_smtp_port(),
+            username: String::new(),
+            use_tls: true,
+        }
+    }
+}
+
+fn default_imap_server() -> String {
+    "imap.gmail.com".to_string()
+}
+
+fn default_imap_port() -> u16 {
+    993
+}
+
+fn default_smtp_server() -> String {
+    "smtp.gmail.com".to_string()
+}
+
+fn default_smtp_port() -> u16 {
+    587
 }
 
 /// Games plugin configuration (leaderboards, etc.)

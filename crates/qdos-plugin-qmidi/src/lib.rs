@@ -242,6 +242,99 @@ impl QMidiPlugin {
         }
     }
 
+    /// Handle drum sequencer key events
+    fn handle_drum_sequencer_key(&mut self, key: KeyEvent) -> KeyHandleResult {
+        match (key.modifiers, key.code) {
+            // Playback
+            (KeyModifiers::NONE, KeyCode::Char(' ')) => {
+                self.state.toggle_play();
+                if self.state.playing {
+                    self.playback.start();
+                } else {
+                    self.playback.stop();
+                    self.state.drum_playing_step = 0;
+                }
+                KeyHandleResult::Handled
+            }
+
+            // Navigation
+            (KeyModifiers::NONE, KeyCode::Left) => {
+                self.state.drum_cursor_left();
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::Right) => {
+                self.state.drum_cursor_right();
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::Up) => {
+                self.state.drum_cursor_up();
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::Down) => {
+                self.state.drum_cursor_down();
+                KeyHandleResult::Handled
+            }
+
+            // Toggle hit
+            (KeyModifiers::NONE, KeyCode::Enter) | (KeyModifiers::NONE, KeyCode::Char('x')) => {
+                self.state.drum_toggle_hit();
+                // Preview the drum sound
+                let drum = &state::DRUM_SOUNDS[self.state.drum_cursor_sound];
+                self.playback.preview_note(9, drum.note, 100); // Channel 10 (9 in 0-indexed)
+                KeyHandleResult::Handled
+            }
+
+            // Clear
+            (KeyModifiers::NONE, KeyCode::Char('c') | KeyCode::Char('C'))
+                if !key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                self.state.drum_clear_row();
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::CONTROL, KeyCode::Char('c')) => {
+                self.state.drum_clear_pattern();
+                KeyHandleResult::Handled
+            }
+
+            // Preset patterns
+            (KeyModifiers::NONE, KeyCode::Char('1')) => {
+                self.state.drum_load_preset(0); // Empty
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::Char('2')) => {
+                self.state.drum_load_preset(1); // Rock beat
+                KeyHandleResult::Handled
+            }
+
+            // View switching
+            (KeyModifiers::NONE, KeyCode::Tab) => {
+                self.state.view = self.state.view.next();
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::Char('d') | KeyCode::Char('D')) => {
+                midi_io::refresh_devices(&mut self.state);
+                self.state.view = QMidiView::MidiDevices;
+                KeyHandleResult::Handled
+            }
+            (KeyModifiers::NONE, KeyCode::F(1)) => {
+                self.state.view = QMidiView::Help;
+                KeyHandleResult::Handled
+            }
+
+            // Exit
+            (KeyModifiers::NONE, KeyCode::Esc) => {
+                self.playback.stop();
+                self.state.drum_playing_step = 0;
+                if let Err(e) = midi_io::save_config(&self.state) {
+                    self.state.error = Some(e);
+                }
+                KeyHandleResult::CloseModal
+            }
+
+            _ => KeyHandleResult::Handled,
+        }
+    }
+
     /// Handle event list key events
     fn handle_event_list_key(&mut self, key: KeyEvent) -> KeyHandleResult {
         match key.code {
@@ -502,6 +595,7 @@ impl Plugin for QMidiPlugin {
     fn handle_modal_key(&mut self, key: KeyEvent, cwd: &PathBuf) -> KeyHandleResult {
         match self.state.view {
             QMidiView::PianoRoll => self.handle_piano_roll_key(key),
+            QMidiView::DrumSequencer => self.handle_drum_sequencer_key(key),
             QMidiView::EventList => self.handle_event_list_key(key),
             QMidiView::TrackList => self.handle_track_list_key(key),
             QMidiView::MidiDevices => self.handle_devices_key(key),

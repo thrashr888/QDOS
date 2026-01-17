@@ -7,7 +7,7 @@ mod file_io;
 mod modal;
 mod state;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEventKind};
 use qdos_plugin_api::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, ThemeColors,
 };
@@ -20,6 +20,8 @@ use std::path::PathBuf;
 pub struct QPaintPlugin {
     state: QPaintState,
     modal_open: bool,
+    /// Whether mouse is currently pressed (for drag drawing)
+    mouse_drawing: bool,
 }
 
 impl Default for QPaintPlugin {
@@ -35,6 +37,122 @@ impl QPaintPlugin {
         Self {
             state,
             modal_open: false,
+            mouse_drawing: false,
+        }
+    }
+
+    /// Convert screen coordinates to canvas coordinates
+    /// Returns None if the click is outside the canvas area
+    fn screen_to_canvas(&self, column: u16, row: u16) -> Option<(u32, u32)> {
+        // Layout constants matching modal.rs:
+        // - 1 row for top border
+        // - 1 row for title
+        // - 1 row for toolbar
+        // - 1 row for separator
+        // Canvas starts at row 4 (0-indexed)
+        const CANVAS_START_Y: u16 = 4;
+        const CANVAS_START_X: u16 = 1; // 1 for left border
+
+        // Check if within canvas vertical bounds
+        if row < CANVAS_START_Y {
+            return None;
+        }
+
+        // Check if within canvas horizontal bounds
+        if column < CANVAS_START_X {
+            return None;
+        }
+
+        // Calculate the canvas pixel position accounting for zoom
+        let zoom = self.state.zoom as u16;
+        let chars_per_pixel = zoom.max(1);
+
+        // Convert screen offset to canvas coordinates
+        let screen_x = column.saturating_sub(CANVAS_START_X);
+        let screen_y = row.saturating_sub(CANVAS_START_Y);
+
+        // Convert to canvas pixels (accounting for zoom)
+        let canvas_x = self.state.scroll_x + (screen_x / chars_per_pixel) as u32;
+        let canvas_y = self.state.scroll_y + screen_y as u32;
+
+        // Bounds check
+        if canvas_x < self.state.canvas.width && canvas_y < self.state.canvas.height {
+            Some((canvas_x, canvas_y))
+        } else {
+            None
+        }
+    }
+
+    /// Handle mouse drawing at a position
+    fn handle_mouse_draw(&mut self, canvas_x: u32, canvas_y: u32, is_right_button: bool) {
+        // Move cursor to position
+        self.state.cursor_x = canvas_x;
+        self.state.cursor_y = canvas_y;
+
+        // Draw based on current tool and button
+        let color = if is_right_button {
+            self.state.bg_color // Right click uses background color
+        } else {
+            match self.state.tool {
+                Tool::Eraser => self.state.bg_color,
+                _ => self.state.fg_color,
+            }
+        };
+
+        match self.state.tool {
+            Tool::Pencil | Tool::Brush | Tool::Eraser => {
+                self.state.save_undo();
+                canvas::draw_pixel(
+                    &mut self.state.canvas,
+                    canvas_x,
+                    canvas_y,
+                    color,
+                    self.state.brush_size,
+                );
+                self.state.modified = true;
+            }
+            Tool::ColorPicker => {
+                let picked = self.state.canvas.get_pixel(canvas_x, canvas_y);
+                if is_right_button {
+                    self.state.bg_color = picked;
+                    self.state.status =
+                        format!("BG color: RGB({},{},{})", picked.0, picked.1, picked.2);
+                } else {
+                    self.state.fg_color = picked;
+                    self.state.status =
+                        format!("FG color: RGB({},{},{})", picked.0, picked.1, picked.2);
+                }
+            }
+            Tool::Line => {
+                if let Some((sx, sy)) = self.state.shape_start {
+                    self.state.save_undo();
+                    canvas::draw_line(&mut self.state.canvas, sx, sy, canvas_x, canvas_y, color);
+                    self.state.shape_start = None;
+                    self.state.status = "Line drawn".to_string();
+                    self.state.modified = true;
+                } else {
+                    self.state.shape_start = Some((canvas_x, canvas_y));
+                    self.state.status = "Click end point for line".to_string();
+                }
+            }
+            Tool::Select => {
+                if self.state.selection.active {
+                    self.state.selection.end_x = canvas_x;
+                    self.state.selection.end_y = canvas_y;
+                    let (w, h) = self.state.selection.size();
+                    self.state.status = format!("Selected {}x{}", w, h);
+                } else {
+                    self.state.selection.start_x = canvas_x;
+                    self.state.selection.start_y = canvas_y;
+                    self.state.selection.end_x = canvas_x;
+                    self.state.selection.end_y = canvas_y;
+                    self.state.selection.active = true;
+                    self.state.status = "Drag to select area".to_string();
+                }
+            }
+            Tool::Text => {
+                self.state.status = "Text tool: keyboard input only".to_string();
+            }
         }
     }
 
@@ -604,17 +722,12 @@ impl Plugin for QPaintPlugin {
 
     fn handle_global_key(
         &mut self,
-        key: KeyEvent,
+        _key: KeyEvent,
         _cwd: &PathBuf,
         _selected_file: Option<&PathBuf>,
     ) -> KeyHandleResult {
-        // Open Q-PAINT from Apps menu
-        if key.code == KeyCode::Enter {
-            self.modal_open = true;
-            self.state.view = QPaintView::Editor;
-            self.state.status.clear();
-            return KeyHandleResult::OpenModal;
-        }
+        // Q-PAINT is launched via Apps menu (F12) which calls launch()
+        // No global keyboard shortcut
         KeyHandleResult::NotHandled
     }
 
@@ -625,6 +738,81 @@ impl Plugin for QPaintPlugin {
             QPaintView::FileMenu => self.handle_file_key(key, cwd),
             QPaintView::Help => self.handle_help_key(key),
         }
+    }
+
+    fn handle_modal_mouse(
+        &mut self,
+        column: u16,
+        row: u16,
+        kind: MouseEventKind,
+        button: MouseButton,
+    ) -> KeyHandleResult {
+        // Only handle mouse in editor view
+        if !matches!(self.state.view, QPaintView::Editor) {
+            return KeyHandleResult::NotHandled;
+        }
+
+        let is_right = matches!(button, MouseButton::Right);
+
+        match kind {
+            MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Down(MouseButton::Right) => {
+                // Start drawing
+                if let Some((canvas_x, canvas_y)) = self.screen_to_canvas(column, row) {
+                    self.mouse_drawing = true;
+                    self.handle_mouse_draw(canvas_x, canvas_y, is_right);
+                    return KeyHandleResult::Handled;
+                }
+            }
+            MouseEventKind::Drag(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Right) => {
+                // Continue drawing while dragging
+                if self.mouse_drawing {
+                    if let Some((canvas_x, canvas_y)) = self.screen_to_canvas(column, row) {
+                        // For pencil/brush/eraser, draw continuously
+                        if matches!(self.state.tool, Tool::Pencil | Tool::Brush | Tool::Eraser) {
+                            self.handle_mouse_draw(canvas_x, canvas_y, is_right);
+                        } else if matches!(self.state.tool, Tool::Select) {
+                            // Update selection end point
+                            self.state.selection.end_x = canvas_x;
+                            self.state.selection.end_y = canvas_y;
+                            let (w, h) = self.state.selection.size();
+                            self.state.status = format!("Selecting {}x{}", w, h);
+                        }
+                        // Update cursor position
+                        self.state.cursor_x = canvas_x;
+                        self.state.cursor_y = canvas_y;
+                        return KeyHandleResult::Handled;
+                    }
+                }
+            }
+            MouseEventKind::Up(_) => {
+                // Stop drawing
+                self.mouse_drawing = false;
+                return KeyHandleResult::Handled;
+            }
+            MouseEventKind::ScrollUp => {
+                // Zoom in
+                self.state.zoom_in();
+                self.state.status = format!("Zoom: {}x", self.state.zoom);
+                return KeyHandleResult::Handled;
+            }
+            MouseEventKind::ScrollDown => {
+                // Zoom out
+                self.state.zoom_out();
+                self.state.status = format!("Zoom: {}x", self.state.zoom);
+                return KeyHandleResult::Handled;
+            }
+            MouseEventKind::Moved => {
+                // Update cursor position on hover (without drawing)
+                if let Some((canvas_x, canvas_y)) = self.screen_to_canvas(column, row) {
+                    self.state.cursor_x = canvas_x;
+                    self.state.cursor_y = canvas_y;
+                    return KeyHandleResult::Handled;
+                }
+            }
+            _ => {}
+        }
+
+        KeyHandleResult::NotHandled
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {

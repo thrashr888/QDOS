@@ -33,7 +33,7 @@ use std::any::Any;
 use std::path::PathBuf;
 
 // Re-export commonly used types from ratatui and crossterm
-pub use crossterm::event::{KeyCode, KeyModifiers};
+pub use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 pub use ratatui::layout::Rect as LayoutRect;
 pub use ratatui::style::{Color, Modifier, Style};
 pub use ratatui::text::{Line, Span, Text};
@@ -357,6 +357,22 @@ pub trait Plugin: Send + Sync {
 
     /// Handle a key event (when plugin modal is open)
     fn handle_modal_key(&mut self, _key: KeyEvent, _cwd: &PathBuf) -> KeyHandleResult {
+        KeyHandleResult::NotHandled
+    }
+
+    /// Handle a mouse event (when plugin modal is open)
+    /// Parameters:
+    /// - `column`: Mouse X position (0-based from left)
+    /// - `row`: Mouse Y position (0-based from top)
+    /// - `kind`: Type of mouse event (down, up, drag, scroll)
+    /// - `button`: Which button (left, right, middle)
+    fn handle_modal_mouse(
+        &mut self,
+        _column: u16,
+        _row: u16,
+        _kind: MouseEventKind,
+        _button: MouseButton,
+    ) -> KeyHandleResult {
         KeyHandleResult::NotHandled
     }
 

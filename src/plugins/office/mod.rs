@@ -9,6 +9,10 @@
 //! - Q-DOCS: Word processor with Markdown support
 //! - Q-PAINT: Pixel art editor with sixel graphics
 //! - Q-MIDI: MIDI sequencer and music creation tool
+//! - Q-FORM: Form builder and data entry tool
+//! - Q-CODE: Simple code editor with syntax highlighting
+//! - Q-DESIGN: Print designer for cards and banners
+//! - Q-MAIL: Email client with IMAP/SMTP support
 
 pub mod deck;
 pub mod docs;
@@ -20,6 +24,10 @@ use crate::app::ThemeColors;
 use crate::plugins::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_qcode::QCodePlugin;
+use qdos_plugin_qdesign::QDesignPlugin;
+use qdos_plugin_qform::QFormPlugin;
+use qdos_plugin_qmail::QMailPlugin;
 use qdos_plugin_qmidi::QMidiPlugin;
 use qdos_plugin_qpaint::QPaintPlugin;
 use ratatui::{
@@ -55,6 +63,10 @@ pub enum OfficeApp {
     Docs,
     Paint,
     Midi,
+    Form,
+    Code,
+    Design,
+    Mail,
 }
 
 // =============================================================================
@@ -105,6 +117,30 @@ const OFFICE_APPS: &[OfficeAppInfo] = &[
         description: "MIDI sequencer and music creation tool",
         key: '6',
     },
+    OfficeAppInfo {
+        id: OfficeApp::Form,
+        name: "Q-FORM",
+        description: "Form builder and data entry tool",
+        key: '7',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Code,
+        name: "Q-CODE",
+        description: "Simple code editor with syntax highlighting",
+        key: '8',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Design,
+        name: "Q-DESIGN",
+        description: "Print designer for cards and banners",
+        key: '9',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Mail,
+        name: "Q-MAIL",
+        description: "Email client with IMAP/SMTP support",
+        key: '0',
+    },
 ];
 
 // =============================================================================
@@ -124,6 +160,10 @@ pub struct OfficePlugin {
     docs: DocsPlugin,
     paint: QPaintPlugin,
     midi: QMidiPlugin,
+    form: QFormPlugin,
+    code: QCodePlugin,
+    design: QDesignPlugin,
+    mail: QMailPlugin,
 }
 
 impl Default for OfficePlugin {
@@ -143,6 +183,10 @@ impl OfficePlugin {
             docs: DocsPlugin::new(),
             paint: QPaintPlugin::new(),
             midi: QMidiPlugin::new(),
+            form: QFormPlugin::new(),
+            code: QCodePlugin::new(),
+            design: QDesignPlugin::new(),
+            mail: QMailPlugin::new(),
         }
     }
 
@@ -191,6 +235,22 @@ impl OfficePlugin {
             OfficeApp::Midi => {
                 let _ = self.midi.launch(&cwd, None);
                 self.view = OfficeView::App(OfficeApp::Midi);
+            }
+            OfficeApp::Form => {
+                let _ = self.form.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Form);
+            }
+            OfficeApp::Code => {
+                let _ = self.code.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Code);
+            }
+            OfficeApp::Design => {
+                let _ = self.design.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Design);
+            }
+            OfficeApp::Mail => {
+                let _ = self.mail.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Mail);
             }
         }
     }
@@ -341,6 +401,22 @@ impl Plugin for OfficePlugin {
                     self.launch_app(OfficeApp::Midi);
                     KeyHandleResult::Handled
                 }
+                KeyCode::Char('7') => {
+                    self.launch_app(OfficeApp::Form);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('8') => {
+                    self.launch_app(OfficeApp::Code);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('9') => {
+                    self.launch_app(OfficeApp::Design);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('0') => {
+                    self.launch_app(OfficeApp::Mail);
+                    KeyHandleResult::Handled
+                }
                 _ => KeyHandleResult::Handled,
             },
             OfficeView::App(OfficeApp::Sheet) => {
@@ -421,6 +497,58 @@ impl Plugin for OfficePlugin {
                 }
                 result
             }
+            OfficeView::App(OfficeApp::Form) => {
+                let result = self.form.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Code) => {
+                let result = self.code.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Design) => {
+                let result = self.design.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Mail) => {
+                let result = self.mail.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
         }
     }
 
@@ -433,6 +561,10 @@ impl Plugin for OfficePlugin {
             OfficeView::App(OfficeApp::Docs) => self.docs.draw_modal(frame, area, colors),
             OfficeView::App(OfficeApp::Paint) => self.paint.draw_modal(frame, area, colors),
             OfficeView::App(OfficeApp::Midi) => self.midi.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Form) => self.form.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Code) => self.code.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Design) => self.design.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Mail) => self.mail.draw_modal(frame, area, colors),
         }
     }
 
@@ -444,6 +576,10 @@ impl Plugin for OfficePlugin {
             OfficeView::App(OfficeApp::Docs) => self.docs.tick(),
             OfficeView::App(OfficeApp::Paint) => self.paint.tick(),
             OfficeView::App(OfficeApp::Midi) => self.midi.tick(),
+            OfficeView::App(OfficeApp::Form) => self.form.tick(),
+            OfficeView::App(OfficeApp::Code) => self.code.tick(),
+            OfficeView::App(OfficeApp::Design) => self.design.tick(),
+            OfficeView::App(OfficeApp::Mail) => self.mail.tick(),
             OfficeView::Menu => {}
         }
     }
