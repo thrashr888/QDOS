@@ -510,15 +510,18 @@ fn draw_midi_devices(frame: &mut Frame, area: Rect, state: &QMidiState, colors: 
     row += 1;
 
     if state.available_outputs.is_empty() {
-        view.render_row(
-            frame,
-            row,
-            vec![Span::styled(
-                "   (No MIDI outputs found)",
-                Style::default().fg(colors.grey()),
-            )],
-        );
-        row += 1;
+        // Show helpful message when no devices found
+        for help_line in crate::midi_io::no_devices_help() {
+            view.render_row(
+                frame,
+                row,
+                vec![Span::styled(
+                    format!("   {}", help_line),
+                    Style::default().fg(colors.grey()),
+                )],
+            );
+            row += 1;
+        }
     } else {
         let visible_height = (content.height as usize).saturating_sub(6);
         for (idx, port) in state

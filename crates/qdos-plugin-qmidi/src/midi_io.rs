@@ -96,6 +96,53 @@ pub fn connect_output(port_name: &str) -> Result<MidiConnection, String> {
     Ok(MidiConnection { connection })
 }
 
+/// Check if FluidSynth is available for software synthesis
+pub fn has_fluidsynth() -> bool {
+    std::process::Command::new("fluidsynth")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Get helpful message when no MIDI devices found
+pub fn no_devices_help() -> Vec<String> {
+    let mut help = vec![
+        "No MIDI output devices found.".to_string(),
+        "".to_string(),
+        "To enable MIDI playback:".to_string(),
+    ];
+
+    #[cfg(target_os = "macos")]
+    {
+        help.push("".to_string());
+        help.push("macOS Options:".to_string());
+        help.push("  1. Enable IAC Driver:".to_string());
+        help.push("     - Open Audio MIDI Setup".to_string());
+        help.push("     - Window > Show MIDI Studio".to_string());
+        help.push("     - Double-click IAC Driver".to_string());
+        help.push("     - Check 'Device is online'".to_string());
+        help.push("".to_string());
+        help.push("  2. Install FluidSynth:".to_string());
+        help.push("     brew install fluid-synth".to_string());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        help.push("".to_string());
+        help.push("Linux Options:".to_string());
+        help.push("  1. Install TiMidity++ or FluidSynth".to_string());
+        help.push("  2. Start a software synthesizer".to_string());
+    }
+
+    if has_fluidsynth() {
+        help.push("".to_string());
+        help.push("FluidSynth detected! Software synth available.".to_string());
+    }
+
+    help
+}
+
 /// Refresh device lists in state
 pub fn refresh_devices(state: &mut QMidiState) {
     state.available_outputs = enumerate_outputs();

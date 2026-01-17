@@ -566,6 +566,39 @@ impl Plugin for QPaintPlugin {
         self.modal_open = true;
         self.state.view = QPaintView::Editor;
         self.state.status.clear();
+
+        // Scale canvas to terminal size if it's still the default small size
+        if self.state.canvas.width == 32 && self.state.canvas.height == 32 {
+            // Query terminal size and create appropriately sized canvas
+            if let Ok((cols, rows)) = crossterm::terminal::size() {
+                // Calculate usable canvas area:
+                // - Subtract 4 for UI chrome (title, separators, help, status bar)
+                // - Subtract 2 for toolbar rows
+                // - Account for zoom level (default is 4x)
+                let available_height = rows.saturating_sub(8) as u32;
+                let available_width = cols as u32;
+
+                // At default zoom 4x, each pixel takes ~4 chars wide
+                // Calculate canvas size that fits well
+                let zoom = self.state.zoom as u32;
+                let canvas_width = (available_width / zoom).clamp(32, 256);
+                let canvas_height = (available_height * 2 / zoom).clamp(32, 256);
+
+                // Round to nice multiples of 8 for pixel art
+                let canvas_width = (canvas_width / 8) * 8;
+                let canvas_height = (canvas_height / 8) * 8;
+
+                if canvas_width > 32 || canvas_height > 32 {
+                    self.state
+                        .new_canvas(canvas_width.max(32), canvas_height.max(32));
+                    self.state.status = format!(
+                        "Canvas: {}x{}",
+                        self.state.canvas.width, self.state.canvas.height
+                    );
+                }
+            }
+        }
+
         Ok(())
     }
 

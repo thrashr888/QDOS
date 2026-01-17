@@ -284,18 +284,19 @@ fn render_canvas_ascii(
 
             // Generate pixel character based on zoom
             let ch = if is_cursor {
-                // Cursor shown with inverse colors
-                let char_str = "X".repeat(chars_per_pixel as usize);
+                // Cursor shown with high-contrast blinking inverse colors
+                let char_str = "█".repeat(chars_per_pixel as usize);
                 let style = if is_selected {
                     Style::default()
-                        .fg(Color::Black)
-                        .bg(colors.yellow())
-                        .add_modifier(Modifier::BOLD)
+                        .fg(colors.yellow())
+                        .bg(colors.red())
+                        .add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)
                 } else {
+                    // High contrast: yellow on magenta with blink
                     Style::default()
-                        .fg(Color::Black)
-                        .bg(pixel_color)
-                        .add_modifier(Modifier::BOLD)
+                        .fg(colors.yellow())
+                        .bg(colors.magenta())
+                        .add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)
                 };
                 Span::styled(char_str, style)
             } else {
@@ -703,9 +704,9 @@ mod ui_components {
     use qdos_plugin_api::ThemeColors;
     use ratatui::{
         layout::Rect,
-        style::Style,
+        style::{Modifier, Style},
         text::{Line, Span},
-        widgets::{Block, Borders, Paragraph},
+        widgets::{Clear, Paragraph},
         Frame,
     };
 
@@ -725,21 +726,57 @@ mod ui_components {
         }
 
         pub fn render_frame(&self, frame: &mut Frame) {
-            let block = Block::default()
-                .borders(Borders::ALL)
-                .title(self.title)
-                .border_style(Style::default().fg(self.colors.fg()))
-                .title_style(Style::default().fg(self.colors.yellow()));
+            // Clear the entire area first - this prevents UI bleed-through
+            frame.render_widget(Clear, self.area);
 
-            frame.render_widget(block, self.area);
+            // Render title row with background fill
+            let title_style = Style::default()
+                .fg(self.colors.fg())
+                .bg(self.colors.bg())
+                .add_modifier(Modifier::BOLD);
+            let pad = (self.area.width as usize).saturating_sub(self.title.len());
+            let title_line = format!("{}{}", self.title, " ".repeat(pad));
+            frame.render_widget(
+                Paragraph::new(Span::styled(title_line, title_style)),
+                Rect::new(self.area.x, self.area.y, self.area.width, 1),
+            );
+
+            // Render top separator
+            let sep_style = Style::default().fg(self.colors.fg()).bg(self.colors.bg());
+            let sep = "═".repeat(self.area.width as usize);
+            frame.render_widget(
+                Paragraph::new(Span::styled(&sep, sep_style)),
+                Rect::new(self.area.x, self.area.y + 1, self.area.width, 1),
+            );
+
+            // Render bottom separator
+            frame.render_widget(
+                Paragraph::new(Span::styled(&sep, sep_style)),
+                Rect::new(
+                    self.area.x,
+                    self.area.y + self.area.height.saturating_sub(2),
+                    self.area.width,
+                    1,
+                ),
+            );
+
+            // Fill content area with background color
+            let content = self.content_area();
+            for row in 0..content.height {
+                let fill = " ".repeat(content.width as usize);
+                frame.render_widget(
+                    Paragraph::new(Span::styled(fill, Style::default().bg(self.colors.bg()))),
+                    Rect::new(content.x, content.y + row, content.width, 1),
+                );
+            }
         }
 
         pub fn content_area(&self) -> Rect {
             Rect::new(
-                self.area.x + 1,
-                self.area.y + 1,
-                self.area.width.saturating_sub(2),
-                self.area.height.saturating_sub(3),
+                self.area.x,
+                self.area.y + 2,
+                self.area.width,
+                self.area.height.saturating_sub(4),
             )
         }
 
@@ -749,21 +786,47 @@ mod ui_components {
                 return;
             }
 
+            // Pad to full width with background
+            let content_width: usize = spans.iter().map(|s| s.width()).sum();
+            let mut all_spans = spans;
+            let pad = (content.width as usize).saturating_sub(content_width);
+            if pad > 0 {
+                all_spans.push(Span::styled(
+                    " ".repeat(pad),
+                    Style::default().bg(self.colors.bg()),
+                ));
+            }
+
             let row_area = Rect::new(content.x, content.y + row, content.width, 1);
-            let line = Line::from(spans);
-            frame.render_widget(Paragraph::new(line), row_area);
+            frame.render_widget(Paragraph::new(Line::from(all_spans)), row_area);
         }
 
         pub fn render_help(&self, frame: &mut Frame, items: Vec<(&str, &str)>) {
-            let mut spans = Vec::new();
+            let bg_style = Style::default().bg(self.colors.bg());
+            let mut spans = vec![Span::styled(" ", bg_style)];
 
             for (i, (key, action)) in items.iter().enumerate() {
                 if i > 0 {
-                    spans.push(Span::raw("  "));
+                    spans.push(Span::styled("  ", bg_style));
                 }
-                spans.push(Span::styled(*key, Style::default().fg(self.colors.green())));
-                spans.push(Span::raw(":"));
-                spans.push(Span::styled(*action, Style::default().fg(self.colors.fg())));
+                spans.push(Span::styled(
+                    *key,
+                    Style::default()
+                        .fg(self.colors.green())
+                        .bg(self.colors.bg()),
+                ));
+                spans.push(Span::styled(":", bg_style));
+                spans.push(Span::styled(
+                    *action,
+                    Style::default().fg(self.colors.fg()).bg(self.colors.bg()),
+                ));
+            }
+
+            // Pad to full width
+            let content_width: usize = spans.iter().map(|s| s.width()).sum();
+            let pad = (self.area.width as usize).saturating_sub(content_width);
+            if pad > 0 {
+                spans.push(Span::styled(" ".repeat(pad), bg_style));
             }
 
             let help_area = Rect::new(

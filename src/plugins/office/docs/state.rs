@@ -365,6 +365,9 @@ pub struct DocsState {
     // Status message
     pub status_message: Option<(String, u32)>,
 
+    // Goal column for vertical navigation (remembers column when passing through short lines)
+    pub goal_col: Option<usize>,
+
     // Ruler and Margins (Phase 2)
     pub left_margin: usize,
     pub right_margin: usize,
@@ -424,6 +427,7 @@ impl DocsState {
             save_as_input: String::new(),
             save_as_cursor: 0,
             status_message: None,
+            goal_col: None,
             // Ruler and Margins (Phase 2)
             left_margin: 0,
             right_margin: 80,
@@ -491,19 +495,30 @@ impl DocsState {
 
     pub fn move_up(&mut self) {
         if self.cursor_line > 0 {
+            // Remember the goal column (use current col if none set)
+            let goal = self.goal_col.unwrap_or(self.cursor_col);
+            self.goal_col = Some(goal);
+
             self.cursor_line -= 1;
-            self.clamp_cursor_col();
+            // Try to reach goal column, clamp to line length
+            self.cursor_col = goal.min(self.current_line().len());
         }
     }
 
     pub fn move_down(&mut self) {
         if self.cursor_line + 1 < self.lines.len() {
+            // Remember the goal column (use current col if none set)
+            let goal = self.goal_col.unwrap_or(self.cursor_col);
+            self.goal_col = Some(goal);
+
             self.cursor_line += 1;
-            self.clamp_cursor_col();
+            // Try to reach goal column, clamp to line length
+            self.cursor_col = goal.min(self.current_line().len());
         }
     }
 
     pub fn move_left(&mut self) {
+        self.goal_col = None; // Clear goal column on horizontal movement
         if self.cursor_col > 0 {
             self.cursor_col -= 1;
         } else if self.cursor_line > 0 {
@@ -513,6 +528,7 @@ impl DocsState {
     }
 
     pub fn move_right(&mut self) {
+        self.goal_col = None; // Clear goal column on horizontal movement
         let line_len = self.current_line().len();
         if self.cursor_col < line_len {
             self.cursor_col += 1;
@@ -523,20 +539,24 @@ impl DocsState {
     }
 
     pub fn move_home(&mut self) {
+        self.goal_col = None; // Clear goal column
         self.cursor_col = 0;
     }
 
     pub fn move_end(&mut self) {
+        self.goal_col = None; // Clear goal column
         self.cursor_col = self.current_line().len();
     }
 
     pub fn move_top(&mut self) {
+        self.goal_col = None; // Clear goal column
         self.cursor_line = 0;
         self.cursor_col = 0;
         self.scroll_offset = 0;
     }
 
     pub fn move_bottom(&mut self) {
+        self.goal_col = None; // Clear goal column
         self.cursor_line = self.lines.len().saturating_sub(1);
         self.cursor_col = 0;
     }
@@ -603,6 +623,7 @@ impl DocsState {
 
     pub fn insert_char(&mut self, c: char) {
         self.save_undo();
+        self.goal_col = None; // Clear goal column on editing
         let line_len = self.lines[self.cursor_line].len();
         if self.cursor_col > line_len {
             self.cursor_col = line_len;
