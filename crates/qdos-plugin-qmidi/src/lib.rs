@@ -18,11 +18,14 @@ use ratatui::{layout::Rect, Frame};
 use state::{FileAction, QMidiState, QMidiView};
 use std::any::Any;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 /// Q-MIDI Sequencer plugin
 pub struct QMidiPlugin {
     pub state: QMidiState,
-    playback: playback::PlaybackEngine,
+    /// Playback engine wrapped in Mutex for Sync
+    /// (midir's ALSA backend contains non-Sync types)
+    playback: Mutex<playback::PlaybackEngine>,
 }
 
 impl Default for QMidiPlugin {
@@ -43,7 +46,7 @@ impl QMidiPlugin {
 
         Self {
             state,
-            playback: playback::PlaybackEngine::new(),
+            playback: Mutex::new(playback::PlaybackEngine::new()),
         }
     }
 
@@ -68,7 +71,7 @@ impl QMidiPlugin {
 
         // Try to connect to selected output
         if let Some(port) = &self.state.output_port.clone() {
-            let _ = self.playback.connect(port);
+            let _ = self.playback.lock().unwrap().connect(port);
         }
 
         // Set working directory context
@@ -92,16 +95,16 @@ impl QMidiPlugin {
             (KeyModifiers::NONE, KeyCode::Char(' ')) => {
                 self.state.toggle_play();
                 if self.state.playing {
-                    self.playback.start();
+                    self.playback.lock().unwrap().start();
                 } else {
-                    self.playback.stop();
+                    self.playback.lock().unwrap().stop();
                 }
                 KeyHandleResult::Handled
             }
             (KeyModifiers::NONE, KeyCode::Char('r') | KeyCode::Char('R')) => {
                 self.state.toggle_record();
                 if self.state.playing {
-                    self.playback.start();
+                    self.playback.lock().unwrap().start();
                 }
                 KeyHandleResult::Handled
             }
@@ -179,8 +182,11 @@ impl QMidiPlugin {
                 self.state.insert_note();
                 // Preview the note
                 if let Some(track) = self.state.current_track() {
-                    self.playback
-                        .preview_note(track.channel, self.state.cursor_pitch, 100);
+                    self.playback.lock().unwrap().preview_note(
+                        track.channel,
+                        self.state.cursor_pitch,
+                        100,
+                    );
                 }
                 KeyHandleResult::Handled
             }
@@ -231,7 +237,7 @@ impl QMidiPlugin {
 
             // Exit
             (KeyModifiers::NONE, KeyCode::Esc) => {
-                self.playback.stop();
+                self.playback.lock().unwrap().stop();
                 if let Err(e) = midi_io::save_config(&self.state) {
                     self.state.error = Some(e);
                 }
@@ -249,9 +255,9 @@ impl QMidiPlugin {
             (KeyModifiers::NONE, KeyCode::Char(' ')) => {
                 self.state.toggle_play();
                 if self.state.playing {
-                    self.playback.start();
+                    self.playback.lock().unwrap().start();
                 } else {
-                    self.playback.stop();
+                    self.playback.lock().unwrap().stop();
                     self.state.drum_playing_step = 0;
                 }
                 KeyHandleResult::Handled
@@ -280,7 +286,10 @@ impl QMidiPlugin {
                 self.state.drum_toggle_hit();
                 // Preview the drum sound
                 let drum = &state::DRUM_SOUNDS[self.state.drum_cursor_sound];
-                self.playback.preview_note(9, drum.note, 100); // Channel 10 (9 in 0-indexed)
+                self.playback
+                    .lock()
+                    .unwrap()
+                    .preview_note(9, drum.note, 100); // Channel 10 (9 in 0-indexed)
                 KeyHandleResult::Handled
             }
 
@@ -323,7 +332,7 @@ impl QMidiPlugin {
 
             // Exit
             (KeyModifiers::NONE, KeyCode::Esc) => {
-                self.playback.stop();
+                self.playback.lock().unwrap().stop();
                 self.state.drum_playing_step = 0;
                 if let Err(e) = midi_io::save_config(&self.state) {
                     self.state.error = Some(e);
@@ -424,7 +433,7 @@ impl QMidiPlugin {
                 self.state.select_device();
                 // Try to connect
                 if let Some(port) = &self.state.output_port.clone() {
-                    match self.playback.connect(port) {
+                    match self.playback.lock().unwrap().connect(port) {
                         Ok(()) => {
                             self.state.status_message = Some(format!("Connected: {}", port));
                         }
@@ -612,7 +621,7 @@ impl Plugin for QMidiPlugin {
 
     fn tick(&mut self) {
         // Advance playback
-        self.playback.tick(&mut self.state);
+        self.playback.lock().unwrap().tick(&mut self.state);
     }
 
     fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
@@ -645,7 +654,7 @@ impl Plugin for QMidiPlugin {
 
 impl Drop for QMidiPlugin {
     fn drop(&mut self) {
-        self.playback.stop();
+        self.playback.lock().unwrap().stop();
     }
 }
 
