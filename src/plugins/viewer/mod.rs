@@ -66,6 +66,40 @@ fn get_or_create_image_protocol(content: &[u8]) -> Option<StatefulProtocol> {
     None
 }
 
+/// Rasterize SVG content to PNG bytes
+fn rasterize_svg(svg_data: &[u8]) -> Option<Vec<u8>> {
+    // Parse SVG
+    let tree = resvg::usvg::Tree::from_data(svg_data, &resvg::usvg::Options::default()).ok()?;
+
+    // Get size and create pixmap
+    let size = tree.size();
+    let width = size.width() as u32;
+    let height = size.height() as u32;
+
+    // Limit size for performance (max 2048x2048)
+    let max_dim = 2048u32;
+    let (render_width, render_height) = if width > max_dim || height > max_dim {
+        let scale = (max_dim as f32) / (width.max(height) as f32);
+        (
+            (width as f32 * scale) as u32,
+            (height as f32 * scale) as u32,
+        )
+    } else {
+        (width, height)
+    };
+
+    let mut pixmap = tiny_skia::Pixmap::new(render_width, render_height)?;
+
+    // Render SVG
+    let scale_x = render_width as f32 / width as f32;
+    let scale_y = render_height as f32 / height as f32;
+    let transform = tiny_skia::Transform::from_scale(scale_x, scale_y);
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+
+    // Encode as PNG
+    pixmap.encode_png().ok()
+}
+
 /// Convert syntect color to ratatui color
 fn syntect_to_ratatui_color(color: syntect::highlighting::Color) -> Color {
     Color::Rgb(color.r, color.g, color.b)
@@ -78,6 +112,7 @@ pub enum ViewMode {
     Normal,
     Hex,
     Image,
+    Vector, // SVG files
     Markdown,
     Blame,
     Diff,
@@ -192,7 +227,7 @@ impl ViewerState {
                 let total_lines = self.content.len().div_ceil(bytes_per_line);
                 total_lines.saturating_sub(visible_height)
             }
-            ViewMode::Image => 0,
+            ViewMode::Image | ViewMode::Vector => 0,
             ViewMode::Blame => self.blame_lines.len().saturating_sub(visible_height),
             ViewMode::Diff => self.diff_lines.len().saturating_sub(visible_height),
         }
@@ -203,6 +238,8 @@ impl ViewerState {
         let lower = file_name.to_lowercase();
         if lower.ends_with(".md") || lower.ends_with(".markdown") {
             ViewMode::Markdown
+        } else if lower.ends_with(".svg") {
+            ViewMode::Vector
         } else if lower.ends_with(".png")
             || lower.ends_with(".jpg")
             || lower.ends_with(".jpeg")
@@ -469,6 +506,7 @@ impl Plugin for ViewerPlugin {
             ViewMode::Normal => "NORMAL",
             ViewMode::Hex => "HEX",
             ViewMode::Image => "IMAGE",
+            ViewMode::Vector => "VECTOR",
             ViewMode::Markdown => "MARKDOWN",
             ViewMode::Blame => "BLAME",
             ViewMode::Diff => "DIFF",
@@ -509,6 +547,7 @@ impl Plugin for ViewerPlugin {
             }
             ViewMode::Hex => self.draw_hex_view(frame, content_area, state, content_height, colors),
             ViewMode::Image => self.draw_image_view(frame, content_area, state, colors),
+            ViewMode::Vector => self.draw_vector_view(frame, content_area, state, colors),
             ViewMode::Markdown => {
                 self.draw_markdown_view(frame, content_area, state, content_height, colors)
             }
@@ -803,6 +842,45 @@ impl ViewerPlugin {
             ];
             frame.render_widget(Paragraph::new(error_msg), area);
         }
+    }
+
+    fn draw_vector_view(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &ViewerState,
+        colors: &crate::app::ThemeColors,
+    ) {
+        // Try to render SVG to image
+        if let Some(png_data) = rasterize_svg(&state.content) {
+            if let Some(mut protocol) = get_or_create_image_protocol(&png_data) {
+                let image_widget = StatefulImage::new(None);
+                frame.render_stateful_widget(image_widget, area, &mut protocol);
+                return;
+            }
+        }
+
+        // Fallback error message
+        let error_msg = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                " Cannot display SVG",
+                Style::default()
+                    .fg(colors.red())
+                    .add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                format!(" File: {}", state.file_path.display()),
+                Style::default().fg(colors.green()),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                " Press N for normal view or H for hex view",
+                Style::default().fg(colors.blue()),
+            )),
+        ];
+        frame.render_widget(Paragraph::new(error_msg), area);
     }
 
     fn draw_markdown_view(
