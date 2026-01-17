@@ -35,6 +35,7 @@ members = [
     "crates/qdos-plugin-qdesign",
     "crates/qdos-plugin-qmail",
     "crates/qdos-plugin-qcurl",
+    "crates/qdos-plugin-qdlp",
 ]
 resolver = "2"
 
@@ -180,6 +181,7 @@ qdos-plugin-qcode = { path = "crates/qdos-plugin-qcode" }
 qdos-plugin-qdesign = { path = "crates/qdos-plugin-qdesign" }
 qdos-plugin-qmail = { path = "crates/qdos-plugin-qmail" }
 qdos-plugin-qcurl = { path = "crates/qdos-plugin-qcurl" }
+qdos-plugin-qdlp = { path = "crates/qdos-plugin-qdlp" }
 glob = "0.3.3"
 ignore = "0.4.25"
 
