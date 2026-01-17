@@ -31,6 +31,7 @@ mod rogue;
 mod roulette;
 mod slots;
 mod snake;
+pub mod splash;
 mod stats;
 mod storyweaver;
 mod tetris;
@@ -113,6 +114,37 @@ pub fn draw_games_modal(
 ) {
     let title = match state.view {
         GamesView::Menu => " Games ",
+        GamesView::Splash => match state.selected_game_type() {
+            GameType::Tetris => " Tetris ",
+            GameType::Snake => " Snake ",
+            GameType::Breakout => " Breakout ",
+            GameType::Rogue => " Rogue ",
+            GameType::Trek => " Star Trek ",
+            GameType::Clicker => " Clicker ",
+            GameType::Brainiac => " Brainiac ",
+            GameType::Storyweaver => " Storyweaver ",
+            GameType::DopeWars => " Dope Wars ",
+            GameType::Minesweeper => " Minesweeper ",
+            GameType::Artillery => " Artillery ",
+            GameType::Mindgames => " Mindgames ",
+            GameType::Gumshoe => " Gumshoe ",
+            GameType::Dungeon => " Dungeon ",
+            GameType::Caverns => " Caverns ",
+            GameType::Biolab => " Biolab ",
+            GameType::Neondrive => " Neon Drive ",
+            GameType::Micropolis => " Micropolis ",
+            GameType::JungleRun => " Jungle Run ",
+            GameType::Adventure => " Adventure ",
+            GameType::Blackjack => " Blackjack ",
+            GameType::Roulette => " Roulette ",
+            GameType::Cosmos => " Cosmos ",
+            GameType::Blockworld => " Blockworld ",
+            GameType::Westworld => " Westworld ",
+            GameType::Slots => " Slots ",
+            GameType::Poker => " Video Poker ",
+            GameType::Baccarat => " Baccarat ",
+            GameType::Craps => " Craps ",
+        },
         GamesView::Playing | GamesView::Paused => match state.current_game {
             Some(GameType::Tetris) => " Tetris ",
             Some(GameType::Snake) => " Snake ",
@@ -157,6 +189,7 @@ pub fn draw_games_modal(
 
     match state.view {
         GamesView::Menu => draw_menu(frame, &view, state, colors),
+        GamesView::Splash => splash::draw_splash(frame, area, state.selected_game_type(), colors),
         GamesView::Playing => draw_game(frame, &view, state, colors),
         GamesView::Paused => draw_paused(frame, &view, state, colors),
         GamesView::GameOver => draw_game_over(frame, &view, state, colors),

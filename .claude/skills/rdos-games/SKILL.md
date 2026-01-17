@@ -23,8 +23,58 @@ src/plugins/games/
 ├── [game].rs           # Game state + impl GameEngine
 └── modal/
     ├── mod.rs          # Modal dispatcher
+    ├── splash.rs       # Sixel splash screen rendering
     └── [game].rs       # Game renderer
+
+assets/splash/              # Splash screen images (compile-time embedded)
+└── [game].png          # PNG splash for each game
 ```
+
+## Splash Screens
+
+Games display sixel splash screens before gameplay. The splash system:
+- Uses `ratatui-image` for protocol auto-detection (Kitty/Sixel/iTerm2)
+- Falls back to ASCII art if terminal doesn't support graphics
+- Embeds images at compile time via `include_bytes!()`
+
+**Flow**: Menu → Splash (any key to start, Q/Esc to exit) → Playing
+
+**Adding a splash screen for a new game:**
+1. Create `assets/splash/[game].png` (recommended: 640x480 or similar)
+2. Add embedded image constant in `modal/splash.rs`:
+   ```rust
+   const SPLASH_MYGAME: &[u8] = include_bytes!("../../../../assets/splash/mygame.png");
+   ```
+3. Add match arm in `get_splash_image()`:
+   ```rust
+   GameType::MyGame => Some(SPLASH_MYGAME),
+   ```
+
+## Background Music
+
+The games platform uses procedural chiptune music via `ChiptuneMusic`:
+
+**5 Menu Melodies (randomly selected):**
+- `GameMenu` - Classic 8-bit arpeggio
+- `GameMenu2` - Mellow ambient
+- `GameMenu3` - Energetic rhythmic
+- `GameMenu4` - Mysterious minor key
+- `GameMenu5` - Triumphant fanfare
+
+**Usage in GamesPlugin:**
+```rust
+// Random melody for variety
+self.music.play(ChiptuneMelody::random_menu());
+
+// Stop music
+self.music.stop();
+```
+
+**Music triggers automatically for:**
+- Menu opens
+- Splash screen displays
+- Game starts
+- Return to menu
 
 ## GameEngine Trait
 
@@ -127,6 +177,10 @@ pub enum GameEvent {
 5. **Register in modal/mod.rs** dispatch
 
 6. **Add leaderboard** entry in `state.rs` Leaderboards
+
+7. **Create splash screen** (optional but recommended):
+   - Add `assets/splash/mygame.png`
+   - Register in `modal/splash.rs` (see Splash Screens section above)
 
 ## UI Patterns
 
@@ -280,6 +334,9 @@ Before submitting game changes:
 - [ ] `cargo fmt -- --check`
 - [ ] `cargo clippy -- -D warnings`
 - [ ] `cargo build`
+- [ ] Manual test: splash screen displays (if game has one)
+- [ ] Manual test: any key starts from splash, Q/Esc exits
+- [ ] Manual test: music plays on menu/splash/game
 - [ ] Manual test: start game, play, pause, quit
 - [ ] Manual test: game over triggers correctly
 - [ ] Manual test: score updates and displays

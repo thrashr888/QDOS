@@ -27,6 +27,49 @@ interfaces, player statistics, and achievements across all games.
 
 ---
 
+## Splash Screens & Music
+
+### Splash Screens
+
+Each game displays a sixel splash screen before gameplay begins. Splash screens are:
+- Embedded at compile time via `include_bytes!()`
+- Located in `assets/splash/[game].png`
+- Displayed using the ratatui-image crate with protocol auto-detection (Kitty/Sixel/iTerm2)
+- Falls back to ASCII art if terminal doesn't support graphics
+
+**Splash Screen Flow:**
+1. User selects game from menu
+2. `GamesView::Splash` is displayed with sixel image
+3. Random menu melody plays as splash music
+4. Any key starts the game (transitions to `GamesView::Playing`)
+5. Q/Esc exits back to menu
+
+**Files:**
+- `src/plugins/games/modal/splash.rs` - Splash screen rendering
+- `assets/splash/*.png` - Splash screen images (19 games)
+
+### Background Music
+
+The games platform uses procedural chiptune music via the `ChiptuneMusic` system:
+
+**Menu Melodies (5 variants, randomly selected):**
+- `GameMenu` - Classic upbeat 8-bit arpeggio
+- `GameMenu2` - Mellow, slower ambient feel
+- `GameMenu3` - Energetic, faster rhythmic pattern
+- `GameMenu4` - Mysterious minor key theme
+- `GameMenu5` - Triumphant fanfare style
+
+**Music Triggers:**
+- Menu opens → `ChiptuneMelody::random_menu()`
+- Splash screen → `ChiptuneMelody::random_menu()`
+- Game starts → `ChiptuneMelody::random_menu()`
+- Return to menu → `ChiptuneMelody::random_menu()`
+
+**Files:**
+- `src/sound.rs` - `ChiptuneMusic` and `ChiptuneMelody` implementation
+
+---
+
 ## 1. Game Engine Trait
 
 ### Core Trait Definition
@@ -735,6 +778,7 @@ src/plugins/games/
 └── modal/
     ├── mod.rs              # Modal dispatcher
     ├── menu.rs             # Game selection menu
+    ├── splash.rs           # Sixel splash screen rendering
     ├── stats.rs            # Stats UI screen
     ├── achievements.rs     # Achievements UI screen
     ├── tetris.rs           # Tetris renderer
@@ -745,6 +789,27 @@ src/plugins/games/
     ├── clicker.rs          # Clicker renderer
     ├── brainiac.rs         # Brainiac renderer
     └── storyweaver.rs      # Storyweaver renderer
+
+assets/splash/               # Splash screen images (embedded at compile time)
+├── adventure.png
+├── biolab.png
+├── blackjack.png
+├── blockworld.png
+├── breakout.png
+├── caverns.png
+├── cosmos.png
+├── dopewars.png
+├── dungeon.png
+├── gumshoe.png
+├── micropolis.png
+├── minesweeper.png
+├── poker.png
+├── rogue.png
+├── slots.png
+├── snake.png
+├── tetris.png
+├── trek.png
+└── westworld.png
 ```
 
 ---

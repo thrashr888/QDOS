@@ -363,8 +363,12 @@ fn play_sound(stream_handle: &OutputStreamHandle, sound_type: SoundType, volume:
 // PROCEDURAL CHIPTUNE BACKGROUND MUSIC
 // =============================================================================
 
-/// Musical note frequencies (Hz) in the 4th octave
+/// Musical note frequencies (Hz)
 mod notes {
+    // Octave 3
+    pub const A3: f32 = 220.00;
+    pub const B3: f32 = 246.94;
+    // Octave 4
     pub const C4: f32 = 261.63;
     pub const D4: f32 = 293.66;
     pub const E4: f32 = 329.63;
@@ -372,6 +376,7 @@ mod notes {
     pub const G4: f32 = 392.00;
     pub const A4: f32 = 440.00;
     pub const B4: f32 = 493.88;
+    // Octave 5
     pub const C5: f32 = 523.25;
     pub const D5: f32 = 587.33;
     pub const E5: f32 = 659.25;
@@ -382,8 +387,30 @@ mod notes {
 /// Chiptune melody patterns
 #[derive(Debug, Clone, Copy)]
 pub enum ChiptuneMelody {
-    /// Upbeat 8-bit game menu theme
+    /// Upbeat 8-bit game menu theme (classic)
     GameMenu,
+    /// Alternative menu theme - more mellow
+    GameMenu2,
+    /// Alternative menu theme - energetic
+    GameMenu3,
+    /// Alternative menu theme - mysterious
+    GameMenu4,
+    /// Alternative menu theme - triumphant
+    GameMenu5,
+}
+
+impl ChiptuneMelody {
+    /// Get a random menu melody
+    pub fn random_menu() -> Self {
+        use rand::Rng;
+        match rand::thread_rng().gen_range(0..5) {
+            0 => ChiptuneMelody::GameMenu,
+            1 => ChiptuneMelody::GameMenu2,
+            2 => ChiptuneMelody::GameMenu3,
+            3 => ChiptuneMelody::GameMenu4,
+            _ => ChiptuneMelody::GameMenu5,
+        }
+    }
 }
 
 /// Commands sent to the chiptune thread
@@ -620,6 +647,130 @@ fn play_chiptune_melody(
                     sink.append(silence);
                 }
             }
+        }
+        ChiptuneMelody::GameMenu2 => {
+            // Mellow menu theme - slower, more ambient
+            let pattern: &[(f32, u64)] = &[
+                (C4, note_ms * 2),
+                (E4, note_ms * 2),
+                (G4, note_ms * 2),
+                (REST, note_ms),
+                (A4, note_ms * 2),
+                (G4, note_ms * 2),
+                (E4, note_ms * 2),
+                (REST, note_ms),
+                (F4, note_ms * 2),
+                (A4, note_ms * 2),
+                (G4, note_ms * 2),
+                (E4, note_ms * 2),
+                (D4, note_ms * 2),
+                (C4, note_ms * 2),
+                (REST, note_ms * 2),
+            ];
+            play_pattern(sink, pattern, playing);
+        }
+        ChiptuneMelody::GameMenu3 => {
+            // Energetic menu theme - faster, more rhythmic
+            let pattern: &[(f32, u64)] = &[
+                (C4, half_note),
+                (C4, half_note),
+                (G4, half_note),
+                (G4, half_note),
+                (A4, half_note),
+                (A4, half_note),
+                (G4, note_ms),
+                (REST, half_note),
+                (F4, half_note),
+                (F4, half_note),
+                (E4, half_note),
+                (E4, half_note),
+                (D4, half_note),
+                (D4, half_note),
+                (C4, note_ms),
+                (REST, half_note),
+                (E4, half_note),
+                (G4, half_note),
+                (C5, half_note),
+                (G4, half_note),
+                (E4, half_note),
+                (C4, note_ms),
+                (REST, note_ms),
+            ];
+            play_pattern(sink, pattern, playing);
+        }
+        ChiptuneMelody::GameMenu4 => {
+            // Mysterious menu theme - minor key
+            let pattern: &[(f32, u64)] = &[
+                (A3, note_ms),
+                (C4, note_ms),
+                (E4, note_ms),
+                (A4, note_ms * 2),
+                (REST, half_note),
+                (G4, note_ms),
+                (E4, note_ms),
+                (C4, note_ms),
+                (D4, note_ms * 2),
+                (REST, half_note),
+                (E4, note_ms),
+                (F4, note_ms),
+                (E4, note_ms),
+                (D4, note_ms),
+                (C4, note_ms),
+                (B3, note_ms),
+                (A3, note_ms * 2),
+                (REST, note_ms),
+            ];
+            play_pattern(sink, pattern, playing);
+        }
+        ChiptuneMelody::GameMenu5 => {
+            // Triumphant menu theme - fanfare style
+            let pattern: &[(f32, u64)] = &[
+                (C4, note_ms),
+                (E4, note_ms),
+                (G4, note_ms),
+                (C5, note_ms * 2),
+                (REST, half_note),
+                (B4, half_note),
+                (C5, note_ms),
+                (G4, note_ms),
+                (E4, note_ms),
+                (C4, note_ms * 2),
+                (REST, half_note),
+                (D4, note_ms),
+                (E4, note_ms),
+                (F4, note_ms),
+                (G4, note_ms),
+                (A4, note_ms),
+                (B4, note_ms),
+                (C5, note_ms * 2),
+                (G5, note_ms),
+                (E5, note_ms),
+                (C5, note_ms * 2),
+                (REST, note_ms),
+            ];
+            play_pattern(sink, pattern, playing);
+        }
+    }
+}
+
+/// Helper to play a pattern
+fn play_pattern(sink: &Sink, pattern: &[(f32, u64)], playing: &Arc<Mutex<bool>>) {
+    for &(freq, duration) in pattern {
+        if !*playing.lock().unwrap_or_else(|e| e.into_inner()) {
+            return;
+        }
+        if freq > 0.0 {
+            let fundamental = SineWave::new(freq)
+                .take_duration(Duration::from_millis(duration))
+                .amplify(0.5);
+            let harmonic = SineWave::new(freq * 2.0)
+                .take_duration(Duration::from_millis(duration))
+                .amplify(0.15);
+            sink.append(fundamental);
+            sink.append(harmonic);
+        } else {
+            let silence = SineWave::new(0.0).take_duration(Duration::from_millis(duration));
+            sink.append(silence);
         }
     }
 }

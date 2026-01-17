@@ -384,6 +384,7 @@ impl GameType {
 pub enum GamesView {
     #[default]
     Menu,
+    Splash, // Splash screen before game starts
     Playing,
     Paused,
     GameOver,

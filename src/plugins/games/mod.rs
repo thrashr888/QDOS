@@ -131,19 +131,47 @@ impl GamesPlugin {
             .map(|c| c.general.play_sounds)
             .unwrap_or(true);
         self.state.view = GamesView::Menu;
-        // Start background music if sounds are enabled
+        // Start background music if sounds are enabled (random melody for variety)
         if self.sounds_enabled {
-            self.music.play(ChiptuneMelody::GameMenu);
+            self.music.play(ChiptuneMelody::random_menu());
         }
     }
 
-    /// Start a game with stats tracking
+    /// Start a game with stats tracking - shows splash first
     fn start_game_with_stats(&mut self) {
         // Stop menu music when starting a game
+        self.music.stop();
+        // Show splash screen first
+        self.state.view = GamesView::Splash;
+        // Play splash music for this game
+        let game_type = self.state.selected_game_type();
+        if self.sounds_enabled {
+            self.play_splash_music(game_type);
+        }
+    }
+
+    /// Actually start the game (after splash)
+    fn start_game_after_splash(&mut self) {
         self.music.stop();
         let game_type = self.state.selected_game_type();
         self.stats.on_game_start(game_type);
         self.state.start_game();
+        // Play game-specific music
+        if self.sounds_enabled {
+            self.play_game_music(game_type);
+        }
+    }
+
+    /// Play splash screen music for a game
+    fn play_splash_music(&mut self, _game_type: GameType) {
+        // Random melody for variety
+        self.music.play(ChiptuneMelody::random_menu());
+    }
+
+    /// Play game-specific music
+    fn play_game_music(&mut self, _game_type: GameType) {
+        // Random melody for variety
+        self.music.play(ChiptuneMelody::random_menu());
     }
 
     /// End a game with stats tracking
@@ -176,7 +204,7 @@ impl GamesPlugin {
         self.state.return_to_menu();
         self.save_to_config();
         if self.sounds_enabled {
-            self.music.play(ChiptuneMelody::GameMenu);
+            self.music.play(ChiptuneMelody::random_menu());
         }
     }
 
@@ -357,6 +385,19 @@ impl Plugin for GamesPlugin {
                     KeyHandleResult::Handled
                 }
                 _ => KeyHandleResult::Handled,
+            },
+            GamesView::Splash => match key.code {
+                // Q or Escape exits back to menu
+                KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
+                    self.music.stop();
+                    self.back_to_menu();
+                    KeyHandleResult::Handled
+                }
+                // Any other key starts the game
+                _ => {
+                    self.start_game_after_splash();
+                    KeyHandleResult::Handled
+                }
             },
             GamesView::Stats => match key.code {
                 KeyCode::Esc => {
