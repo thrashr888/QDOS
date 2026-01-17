@@ -1,0 +1,23 @@
+[package]
+name = "qdos-plugin-qpaint"
+version = "0.1.0"
+edition = "2021"
+description = "Q-PAINT: Professional sixel-based pixel art editor for R-DOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+# Plugin API
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Image handling and sixel rendering
+ratatui-image = "3.0"
+image = "0.25"
+
+# Config directory
+dirs = "6.0"
