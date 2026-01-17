@@ -37,9 +37,9 @@ use crate::plugins::{
     DropboxPlugin, EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
     HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin,
     OfficePlugin, PalettePlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
-    ProcPlugin, QEditPlugin, QLinkPlugin, QMindPlugin, QTaskPlugin, QdconfigPlugin, RedisPlugin,
-    SearchSpecPlugin, SftpPlugin, SheetPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
-    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
+    ProcPlugin, QEditPlugin, QLinkPlugin, QMidiPlugin, QMindPlugin, QPaintPlugin, QTaskPlugin,
+    QdconfigPlugin, RedisPlugin, SearchSpecPlugin, SftpPlugin, SheetPlugin, ShellPlugin,
+    SpacePlugin, StatusPlugin, TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
 };
 use crate::sound::SoundEffects;
 use crate::ui;
@@ -183,7 +183,9 @@ impl App {
         plugin_manager.register(Box::new(QLinkPlugin::with_routing_fs(Arc::clone(
             &routing_fs,
         ))));
+        plugin_manager.register(Box::new(QMidiPlugin::new()));
         plugin_manager.register(Box::new(QMindPlugin::new()));
+        plugin_manager.register(Box::new(QPaintPlugin::new()));
         plugin_manager.register(Box::new(QTaskPlugin::new()));
         plugin_manager.register(Box::new(RedisPlugin::new()));
         plugin_manager.register(Box::new(SearchSpecPlugin::new()));

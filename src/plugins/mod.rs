@@ -70,6 +70,8 @@ pub use qdos_plugin_midi::MidiPlugin;
 pub use qdos_plugin_model3d::Model3dPlugin;
 pub use qdos_plugin_print::PrintPlugin;
 pub use qdos_plugin_proc::ProcPlugin;
+pub use qdos_plugin_qmidi::QMidiPlugin;
+pub use qdos_plugin_qpaint::QPaintPlugin;
 pub use qdos_plugin_redis::RedisPlugin;
 pub use qdos_plugin_searchspec::SearchSpecPlugin;
 pub use qdos_plugin_sftp::SftpPlugin;

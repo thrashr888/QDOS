@@ -28,6 +28,8 @@ members = [
     "crates/qdos-plugin-docker",
     "crates/qdos-plugin-database",
     "crates/qdos-plugin-basic",
+    "crates/qdos-plugin-qmidi",
+    "crates/qdos-plugin-qpaint",
 ]
 resolver = "2"
 
@@ -162,6 +164,8 @@ qdos-plugin-deps = { path = "crates/qdos-plugin-deps" }
 qdos-plugin-docker = { path = "crates/qdos-plugin-docker" }
 qdos-plugin-database = { path = "crates/qdos-plugin-database" }
 qdos-plugin-basic = { path = "crates/qdos-plugin-basic" }
+qdos-plugin-qmidi = { path = "crates/qdos-plugin-qmidi" }
+qdos-plugin-qpaint = { path = "crates/qdos-plugin-qpaint" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

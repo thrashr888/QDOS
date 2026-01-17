@@ -7,6 +7,8 @@
 //! - Q-DECK: Presentation editor with ANSI art and sixel images
 //! - Q-WEB: Text-based web browser with reader mode
 //! - Q-DOCS: Word processor with Markdown support
+//! - Q-PAINT: Pixel art editor with sixel graphics
+//! - Q-MIDI: MIDI sequencer and music creation tool
 
 pub mod deck;
 pub mod docs;
@@ -18,6 +20,8 @@ use crate::app::ThemeColors;
 use crate::plugins::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
 use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_qmidi::QMidiPlugin;
+use qdos_plugin_qpaint::QPaintPlugin;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
@@ -49,6 +53,8 @@ pub enum OfficeApp {
     Deck,
     Web,
     Docs,
+    Paint,
+    Midi,
 }
 
 // =============================================================================
@@ -87,6 +93,18 @@ const OFFICE_APPS: &[OfficeAppInfo] = &[
         description: "Word processor with Markdown support",
         key: '4',
     },
+    OfficeAppInfo {
+        id: OfficeApp::Paint,
+        name: "Q-PAINT",
+        description: "Pixel art editor with sixel graphics",
+        key: '5',
+    },
+    OfficeAppInfo {
+        id: OfficeApp::Midi,
+        name: "Q-MIDI",
+        description: "MIDI sequencer and music creation tool",
+        key: '6',
+    },
 ];
 
 // =============================================================================
@@ -104,6 +122,8 @@ pub struct OfficePlugin {
     deck: DeckPlugin,
     web: WebPlugin,
     docs: DocsPlugin,
+    paint: QPaintPlugin,
+    midi: QMidiPlugin,
 }
 
 impl Default for OfficePlugin {
@@ -121,6 +141,8 @@ impl OfficePlugin {
             deck: DeckPlugin::new(),
             web: WebPlugin::new(),
             docs: DocsPlugin::new(),
+            paint: QPaintPlugin::new(),
+            midi: QMidiPlugin::new(),
         }
     }
 
@@ -143,6 +165,8 @@ impl OfficePlugin {
     }
 
     fn launch_app(&mut self, app: OfficeApp) {
+        // Use home directory as default cwd for external plugins
+        let cwd = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
         match app {
             OfficeApp::Sheet => {
                 self.sheet.launch();
@@ -159,6 +183,14 @@ impl OfficePlugin {
             OfficeApp::Docs => {
                 self.docs.launch();
                 self.view = OfficeView::App(OfficeApp::Docs);
+            }
+            OfficeApp::Paint => {
+                let _ = self.paint.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Paint);
+            }
+            OfficeApp::Midi => {
+                let _ = self.midi.launch(&cwd, None);
+                self.view = OfficeView::App(OfficeApp::Midi);
             }
         }
     }
@@ -301,6 +333,14 @@ impl Plugin for OfficePlugin {
                     self.launch_app(OfficeApp::Docs);
                     KeyHandleResult::Handled
                 }
+                KeyCode::Char('5') => {
+                    self.launch_app(OfficeApp::Paint);
+                    KeyHandleResult::Handled
+                }
+                KeyCode::Char('6') => {
+                    self.launch_app(OfficeApp::Midi);
+                    KeyHandleResult::Handled
+                }
                 _ => KeyHandleResult::Handled,
             },
             OfficeView::App(OfficeApp::Sheet) => {
@@ -355,6 +395,32 @@ impl Plugin for OfficePlugin {
                 }
                 result
             }
+            OfficeView::App(OfficeApp::Paint) => {
+                let result = self.paint.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
+            OfficeView::App(OfficeApp::Midi) => {
+                let result = self.midi.handle_modal_key(key, cwd);
+                if matches!(
+                    result,
+                    KeyHandleResult::CloseModal
+                        | KeyHandleResult::CloseWithSuccess(_)
+                        | KeyHandleResult::CloseWithError(_)
+                ) {
+                    self.back_to_menu();
+                    return KeyHandleResult::Handled; // Stay in office menu
+                }
+                result
+            }
         }
     }
 
@@ -365,6 +431,8 @@ impl Plugin for OfficePlugin {
             OfficeView::App(OfficeApp::Deck) => self.deck.draw_modal(frame, area, colors),
             OfficeView::App(OfficeApp::Web) => self.web.draw_modal(frame, area, colors),
             OfficeView::App(OfficeApp::Docs) => self.docs.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Paint) => self.paint.draw_modal(frame, area, colors),
+            OfficeView::App(OfficeApp::Midi) => self.midi.draw_modal(frame, area, colors),
         }
     }
 
@@ -374,6 +442,8 @@ impl Plugin for OfficePlugin {
             OfficeView::App(OfficeApp::Deck) => self.deck.tick(),
             OfficeView::App(OfficeApp::Web) => self.web.tick(),
             OfficeView::App(OfficeApp::Docs) => self.docs.tick(),
+            OfficeView::App(OfficeApp::Paint) => self.paint.tick(),
+            OfficeView::App(OfficeApp::Midi) => self.midi.tick(),
             OfficeView::Menu => {}
         }
     }
