@@ -3981,6 +3981,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-qedit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-qffmpeg"
 version = "0.1.0"
 dependencies = [
@@ -4419,6 +4430,7 @@ dependencies = [
  "qdos-plugin-qcurl",
  "qdos-plugin-qdesign",
  "qdos-plugin-qdlp",
+ "qdos-plugin-qedit",
  "qdos-plugin-qffmpeg",
  "qdos-plugin-qform",
  "qdos-plugin-qmagick",

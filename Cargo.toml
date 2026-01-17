@@ -40,6 +40,7 @@ members = [
     "crates/qdos-plugin-qffmpeg",
     "crates/qdos-plugin-git",
     "crates/qdos-plugin-beads",
+    "crates/qdos-plugin-qedit",
 ]
 resolver = "2"
 
@@ -190,6 +191,7 @@ qdos-plugin-qmagick = { path = "crates/qdos-plugin-qmagick" }
 qdos-plugin-qffmpeg = { path = "crates/qdos-plugin-qffmpeg" }
 qdos-plugin-git = { path = "crates/qdos-plugin-git" }
 qdos-plugin-beads = { path = "crates/qdos-plugin-beads" }
+qdos-plugin-qedit = { path = "crates/qdos-plugin-qedit" }
 glob = "0.3.3"
 ignore = "0.4.25"
 
