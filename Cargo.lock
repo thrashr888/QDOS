@@ -3763,6 +3763,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-beads"
+version = "0.1.0"
+dependencies = [
+ "beads-cli",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "qdos-plugin-cloud"
 version = "0.1.0"
 dependencies = [
@@ -4386,6 +4400,7 @@ dependencies = [
  "qdos-plugin-api",
  "qdos-plugin-audio",
  "qdos-plugin-basic",
+ "qdos-plugin-beads",
  "qdos-plugin-cloud",
  "qdos-plugin-database",
  "qdos-plugin-deps",
