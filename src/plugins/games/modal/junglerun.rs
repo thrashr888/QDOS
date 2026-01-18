@@ -2,8 +2,8 @@
 //!
 //! Renders the side-scrolling platformer with hazards and treasures.
 
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     prelude::*,
     style::{Modifier, Style},

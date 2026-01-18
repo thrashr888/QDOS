@@ -5,13 +5,11 @@
 use std::path::PathBuf;
 
 // Import Git types needed by this module (Modal uses GitState).
-// The types are defined in plugins/git/state.rs.
-use crate::plugins::git::GitState;
+// The types are defined in qdos-plugin-git2.
+use qdos_plugin_git2::GitState;
 
-// Import Beads types from plugins/beads/state.rs for Modal enum
-pub use crate::plugins::beads::{
-    BeadsActivityEntry, BeadsComment, BeadsIssue, BeadsState, BeadsView,
-};
+// Import Beads types from qdos-plugin-beads2 for Modal enum
+pub use qdos_plugin_beads2::{BeadsState, BeadsView};
 
 /// Navigation menu items
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

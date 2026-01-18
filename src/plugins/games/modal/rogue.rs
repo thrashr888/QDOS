@@ -4,9 +4,9 @@
 //! It renders the dungeon map with fog of war, player status, monsters, items,
 //! and game messages using the FullScreenView component.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::rogue::{self, RogueState};
-use crate::ui::components::FullScreenView;
+use super::super::rogue::{self, RogueState};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

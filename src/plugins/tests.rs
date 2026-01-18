@@ -1,5 +1,6 @@
 //! Plugin system tests
 use super::*;
+use qdos_plugin_api::PluginCapabilities;
 use std::any::Any;
 use std::collections::HashMap;
 

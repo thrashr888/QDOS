@@ -2,11 +2,11 @@
 //!
 //! Renders the Terraria-style 2D mining game with blocks, creatures, and UI.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::blockworld::{
+use super::super::blockworld::{
     BlockType, BlockworldState, BlockworldView, TimeOfDay, VIEW_HEIGHT, VIEW_WIDTH,
 };
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

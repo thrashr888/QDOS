@@ -4,9 +4,9 @@
 //! within the games plugin modal. It displays setup screens, loading animations,
 //! questions with answers, feedback, and game over statistics.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::brainiac::{BrainiacState, BrainiacView};
-use crate::ui::components::FullScreenView;
+use super::super::brainiac::{BrainiacState, BrainiacView};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

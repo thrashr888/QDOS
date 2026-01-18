@@ -1,8 +1,8 @@
 mod state;
 
 // Re-export plugin ops for backwards compatibility within this module
-use crate::plugins::beads::ops as beads_ops;
-use crate::plugins::git::ops as git_ops;
+use qdos_plugin_beads2::ops as beads_ops;
+use qdos_plugin_git2::ops as git_ops;
 use qdos_plugin_jj::ops as jj_ops;
 
 // Re-export state types for external use (non-plugin types)
@@ -15,14 +15,13 @@ pub use state::{
 // Re-export Git types from the git plugin (now self-contained)
 // These are used by ui/modals.rs and other modules
 #[allow(unused_imports)]
-pub use crate::plugins::git::{
+pub use qdos_plugin_git2::{
     BlameLine, ConflictFile, ConflictResolution, ConflictSection, FileHistoryEntry, GitBranch,
     GitConfigEntry, GitFileStatus, GitLogEntry, GitMenuItem, GitRemote, GitStashEntry, GitState,
     GitSubmodule, GitTag, GitView, RemoteAction, SubmoduleStatus,
 };
 
-// Re-export types used by beads plugin ops (will move to beads plugin later)
-pub use state::{BeadsActivityEntry, BeadsComment, BeadsIssue};
+// Note: BeadsActivityEntry, BeadsComment, BeadsIssue are in qdos_plugin_beads2
 
 use crate::config::Config;
 use crate::errors;

@@ -2,8 +2,8 @@
 //!
 //! Renders the room-based exploration game with dragons and items.
 
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     prelude::*,
     style::{Modifier, Style},

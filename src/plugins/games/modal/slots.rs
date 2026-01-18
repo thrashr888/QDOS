@@ -2,9 +2,9 @@
 //!
 //! Renders the classic 3-reel slot machine game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::slots::{SlotsState, SlotsView, Symbol};
-use crate::ui::components::FullScreenView;
+use super::super::slots::{SlotsState, SlotsView, Symbol};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

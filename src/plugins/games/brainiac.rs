@@ -3,8 +3,8 @@
 //! Dynamic trivia powered by Claude API with age-adaptive difficulty.
 
 use super::platform::{GameEngine, GameEvent, KeyHandleResult};
-use crate::plugins::qmind::api::{chat::create_chat_provider, AIApiConfig};
 use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_qmind::api::{chat::create_chat_provider, AIApiConfig};
 use serde::{Deserialize, Serialize};
 
 /// Trivia categories

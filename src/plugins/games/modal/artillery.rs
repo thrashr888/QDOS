@@ -1,6 +1,6 @@
-use crate::app::ThemeColors;
-use crate::plugins::games::artillery::{ArtilleryState, GamePhase};
-use crate::ui::components::FullScreenView;
+use super::super::artillery::{ArtilleryState, GamePhase};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

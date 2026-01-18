@@ -2,9 +2,9 @@
 //!
 //! Renders the Jacks or Better video poker game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::poker::{HandRank, PokerState, PokerView};
-use crate::ui::components::FullScreenView;
+use super::super::poker::{HandRank, PokerState, PokerView};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

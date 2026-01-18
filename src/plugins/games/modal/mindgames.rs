@@ -1,8 +1,8 @@
-use crate::app::ThemeColors;
-use crate::plugins::games::mindgames::{
+use super::super::mindgames::{
     DailyQuestionType, MemoryPhase, MindgamesMode, MindgamesState, MindgamesView, PatternPhase,
 };
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

@@ -2,9 +2,9 @@
 //!
 //! This module handles the rendering of the STORYWEAVER choose-your-own-adventure game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::storyweaver::{StoryTemplate, StoryweaverState, StoryweaverView};
-use crate::ui::components::FullScreenView;
+use super::super::storyweaver::{StoryTemplate, StoryweaverState, StoryweaverView};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

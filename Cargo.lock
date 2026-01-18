@@ -3732,6 +3732,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-ai"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "toml 0.8.23",
+ "ureq",
+]
+
+[[package]]
 name = "qdos-plugin-api"
 version = "0.1.0"
 dependencies = [
@@ -3742,6 +3758,16 @@ dependencies = [
 
 [[package]]
 name = "qdos-plugin-apps"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-attribute"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.28.1",
@@ -3784,6 +3810,29 @@ dependencies = [
  "ratatui",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "qdos-plugin-beads2"
+version = "0.1.0"
+dependencies = [
+ "beads-cli",
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "qdos-plugin-clipboard"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
 ]
 
 [[package]]
@@ -3855,6 +3904,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-dropbox"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-cloud",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-emulator"
 version = "0.1.0"
 dependencies = [
@@ -3875,7 +3936,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-find"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-games"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "image",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-qmind",
+ "rand 0.8.5",
+ "ratatui",
+ "ratatui-image 3.0.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "qdos-plugin-gdrive"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-cloud",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-git"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-git2"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.28.1",
@@ -3900,6 +4011,18 @@ dependencies = [
  "homebrew",
  "inventory",
  "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-icloud"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-cloud",
  "ratatui",
 ]
 
@@ -3935,6 +4058,33 @@ dependencies = [
  "ratatui",
  "ratatui-image 1.0.5",
  "tobj",
+]
+
+[[package]]
+name = "qdos-plugin-office"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "calamine",
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "dom_smoothie",
+ "glob",
+ "image",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-qcode",
+ "qdos-plugin-qdesign",
+ "qdos-plugin-qform",
+ "qdos-plugin-qmail",
+ "qdos-plugin-qmidi",
+ "qdos-plugin-qpaint",
+ "rand 0.8.5",
+ "ratatui",
+ "ratatui-image 3.0.0",
+ "rust_xlsxwriter",
+ "ureq",
 ]
 
 [[package]]
@@ -3996,6 +4146,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-qdconfig"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "toml 0.8.23",
+]
+
+[[package]]
 name = "qdos-plugin-qdesign"
 version = "0.1.0"
 dependencies = [
@@ -4033,6 +4197,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-qedit2"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-qffmpeg"
 version = "0.1.0"
 dependencies = [
@@ -4056,6 +4231,16 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "qdos-plugin-qlink"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
 ]
 
 [[package]]
@@ -4093,6 +4278,23 @@ dependencies = [
  "midly",
  "qdos-plugin-api",
  "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-qmind"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "glob",
+ "ignore",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "ureq",
 ]
 
 [[package]]
@@ -4486,38 +4688,53 @@ dependencies = [
  "notify",
  "portable-pty",
  "postgres",
+ "qdos-plugin-ai",
  "qdos-plugin-api",
  "qdos-plugin-apps",
+ "qdos-plugin-attribute",
  "qdos-plugin-audio",
  "qdos-plugin-basic",
  "qdos-plugin-beads",
+ "qdos-plugin-beads2",
+ "qdos-plugin-clipboard",
  "qdos-plugin-cloud",
  "qdos-plugin-database",
  "qdos-plugin-deps",
  "qdos-plugin-dirmap",
  "qdos-plugin-docker",
  "qdos-plugin-drives",
+ "qdos-plugin-dropbox",
  "qdos-plugin-emulator",
  "qdos-plugin-fileops",
+ "qdos-plugin-find",
+ "qdos-plugin-games",
+ "qdos-plugin-gdrive",
  "qdos-plugin-git",
+ "qdos-plugin-git2",
  "qdos-plugin-help",
  "qdos-plugin-homebrew",
+ "qdos-plugin-icloud",
  "qdos-plugin-jj",
  "qdos-plugin-midi",
  "qdos-plugin-model3d",
+ "qdos-plugin-office",
  "qdos-plugin-palette",
  "qdos-plugin-print",
  "qdos-plugin-proc",
  "qdos-plugin-qcode",
  "qdos-plugin-qcurl",
+ "qdos-plugin-qdconfig",
  "qdos-plugin-qdesign",
  "qdos-plugin-qdlp",
  "qdos-plugin-qedit",
+ "qdos-plugin-qedit2",
  "qdos-plugin-qffmpeg",
  "qdos-plugin-qform",
+ "qdos-plugin-qlink",
  "qdos-plugin-qmagick",
  "qdos-plugin-qmail",
  "qdos-plugin-qmidi",
+ "qdos-plugin-qmind",
  "qdos-plugin-qpaint",
  "qdos-plugin-qtask",
  "qdos-plugin-redis",

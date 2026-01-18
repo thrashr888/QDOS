@@ -1,11 +1,11 @@
 use crate::app::SortMode;
-use crate::plugins::dropbox::ops as dropbox_ops;
-use crate::plugins::gdrive::ops as gdrive_ops;
-use crate::plugins::icloud::ops as icloud_ops;
 use crate::vfs::{FileSystemProvider, LocalFS};
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use qdos_plugin_cloud::SyncStatus;
+use qdos_plugin_dropbox::ops as dropbox_ops;
+use qdos_plugin_gdrive::ops as gdrive_ops;
+use qdos_plugin_icloud::ops as icloud_ops;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};

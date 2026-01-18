@@ -3,8 +3,8 @@
 //! Rendering functions for the configuration modal.
 
 use super::state::{QdconfigField, QdconfigState};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};

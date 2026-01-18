@@ -1,0 +1,13 @@
+[package]
+name = "qdos-plugin-find"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS plugin: find"
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"

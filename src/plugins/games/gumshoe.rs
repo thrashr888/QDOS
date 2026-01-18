@@ -3,7 +3,7 @@
 //! Carmen Sandiego-style geography detective game. Chase criminals across
 //! the globe, gather clues, and make arrests!
 
-use crate::plugins::games::platform::{GameEngine, GameEvent, KeyHandleResult};
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::prelude::*;
 

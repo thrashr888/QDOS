@@ -3,11 +3,11 @@
 //! Renders the text adventure game UI with room descriptions,
 //! inventory, encounters, and ASCII art.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::caverns::{
+use super::super::caverns::{
     get_creature_def, get_item_def, get_room, CavernsState, CavernsView, ExamineTarget,
 };
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::prelude::*;
 
 // =============================================================================

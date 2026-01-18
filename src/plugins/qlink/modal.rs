@@ -3,8 +3,8 @@
 //! UI components for the MCP client plugin.
 
 use super::state::{ConnectionStatus, QLinkState, QLinkView};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{layout::Rect, style::Style, text::Span, Frame};
 
 /// Draw the Q-LINK modal
@@ -378,8 +378,8 @@ fn draw_details(frame: &mut Frame, area: Rect, state: &QLinkState, colors: &Them
 
 #[cfg(test)]
 mod tests {
+    use super::super::state::ServerConfig;
     use super::*;
-    use crate::plugins::qlink::state::ServerConfig;
 
     #[test]
     fn test_state_with_servers() {

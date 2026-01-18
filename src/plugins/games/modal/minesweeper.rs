@@ -1,7 +1,7 @@
-use crate::app::ThemeColors;
-use crate::plugins::games::minesweeper::{CellState, MinesweeperState};
-use crate::plugins::games::platform::GameEngine;
-use crate::ui::components::FullScreenView;
+use super::super::minesweeper::{CellState, MinesweeperState};
+use super::super::platform::GameEngine;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

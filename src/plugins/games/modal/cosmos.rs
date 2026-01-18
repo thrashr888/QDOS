@@ -3,8 +3,8 @@
 //! Renders the space exploration game with starfields, planet views,
 //! and alien first contact sequences.
 
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     prelude::*,
     style::{Modifier, Style},

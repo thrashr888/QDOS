@@ -1,0 +1,30 @@
+[package]
+name = "qdos-plugin-office"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS plugin: office"
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+qdos-plugin-qcode = { path = "../qdos-plugin-qcode" }
+qdos-plugin-qdesign = { path = "../qdos-plugin-qdesign" }
+qdos-plugin-qform = { path = "../qdos-plugin-qform" }
+qdos-plugin-qmail = { path = "../qdos-plugin-qmail" }
+qdos-plugin-qmidi = { path = "../qdos-plugin-qmidi" }
+qdos-plugin-qpaint = { path = "../qdos-plugin-qpaint" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+calamine = "0.32"
+rust_xlsxwriter = "0.80"
+ratatui-image = "3.0"
+image = "0.25"
+dom_smoothie = "0.8"
+ureq = { version = "3.0", features = ["json"] }
+dirs = "6.0"
+chrono = { version = "0.4", features = ["serde"] }
+glob = "0.3"
+arboard = "3.4"
+rand = "0.8"

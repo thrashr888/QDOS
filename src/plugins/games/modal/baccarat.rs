@@ -2,9 +2,9 @@
 //!
 //! Renders the punto banco baccarat card game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::baccarat::{hand_value, BaccaratState, BaccaratView, BetType};
-use crate::ui::components::FullScreenView;
+use super::super::baccarat::{hand_value, BaccaratState, BaccaratView, BetType};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

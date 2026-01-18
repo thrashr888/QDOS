@@ -3,9 +3,9 @@
 //! This module handles the drawing of the Breakout game UI including
 //! the paddle, ball, bricks, score, lives, and game borders.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::breakout::{self, BreakoutState};
-use crate::ui::components::FullScreenView;
+use super::super::breakout::{self, BreakoutState};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{style::Style, text::Span, Frame};
 
 /// Draws the Breakout game board including paddle, ball, bricks, and UI elements.

@@ -48,6 +48,21 @@ members = [
     "crates/qdos-plugin-apps",
     "crates/qdos-plugin-fileops",
     "crates/qdos-plugin-qtask",
+    "crates/qdos-plugin-ai",
+    "crates/qdos-plugin-attribute",
+    "crates/qdos-plugin-beads2",
+    "crates/qdos-plugin-clipboard",
+    "crates/qdos-plugin-dropbox",
+    "crates/qdos-plugin-find",
+    "crates/qdos-plugin-games",
+    "crates/qdos-plugin-gdrive",
+    "crates/qdos-plugin-git2",
+    "crates/qdos-plugin-icloud",
+    "crates/qdos-plugin-office",
+    "crates/qdos-plugin-qdconfig",
+    "crates/qdos-plugin-qedit2",
+    "crates/qdos-plugin-qlink",
+    "crates/qdos-plugin-qmind",
 ]
 resolver = "2"
 
@@ -206,6 +221,21 @@ qdos-plugin-viewer = { path = "crates/qdos-plugin-viewer" }
 qdos-plugin-apps = { path = "crates/qdos-plugin-apps" }
 qdos-plugin-fileops = { path = "crates/qdos-plugin-fileops" }
 qdos-plugin-qtask = { path = "crates/qdos-plugin-qtask" }
+qdos-plugin-ai = { path = "crates/qdos-plugin-ai" }
+qdos-plugin-attribute = { path = "crates/qdos-plugin-attribute" }
+qdos-plugin-beads2 = { path = "crates/qdos-plugin-beads2" }
+qdos-plugin-clipboard = { path = "crates/qdos-plugin-clipboard" }
+qdos-plugin-dropbox = { path = "crates/qdos-plugin-dropbox" }
+qdos-plugin-find = { path = "crates/qdos-plugin-find" }
+qdos-plugin-games = { path = "crates/qdos-plugin-games" }
+qdos-plugin-gdrive = { path = "crates/qdos-plugin-gdrive" }
+qdos-plugin-git2 = { path = "crates/qdos-plugin-git2" }
+qdos-plugin-icloud = { path = "crates/qdos-plugin-icloud" }
+qdos-plugin-office = { path = "crates/qdos-plugin-office" }
+qdos-plugin-qdconfig = { path = "crates/qdos-plugin-qdconfig" }
+qdos-plugin-qedit2 = { path = "crates/qdos-plugin-qedit2" }
+qdos-plugin-qlink = { path = "crates/qdos-plugin-qlink" }
+qdos-plugin-qmind = { path = "crates/qdos-plugin-qmind" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

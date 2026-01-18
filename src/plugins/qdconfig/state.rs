@@ -2,7 +2,8 @@
 //!
 //! Configuration field definitions and state management.
 
-use crate::app::{ColorTheme, SortMode};
+use crate::app::SortMode;
+use qdos_plugin_api::ColorTheme;
 
 /// Configuration fields
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

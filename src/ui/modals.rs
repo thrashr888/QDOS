@@ -29,16 +29,16 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
     match &app.modal {
         // Full-screen modals (use entire area)
         Modal::Find(state) => {
-            crate::plugins::find::modal::draw_find_modal(frame, area, state, app);
+            crate::plugins::find_modal::draw_find_modal(frame, area, state, app);
         }
         Modal::BatchRename(state) => {
             crate::ui::fileops_modals::draw_batch_rename_modal(frame, area, state, app);
         }
         Modal::Git(state) => {
-            crate::plugins::git::modal::draw_git_modal(frame, area, state, app);
+            qdos_plugin_git2::modal::draw_git_modal(frame, area, state, &app.colors());
         }
         Modal::Beads(state) => {
-            crate::plugins::beads::modal::draw_beads_modal(frame, area, state, app);
+            qdos_plugin_beads2::modal::draw_beads_modal(frame, area, state, &app.colors());
         }
         Modal::Plugin(_) => app.plugin_manager.draw_modal(frame, area, &app.colors()),
 
@@ -71,13 +71,13 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         }
         Modal::Attribute(state) => {
             let modal_area = centered_fixed(60, 15, area);
-            crate::plugins::attribute::modal::draw_attribute_modal(frame, modal_area, state, app);
+            crate::plugins::attribute_modal::draw_attribute_modal(frame, modal_area, state, app);
         }
         Modal::Clipboard(state) => {
             // Clipboard modal height depends on item count
             let height = (state.items.len() + 5).min(15) as u16;
             let modal_area = centered_fixed(50, height, area);
-            crate::plugins::clipboard::modal::draw_clipboard_modal(frame, modal_area, state, app);
+            crate::plugins::clipboard_modal::draw_clipboard_modal(frame, modal_area, state, app);
         }
         Modal::MkDirInput(name) => {
             let modal_area = centered_fixed(50, 10, area);

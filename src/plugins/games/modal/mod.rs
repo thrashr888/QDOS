@@ -70,8 +70,8 @@ pub use trek::draw_trek;
 pub use westworld::draw_westworld;
 
 use super::state::{GameType, GamesState, GamesView};
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

@@ -9,12 +9,12 @@ mod modal;
 pub mod state;
 
 use crate::mcp::ServerConfig as McpServerConfig;
-use crate::plugins::{
+use crate::vfs::{FileSystemProvider, McpFS, RoutingFS};
+use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_api::{
     AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
     PluginStatusInfo,
 };
-use crate::vfs::{FileSystemProvider, McpFS, RoutingFS};
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
 use state::{QLinkState, QLinkView, ServerConfig};
 use std::any::Any;
@@ -351,7 +351,7 @@ impl Plugin for QLinkPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &qdos_plugin_api::ThemeColors) {
         modal::draw_qlink_modal(frame, area, &self.state, colors);
     }
 

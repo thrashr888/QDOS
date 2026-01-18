@@ -4,9 +4,9 @@
 //! the games plugin modal. It displays the game board, snake, food,
 //! score, and help text.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::snake::{self, Direction, Position, SnakeState};
-use crate::ui::components::FullScreenView;
+use super::super::snake::{self, Direction, Position, SnakeState};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

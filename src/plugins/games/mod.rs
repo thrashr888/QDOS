@@ -35,15 +35,15 @@ pub mod tetris;
 pub mod trek;
 pub mod westworld;
 
-use crate::app::ThemeColors;
 use crate::config::Config;
-use crate::plugins::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-    PluginStatusInfo, SoundEvent,
-};
 use crate::sound::{ChiptuneMelody, ChiptuneMusic};
 use crossterm::event::{KeyCode, KeyEvent};
 use platform::{AchievementManager, GameEngine, StatsTracker};
+use qdos_plugin_api::ThemeColors;
+use qdos_plugin_api::{
+    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
+    PluginStatusInfo, SoundEvent,
+};
 use ratatui::{layout::Rect, Frame};
 use state::{GameType, GamesState, GamesView};
 use std::any::Any;

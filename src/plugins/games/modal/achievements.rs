@@ -2,11 +2,11 @@
 //!
 //! Shows all achievements organized by game with unlock status and progress.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::platform::achievements::{AchievementManager, AchievementToast};
-use crate::plugins::games::platform::stats::PlayerStats;
-use crate::plugins::games::state::GameType;
-use crate::ui::components::FullScreenView;
+use super::super::platform::achievements::{AchievementManager, AchievementToast};
+use super::super::platform::stats::PlayerStats;
+use super::super::state::GameType;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;

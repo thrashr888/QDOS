@@ -3,7 +3,7 @@
 //! Contra/Shinobi-style side-scrolling action game. Play as Dolores-7,
 //! a Host awakening to consciousness, fighting through Delos theme parks.
 
-use crate::plugins::games::platform::{GameEngine, GameEvent, KeyHandleResult};
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 

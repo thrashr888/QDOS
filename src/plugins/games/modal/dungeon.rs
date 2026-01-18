@@ -2,12 +2,12 @@
 //!
 //! Renders the dungeon maze game with fog of war and ANSI art style.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::dungeon::{
+use super::super::dungeon::{
     DungeonState, EnemyType, FriendlyType, ItemType, Tile, BOARD_HEIGHT, BOARD_WIDTH,
 };
-use crate::plugins::games::platform::GameEngine;
-use crate::ui::components::FullScreenView;
+use super::super::platform::GameEngine;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;

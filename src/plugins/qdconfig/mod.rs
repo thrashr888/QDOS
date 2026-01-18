@@ -7,11 +7,12 @@ mod state;
 
 pub use state::{QdconfigField, QdconfigState};
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::app::{ColorTheme, SortMode};
+use crate::app::SortMode;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use qdos_plugin_api::{
+    AppEntry, ColorTheme, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory,
+    PluginMenuItem,
+};
 use ratatui::layout::Rect;
 use ratatui::Frame;
 use std::any::Any;

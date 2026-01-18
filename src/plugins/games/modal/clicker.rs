@@ -3,11 +3,11 @@
 //! This module handles the drawing of the Clicker roguelike game UI including
 //! the dungeon corridor, player/monster stats, shop, death screen, and soul shop.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::clicker::{
+use super::super::clicker::{
     Buff, ClickerState, ClickerView, Item, Scenery, ShopItem, SoulUpgrade,
 };
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

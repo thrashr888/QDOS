@@ -2,9 +2,9 @@
 //!
 //! Pseudo-3D road rendering with perspective scaling.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::neondrive::{NeondriveState, NeondriveView, ObstacleKind};
-use crate::ui::components::FullScreenView;
+use super::super::neondrive::{NeondriveState, NeondriveView, ObstacleKind};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

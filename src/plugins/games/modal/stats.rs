@@ -2,10 +2,10 @@
 //!
 //! Shows lifetime and per-game statistics in a formatted table with scrolling.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::platform::{PlayerStats, StatsTracker};
-use crate::plugins::games::state::GameType;
-use crate::ui::components::FullScreenView;
+use super::super::platform::{PlayerStats, StatsTracker};
+use super::super::state::GameType;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;

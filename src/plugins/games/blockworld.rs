@@ -3,7 +3,7 @@
 //! A 2D side-scrolling mining, building, and survival game.
 //! Mine blocks, craft tools, build structures, survive the night!
 
-use crate::plugins::games::platform::{GameEngine, GameEvent, KeyHandleResult};
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 

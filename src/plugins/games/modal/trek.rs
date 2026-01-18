@@ -4,9 +4,9 @@
 //! exploration game. It renders the sector grid, long range scan, status bar,
 //! and command interface using the FullScreenView component.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::trek::{self, TrekState};
-use crate::ui::components::FullScreenView;
+use super::super::trek::{self, TrekState};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

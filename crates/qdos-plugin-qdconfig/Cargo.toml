@@ -1,0 +1,17 @@
+[package]
+name = "qdos-plugin-qdconfig"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS plugin: qdconfig"
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+arboard = "3.4"
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+dirs = "6.0"

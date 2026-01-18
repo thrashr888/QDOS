@@ -3,9 +3,9 @@
 //! This module handles the visual rendering of the Dope Wars game within
 //! the games plugin modal.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::dopewars::{DopeWarsState, DopeWarsView, Location, Product};
-use crate::ui::components::FullScreenView;
+use super::super::dopewars::{DopeWarsState, DopeWarsView, Location, Product};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,
@@ -460,7 +460,7 @@ fn draw_event(
     state: &DopeWarsState,
     colors: &ThemeColors,
 ) {
-    use crate::plugins::games::dopewars::RandomEvent;
+    use super::super::dopewars::RandomEvent;
 
     let mut row = 5;
 

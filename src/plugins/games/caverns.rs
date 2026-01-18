@@ -3,7 +3,7 @@
 //! A Colossal Cave Adventure-style game with room exploration,
 //! inventory management, puzzles, and treasure collection.
 
-use crate::plugins::games::platform::{GameEngine, GameEvent, KeyHandleResult};
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crossterm::event::{KeyCode, KeyEvent};
 
 // =============================================================================

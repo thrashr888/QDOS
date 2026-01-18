@@ -2,11 +2,11 @@
 //!
 //! Renders the Contra/Shinobi-style side-scrolling action game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::westworld::{
+use super::super::westworld::{
     EnemyState, TileType, WeaponType, WestworldState, WestworldView, SCREEN_HEIGHT, SCREEN_WIDTH,
 };
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

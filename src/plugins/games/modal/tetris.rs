@@ -2,9 +2,9 @@
 //!
 //! This module handles the rendering of the Tetris game within the games plugin modal.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::tetris::{self, TetrisState};
-use crate::ui::components::FullScreenView;
+use super::super::tetris::{self, TetrisState};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

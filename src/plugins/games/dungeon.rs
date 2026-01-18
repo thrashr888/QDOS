@@ -3,7 +3,7 @@
 //! A roguelike maze game with procedurally-generated labyrinths,
 //! enemies that pursue you, friendly NPCs, and loot collection.
 
-use crate::plugins::games::platform::{GameEngine, GameEvent, KeyHandleResult};
+use super::platform::{GameEngine, GameEvent, KeyHandleResult};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::prelude::*;
 use std::collections::{BinaryHeap, HashMap, HashSet};

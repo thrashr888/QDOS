@@ -2,8 +2,8 @@
 //!
 //! Renders the card game with ASCII card art.
 
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     prelude::*,
     style::{Modifier, Style},

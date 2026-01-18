@@ -6,8 +6,8 @@ use super::super::biolab::{
     BiolabState, BiolabView, BodyPart, DnaLabMode, LabType, Organelle, BODY_SYSTEMS, SLIDES,
     SPECIMENS,
 };
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     style::{Modifier, Style},
     text::Span,

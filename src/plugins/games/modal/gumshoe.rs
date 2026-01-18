@@ -2,9 +2,9 @@
 //!
 //! Renders all views for the GUMSHOE geography detective game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::gumshoe::{GumshoeState, GumshoeView};
-use crate::ui::components::FullScreenView;
+use super::super::gumshoe::{GumshoeState, GumshoeView};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::Frame;

@@ -2,9 +2,9 @@
 //!
 //! Renders the casino craps dice game.
 
-use crate::app::ThemeColors;
-use crate::plugins::games::craps::{BetType, CrapsState, CrapsView};
-use crate::ui::components::FullScreenView;
+use super::super::craps::{BetType, CrapsState, CrapsView};
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},

@@ -12,61 +12,52 @@
 // Allow dead code until plugins are fully integrated
 #![allow(dead_code)]
 
-pub mod ai;
-pub mod attribute;
-pub mod beads;
-pub mod clipboard;
-pub mod dropbox;
-pub mod find;
+// Local modal modules (tightly coupled to main app state)
+pub mod attribute_modal;
+pub mod clipboard_modal;
+pub mod find_modal;
+
+// Local plugins (tightly coupled to main app modules)
 pub mod games;
-pub mod gdrive;
-pub mod git;
-pub mod icloud;
-pub mod office;
 pub mod qdconfig;
-pub mod qedit;
 pub mod qlink;
-pub mod qmind;
 
-pub use ai::AIPlugin;
-pub use beads::BeadsPlugin;
-pub use dropbox::DropboxPlugin;
+// Re-export local plugin types
 pub use games::GamesPlugin;
-pub use gdrive::GDrivePlugin;
-pub use git::GitPlugin;
-pub use icloud::ICloudPlugin;
-pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
 pub use qdconfig::QdconfigPlugin;
-pub use qedit::QEditPlugin;
 pub use qlink::QLinkPlugin;
-pub use qmind::QMindPlugin;
 
-// Externally crated plugins (moved from src/plugins/)
+// All plugins are now external crates
+pub use qdos_plugin_ai::AIPlugin;
 pub use qdos_plugin_apps::AppsPlugin;
-pub use qdos_plugin_drives::DrivesPlugin;
-pub use qdos_plugin_fileops::{FileOperation, FileOpsPlugin};
-pub use qdos_plugin_palette::PalettePlugin;
-pub use qdos_plugin_qtask::QTaskPlugin;
-pub use qdos_plugin_theme::ThemePlugin;
-pub use qdos_plugin_viewer::ViewerPlugin;
-
-// Externally crated plugins
 pub use qdos_plugin_audio::AudioPlugin;
 pub use qdos_plugin_basic::BasicPlugin;
+pub use qdos_plugin_beads2::BeadsPlugin;
 pub use qdos_plugin_database::DatabasePlugin;
 pub use qdos_plugin_deps::DepsPlugin;
 pub use qdos_plugin_dirmap::DirMapPlugin;
 pub use qdos_plugin_docker::DockerPlugin;
+pub use qdos_plugin_drives::DrivesPlugin;
+pub use qdos_plugin_dropbox::DropboxPlugin;
 pub use qdos_plugin_emulator::EmulatorPlugin;
+pub use qdos_plugin_fileops::{FileOperation, FileOpsPlugin};
+pub use qdos_plugin_gdrive::GDrivePlugin;
+pub use qdos_plugin_git2::GitPlugin;
 pub use qdos_plugin_help::HelpPlugin;
 pub use qdos_plugin_homebrew::HomebrewPlugin;
+pub use qdos_plugin_icloud::ICloudPlugin;
 pub use qdos_plugin_jj::JjPlugin;
 pub use qdos_plugin_midi::MidiPlugin;
 pub use qdos_plugin_model3d::Model3dPlugin;
+pub use qdos_plugin_office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
+pub use qdos_plugin_palette::PalettePlugin;
 pub use qdos_plugin_print::PrintPlugin;
 pub use qdos_plugin_proc::ProcPlugin;
+pub use qdos_plugin_qedit2::QEditPlugin;
 pub use qdos_plugin_qmidi::QMidiPlugin;
+pub use qdos_plugin_qmind::QMindPlugin;
 pub use qdos_plugin_qpaint::QPaintPlugin;
+pub use qdos_plugin_qtask::QTaskPlugin;
 pub use qdos_plugin_redis::RedisPlugin;
 pub use qdos_plugin_searchspec::SearchSpecPlugin;
 pub use qdos_plugin_sftp::SftpPlugin;
@@ -74,7 +65,9 @@ pub use qdos_plugin_shell::ShellPlugin;
 pub use qdos_plugin_space::SpacePlugin;
 pub use qdos_plugin_status::StatusPlugin;
 pub use qdos_plugin_terraform::TerraformPlugin;
+pub use qdos_plugin_theme::ThemePlugin;
 pub use qdos_plugin_video::VideoPlugin;
+pub use qdos_plugin_viewer::ViewerPlugin;
 
 use crate::config::PluginsConfig;
 use ratatui::layout::Rect;
@@ -85,8 +78,7 @@ use std::path::PathBuf;
 // Re-export core plugin types from the plugin API crate
 // All plugins should use these types from the API crate
 pub use qdos_plugin_api::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-    PluginStatusInfo, SoundEvent,
+    KeyHandleResult, Plugin, PluginCategory, PluginMenuItem, PluginStatusInfo, SoundEvent,
 };
 
 // Re-export commonly used types for plugin implementations
@@ -342,24 +334,25 @@ impl PluginManager {
     }
 
     /// Get mutable reference to AIPlugin
-    pub fn ai_plugin_mut(&mut self) -> Option<&mut ai::AIPlugin> {
+    pub fn ai_plugin_mut(&mut self) -> Option<&mut qdos_plugin_ai::AIPlugin> {
         self.plugins
             .get_mut("ai")
-            .and_then(|p| p.as_any_mut().downcast_mut::<ai::AIPlugin>())
+            .and_then(|p| p.as_any_mut().downcast_mut::<qdos_plugin_ai::AIPlugin>())
     }
 
     /// Get mutable reference to BeadsPlugin for key handling delegation
-    pub fn beads_plugin_mut(&mut self) -> Option<&mut beads::BeadsPlugin> {
-        self.plugins
-            .get_mut("beads")
-            .and_then(|p| p.as_any_mut().downcast_mut::<beads::BeadsPlugin>())
+    pub fn beads_plugin_mut(&mut self) -> Option<&mut qdos_plugin_beads2::BeadsPlugin> {
+        self.plugins.get_mut("beads").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_beads2::BeadsPlugin>()
+        })
     }
 
     /// Get mutable reference to GitPlugin for key handling delegation
-    pub fn git_plugin_mut(&mut self) -> Option<&mut git::GitPlugin> {
+    pub fn git_plugin_mut(&mut self) -> Option<&mut qdos_plugin_git2::GitPlugin> {
         self.plugins
             .get_mut("git")
-            .and_then(|p| p.as_any_mut().downcast_mut::<git::GitPlugin>())
+            .and_then(|p| p.as_any_mut().downcast_mut::<qdos_plugin_git2::GitPlugin>())
     }
 
     /// Get mutable reference to StatusPlugin
@@ -470,10 +463,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to QEditPlugin
-    pub fn qedit_plugin_mut(&mut self) -> Option<&mut qedit::QEditPlugin> {
-        self.plugins
-            .get_mut("qedit")
-            .and_then(|p| p.as_any_mut().downcast_mut::<qedit::QEditPlugin>())
+    pub fn qedit_plugin_mut(&mut self) -> Option<&mut qdos_plugin_qedit2::QEditPlugin> {
+        self.plugins.get_mut("qedit").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_qedit2::QEditPlugin>()
+        })
     }
 
     /// Get mutable reference to QTaskPlugin
@@ -572,24 +566,27 @@ impl PluginManager {
     }
 
     /// Get mutable reference to DropboxPlugin
-    pub fn dropbox_plugin_mut(&mut self) -> Option<&mut dropbox::DropboxPlugin> {
-        self.plugins
-            .get_mut("dropbox")
-            .and_then(|p| p.as_any_mut().downcast_mut::<dropbox::DropboxPlugin>())
+    pub fn dropbox_plugin_mut(&mut self) -> Option<&mut qdos_plugin_dropbox::DropboxPlugin> {
+        self.plugins.get_mut("dropbox").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_dropbox::DropboxPlugin>()
+        })
     }
 
     /// Get mutable reference to ICloudPlugin
-    pub fn icloud_plugin_mut(&mut self) -> Option<&mut icloud::ICloudPlugin> {
-        self.plugins
-            .get_mut("icloud")
-            .and_then(|p| p.as_any_mut().downcast_mut::<icloud::ICloudPlugin>())
+    pub fn icloud_plugin_mut(&mut self) -> Option<&mut qdos_plugin_icloud::ICloudPlugin> {
+        self.plugins.get_mut("icloud").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_icloud::ICloudPlugin>()
+        })
     }
 
     /// Get mutable reference to GDrivePlugin
-    pub fn gdrive_plugin_mut(&mut self) -> Option<&mut gdrive::GDrivePlugin> {
-        self.plugins
-            .get_mut("gdrive")
-            .and_then(|p| p.as_any_mut().downcast_mut::<gdrive::GDrivePlugin>())
+    pub fn gdrive_plugin_mut(&mut self) -> Option<&mut qdos_plugin_gdrive::GDrivePlugin> {
+        self.plugins.get_mut("gdrive").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_gdrive::GDrivePlugin>()
+        })
     }
 
     /// Get mutable reference to SftpPlugin
@@ -601,10 +598,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to QMindPlugin
-    pub fn qmind_plugin_mut(&mut self) -> Option<&mut qmind::QMindPlugin> {
-        self.plugins
-            .get_mut("qmind")
-            .and_then(|p| p.as_any_mut().downcast_mut::<qmind::QMindPlugin>())
+    pub fn qmind_plugin_mut(&mut self) -> Option<&mut qdos_plugin_qmind::QMindPlugin> {
+        self.plugins.get_mut("qmind").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_qmind::QMindPlugin>()
+        })
     }
 
     /// Get mutable reference to PalettePlugin
