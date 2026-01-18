@@ -2,8 +2,7 @@
 //!
 //! Configuration field definitions and state management.
 
-use crate::app::SortMode;
-use qdos_plugin_api::ColorTheme;
+use qdos_plugin_api::{ColorTheme, SortMode};
 
 /// Configuration fields
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,6 +85,7 @@ pub struct QdconfigState {
 }
 
 impl QdconfigState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         search_spec: String,
         sort_mode: SortMode,
@@ -202,51 +202,8 @@ impl QdconfigState {
         }
     }
 
-    /// Reload state from a config file
-    pub fn reload_from_config(&mut self, config: &crate::config::Config) {
-        // Update search spec
-        self.search_spec = config.general.search_spec.clone();
-
-        // Update sort mode
-        let sort_mode = config.to_sort_mode();
-        let (sort_method, sort_asc) = match sort_mode {
-            SortMode::NameAsc => (0, true),
-            SortMode::NameDesc => (0, false),
-            SortMode::ExtAsc => (1, true),
-            SortMode::ExtDesc => (1, false),
-            SortMode::SizeAsc => (2, true),
-            SortMode::SizeDesc => (2, false),
-            SortMode::DateAsc => (3, true),
-            SortMode::DateDesc => (3, false),
-            SortMode::None => (4, true),
-        };
-        self.sort_method = sort_method;
-        self.sort_asc = sort_asc;
-
-        // Update general settings
-        self.show_hidden = config.general.show_hidden;
-        self.confirm_delete = config.general.confirm_delete;
-        self.mouse_support = config.general.mouse_support;
-        self.auto_refresh_interval = config.general.auto_refresh_interval;
-
-        // Update editor
-        self.editor = config.editor.command.clone();
-
-        // Update display settings
-        self.uppercase_names = config.display.uppercase_names;
-
-        // Update theme
-        let color_theme: ColorTheme = config.display.theme.clone().into();
-        self.theme_index = ColorTheme::ALL
-            .iter()
-            .position(|&t| t == color_theme)
-            .unwrap_or(0);
-        self.original_theme_index = self.theme_index;
-
-        // Clear editing state
-        self.editing = false;
-        self.input_buffer.clear();
-    }
+    // TODO: Implement reload_from_config when config types are shared
+    // This requires a shared config crate or trait-based config access
 }
 
 #[cfg(test)]

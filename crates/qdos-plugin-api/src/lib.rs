@@ -138,6 +138,56 @@ impl NavItem {
 }
 
 // =============================================================================
+// SORT MODES
+// =============================================================================
+
+/// Sort modes for file listing
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SortMode {
+    #[default]
+    NameAsc,
+    NameDesc,
+    ExtAsc,
+    ExtDesc,
+    SizeAsc,
+    SizeDesc,
+    DateAsc,
+    DateDesc,
+    None,
+}
+
+impl SortMode {
+    pub fn next(&self) -> SortMode {
+        match self {
+            SortMode::NameAsc => SortMode::NameDesc,
+            SortMode::NameDesc => SortMode::ExtAsc,
+            SortMode::ExtAsc => SortMode::ExtDesc,
+            SortMode::ExtDesc => SortMode::SizeAsc,
+            SortMode::SizeAsc => SortMode::SizeDesc,
+            SortMode::SizeDesc => SortMode::DateAsc,
+            SortMode::DateAsc => SortMode::DateDesc,
+            SortMode::DateDesc => SortMode::None,
+            SortMode::None => SortMode::NameAsc,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SortMode::NameAsc => "Name ^",
+            SortMode::NameDesc => "Name v",
+            SortMode::ExtAsc => "Ext ^",
+            SortMode::ExtDesc => "Ext v",
+            SortMode::SizeAsc => "Size ^",
+            SortMode::SizeDesc => "Size v",
+            SortMode::DateAsc => "Date ^",
+            SortMode::DateDesc => "Date v",
+            SortMode::None => "None",
+        }
+    }
+}
+
+// =============================================================================
 // COLOR THEMES
 // =============================================================================
 
@@ -765,7 +815,7 @@ pub mod prelude {
     };
     // Extended types for more plugins
     pub use super::{Color, KeyCode, KeyModifiers, Modifier, Span, Style};
-    pub use super::{ColorTheme, ColorThemeState, NavItem};
+    pub use super::{ColorTheme, ColorThemeState, NavItem, SortMode};
     // UI components
     pub use super::ui::{FullScreenView, ModalFrame, TabBar, TabState};
     pub use crossterm::event::KeyEvent;

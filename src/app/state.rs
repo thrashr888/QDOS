@@ -108,51 +108,8 @@ impl NavItem {
     }
 }
 
-/// Sort modes for file listing
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum SortMode {
-    #[default]
-    NameAsc,
-    NameDesc,
-    ExtAsc,
-    ExtDesc,
-    SizeAsc,
-    SizeDesc,
-    DateAsc,
-    DateDesc,
-    None,
-}
-
-impl SortMode {
-    pub fn next(&self) -> SortMode {
-        match self {
-            SortMode::NameAsc => SortMode::NameDesc,
-            SortMode::NameDesc => SortMode::ExtAsc,
-            SortMode::ExtAsc => SortMode::ExtDesc,
-            SortMode::ExtDesc => SortMode::SizeAsc,
-            SortMode::SizeAsc => SortMode::SizeDesc,
-            SortMode::SizeDesc => SortMode::DateAsc,
-            SortMode::DateAsc => SortMode::DateDesc,
-            SortMode::DateDesc => SortMode::None,
-            SortMode::None => SortMode::NameAsc,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            SortMode::NameAsc => "Name ↑",
-            SortMode::NameDesc => "Name ↓",
-            SortMode::ExtAsc => "Ext ↑",
-            SortMode::ExtDesc => "Ext ↓",
-            SortMode::SizeAsc => "Size ↑",
-            SortMode::SizeDesc => "Size ↓",
-            SortMode::DateAsc => "Date ↑",
-            SortMode::DateDesc => "Date ↓",
-            SortMode::None => "None",
-        }
-    }
-}
+// Re-export SortMode from qdos-plugin-api
+pub use qdos_plugin_api::SortMode;
 
 /// Find command phases
 #[derive(Debug, Clone, PartialEq, Eq)]

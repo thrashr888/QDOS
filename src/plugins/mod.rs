@@ -19,12 +19,11 @@ pub mod find_modal;
 
 // Local plugins (tightly coupled to main app modules)
 pub mod games;
-pub mod qdconfig;
 pub mod qlink;
 
 // Re-export local plugin types
 pub use games::GamesPlugin;
-pub use qdconfig::QdconfigPlugin;
+pub use qdos_plugin_qdconfig::QdconfigPlugin;
 pub use qlink::QLinkPlugin;
 
 // All plugins are now external crates
@@ -432,10 +431,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to QdconfigPlugin
-    pub fn qdconfig_plugin_mut(&mut self) -> Option<&mut qdconfig::QdconfigPlugin> {
-        self.plugins
-            .get_mut("qdconfig")
-            .and_then(|p| p.as_any_mut().downcast_mut::<qdconfig::QdconfigPlugin>())
+    pub fn qdconfig_plugin_mut(&mut self) -> Option<&mut qdos_plugin_qdconfig::QdconfigPlugin> {
+        self.plugins.get_mut("qdconfig").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_qdconfig::QdconfigPlugin>()
+        })
     }
 
     /// Get mutable reference to FileOpsPlugin
