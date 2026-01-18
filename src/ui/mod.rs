@@ -1,4 +1,5 @@
 pub mod components;
+pub mod fileops_modals;
 mod modals;
 
 use crate::app::{App, Modal, NavItem, SortMode};

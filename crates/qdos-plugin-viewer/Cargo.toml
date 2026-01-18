@@ -1,0 +1,25 @@
+[package]
+name = "qdos-plugin-viewer"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS File Viewer plugin"
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+qdos-plugin-git = { path = "../qdos-plugin-git" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Image viewing
+ratatui-image = "3.0"
+image = "0.25"
+
+# SVG rendering
+resvg = "0.44"
+tiny-skia = "0.11"
+
+# Syntax highlighting
+syntect = "5.2"

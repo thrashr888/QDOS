@@ -2,12 +2,11 @@
 //!
 //! Provides color theme selection (Ctrl+T functionality) as a self-contained plugin.
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::app::{ColorTheme, ColorThemeState};
-use crate::ui::components::ModalFrame;
+#![allow(clippy::ptr_arg)]
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use qdos_plugin_api::prelude::*;
+use qdos_plugin_api::ui::ModalFrame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
@@ -176,7 +175,7 @@ impl Plugin for ThemePlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -278,6 +277,11 @@ impl Plugin for ThemePlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("theme", || Box::new(ThemePlugin::new()))
 }
 
 #[cfg(test)]

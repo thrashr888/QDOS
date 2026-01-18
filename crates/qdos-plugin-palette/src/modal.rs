@@ -1,8 +1,8 @@
 //! Command Palette modal rendering
 
 use super::state::{PaletteCategory, PaletteState};
-use crate::app::ThemeColors;
-use crate::ui::components::ModalFrame;
+use qdos_plugin_api::ui::ModalFrame;
+use qdos_plugin_api::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;

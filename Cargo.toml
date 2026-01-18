@@ -41,6 +41,13 @@ members = [
     "crates/qdos-plugin-git",
     "crates/qdos-plugin-beads",
     "crates/qdos-plugin-qedit",
+    "crates/qdos-plugin-palette",
+    "crates/qdos-plugin-theme",
+    "crates/qdos-plugin-drives",
+    "crates/qdos-plugin-viewer",
+    "crates/qdos-plugin-apps",
+    "crates/qdos-plugin-fileops",
+    "crates/qdos-plugin-qtask",
 ]
 resolver = "2"
 
@@ -192,6 +199,13 @@ qdos-plugin-qffmpeg = { path = "crates/qdos-plugin-qffmpeg" }
 qdos-plugin-git = { path = "crates/qdos-plugin-git" }
 qdos-plugin-beads = { path = "crates/qdos-plugin-beads" }
 qdos-plugin-qedit = { path = "crates/qdos-plugin-qedit" }
+qdos-plugin-palette = { path = "crates/qdos-plugin-palette" }
+qdos-plugin-theme = { path = "crates/qdos-plugin-theme" }
+qdos-plugin-drives = { path = "crates/qdos-plugin-drives" }
+qdos-plugin-viewer = { path = "crates/qdos-plugin-viewer" }
+qdos-plugin-apps = { path = "crates/qdos-plugin-apps" }
+qdos-plugin-fileops = { path = "crates/qdos-plugin-fileops" }
+qdos-plugin-qtask = { path = "crates/qdos-plugin-qtask" }
 glob = "0.3.3"
 ignore = "0.4.25"
 

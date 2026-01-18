@@ -307,12 +307,12 @@ fn parse_line(line_number: usize, line: &str) -> TaskNode {
     let (node_type, content) = if trimmed.ends_with(':') && !trimmed.contains('@') {
         // Project: ends with colon (but not a tag value)
         (NodeType::Project, trimmed.trim_end_matches(':').to_string())
-    } else if trimmed.starts_with("- ") {
-        // Task: starts with dash
-        (NodeType::Task, trimmed[2..].to_string())
-    } else if trimmed.starts_with('-') && trimmed.len() > 1 {
+    } else if let Some(rest) = trimmed.strip_prefix("- ") {
+        // Task: starts with dash and space
+        (NodeType::Task, rest.to_string())
+    } else if let Some(rest) = trimmed.strip_prefix('-') {
         // Task without space after dash
-        (NodeType::Task, trimmed[1..].trim_start().to_string())
+        (NodeType::Task, rest.trim_start().to_string())
     } else {
         // Note: everything else
         (NodeType::Note, trimmed.to_string())

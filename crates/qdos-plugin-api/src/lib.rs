@@ -40,6 +40,265 @@ pub use ratatui::text::{Line, Span, Text};
 pub use ratatui::widgets::{Block, Borders, Paragraph};
 
 // =============================================================================
+// NAVIGATION ITEMS (MENU COMMANDS)
+// =============================================================================
+
+/// Navigation/menu command items
+///
+/// These represent the main menu commands available in R-DOS.
+/// Plugins can use these for command palette integration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NavItem {
+    Directory,
+    Tag,
+    View,
+    Open,
+    Copy,
+    Move,
+    MkDir,
+    Find,
+    Erase,
+    Rename,
+    Git,
+    Beads,
+    Jj,
+    Space,
+    Attribute,
+    Print,
+}
+
+impl NavItem {
+    /// All navigation items in menu order
+    pub const ALL: [NavItem; 16] = [
+        NavItem::Directory,
+        NavItem::Tag,
+        NavItem::View,
+        NavItem::Open,
+        NavItem::Copy,
+        NavItem::Move,
+        NavItem::MkDir,
+        NavItem::Find,
+        NavItem::Erase,
+        NavItem::Rename,
+        NavItem::Git,
+        NavItem::Beads,
+        NavItem::Jj,
+        NavItem::Space,
+        NavItem::Attribute,
+        NavItem::Print,
+    ];
+
+    /// Get display name
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            NavItem::Directory => "Directory",
+            NavItem::Tag => "Tag",
+            NavItem::View => "View",
+            NavItem::Open => "Open",
+            NavItem::Copy => "Copy",
+            NavItem::Move => "Move",
+            NavItem::MkDir => "MkDir",
+            NavItem::Find => "Find",
+            NavItem::Erase => "Erase",
+            NavItem::Rename => "Rename",
+            NavItem::Git => "Git",
+            NavItem::Beads => "Beads",
+            NavItem::Jj => "Jj",
+            NavItem::Space => "Space",
+            NavItem::Attribute => "Attribute",
+            NavItem::Print => "Print",
+        }
+    }
+
+    /// Get description
+    pub fn description(&self) -> &'static str {
+        match self {
+            NavItem::Directory => "Change current directory, remove directory, see directory tree",
+            NavItem::Tag => {
+                "Tag groups of files, or clear all tags -- SPACE BAR tags highlighted file"
+            }
+            NavItem::View => {
+                "View the contents of any file on the screen (in \"ASCII\" or \"HEX\")"
+            }
+            NavItem::Open => "Open file in its default application (macOS/Linux)",
+            NavItem::Copy => "Copy one or several files to another disk or directory",
+            NavItem::Move => "Move one or several files from this directory to another directory",
+            NavItem::MkDir => "Create a new directory in the current location",
+            NavItem::Find => "Search all directories on the disk to find specified file(s)",
+            NavItem::Erase => "Erase one or several files from this directory",
+            NavItem::Rename => "Rename one or several files in this directory",
+            NavItem::Git => "Git integration: status, log, diff, commit, push, pull",
+            NavItem::Beads => "Beads issue tracker: list, create, manage issues",
+            NavItem::Jj => "Jujutsu VCS: status, log, diff, describe, bookmarks",
+            NavItem::Space => "Show the total, used, and free space on any disk",
+            NavItem::Attribute => "Change/view file attributes",
+            NavItem::Print => "Print the highlighted file",
+        }
+    }
+}
+
+// =============================================================================
+// COLOR THEMES
+// =============================================================================
+
+/// Color theme options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ColorTheme {
+    #[default]
+    Default,
+    Monochrome,
+    Blue,
+    Green,
+    Amber,
+}
+
+impl ColorTheme {
+    /// All available themes
+    pub const ALL: [ColorTheme; 5] = [
+        ColorTheme::Default,
+        ColorTheme::Monochrome,
+        ColorTheme::Blue,
+        ColorTheme::Green,
+        ColorTheme::Amber,
+    ];
+
+    /// Get theme name
+    pub fn name(&self) -> &'static str {
+        match self {
+            ColorTheme::Default => "Default",
+            ColorTheme::Monochrome => "Monochrome",
+            ColorTheme::Blue => "Blue",
+            ColorTheme::Green => "Green",
+            ColorTheme::Amber => "Amber",
+        }
+    }
+
+    /// Get theme description
+    pub fn description(&self) -> &'static str {
+        match self {
+            ColorTheme::Default => "DOS-style blue/white/yellow",
+            ColorTheme::Monochrome => "Black and white only",
+            ColorTheme::Blue => "Classic blue theme",
+            ColorTheme::Green => "Matrix-style green",
+            ColorTheme::Amber => "Vintage amber monitor",
+        }
+    }
+
+    /// Get the RGB color values for this theme, optionally adjusted for terminal luma
+    /// If luma > 0.6, the terminal is considered "light" and colors are adjusted
+    pub fn colors_for_luma(&self, luma: Option<f32>) -> ThemeColors {
+        let base_colors = self.colors();
+        match luma {
+            Some(l) if l > 0.6 => base_colors.for_light_terminal(),
+            _ => base_colors,
+        }
+    }
+
+    /// Get the RGB color values for this theme (assumes dark terminal)
+    pub fn colors(&self) -> ThemeColors {
+        match self {
+            ColorTheme::Default => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (255, 255, 255),
+                blue: (102, 183, 179),
+                green: (103, 204, 77),
+                red: (157, 31, 20),
+                yellow: (232, 218, 89),
+                grey: (128, 128, 128),
+                cyan: (105, 195, 186),
+                magenta: (170, 0, 170),
+            },
+            ColorTheme::Monochrome => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (170, 170, 170),
+                blue: (170, 170, 170),
+                green: (170, 170, 170),
+                red: (85, 85, 85),
+                yellow: (255, 255, 255),
+                grey: (128, 128, 128),
+                cyan: (170, 170, 170),
+                magenta: (170, 170, 170),
+            },
+            ColorTheme::Blue => ThemeColors {
+                background: (0, 0, 173),
+                foreground: (255, 255, 255),
+                blue: (149, 249, 253),
+                green: (103, 204, 77),
+                red: (157, 31, 20),
+                yellow: (232, 218, 89),
+                grey: (128, 128, 128),
+                cyan: (149, 249, 253),
+                magenta: (170, 0, 170),
+            },
+            ColorTheme::Green => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (0, 255, 0),
+                blue: (0, 180, 0),
+                green: (0, 255, 0),
+                red: (0, 100, 0),
+                yellow: (180, 255, 0),
+                grey: (0, 128, 0),
+                cyan: (0, 200, 100),
+                magenta: (100, 200, 0),
+            },
+            ColorTheme::Amber => ThemeColors {
+                background: (0, 0, 0),
+                foreground: (255, 176, 0),
+                blue: (200, 140, 0),
+                green: (255, 176, 0),
+                red: (128, 88, 0),
+                yellow: (255, 220, 100),
+                grey: (180, 125, 0),
+                cyan: (255, 200, 50),
+                magenta: (220, 150, 0),
+            },
+        }
+    }
+}
+
+/// State for theme selection modal
+#[derive(Debug, Clone)]
+pub struct ColorThemeState {
+    /// Currently selected theme in the list
+    pub selected: usize,
+    /// The theme that was active when the modal opened
+    pub original_theme: ColorTheme,
+}
+
+impl ColorThemeState {
+    /// Create new theme selection state
+    pub fn new(current_theme: ColorTheme) -> Self {
+        let selected = ColorTheme::ALL
+            .iter()
+            .position(|&t| t == current_theme)
+            .unwrap_or(0);
+        Self {
+            selected,
+            original_theme: current_theme,
+        }
+    }
+
+    /// Get the currently selected theme
+    pub fn selected_theme(&self) -> ColorTheme {
+        ColorTheme::ALL[self.selected]
+    }
+
+    /// Move selection up
+    pub fn select_prev(&mut self) {
+        if self.selected > 0 {
+            self.selected -= 1;
+        }
+    }
+
+    /// Move selection down
+    pub fn select_next(&mut self) {
+        if self.selected + 1 < ColorTheme::ALL.len() {
+            self.selected += 1;
+        }
+    }
+}
+
+// =============================================================================
 // THEME COLORS
 // =============================================================================
 
@@ -504,7 +763,9 @@ pub mod prelude {
         AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
         PluginRegistration, PluginStatusInfo, SoundEvent, ThemeColors,
     };
+    // Extended types for more plugins
     pub use super::{Color, KeyCode, KeyModifiers, Modifier, Span, Style};
+    pub use super::{ColorTheme, ColorThemeState, NavItem};
     // UI components
     pub use super::ui::{FullScreenView, ModalFrame, TabBar, TabState};
     pub use crossterm::event::KeyEvent;

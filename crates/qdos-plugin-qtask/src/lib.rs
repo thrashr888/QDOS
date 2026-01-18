@@ -3,16 +3,17 @@
 //! Treats .taskpaper files as interactive project management interfaces.
 //! Features syntax highlighting, smart editing, folding, and filtering.
 
+#![allow(clippy::ptr_arg)]
+
 mod parser;
 mod state;
 
 pub use parser::{NodeType, TaskNode};
 pub use state::{QTaskState, QTaskView};
 
-use crate::app::ThemeColors;
-use crate::plugins::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
-use crate::ui::components::FullScreenView;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use qdos_plugin_api::prelude::*;
+use qdos_plugin_api::ui::FullScreenView;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
@@ -615,6 +616,11 @@ impl QTaskPlugin {
             _ => KeyHandleResult::Handled,
         }
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("qtask", || Box::new(QTaskPlugin::new()))
 }
 
 #[cfg(test)]

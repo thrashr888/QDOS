@@ -1,0 +1,16 @@
+[package]
+name = "qdos-plugin-theme"
+version = "0.1.0"
+edition = "2021"
+description = "Color Theme plugin for R-DOS"
+authors = ["thrashr888"]
+license = "MIT"
+
+[dependencies]
+# Plugin API
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"

@@ -2,17 +2,20 @@
 //!
 //! Centralized launcher for accessing QDOS plugins and tools.
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 pub mod state;
 
-use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
-};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use qdos_plugin_api::prelude::*;
 use ratatui::{layout::Rect, Frame};
 use state::{AppEntry, AppsState};
 use std::any::Any;
 use std::path::PathBuf;
+
+// Re-export state types for external use
+pub use state::PluginCategory;
 
 /// Apps launcher plugin
 pub struct AppsPlugin {
@@ -201,7 +204,7 @@ impl Plugin for AppsPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         modal::draw_apps_modal(frame, area, &self.state, colors);
     }
 
@@ -230,4 +233,9 @@ impl Plugin for AppsPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("apps", || Box::new(AppsPlugin::new()))
 }

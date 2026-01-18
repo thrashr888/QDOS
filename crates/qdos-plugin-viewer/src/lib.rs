@@ -9,15 +9,15 @@
 //! - Git diff view
 //! - Git history navigation
 
-use super::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-};
-use crate::plugins::git::ops::{
+#![allow(clippy::ptr_arg)]
+
+use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_api::prelude::*;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_git::ops::{
     load_file_at_commit, load_file_blame, load_file_diff_against_head, load_file_history,
 };
-use crate::plugins::git::{BlameLine, FileHistoryEntry};
-use crate::ui::components::FullScreenView;
-use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_git::{BlameLine, FileHistoryEntry};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -495,7 +495,7 @@ impl Plugin for ViewerPlugin {
         KeyHandleResult::Handled
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let state = match &self.state {
             Some(s) => s,
             None => return,
@@ -630,6 +630,11 @@ impl Plugin for ViewerPlugin {
     }
 }
 
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("viewer", || Box::new(ViewerPlugin::new()))
+}
+
 // Drawing helper methods
 impl ViewerPlugin {
     fn draw_normal_view(
@@ -638,7 +643,7 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         let content_str = String::from_utf8_lossy(&state.content);
         let ss = get_syntax_set();
@@ -753,7 +758,7 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         let bytes_per_line: usize = 16;
         let total_lines = state.content.len().div_ceil(bytes_per_line);
@@ -815,7 +820,7 @@ impl ViewerPlugin {
         frame: &mut Frame,
         area: Rect,
         state: &ViewerState,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         if let Some(mut protocol) = get_or_create_image_protocol(&state.content) {
             let image_widget = StatefulImage::new(None);
@@ -849,7 +854,7 @@ impl ViewerPlugin {
         frame: &mut Frame,
         area: Rect,
         state: &ViewerState,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         // Try to render SVG to image
         if let Some(png_data) = rasterize_svg(&state.content) {
@@ -889,29 +894,29 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         let content_str = String::from_utf8_lossy(&state.content);
         let mut lines: Vec<Line> = Vec::new();
 
         for line in content_str.lines() {
-            if line.starts_with("# ") {
+            if let Some(rest) = line.strip_prefix("# ") {
                 lines.push(Line::from(Span::styled(
-                    format!(" {}", &line[2..]),
+                    format!(" {}", rest),
                     Style::default()
                         .fg(colors.blue())
                         .add_modifier(Modifier::BOLD),
                 )));
-            } else if line.starts_with("## ") {
+            } else if let Some(rest) = line.strip_prefix("## ") {
                 lines.push(Line::from(Span::styled(
-                    format!(" {}", &line[3..]),
+                    format!(" {}", rest),
                     Style::default()
                         .fg(colors.blue())
                         .add_modifier(Modifier::BOLD),
                 )));
-            } else if line.starts_with("### ") {
+            } else if let Some(rest) = line.strip_prefix("### ") {
                 lines.push(Line::from(Span::styled(
-                    format!(" {}", &line[4..]),
+                    format!(" {}", rest),
                     Style::default().fg(colors.blue()),
                 )));
             } else if line.starts_with("#### ")
@@ -928,9 +933,9 @@ impl ViewerPlugin {
                     " ─────────────────────────────────────",
                     Style::default().fg(colors.green()),
                 )));
-            } else if line.starts_with("- ") || line.starts_with("* ") {
+            } else if let Some(rest) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
                 lines.push(Line::from(Span::styled(
-                    format!("  • {}", &line[2..]),
+                    format!("  • {}", rest),
                     Style::default().fg(colors.fg()),
                 )));
             } else if line.chars().next().is_some_and(|c| c.is_ascii_digit()) && line.contains(". ")
@@ -939,9 +944,9 @@ impl ViewerPlugin {
                     format!("  {}", line),
                     Style::default().fg(colors.fg()),
                 )));
-            } else if line.starts_with("> ") {
+            } else if let Some(rest) = line.strip_prefix("> ") {
                 lines.push(Line::from(Span::styled(
-                    format!(" │ {}", &line[2..]),
+                    format!(" │ {}", rest),
                     Style::default().fg(colors.green()),
                 )));
             } else if line == "---" || line == "***" || line == "___" {
@@ -996,7 +1001,7 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         if state.blame_lines.is_empty() {
             let error_msg = vec![
@@ -1061,7 +1066,7 @@ impl ViewerPlugin {
         area: Rect,
         state: &ViewerState,
         height: usize,
-        colors: &crate::app::ThemeColors,
+        colors: &ThemeColors,
     ) {
         if state.diff_lines.is_empty() {
             let error_msg = vec![
@@ -1090,9 +1095,11 @@ impl ViewerPlugin {
                     (Style::default().fg(colors.red()), "-")
                 } else if line.starts_with("@@") {
                     (Style::default().fg(colors.cyan()), "@")
-                } else if line.starts_with("diff ") || line.starts_with("index ") {
-                    (Style::default().fg(colors.blue()), " ")
-                } else if line.starts_with("+++") || line.starts_with("---") {
+                } else if line.starts_with("diff ")
+                    || line.starts_with("index ")
+                    || line.starts_with("+++")
+                    || line.starts_with("---")
+                {
                     (Style::default().fg(colors.blue()), " ")
                 } else {
                     (Style::default().fg(colors.fg()), " ")

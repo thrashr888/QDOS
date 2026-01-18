@@ -1,0 +1,14 @@
+[package]
+name = "qdos-plugin-qtask"
+version = "0.1.0"
+edition = "2021"
+description = "R-DOS Q-TASK plugin for TaskPaper file editing"
+license = "MIT"
+repository = "https://github.com/thrashr888/QDOS"
+
+[dependencies]
+qdos-plugin-api = { path = "../qdos-plugin-api" }
+inventory = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+chrono = { version = "0.4", features = ["serde"] }

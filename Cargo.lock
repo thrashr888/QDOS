@@ -3741,6 +3741,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-apps"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-audio"
 version = "0.1.0"
 dependencies = [
@@ -3834,7 +3844,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-drives"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "dirs 6.0.0",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-emulator"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
+name = "qdos-plugin-fileops"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.28.1",
@@ -3904,6 +3935,16 @@ dependencies = [
  "ratatui",
  "ratatui-image 1.0.5",
  "tobj",
+]
+
+[[package]]
+name = "qdos-plugin-palette"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
 ]
 
 [[package]]
@@ -4068,6 +4109,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-qtask"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-redis"
 version = "0.1.0"
 dependencies = [
@@ -4143,6 +4195,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-plugin-theme"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "inventory",
+ "qdos-plugin-api",
+ "ratatui",
+]
+
+[[package]]
 name = "qdos-plugin-video"
 version = "0.1.0"
 dependencies = [
@@ -4153,6 +4215,22 @@ dependencies = [
  "qdos-plugin-api",
  "ratatui",
  "ratatui-image 1.0.5",
+]
+
+[[package]]
+name = "qdos-plugin-viewer"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "image",
+ "inventory",
+ "qdos-plugin-api",
+ "qdos-plugin-git",
+ "ratatui",
+ "ratatui-image 3.0.0",
+ "resvg",
+ "syntect",
+ "tiny-skia",
 ]
 
 [[package]]
@@ -4409,6 +4487,7 @@ dependencies = [
  "portable-pty",
  "postgres",
  "qdos-plugin-api",
+ "qdos-plugin-apps",
  "qdos-plugin-audio",
  "qdos-plugin-basic",
  "qdos-plugin-beads",
@@ -4417,13 +4496,16 @@ dependencies = [
  "qdos-plugin-deps",
  "qdos-plugin-dirmap",
  "qdos-plugin-docker",
+ "qdos-plugin-drives",
  "qdos-plugin-emulator",
+ "qdos-plugin-fileops",
  "qdos-plugin-git",
  "qdos-plugin-help",
  "qdos-plugin-homebrew",
  "qdos-plugin-jj",
  "qdos-plugin-midi",
  "qdos-plugin-model3d",
+ "qdos-plugin-palette",
  "qdos-plugin-print",
  "qdos-plugin-proc",
  "qdos-plugin-qcode",
@@ -4437,6 +4519,7 @@ dependencies = [
  "qdos-plugin-qmail",
  "qdos-plugin-qmidi",
  "qdos-plugin-qpaint",
+ "qdos-plugin-qtask",
  "qdos-plugin-redis",
  "qdos-plugin-searchspec",
  "qdos-plugin-sftp",
@@ -4444,7 +4527,9 @@ dependencies = [
  "qdos-plugin-space",
  "qdos-plugin-status",
  "qdos-plugin-terraform",
+ "qdos-plugin-theme",
  "qdos-plugin-video",
+ "qdos-plugin-viewer",
  "rand 0.8.5",
  "ratatui",
  "ratatui-image 3.0.0",

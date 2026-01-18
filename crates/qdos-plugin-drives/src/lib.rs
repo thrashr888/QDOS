@@ -3,14 +3,13 @@
 //! Shows mounted volumes and network drives. F3 is the classic "Change Drive"
 //! key from DOS.
 
+#![allow(clippy::ptr_arg)]
+
 mod modal;
 pub mod state;
 
-use crate::plugins::{
-    AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory, PluginMenuItem,
-    PluginStatusInfo,
-};
 use crossterm::event::{KeyCode, KeyEvent};
+use qdos_plugin_api::prelude::*;
 use ratatui::{layout::Rect, Frame};
 #[cfg(target_os = "macos")]
 use state::ShareProtocol;
@@ -673,7 +672,7 @@ impl Plugin for DrivesPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         modal::draw_drives_modal(frame, area, &self.state, colors);
     }
 
@@ -721,6 +720,11 @@ impl Plugin for DrivesPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("drives", || Box::new(DrivesPlugin::new()))
 }
 
 #[cfg(test)]

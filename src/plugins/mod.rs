@@ -13,47 +13,42 @@
 #![allow(dead_code)]
 
 pub mod ai;
-pub mod apps;
 pub mod attribute;
 pub mod beads;
 pub mod clipboard;
-pub mod drives;
 pub mod dropbox;
-pub mod fileops;
 pub mod find;
 pub mod games;
 pub mod gdrive;
 pub mod git;
 pub mod icloud;
 pub mod office;
-pub mod palette;
 pub mod qdconfig;
 pub mod qedit;
 pub mod qlink;
 pub mod qmind;
-pub mod qtask;
-pub mod theme;
-pub mod viewer;
 
 pub use ai::AIPlugin;
-pub use apps::AppsPlugin;
 pub use beads::BeadsPlugin;
-pub use drives::DrivesPlugin;
 pub use dropbox::DropboxPlugin;
-pub use fileops::FileOpsPlugin;
 pub use games::GamesPlugin;
 pub use gdrive::GDrivePlugin;
 pub use git::GitPlugin;
 pub use icloud::ICloudPlugin;
 pub use office::{DocsPlugin, OfficePlugin, SheetPlugin, WebPlugin};
-pub use palette::PalettePlugin;
 pub use qdconfig::QdconfigPlugin;
 pub use qedit::QEditPlugin;
 pub use qlink::QLinkPlugin;
 pub use qmind::QMindPlugin;
-pub use qtask::QTaskPlugin;
-pub use theme::ThemePlugin;
-pub use viewer::ViewerPlugin;
+
+// Externally crated plugins (moved from src/plugins/)
+pub use qdos_plugin_apps::AppsPlugin;
+pub use qdos_plugin_drives::DrivesPlugin;
+pub use qdos_plugin_fileops::{FileOperation, FileOpsPlugin};
+pub use qdos_plugin_palette::PalettePlugin;
+pub use qdos_plugin_qtask::QTaskPlugin;
+pub use qdos_plugin_theme::ThemePlugin;
+pub use qdos_plugin_viewer::ViewerPlugin;
 
 // Externally crated plugins
 pub use qdos_plugin_audio::AudioPlugin;
@@ -205,21 +200,21 @@ impl PluginManager {
     }
 
     /// Collect app entries from all registered plugins for the Apps launcher
-    pub fn collect_app_entries(&self, _cwd: &PathBuf) -> Vec<apps::state::AppEntry> {
+    pub fn collect_app_entries(&self, _cwd: &PathBuf) -> Vec<qdos_plugin_apps::state::AppEntry> {
         self.plugins()
             .filter_map(|p| {
                 p.app_entry().map(|entry| {
                     let enabled = self.config.is_plugin_enabled(&entry.id);
-                    apps::state::AppEntry {
+                    qdos_plugin_apps::state::AppEntry {
                         id: entry.id,
                         name: entry.name,
                         description: entry.description,
                         category: match entry.category {
-                            PluginCategory::Files => apps::state::PluginCategory::Files,
-                            PluginCategory::Vcs => apps::state::PluginCategory::Vcs,
-                            PluginCategory::Tools => apps::state::PluginCategory::Tools,
-                            PluginCategory::Games => apps::state::PluginCategory::Games,
-                            PluginCategory::System => apps::state::PluginCategory::System,
+                            PluginCategory::Files => qdos_plugin_apps::PluginCategory::Files,
+                            PluginCategory::Vcs => qdos_plugin_apps::PluginCategory::Vcs,
+                            PluginCategory::Tools => qdos_plugin_apps::PluginCategory::Tools,
+                            PluginCategory::Games => qdos_plugin_apps::PluginCategory::Games,
+                            PluginCategory::System => qdos_plugin_apps::PluginCategory::System,
                         },
                         key: entry.key,
                         // Apps launcher shows all plugins as available - runtime availability
@@ -376,10 +371,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to ThemePlugin
-    pub fn theme_plugin_mut(&mut self) -> Option<&mut theme::ThemePlugin> {
-        self.plugins
-            .get_mut("theme")
-            .and_then(|p| p.as_any_mut().downcast_mut::<theme::ThemePlugin>())
+    pub fn theme_plugin_mut(&mut self) -> Option<&mut qdos_plugin_theme::ThemePlugin> {
+        self.plugins.get_mut("theme").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_theme::ThemePlugin>()
+        })
     }
 
     /// Get mutable reference to SpacePlugin
@@ -450,24 +446,27 @@ impl PluginManager {
     }
 
     /// Get mutable reference to FileOpsPlugin
-    pub fn fileops_plugin_mut(&mut self) -> Option<&mut fileops::FileOpsPlugin> {
-        self.plugins
-            .get_mut("fileops")
-            .and_then(|p| p.as_any_mut().downcast_mut::<fileops::FileOpsPlugin>())
+    pub fn fileops_plugin_mut(&mut self) -> Option<&mut qdos_plugin_fileops::FileOpsPlugin> {
+        self.plugins.get_mut("fileops").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_fileops::FileOpsPlugin>()
+        })
     }
 
     /// Get mutable reference to ViewerPlugin
-    pub fn viewer_plugin_mut(&mut self) -> Option<&mut viewer::ViewerPlugin> {
-        self.plugins
-            .get_mut("viewer")
-            .and_then(|p| p.as_any_mut().downcast_mut::<viewer::ViewerPlugin>())
+    pub fn viewer_plugin_mut(&mut self) -> Option<&mut qdos_plugin_viewer::ViewerPlugin> {
+        self.plugins.get_mut("viewer").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_viewer::ViewerPlugin>()
+        })
     }
 
     /// Get reference to ViewerPlugin
-    pub fn viewer_plugin(&self) -> Option<&viewer::ViewerPlugin> {
-        self.plugins
-            .get("viewer")
-            .and_then(|p| p.as_any().downcast_ref::<viewer::ViewerPlugin>())
+    pub fn viewer_plugin(&self) -> Option<&qdos_plugin_viewer::ViewerPlugin> {
+        self.plugins.get("viewer").and_then(|p| {
+            p.as_any()
+                .downcast_ref::<qdos_plugin_viewer::ViewerPlugin>()
+        })
     }
 
     /// Get mutable reference to QEditPlugin
@@ -478,10 +477,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to QTaskPlugin
-    pub fn qtask_plugin_mut(&mut self) -> Option<&mut qtask::QTaskPlugin> {
-        self.plugins
-            .get_mut("qtask")
-            .and_then(|p| p.as_any_mut().downcast_mut::<qtask::QTaskPlugin>())
+    pub fn qtask_plugin_mut(&mut self) -> Option<&mut qdos_plugin_qtask::QTaskPlugin> {
+        self.plugins.get_mut("qtask").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_qtask::QTaskPlugin>()
+        })
     }
 
     /// Get mutable reference to JjPlugin
@@ -492,17 +492,19 @@ impl PluginManager {
     }
 
     /// Get mutable reference to AppsPlugin
-    pub fn apps_plugin_mut(&mut self) -> Option<&mut apps::AppsPlugin> {
-        self.plugins
-            .get_mut("apps")
-            .and_then(|p| p.as_any_mut().downcast_mut::<apps::AppsPlugin>())
+    pub fn apps_plugin_mut(&mut self) -> Option<&mut qdos_plugin_apps::AppsPlugin> {
+        self.plugins.get_mut("apps").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_apps::AppsPlugin>()
+        })
     }
 
     /// Get mutable reference to DrivesPlugin
-    pub fn drives_plugin_mut(&mut self) -> Option<&mut drives::DrivesPlugin> {
-        self.plugins
-            .get_mut("drives")
-            .and_then(|p| p.as_any_mut().downcast_mut::<drives::DrivesPlugin>())
+    pub fn drives_plugin_mut(&mut self) -> Option<&mut qdos_plugin_drives::DrivesPlugin> {
+        self.plugins.get_mut("drives").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_drives::DrivesPlugin>()
+        })
     }
 
     /// Get mutable reference to HomebrewPlugin
@@ -606,10 +608,11 @@ impl PluginManager {
     }
 
     /// Get mutable reference to PalettePlugin
-    pub fn palette_plugin_mut(&mut self) -> Option<&mut palette::PalettePlugin> {
-        self.plugins
-            .get_mut("palette")
-            .and_then(|p| p.as_any_mut().downcast_mut::<palette::PalettePlugin>())
+    pub fn palette_plugin_mut(&mut self) -> Option<&mut qdos_plugin_palette::PalettePlugin> {
+        self.plugins.get_mut("palette").and_then(|p| {
+            p.as_any_mut()
+                .downcast_mut::<qdos_plugin_palette::PalettePlugin>()
+        })
     }
 
     /// Get list of registered plugins with their info (id, name, description)

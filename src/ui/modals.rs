@@ -32,7 +32,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
             crate::plugins::find::modal::draw_find_modal(frame, area, state, app);
         }
         Modal::BatchRename(state) => {
-            crate::plugins::fileops::modal::draw_batch_rename_modal(frame, area, state, app);
+            crate::ui::fileops_modals::draw_batch_rename_modal(frame, area, state, app);
         }
         Modal::Git(state) => {
             crate::plugins::git::modal::draw_git_modal(frame, area, state, app);
@@ -50,15 +50,15 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
 
         Modal::CopyTo(dest) => {
             let modal_area = centered_fixed(50, 12, area);
-            crate::plugins::fileops::modal::draw_copy_modal(frame, modal_area, dest, app);
+            crate::ui::fileops_modals::draw_copy_modal(frame, modal_area, dest, app);
         }
         Modal::MoveTo(dest) => {
             let modal_area = centered_fixed(50, 12, area);
-            crate::plugins::fileops::modal::draw_move_modal(frame, modal_area, dest, app);
+            crate::ui::fileops_modals::draw_move_modal(frame, modal_area, dest, app);
         }
         Modal::EraseConfirm => {
             let modal_area = centered_fixed(50, 10, area);
-            crate::plugins::fileops::modal::draw_erase_modal(frame, modal_area, app);
+            crate::ui::fileops_modals::draw_erase_modal(frame, modal_area, app);
         }
         Modal::PathInput(path) => {
             // Taller modal to show z suggestions
@@ -67,7 +67,7 @@ pub(super) fn draw_modal(frame: &mut Frame, app: &App, area: Rect) {
         }
         Modal::RenameInput(name) => {
             let modal_area = centered_fixed(50, 10, area);
-            crate::plugins::fileops::modal::draw_rename_modal(frame, modal_area, name, app);
+            crate::ui::fileops_modals::draw_rename_modal(frame, modal_area, name, app);
         }
         Modal::Attribute(state) => {
             let modal_area = centered_fixed(60, 15, area);

@@ -2,16 +2,15 @@
 //!
 //! Spotlight-style command palette for quick access to apps, commands, files, and calculator.
 
+#![allow(clippy::ptr_arg)]
+
 mod calc;
 mod fuzzy;
 mod modal;
 pub mod state;
 
-use crate::app::{NavItem, ThemeColors};
-use crate::plugins::{
-    KeyHandleResult, Plugin, PluginCapabilities, PluginMenuItem, PluginStatusInfo,
-};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use qdos_plugin_api::prelude::*;
 use ratatui::{layout::Rect, Frame};
 use state::{PaletteAction, PaletteResult, PaletteState};
 use std::any::Any;
@@ -301,4 +300,9 @@ impl Plugin for PalettePlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("palette", || Box::new(PalettePlugin::new()))
 }

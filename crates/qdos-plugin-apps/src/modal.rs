@@ -3,8 +3,8 @@
 //! UI for the F12 Apps launcher using FullScreenView.
 
 use super::state::AppsState;
-use crate::app::ThemeColors;
-use crate::ui::components::FullScreenView;
+use qdos_plugin_api::ui::FullScreenView;
+use qdos_plugin_api::ThemeColors;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::Span;

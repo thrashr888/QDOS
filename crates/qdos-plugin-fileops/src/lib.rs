@@ -3,10 +3,11 @@
 //! Provides file operation modals (Copy, Move, Erase, Rename) as a self-contained plugin.
 //! The actual file operations are executed by the app; this plugin manages the UI.
 
-pub mod modal;
+#![allow(clippy::ptr_arg)]
 
-use super::{AppEntry, KeyHandleResult, Plugin, PluginCapabilities, PluginCategory};
-use crate::ui::components::ModalFrame;
+use crossterm::event::KeyCode;
+use qdos_plugin_api::prelude::*;
+use qdos_plugin_api::ui::ModalFrame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
@@ -241,8 +242,6 @@ impl Plugin for FileOpsPlugin {
         key: crossterm::event::KeyEvent,
         _cwd: &PathBuf,
     ) -> KeyHandleResult {
-        use crossterm::event::KeyCode;
-
         let Some(ref mut state) = self.state else {
             return KeyHandleResult::CloseModal;
         };
@@ -316,7 +315,7 @@ impl Plugin for FileOpsPlugin {
         }
     }
 
-    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &crate::app::ThemeColors) {
+    fn draw_modal(&self, frame: &mut Frame, area: Rect, colors: &ThemeColors) {
         let Some(ref state) = self.state else {
             return;
         };
@@ -437,6 +436,11 @@ impl Plugin for FileOpsPlugin {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+// Self-registration for automatic plugin discovery
+inventory::submit! {
+    PluginRegistration::new("fileops", || Box::new(FileOpsPlugin::new()))
 }
 
 #[cfg(test)]

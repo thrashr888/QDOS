@@ -8,8 +8,8 @@ use qdos_plugin_jj::ops as jj_ops;
 // Re-export state types for external use (non-plugin types)
 pub use state::{
     AttrValue, AttributeState, BatchRenameState, BeadsState, BeadsView, ClipboardItem,
-    ClipboardState, ColorTheme, ColorThemeState, FindPhase, FindState, Modal, NavItem,
-    ProgressOperation, ProgressState, SearchMode, SortMode, ThemeColors,
+    ClipboardState, ColorTheme, FindPhase, FindState, Modal, NavItem, ProgressOperation,
+    ProgressState, SearchMode, SortMode, ThemeColors,
 };
 
 // Re-export Git types from the git plugin (now self-contained)
@@ -32,14 +32,14 @@ use crate::file_ops::{
     get_directory_contents_with_provider, FileEntry,
 };
 use crate::plugins::{
-    fileops::FileOperation, AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin,
-    DatabasePlugin, DepsPlugin, DirMapPlugin, DockerPlugin, DocsPlugin, DrivesPlugin,
-    DropboxPlugin, EmulatorPlugin, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin,
-    HomebrewPlugin, ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin,
-    OfficePlugin, PalettePlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin,
-    ProcPlugin, QEditPlugin, QLinkPlugin, QMidiPlugin, QMindPlugin, QPaintPlugin, QTaskPlugin,
-    QdconfigPlugin, RedisPlugin, SearchSpecPlugin, SftpPlugin, SheetPlugin, ShellPlugin,
-    SpacePlugin, StatusPlugin, TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
+    AIPlugin, AppsPlugin, AudioPlugin, BasicPlugin, BeadsPlugin, DatabasePlugin, DepsPlugin,
+    DirMapPlugin, DockerPlugin, DocsPlugin, DrivesPlugin, DropboxPlugin, EmulatorPlugin,
+    FileOperation, FileOpsPlugin, GDrivePlugin, GamesPlugin, GitPlugin, HelpPlugin, HomebrewPlugin,
+    ICloudPlugin, JjPlugin, KeyHandleResult, MidiPlugin, Model3dPlugin, OfficePlugin,
+    PalettePlugin, PluginManager, PluginMenuItem, PluginStatusInfo, PrintPlugin, ProcPlugin,
+    QEditPlugin, QLinkPlugin, QMidiPlugin, QMindPlugin, QPaintPlugin, QTaskPlugin, QdconfigPlugin,
+    RedisPlugin, SearchSpecPlugin, SftpPlugin, SheetPlugin, ShellPlugin, SpacePlugin, StatusPlugin,
+    TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
 };
 use crate::sound::SoundEffects;
 use crate::ui;
@@ -2889,7 +2889,7 @@ impl App {
                         let entries = self.plugin_manager.collect_app_entries(&self.current_path);
                         let palette_apps: Vec<_> = entries
                             .into_iter()
-                            .map(|e| crate::plugins::palette::PaletteApp {
+                            .map(|e| qdos_plugin_palette::PaletteApp {
                                 id: e.id,
                                 name: e.name,
                                 description: e.description,

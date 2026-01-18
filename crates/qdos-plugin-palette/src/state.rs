@@ -1,6 +1,6 @@
 //! Command Palette state types
 
-use crate::app::NavItem;
+use qdos_plugin_api::NavItem;
 use std::path::PathBuf;
 
 /// Category for palette results
