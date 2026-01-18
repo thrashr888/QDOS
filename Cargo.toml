@@ -4,6 +4,9 @@ members = [
     "crates/jj",
     "crates/beads",
     "crates/search",
+    "crates/qdos-sound",
+    "crates/qdos-mcp",
+    "crates/qdos-vfs",
     "crates/qdos-plugin-api",
     "crates/qdos-plugin-space",
     "crates/qdos-plugin-status",
@@ -177,6 +180,9 @@ homebrew = { path = "crates/homebrew" }
 jj-cli = { path = "crates/jj" }
 beads-cli = { path = "crates/beads" }
 search-tools = { path = "crates/search" }
+qdos-sound = { path = "crates/qdos-sound" }
+qdos-mcp = { path = "crates/qdos-mcp" }
+qdos-vfs = { path = "crates/qdos-vfs" }
 qdos-plugin-api = { path = "crates/qdos-plugin-api" }
 qdos-plugin-space = { path = "crates/qdos-plugin-space" }
 qdos-plugin-status = { path = "crates/qdos-plugin-status" }

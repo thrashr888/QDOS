@@ -2,7 +2,7 @@
 //!
 //! Provides achievement definitions, condition checking, and unlock tracking.
 
-use crate::plugins::games::state::GameType;
+use crate::state::GameType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 

@@ -1,0 +1,10 @@
+[package]
+name = "qdos-sound"
+version = "0.18.0"
+edition = "2021"
+description = "Sound and music types for R-DOS"
+license = "MIT"
+
+[dependencies]
+rodio = "0.19"
+rand = "0.8"

@@ -1,0 +1,11 @@
+[package]
+name = "qdos-vfs"
+version = "0.18.0"
+edition = "2021"
+description = "Virtual File System abstraction for R-DOS"
+license = "MIT"
+
+[dependencies]
+qdos-mcp = { path = "../qdos-mcp" }
+anyhow = "1.0"
+serde_json = "1.0"

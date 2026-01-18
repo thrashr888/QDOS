@@ -4,9 +4,9 @@
 //! Uses tools like `list_directory` and `read_text_file` from
 //! the MCP filesystem server.
 
-use super::{FileSystemProvider, VfsDirEntry, VfsMetadata};
-use crate::mcp::{McpClient, ServerConfig};
+use crate::{FileSystemProvider, VfsDirEntry, VfsMetadata};
 use anyhow::{anyhow, Result};
+use qdos_mcp::{McpClient, ServerConfig};
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs::{OpenOptions, Permissions};
@@ -160,7 +160,7 @@ impl McpFS {
     }
 
     /// Extract text content from MCP tool result
-    fn extract_text_content(&self, content: &[crate::mcp::types::Content]) -> Result<String> {
+    fn extract_text_content(&self, content: &[qdos_mcp::Content]) -> Result<String> {
         for item in content {
             if let Some(text) = item.as_text() {
                 return Ok(text.to_string());

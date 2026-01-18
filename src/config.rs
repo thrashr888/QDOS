@@ -99,11 +99,12 @@ pub struct GamesConfig {
     pub achievements_b64: String,
 }
 
+#[allow(dead_code)]
 impl GamesConfig {
     /// Decode leaderboards from base64 JSON
-    pub fn get_leaderboards(&self) -> crate::plugins::games::state::Leaderboards {
+    pub fn get_leaderboards(&self) -> qdos_plugin_games::state::Leaderboards {
         if self.leaderboards_b64.is_empty() {
-            return crate::plugins::games::state::Leaderboards::default();
+            return qdos_plugin_games::state::Leaderboards::default();
         }
         use base64::{engine::general_purpose::STANDARD, Engine};
         STANDARD
@@ -115,7 +116,7 @@ impl GamesConfig {
     }
 
     /// Encode leaderboards to base64 JSON
-    pub fn set_leaderboards(&mut self, leaderboards: &crate::plugins::games::state::Leaderboards) {
+    pub fn set_leaderboards(&mut self, leaderboards: &qdos_plugin_games::state::Leaderboards) {
         use base64::{engine::general_purpose::STANDARD, Engine};
         if let Ok(json) = serde_json::to_string(leaderboards) {
             self.leaderboards_b64 = STANDARD.encode(json.as_bytes());
@@ -123,7 +124,7 @@ impl GamesConfig {
     }
 
     /// Decode clicker state from base64 JSON
-    pub fn get_clicker_state(&self) -> Option<crate::plugins::games::clicker::ClickerState> {
+    pub fn get_clicker_state(&self) -> Option<qdos_plugin_games::clicker::ClickerState> {
         if self.clicker_state_b64.is_empty() {
             return None;
         }
@@ -136,7 +137,7 @@ impl GamesConfig {
     }
 
     /// Encode clicker state to base64 JSON
-    pub fn set_clicker_state(&mut self, state: &crate::plugins::games::clicker::ClickerState) {
+    pub fn set_clicker_state(&mut self, state: &qdos_plugin_games::clicker::ClickerState) {
         use base64::{engine::general_purpose::STANDARD, Engine};
         if let Ok(json) = serde_json::to_string(state) {
             self.clicker_state_b64 = STANDARD.encode(json.as_bytes());
@@ -144,9 +145,9 @@ impl GamesConfig {
     }
 
     /// Decode player stats from base64 JSON
-    pub fn get_player_stats(&self) -> crate::plugins::games::platform::PlayerStats {
+    pub fn get_player_stats(&self) -> qdos_plugin_games::platform::PlayerStats {
         if self.player_stats_b64.is_empty() {
-            return crate::plugins::games::platform::PlayerStats::default();
+            return qdos_plugin_games::platform::PlayerStats::default();
         }
         use base64::{engine::general_purpose::STANDARD, Engine};
         STANDARD
@@ -158,7 +159,7 @@ impl GamesConfig {
     }
 
     /// Encode player stats to base64 JSON
-    pub fn set_player_stats(&mut self, stats: &crate::plugins::games::platform::PlayerStats) {
+    pub fn set_player_stats(&mut self, stats: &qdos_plugin_games::platform::PlayerStats) {
         use base64::{engine::general_purpose::STANDARD, Engine};
         if let Ok(json) = serde_json::to_string(stats) {
             self.player_stats_b64 = STANDARD.encode(json.as_bytes());
@@ -166,9 +167,9 @@ impl GamesConfig {
     }
 
     /// Decode achievement state from base64 JSON
-    pub fn get_achievements(&self) -> crate::plugins::games::platform::AchievementState {
+    pub fn get_achievements(&self) -> qdos_plugin_games::platform::AchievementState {
         if self.achievements_b64.is_empty() {
-            return crate::plugins::games::platform::AchievementState::default();
+            return qdos_plugin_games::platform::AchievementState::default();
         }
         use base64::{engine::general_purpose::STANDARD, Engine};
         STANDARD
@@ -180,7 +181,7 @@ impl GamesConfig {
     }
 
     /// Encode achievement state to base64 JSON
-    pub fn set_achievements(&mut self, state: &crate::plugins::games::platform::AchievementState) {
+    pub fn set_achievements(&mut self, state: &qdos_plugin_games::platform::AchievementState) {
         use base64::{engine::general_purpose::STANDARD, Engine};
         if let Ok(json) = serde_json::to_string(state) {
             self.achievements_b64 = STANDARD.encode(json.as_bytes());
@@ -793,7 +794,7 @@ mod tests {
 
     #[test]
     fn test_games_config_base64_clicker_roundtrip() {
-        use crate::plugins::games::clicker::ClickerState;
+        use qdos_plugin_games::clicker::ClickerState;
 
         let mut games_config = GamesConfig::default();
 
@@ -816,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_games_config_base64_leaderboards_roundtrip() {
-        use crate::plugins::games::state::Leaderboards;
+        use qdos_plugin_games::state::Leaderboards;
 
         let mut games_config = GamesConfig::default();
 

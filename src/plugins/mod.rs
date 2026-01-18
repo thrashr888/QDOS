@@ -17,14 +17,10 @@ pub mod attribute_modal;
 pub mod clipboard_modal;
 pub mod find_modal;
 
-// Local plugins (tightly coupled to main app modules)
-pub mod games;
-pub mod qlink;
-
-// Re-export local plugin types
-pub use games::GamesPlugin;
+// Re-export plugin types from external crates
+pub use qdos_plugin_games::GamesPlugin;
 pub use qdos_plugin_qdconfig::QdconfigPlugin;
-pub use qlink::QLinkPlugin;
+pub use qdos_plugin_qlink::QLinkPlugin;
 
 // All plugins are now external crates
 pub use qdos_plugin_ai::AIPlugin;

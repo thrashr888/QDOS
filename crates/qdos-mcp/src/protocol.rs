@@ -36,7 +36,7 @@ impl JsonRpcRequest {
     }
 
     /// Create an initialize request
-    pub fn initialize(params: &super::types::InitializeParams) -> Self {
+    pub fn initialize(params: &crate::types::InitializeParams) -> Self {
         Self::new(
             "initialize",
             Some(serde_json::to_value(params).unwrap_or(Value::Null)),
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_initialize_request() {
-        let params = super::super::types::InitializeParams::default();
+        let params = crate::types::InitializeParams::default();
         let request = JsonRpcRequest::initialize(&params);
         assert_eq!(request.method, "initialize");
     }

@@ -3,7 +3,7 @@
 //! This module provides `LocalFS`, which wraps the standard library's `std::fs`
 //! functions to implement the `FileSystemProvider` trait.
 
-use super::{FileSystemProvider, VfsDirEntry, VfsMetadata};
+use crate::{FileSystemProvider, VfsDirEntry, VfsMetadata};
 use anyhow::Result;
 use std::fs::{self, Permissions};
 use std::path::{Path, PathBuf};

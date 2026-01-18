@@ -320,7 +320,7 @@ fn draw_inventory(
             } else {
                 ""
             };
-            let lamp_status = if *item == crate::plugins::games::caverns::ItemId::BrassLamp {
+            let lamp_status = if *item == crate::caverns::ItemId::BrassLamp {
                 if state.lamp_lit {
                     " (lit)"
                 } else {
@@ -497,7 +497,7 @@ fn draw_encounter(
     row += 2;
 
     // Dragon art for dragon encounter
-    if creature_id == crate::plugins::games::caverns::CreatureId::Dragon {
+    if creature_id == crate::caverns::CreatureId::Dragon {
         for line in DRAGON_ART {
             view.render_row(
                 frame,
@@ -939,7 +939,7 @@ fn draw_victory(
 // HELPERS
 // =============================================================================
 
-fn format_exits(room: &crate::plugins::games::caverns::Room) -> String {
+fn format_exits(room: &crate::caverns::Room) -> String {
     let mut exits = Vec::new();
     if room.exits.north.is_some() {
         exits.push("North");

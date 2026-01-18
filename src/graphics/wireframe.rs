@@ -3,6 +3,8 @@
 //! Provides Star Wars / Battlezone style vector graphics rendering.
 //! Renders 3D wireframe models to pixel buffers with phosphor CRT effects.
 
+#![allow(dead_code)]
+
 /// Phosphor green colors (mimics CRT persistence)
 pub const PHOSPHOR_GREEN: (u8, u8, u8) = (0, 255, 0); // Bright line
 pub const PHOSPHOR_DIM: (u8, u8, u8) = (0, 128, 0); // Glow

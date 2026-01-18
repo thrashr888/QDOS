@@ -7,6 +7,7 @@
 
 pub mod wireframe;
 
+#[allow(unused_imports)]
 pub use wireframe::{
     apply_scanlines, render_wireframe, render_wireframe_colored, wireframe_to_ascii,
     WireframeModel, PHOSPHOR_DARK, PHOSPHOR_DIM, PHOSPHOR_GREEN,

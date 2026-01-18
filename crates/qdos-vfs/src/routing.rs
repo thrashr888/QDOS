@@ -3,7 +3,7 @@
 //! Routes file operations to different providers based on path prefixes.
 //! This enables mounting MCP filesystems at specific paths.
 
-use super::{FileSystemProvider, LocalFS, VfsDirEntry, VfsMetadata};
+use crate::{FileSystemProvider, LocalFS, VfsDirEntry, VfsMetadata};
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::fs::Permissions;

@@ -3732,6 +3732,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qdos-mcp"
+version = "0.18.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "qdos-plugin-ai"
 version = "0.1.0"
 dependencies = [
@@ -3949,6 +3958,7 @@ dependencies = [
 name = "qdos-plugin-games"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "crossterm 0.28.1",
  "dirs 6.0.0",
@@ -3956,6 +3966,7 @@ dependencies = [
  "inventory",
  "qdos-plugin-api",
  "qdos-plugin-qmind",
+ "qdos-sound",
  "rand 0.8.5",
  "ratatui",
  "ratatui-image 3.0.0",
@@ -4235,11 +4246,13 @@ dependencies = [
 
 [[package]]
 name = "qdos-plugin-qlink"
-version = "0.1.0"
+version = "0.18.0"
 dependencies = [
  "crossterm 0.28.1",
  "inventory",
+ "qdos-mcp",
  "qdos-plugin-api",
+ "qdos-vfs",
  "ratatui",
 ]
 
@@ -4433,6 +4446,23 @@ dependencies = [
  "resvg",
  "syntect",
  "tiny-skia",
+]
+
+[[package]]
+name = "qdos-sound"
+version = "0.18.0"
+dependencies = [
+ "rand 0.8.5",
+ "rodio 0.19.0",
+]
+
+[[package]]
+name = "qdos-vfs"
+version = "0.18.0"
+dependencies = [
+ "anyhow",
+ "qdos-mcp",
+ "serde_json",
 ]
 
 [[package]]
@@ -4688,6 +4718,7 @@ dependencies = [
  "notify",
  "portable-pty",
  "postgres",
+ "qdos-mcp",
  "qdos-plugin-ai",
  "qdos-plugin-api",
  "qdos-plugin-apps",
@@ -4747,6 +4778,8 @@ dependencies = [
  "qdos-plugin-theme",
  "qdos-plugin-video",
  "qdos-plugin-viewer",
+ "qdos-sound",
+ "qdos-vfs",
  "rand 0.8.5",
  "ratatui",
  "ratatui-image 3.0.0",

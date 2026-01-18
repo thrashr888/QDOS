@@ -1,13 +1,15 @@
 [package]
 name = "qdos-plugin-qlink"
-version = "0.1.0"
+version = "0.18.0"
 edition = "2021"
-description = "R-DOS plugin: qlink"
+description = "R-DOS plugin: Q-LINK MCP client"
 license = "MIT"
 repository = "https://github.com/thrashr888/QDOS"
 
 [dependencies]
 qdos-plugin-api = { path = "../qdos-plugin-api" }
+qdos-mcp = { path = "../qdos-mcp" }
+qdos-vfs = { path = "../qdos-vfs" }
 inventory = "0.3"
 ratatui = "0.29"
 crossterm = "0.28"

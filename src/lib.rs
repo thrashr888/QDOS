@@ -20,10 +20,12 @@ pub mod errors;
 pub mod event;
 pub mod file_ops;
 pub mod graphics;
-pub mod mcp;
 pub mod plugins;
 pub mod rg;
 pub mod sound;
 pub mod ui;
-pub mod vfs;
 pub mod watcher;
+
+// Re-export external crates
+pub use qdos_mcp as mcp;
+pub use qdos_vfs as vfs;

@@ -124,7 +124,7 @@ pub fn draw_tetris(
         ],
     );
 
-    let next_piece = crate::plugins::games::tetris::Piece::new(state.next_piece);
+    let next_piece = crate::tetris::Piece::new(state.next_piece);
     for (dx, dy) in next_piece.piece_type.shape(0) {
         let px = (preview_x as i32 + 2 + dx * 2) as usize;
         let py = (4 + dy) as u16;

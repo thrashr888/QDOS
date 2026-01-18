@@ -2,7 +2,7 @@
 //!
 //! Manages child process spawning and JSON-RPC message I/O over stdin/stdout.
 
-use super::protocol::{
+use crate::protocol::{
     parse_message, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, McpError,
 };
 use std::collections::HashMap;

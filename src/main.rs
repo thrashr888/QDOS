@@ -15,13 +15,18 @@ mod config;
 mod errors;
 mod event;
 mod file_ops;
-mod mcp;
+mod graphics;
 mod plugins;
 mod rg;
 mod sound;
 mod ui;
-mod vfs;
 mod watcher;
+
+// Re-export external crates as modules for compatibility
+#[allow(unused_imports)]
+use qdos_mcp as mcp;
+#[allow(unused_imports)]
+use qdos_vfs as vfs;
 
 use anyhow::Result;
 use app::App;

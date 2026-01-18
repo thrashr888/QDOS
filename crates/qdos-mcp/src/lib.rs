@@ -18,7 +18,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use rdos::mcp::{McpClientBuilder, McpError};
+//! use qdos_mcp::{McpClientBuilder, McpError};
 //!
 //! // Connect to a filesystem MCP server
 //! let mut client = McpClientBuilder::new("npx")
@@ -53,5 +53,7 @@ pub mod transport;
 pub mod types;
 
 // Re-export commonly used types
-pub use client::McpClient;
+pub use client::{McpClient, McpClientBuilder};
+pub use protocol::McpError;
 pub use transport::ServerConfig;
+pub use types::*;

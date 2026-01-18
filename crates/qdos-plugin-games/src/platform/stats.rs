@@ -4,7 +4,7 @@
 //! Stats are updated on game start/end and saved to config.
 
 use super::GameEvent;
-use crate::plugins::games::state::GameType;
+use crate::state::GameType;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

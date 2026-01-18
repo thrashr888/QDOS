@@ -2,9 +2,9 @@
 //!
 //! Provides a convenient API for interacting with MCP servers.
 
-use super::protocol::{JsonRpcMessage, JsonRpcRequest, McpError};
-use super::transport::{ServerConfig, StdioTransport};
-use super::types::{
+use crate::protocol::{JsonRpcMessage, JsonRpcRequest, McpError};
+use crate::transport::{ServerConfig, StdioTransport};
+use crate::types::{
     CallToolResult, InitializeParams, InitializeResult, ListResourcesResult, ListToolsResult,
     ReadResourceResult, Resource, ServerCapabilities, ServerInfo, Tool,
 };
@@ -291,6 +291,9 @@ impl McpClientBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::transport::StdioTransport;
+    use std::collections::HashMap;
+    use std::time::Duration;
 
     #[test]
     fn test_client_builder() {
