@@ -8,16 +8,19 @@
 pub mod achievements;
 mod adventure;
 mod artillery;
+mod asteroid;
 mod baccarat;
 mod biolab;
 mod blackjack;
 mod blockworld;
 mod brainiac;
 mod breakout;
+mod bubbles;
 mod caverns;
 mod clicker;
 mod cosmos;
 mod craps;
+mod dinojump;
 mod dopewars;
 mod dungeon;
 mod gumshoe;
@@ -41,16 +44,19 @@ mod westworld;
 // Re-export game draw functions
 pub use adventure::draw as draw_adventure;
 pub use artillery::draw as draw_artillery;
+pub use asteroid::draw_asteroid;
 pub use baccarat::draw as draw_baccarat;
 pub use biolab::draw_biolab;
 pub use blackjack::draw as draw_blackjack;
 pub use blockworld::draw_blockworld;
 pub use brainiac::draw_brainiac;
 pub use breakout::draw_breakout;
+pub use bubbles::draw_bubbles;
 pub use caverns::draw_caverns;
 pub use clicker::draw_clicker;
 pub use cosmos::draw as draw_cosmos;
 pub use craps::draw as draw_craps;
+pub use dinojump::draw_dinojump;
 pub use dopewars::draw_dopewars;
 pub use dungeon::draw_dungeon;
 pub use gumshoe::draw_gumshoe;
@@ -144,6 +150,9 @@ pub fn draw_games_modal(
             GameType::Poker => " Video Poker ",
             GameType::Baccarat => " Baccarat ",
             GameType::Craps => " Craps ",
+            GameType::Bubbles => " Bubbles ",
+            GameType::Asteroid => " Asteroids ",
+            GameType::DinoJump => " Dino Jump ",
         },
         GamesView::Playing | GamesView::Paused => match state.current_game {
             Some(GameType::Tetris) => " Tetris ",
@@ -175,6 +184,9 @@ pub fn draw_games_modal(
             Some(GameType::Poker) => " Video Poker ",
             Some(GameType::Baccarat) => " Baccarat ",
             Some(GameType::Craps) => " Craps ",
+            Some(GameType::Bubbles) => " Bubbles ",
+            Some(GameType::Asteroid) => " Asteroids ",
+            Some(GameType::DinoJump) => " Dino Jump ",
             None => " Games ",
         },
         GamesView::GameOver => " Game Over ",
@@ -460,6 +472,9 @@ fn draw_game(frame: &mut Frame, view: &FullScreenView, state: &GamesState, color
         Some(GameType::Poker) => draw_poker(frame, view.area, &state.poker, colors),
         Some(GameType::Baccarat) => draw_baccarat(frame, view.area, &state.baccarat, colors),
         Some(GameType::Craps) => draw_craps(frame, view.area, &state.craps, colors),
+        Some(GameType::Bubbles) => draw_bubbles(frame, view, &state.bubbles, colors),
+        Some(GameType::Asteroid) => draw_asteroid(frame, view, &state.asteroid, colors),
+        Some(GameType::DinoJump) => draw_dinojump(frame, view, &state.dinojump, colors),
         None => {}
     }
 }
@@ -585,6 +600,9 @@ fn draw_game_over(
             GameType::Poker => 26,      // Casino video poker
             GameType::Baccarat => 27,   // Casino baccarat
             GameType::Craps => 28,      // Casino craps
+            GameType::Bubbles => 29,    // Puzzle game
+            GameType::Asteroid => 30,   // Arcade shooter
+            GameType::DinoJump => 31,   // Endless runner
         };
         if idx < 8 && state.score >= state.high_scores[idx] && state.score > 0 {
             view.render_row(

@@ -10,17 +10,20 @@
 
 pub mod adventure;
 pub mod artillery;
+pub mod asteroid;
 pub mod baccarat;
 pub mod biolab;
 pub mod blackjack;
 pub mod blockworld;
 pub mod brainiac;
 pub mod breakout;
+pub mod bubbles;
 pub mod caverns;
 pub mod clicker;
 mod config;
 pub mod cosmos;
 pub mod craps;
+pub mod dinojump;
 pub mod dopewars;
 pub mod dungeon;
 pub mod gumshoe;
@@ -243,6 +246,9 @@ impl GamesPlugin {
             GameType::Poker => false,    // Casino - no win condition
             GameType::Baccarat => false, // Casino - no win condition
             GameType::Craps => false,    // Casino - no win condition
+            GameType::Bubbles => self.state.bubbles.game_won,
+            GameType::Asteroid => false, // Endless - no win condition
+            GameType::DinoJump => false, // Endless runner - no win condition
         }
     }
 
@@ -486,6 +492,9 @@ impl Plugin for GamesPlugin {
                     Some(GameType::Poker) => self.state.poker.handle_key(key),
                     Some(GameType::Baccarat) => self.state.baccarat.handle_key(key),
                     Some(GameType::Craps) => self.state.craps.handle_key(key),
+                    Some(GameType::Bubbles) => self.state.bubbles.handle_key(key),
+                    Some(GameType::Asteroid) => self.state.asteroid.handle_key(key),
+                    Some(GameType::DinoJump) => self.state.dinojump.handle_key(key),
                     None => platform::KeyHandleResult::NotHandled,
                 };
 
@@ -845,6 +854,27 @@ impl Plugin for GamesPlugin {
                 self.state.craps.tick();
                 self.state.score = self.state.craps.get_score();
                 if self.state.craps.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Bubbles) => {
+                self.state.bubbles.tick();
+                self.state.score = self.state.bubbles.get_score();
+                if self.state.bubbles.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::Asteroid) => {
+                self.state.asteroid.tick();
+                self.state.score = self.state.asteroid.get_score();
+                if self.state.asteroid.is_game_over() {
+                    self.end_game_with_stats();
+                }
+            }
+            Some(GameType::DinoJump) => {
+                self.state.dinojump.tick();
+                self.state.score = self.state.dinojump.get_score();
+                if self.state.dinojump.is_game_over() {
                     self.end_game_with_stats();
                 }
             }

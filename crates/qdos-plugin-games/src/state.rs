@@ -2,16 +2,19 @@
 
 use super::adventure::AdventureState;
 use super::artillery::ArtilleryState;
+use super::asteroid::AsteroidState;
 use super::baccarat::BaccaratState;
 use super::biolab::BiolabState;
 use super::blackjack::BlackjackState;
 use super::blockworld::BlockworldState;
 use super::brainiac::BrainiacState;
 use super::breakout::BreakoutState;
+use super::bubbles::BubblesState;
 use super::caverns::CavernsState;
 use super::clicker::ClickerState;
 use super::cosmos::CosmosState;
 use super::craps::CrapsState;
+use super::dinojump::DinoJumpState;
 use super::dopewars::DopeWarsState;
 use super::dungeon::DungeonState;
 use super::gumshoe::GumshoeState;
@@ -163,6 +166,12 @@ pub struct Leaderboards {
     pub baccarat: GameLeaderboard,
     #[serde(default)]
     pub craps: GameLeaderboard,
+    #[serde(default)]
+    pub bubbles: GameLeaderboard,
+    #[serde(default)]
+    pub asteroid: GameLeaderboard,
+    #[serde(default)]
+    pub dinojump: GameLeaderboard,
 }
 
 impl Leaderboards {
@@ -202,6 +211,9 @@ impl Leaderboards {
             GameType::Poker => &self.poker,
             GameType::Baccarat => &self.baccarat,
             GameType::Craps => &self.craps,
+            GameType::Bubbles => &self.bubbles,
+            GameType::Asteroid => &self.asteroid,
+            GameType::DinoJump => &self.dinojump,
         }
     }
 
@@ -237,6 +249,9 @@ impl Leaderboards {
             GameType::Poker => &mut self.poker,
             GameType::Baccarat => &mut self.baccarat,
             GameType::Craps => &mut self.craps,
+            GameType::Bubbles => &mut self.bubbles,
+            GameType::Asteroid => &mut self.asteroid,
+            GameType::DinoJump => &mut self.dinojump,
         }
     }
 }
@@ -273,6 +288,9 @@ pub enum GameType {
     Poker,
     Baccarat,
     Craps,
+    Bubbles,
+    Asteroid,
+    DinoJump,
 }
 
 impl GameType {
@@ -307,6 +325,9 @@ impl GameType {
             GameType::Cosmos,
             GameType::Blockworld,
             GameType::Westworld,
+            GameType::Bubbles,
+            GameType::Asteroid,
+            GameType::DinoJump,
         ]
     }
 
@@ -341,6 +362,9 @@ impl GameType {
             GameType::Poker => "Video Poker",
             GameType::Baccarat => "Baccarat",
             GameType::Craps => "Craps",
+            GameType::Bubbles => "Bubbles",
+            GameType::Asteroid => "Asteroids",
+            GameType::DinoJump => "Dino Jump",
         }
     }
 
@@ -375,6 +399,9 @@ impl GameType {
             GameType::Poker => "Jacks or Better video poker!",
             GameType::Baccarat => "Punto banco - bet on player or banker!",
             GameType::Craps => "Roll the dice - pass line betting!",
+            GameType::Bubbles => "Match and pop colored bubbles!",
+            GameType::Asteroid => "Destroy asteroids, avoid collisions!",
+            GameType::DinoJump => "Endless runner - jump over obstacles!",
         }
     }
 }
@@ -443,6 +470,9 @@ pub struct GamesState {
     pub poker: PokerState,
     pub baccarat: BaccaratState,
     pub craps: CrapsState,
+    pub bubbles: BubblesState,
+    pub asteroid: AsteroidState,
+    pub dinojump: DinoJumpState,
 
     // Casino wallet - shared credits for gambling games
     pub casino_credits: i64,
@@ -500,6 +530,9 @@ impl GamesState {
             poker: PokerState::new(),
             baccarat: BaccaratState::new(),
             craps: CrapsState::new(),
+            bubbles: BubblesState::new(),
+            asteroid: AsteroidState::new(),
+            dinojump: DinoJumpState::new(),
             casino_credits: 1000, // Starting casino credits
         }
     }
@@ -607,6 +640,15 @@ impl GamesState {
                 self.craps = CrapsState::new();
                 self.craps.set_credits(self.casino_credits);
             }
+            GameType::Bubbles => {
+                self.bubbles = BubblesState::new();
+            }
+            GameType::Asteroid => {
+                self.asteroid = AsteroidState::new();
+            }
+            GameType::DinoJump => {
+                self.dinojump = DinoJumpState::new();
+            }
         }
     }
 
@@ -651,6 +693,9 @@ impl GamesState {
                 GameType::Poker => 26,      // Casino game
                 GameType::Baccarat => 27,   // Casino game
                 GameType::Craps => 28,      // Casino game
+                GameType::Bubbles => 29,    // Puzzle game
+                GameType::Asteroid => 30,   // Arcade shooter
+                GameType::DinoJump => 31,   // Endless runner
             };
 
             // Update casino credits for gambling games
