@@ -71,7 +71,7 @@ resolver = "2"
 
 [package]
 name = "rdos"
-version = "0.19.0"
+version = "0.20.0"
 edition = "2021"
 description = "R-DOS: A retro DOS-style file manager TUI application written in Rust"
 authors = ["thrashr888"]
