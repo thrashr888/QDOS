@@ -101,57 +101,44 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           curl -sL "https://github.com/thrashr888/QDOS/releases/download/${TAG_NAME}/rdos-macos-aarch64" -o rdos-macos-aarch64
-          echo "macos_aarch64=$(sha256sum rdos-macos-aarch64 | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "darwin_arm64=$(sha256sum rdos-macos-aarch64 | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Update Homebrew formula
+        uses: thrashr888/homebrew-tap@main
+        with:
+          formula: rdos
+          tag: ${{ github.ref_name }}
+          tap-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          darwin-arm64-sha256: ${{ steps.sha.outputs.darwin_arm64 }}
+          template: |
+            class Rdos < Formula
+              desc "R-DOS: A modern TUI file manager inspired by Q-DOS II, written in Rust"
+              homepage "https://github.com/thrashr888/QDOS"
+              version "${VERSION}"
+              license "MIT"
 
-      - name: Generate and push Homebrew formula
-        env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          TAG_NAME: ${{ github.ref_name }}
-          SHA_MACOS_AARCH64: ${{ steps.sha.outputs.macos_aarch64 }}
-        run: |
-          VERSION="${TAG_NAME#v}"
+              depends_on "git"
+              depends_on "ripgrep"
+              depends_on "ffmpeg" => :recommended
+              depends_on "imagemagick" => :recommended
+              depends_on "pandoc" => :recommended
+              depends_on "fluid-synth" => :recommended
 
-          cat > rdos.rb << FORMULA
-          class Rdos < Formula
-            desc "R-DOS: A modern TUI file manager inspired by Q-DOS II, written in Rust"
-            homepage "https://github.com/thrashr888/QDOS"
-            version "${VERSION}"
-            license "MIT"
+              on_macos do
+                on_arm do
+                  url "https://github.com/thrashr888/QDOS/releases/download/${TAG}/rdos-macos-aarch64"
+                  sha256 "${SHA_DARWIN_ARM64}"
 
-            depends_on "git"
-            depends_on "ripgrep"
-            depends_on "ffmpeg" => :recommended
-            depends_on "imagemagick" => :recommended
-            depends_on "pandoc" => :recommended
-            depends_on "fluid-synth" => :recommended
+                  def install
+                    bin.install "rdos-macos-aarch64" => "rdos"
+                  end
+                end
 
-            on_macos do
-              on_arm do
-                url "https://github.com/thrashr888/QDOS/releases/download/${TAG_NAME}/rdos-macos-aarch64"
-                sha256 "${SHA_MACOS_AARCH64}"
-
-                def install
-                  bin.install "rdos-macos-aarch64" => "rdos"
+                on_intel do
+                  odie "Intel Mac binaries are no longer provided. Please build from source or use an Apple Silicon Mac."
                 end
               end
 
-              on_intel do
-                odie "Intel Mac binaries are no longer provided. Please build from source or use an Apple Silicon Mac."
+              test do
+                assert_match "rdos", shell_output("#{bin}/rdos --version 2>&1", 1)
               end
             end
-
-            test do
-              assert_match "rdos", shell_output("#{bin}/rdos --version 2>&1", 1)
-            end
-          end
-          FORMULA
-
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/thrashr888/homebrew-tap.git" /tmp/homebrew-tap
-          mkdir -p /tmp/homebrew-tap/Formula
-          cp rdos.rb /tmp/homebrew-tap/Formula/rdos.rb
-          cd /tmp/homebrew-tap
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/rdos.rb
-          git commit -m "Update rdos to ${TAG_NAME}"
-          git push
