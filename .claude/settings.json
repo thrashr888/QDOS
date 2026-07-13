@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
     "nano-banana-pro@buildatscale-claude-code": true
-  }
+  },
+  "hooks": {}
 }
