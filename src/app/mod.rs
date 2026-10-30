@@ -41,6 +41,7 @@ use crate::plugins::{
     TerraformPlugin, ThemePlugin, VideoPlugin, ViewerPlugin, WebPlugin,
 };
 use crate::sound::SoundEffects;
+use crate::terminal_progress::{Progress, TerminalProgress};
 use crate::ui;
 use crate::vfs::{FileSystemProvider, RoutingFS};
 use crate::watcher::DirWatcher;
@@ -51,24 +52,9 @@ use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use jumprs::Database as JumpDatabase;
 use ratatui::prelude::*;
 use std::fs;
-use std::io::{self, Write};
+use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
-
-/// Set terminal taskbar progress indicator (OSC 9;4)
-/// Supported by: Windows Terminal, Kitty, Foot, GNOME Terminal, ConsoleZ
-fn set_terminal_progress(percent: u8) {
-    // OSC 9;4;1;<percent> ST - Set progress indicator
-    let _ = write!(io::stdout(), "\x1b]9;4;1;{}\x07", percent.min(100));
-    let _ = io::stdout().flush();
-}
-
-/// Clear terminal taskbar progress indicator
-fn clear_terminal_progress() {
-    // OSC 9;4;0 ST - Remove progress indicator
-    let _ = write!(io::stdout(), "\x1b]9;4;0\x07");
-    let _ = io::stdout().flush();
-}
 
 /// Application state
 pub struct App {
@@ -289,14 +275,20 @@ impl App {
     /// Main application loop
     pub async fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         let event_handler = EventHandler::new(100);
+        let mut terminal_progress = TerminalProgress::new();
 
         loop {
+            terminal_progress.update(self.terminal_progress());
             // Draw UI with synchronized update to reduce flicker
             // BeginSynchronizedUpdate tells the terminal to buffer rendering
             // until EndSynchronizedUpdate, preventing tearing
-            let _ = execute!(io::stdout(), BeginSynchronizedUpdate);
-            terminal.draw(|frame| ui::draw(frame, self))?;
-            let _ = execute!(io::stdout(), EndSynchronizedUpdate);
+            // Keep heartbeat OSC writes out of multi-part Kitty image transfers.
+            let mut stdout = io::stdout().lock();
+            let _ = execute!(stdout, BeginSynchronizedUpdate);
+            let drawn = terminal.draw(|frame| ui::draw(frame, self));
+            let _ = execute!(stdout, EndSynchronizedUpdate);
+            drop(stdout);
+            drawn?;
 
             // Handle events
             if let Some(event) = event_handler.next().await? {
@@ -388,6 +380,7 @@ impl App {
                 }
             }
 
+            terminal_progress.update(self.terminal_progress());
             if self.should_quit {
                 break;
             }
@@ -1648,6 +1641,17 @@ impl App {
         }
     }
 
+    fn terminal_progress(&self) -> Option<Progress> {
+        match &self.modal {
+            Modal::Progress(state) if !state.is_done() => Some(Progress::new(
+                state.current_index,
+                state.files.len(),
+                state.failed > 0,
+            )),
+            _ => None,
+        }
+    }
+
     /// Process the next file in the progress queue
     fn process_next_progress_file(&mut self) {
         let (op, file, dest) = {
@@ -1709,19 +1713,8 @@ impl App {
                 }
             }
 
-            // Update terminal taskbar progress (OSC 9;4)
-            let percent = if state.files.is_empty() {
-                100
-            } else {
-                ((state.current_index as f64 / state.files.len() as f64) * 100.0) as u8
-            };
-            set_terminal_progress(percent);
-
             // Check if done
             if state.is_done() {
-                // Clear terminal progress indicator
-                clear_terminal_progress();
-
                 let completed = state.completed;
                 let failed = state.failed;
                 let op_name = match state.operation {

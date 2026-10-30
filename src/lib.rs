@@ -23,6 +23,7 @@ pub mod graphics;
 pub mod plugins;
 pub mod rg;
 pub mod sound;
+pub mod terminal_progress;
 pub mod ui;
 pub mod watcher;
 

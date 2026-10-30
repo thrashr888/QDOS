@@ -19,6 +19,7 @@ mod graphics;
 mod plugins;
 mod rg;
 mod sound;
+mod terminal_progress;
 mod ui;
 mod watcher;
 
@@ -120,6 +121,22 @@ fn parse_subcommand(args: &[String]) -> Subcommand {
     Subcommand::Browse(None)
 }
 
+fn open_viewer_subcommand(app: &mut App, path: std::path::PathBuf) {
+    let cwd = app.current_path.clone();
+    let result = app
+        .plugin_manager
+        .viewer_plugin_mut()
+        .ok_or_else(|| "File viewer is unavailable".to_string())
+        .and_then(|plugin| plugin.open_file(path, &cwd));
+    match result {
+        Ok(()) => {
+            app.plugin_manager.set_active_modal(Some("viewer"));
+            app.modal = app::Modal::Plugin("viewer".to_string());
+        }
+        Err(error) => app.modal = app::Modal::Error(error),
+    }
+}
+
 fn print_version() {
     let version = env!("CARGO_PKG_VERSION");
     println!("rdos v{}", version);
@@ -185,6 +202,9 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // Select graphics before rendering/event handling; never probe stdin from a draw.
+    qdos_plugin_viewer::ViewerPlugin::initialize_graphics();
+
     // Create app and run it
     let mut app = App::new(&start_path)?;
 
@@ -201,11 +221,7 @@ async fn main() -> Result<()> {
             let path = std::path::PathBuf::from(&file)
                 .canonicalize()
                 .unwrap_or_else(|_| std::path::PathBuf::from(&file));
-            let cwd = app.current_path.clone();
-            if let Some(plugin) = app.plugin_manager.viewer_plugin_mut() {
-                let _ = plugin.open_file(path, &cwd);
-            }
-            app.plugin_manager.set_active_modal(Some("viewer"));
+            open_viewer_subcommand(&mut app, path);
         }
         Subcommand::Git => {
             app.plugin_manager.set_active_modal(Some("git"));
@@ -235,4 +251,29 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn view_subcommand_activates_visible_modal() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("preview.txt");
+        std::fs::write(&path, "preview").unwrap();
+        let mut app = App::new(&dir.path().to_string_lossy()).unwrap();
+        open_viewer_subcommand(&mut app, path);
+        assert!(matches!(&app.modal, app::Modal::Plugin(id) if id == "viewer"));
+        assert!(app.plugin_manager.has_active_modal());
+    }
+
+    #[test]
+    fn view_subcommand_reports_unreadable_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = App::new(&dir.path().to_string_lossy()).unwrap();
+        open_viewer_subcommand(&mut app, dir.path().join("missing.png"));
+        assert!(matches!(&app.modal, app::Modal::Error(_)));
+        assert!(!app.plugin_manager.has_active_modal());
+    }
 }

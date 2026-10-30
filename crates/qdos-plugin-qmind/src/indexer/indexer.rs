@@ -330,7 +330,7 @@ impl FileIndexer {
         let mut indexed = 0;
         let mut total_tokens = 0u32;
 
-        for ((path, _, meta), response) in files.into_iter().zip(responses.into_iter()) {
+        for ((path, _, meta), response) in files.into_iter().zip(responses) {
             let entry =
                 VectorEntry::new(path.to_string_lossy().to_string(), response.embedding, meta);
 
