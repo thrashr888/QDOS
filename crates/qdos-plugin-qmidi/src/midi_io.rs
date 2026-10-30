@@ -204,8 +204,8 @@ pub fn load_midi_file(state: &mut QMidiState, path: &Path) -> Result<(), String>
                 TrackEventKind::Meta(MetaMessage::Tempo(tempo)) => {
                     // Convert microseconds per beat to BPM
                     let usec = tempo.as_int();
-                    if usec > 0 {
-                        state.tempo = (60_000_000 / usec) as u16;
+                    if let Some(bpm) = 60_000_000u32.checked_div(usec) {
+                        state.tempo = bpm as u16;
                     }
                 }
                 TrackEventKind::Meta(MetaMessage::TimeSignature(num, denom_power, _, _)) => {

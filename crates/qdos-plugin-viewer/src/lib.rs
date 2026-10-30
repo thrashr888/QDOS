@@ -674,28 +674,26 @@ impl Plugin for ViewerPlugin {
                     }
                 }
             }
-            KeyCode::Right => {
-                // Go to newer version in git history
-                if state.has_newer_version() {
-                    if let Some(idx) = state.history_index {
-                        if idx + 1 >= state.git_history.len() {
-                            // Go to working copy
-                            if let Ok(content) = std::fs::read(&state.file_path) {
+            // Go to newer version in git history
+            KeyCode::Right if state.has_newer_version() => {
+                if let Some(idx) = state.history_index {
+                    if idx + 1 >= state.git_history.len() {
+                        // Go to working copy
+                        if let Ok(content) = std::fs::read(&state.file_path) {
+                            state.content = content;
+                            state.history_index = None;
+                            state.scroll_offset = 0;
+                        }
+                    } else {
+                        let new_idx = idx + 1;
+                        if let Some(entry) = state.git_history.get(new_idx) {
+                            let commit_hash = entry.hash.clone();
+                            if let Ok(content) =
+                                load_file_at_commit(&state.file_path, &commit_hash, cwd)
+                            {
                                 state.content = content;
-                                state.history_index = None;
+                                state.history_index = Some(new_idx);
                                 state.scroll_offset = 0;
-                            }
-                        } else {
-                            let new_idx = idx + 1;
-                            if let Some(entry) = state.git_history.get(new_idx) {
-                                let commit_hash = entry.hash.clone();
-                                if let Ok(content) =
-                                    load_file_at_commit(&state.file_path, &commit_hash, cwd)
-                                {
-                                    state.content = content;
-                                    state.history_index = Some(new_idx);
-                                    state.scroll_offset = 0;
-                                }
                             }
                         }
                     }
