@@ -19,6 +19,7 @@ mod graphics;
 mod plugins;
 mod rg;
 mod sound;
+mod terminal_progress;
 mod ui;
 mod watcher;
 
@@ -184,6 +185,9 @@ async fn main() -> Result<()> {
     execute!(stdout, EnterAlternateScreen, keyboard_enhancement)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+
+    // Select graphics before rendering/event handling; never probe stdin from a draw.
+    qdos_plugin_viewer::ViewerPlugin::initialize_graphics();
 
     // Create app and run it
     let mut app = App::new(&start_path)?;

@@ -168,6 +168,16 @@ rdos
 rdos /path/to/directory
 ```
 
+## Ghostty and Modern Terminals
+
+Image previews automatically use Kitty graphics on compatible terminals,
+including Ghostty, and retain image state across redraws and resizes. Batch
+copy, move, and erase operations can display Ghostty's native progress bar,
+with a keep-alive during long operations and cleanup when finished or cancelled.
+
+See [terminal integration](docs/terminal-integration.md) for detection, fallbacks,
+progress overrides, supported graphics behavior, and the manual test matrix.
+
 ## Keyboard Shortcuts
 
 | Key        | Action                          |
